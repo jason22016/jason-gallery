@@ -1,0 +1,17 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { loadProjects } from '../projects';
+const projects = loadProjects().listProjects();
+---
+<SiteLayout>
+  <section class="page-intro" aria-labelledby="projects-heading">
+    <p class="eyebrow">Photography</p>
+    <div class="heading-row"><h1 id="projects-heading">Projects</h1><span class="project-count">{String(projects.length).padStart(2, '0')}</span></div>
+  </section>
+  {projects.length > 0 ? (
+    <ul class="project-grid" aria-label="Photography projects">{projects.map((project, index) => <ProjectCard project={project} index={index} />)}</ul>
+  ) : (
+    <section class="empty-state"><h2>No published projects yet.</h2><p>Photography projects will appear here when they are published.</p></section>
+  )}
+</SiteLayout>

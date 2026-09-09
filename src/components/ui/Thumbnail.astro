@@ -1,0 +1,28 @@
+---
+interface Props { src: string; alt: string; width: number; height: number; eager?: boolean; }
+const { src, alt, width, height, eager = false } = Astro.props;
+---
+<gallery-thumbnail class="thumbnail" style={`--photo-ratio: ${width} / ${height}`}>
+  <img src={src} alt={alt} width={width} height={height} loading={eager ? 'eager' : 'lazy'} decoding="async" fetchpriority={eager ? 'high' : 'auto'} />
+  <span class="thumbnail-error" role="status" hidden>Preview unavailable</span>
+</gallery-thumbnail>
+<script>
+  class GalleryThumbnail extends HTMLElement {
+    connectedCallback() {
+      const image = this.querySelector('img');
+      const message = this.querySelector<HTMLElement>('.thumbnail-error');
+      if (!image || !message) return;
+      const update = () => {
+        const failed = image.complete && image.naturalWidth === 0;
+        this.dataset.state = failed ? 'error' : image.complete ? 'loaded' : 'loading';
+        message.hidden = !failed;
+      };
+      image.addEventListener('load', update, { signal: this.controller.signal });
+      image.addEventListener('error', update, { signal: this.controller.signal });
+      update();
+    }
+    private controller = new AbortController();
+    disconnectedCallback() { this.controller.abort(); this.controller = new AbortController(); }
+  }
+  if (!customElements.get('gallery-thumbnail')) customElements.define('gallery-thumbnail', GalleryThumbnail);
+</script>

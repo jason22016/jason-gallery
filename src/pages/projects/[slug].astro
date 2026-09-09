@@ -1,0 +1,28 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { loadProjects, type ResolvedProject } from '../../projects';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import Gallery from '../../components/Gallery.astro';
+export const getStaticPaths = (() => loadProjects().listProjects().map(project => ({
+  params: { slug: project.slug }, props: { project },
+}))) satisfies GetStaticPaths;
+interface Props { project: ResolvedProject; }
+const { project } = Astro.props;
+---
+<SiteLayout title={project.title} description={project.summary ?? project.title}>
+  <article>
+    <header class="project-intro">
+      <a class="back-link" href="/">← All projects</a>
+      <h1>{project.title}</h1>
+      {project.summary && <p class="project-lede">{project.summary}</p>}
+      <dl class="project-details">
+        {project.location && <div><dt>Location</dt><dd>{project.location}</dd></div>}
+        {project.period && <div><dt>Period</dt><dd><time datetime={project.period.start}>{project.period.start}</time>{project.period.end && project.period.end !== project.period.start && <> — <time datetime={project.period.end}>{project.period.end}</time></>}</dd></div>}
+        <div><dt>Photographs</dt><dd>{project.photos.length}</dd></div>
+      </dl>
+      {project.description && <p class="project-description">{project.description}</p>}
+      {project.tags && project.tags.length > 0 && <ul class="tags" aria-label="Project tags">{project.tags.map(tag => <li>{tag}</li>)}</ul>}
+    </header>
+    <Gallery project={project} />
+  </article>
+</SiteLayout>

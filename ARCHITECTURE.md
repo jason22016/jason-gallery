@@ -1,6 +1,6 @@
-# Architecture Lock — Phase 1 / Phase 2
+# Architecture Lock — Phase 1 / Phase 2 / Phase 3
 
-状态：Phase 1 正式通过，包含真实图库 Final Gate；2026-09-09。Phase 2 仅实现 Project System，继续保持 Photo Engine 和原生 Manifest 不变。本文是当前唯一架构基准，改变以下决策须先更新本文。不开发首页、Project 页面、Gallery、Map、完整 Viewer UI、部署或后端。验证记录见 `PHASE1_REPORT.md`、`PHASE2_REPORT.md`。
+状态：Phase 1（含真实图库 Final Gate）和 Phase 2 正式通过；2026-09-09。Phase 3 实现 Website MVP，继续保持 Photo Engine、Project System 和原生 Manifest 边界不变。本文是当前唯一架构基准，改变以下决策须先更新本文。本阶段不开发 Map、完整 EXIF 面板、搜索、后台、部署自动化或高级动画。验证记录见 `PHASE1_REPORT.md`、`PHASE2_REPORT.md`、`PHASE3_REPORT.md`。
 
 ## 1. 技术栈与运行方式
 
@@ -126,7 +126,7 @@ HDR 必须区分“照片含 HDR 信息”（Manifest `isHDR`）与“当前设�
 
 ## 7. 目录与数据流
 
-以下为当前及后续目录约定（正式 UI 目录尚未创建，Project 内容目录保持空白）：
+以下为当前目录约定（Project 正式内容目录保持空白）：
 
 ```text
 ARCHITECTURE.md
@@ -135,6 +135,7 @@ builder.config.ts
 scripts/photos/                 # 只读同步、缓存、执行 Builder、独立 smoke test
 tests/viewer/                   # 独立浏览器验证 fixture，不进入网站路由
 tests/projects/                 # Project fixture、契约/解析/构建集成测试
+tests/website/                  # 隔离站点 fixture、生产构建与浏览器交互测试
 packages/afilmory/              # 锁定 commit 的所需 library packages
 patches/                       # 路径/可移植性补丁
 src/
@@ -143,9 +144,12 @@ src/
   content/projects/            # 人工编辑 JSON
   data/photos-manifest.json    # 原生生成物，禁止手工编辑
   components/ui/               # 自写或有来源记录的小组件
-  components/viewer/           # 未来的 React wrapper
-  pages/health.txt.ts           # 唯一 bootstrap 探针，无首页
-  layouts/ / styles/            # 未来的 Astro 网站
+  components/viewer/           # React wrapper，动态导入浏览器 GPU 入口
+  pages/index.astro            # published Project 首页
+  pages/projects/[slug].astro  # published Project 静态路由
+  pages/404.astro              # 静态 404
+  pages/health.txt.ts          # 保留 bootstrap 探针
+  layouts/ / styles/           # 基础布局与响应式样式
 public/thumbnails/             # 构建产物
 .cache/photo-engine/           # Builder workdir、增量缓存，不提交
 licenses/                      # 上游许可、版本、来源与修改记录
@@ -162,6 +166,13 @@ GitHub main → 固定照片 commit → 原图 + 已有缩略图
 
 Project JSON 和上游来源/补丁提交 Git；Manifest、缩略图、缓存属于可重建产物。照片仓库提交只有在下一次构建后才体现在网站；触发方式后续配置。构建必须核对扫描原图与 Manifest 数量、唯一 ID、Project 引用、缩略图可用性；处理失败不得发布删图后的不完整 Manifest，保留上次成功部署。
 
+### Phase 3 Website UI 约定
+
+- 首页与 `getStaticPaths()` 只调用公开 `loadProjects()`；按公开索引顺序输出项目，Gallery 使用 `project.photos` 原顺序。静态页展示现有标题、summary、location、period、tags、description（纯文本），不推断或新增正式内容。空目录显示空状态；未知和 draft slug 不生成路由，使用静态 404。
+- Astro 输出封面与 Gallery 的原生 `thumbnailUrl`、尺寸和原图链接；不用 image optimizer。单个 React `client:only="react"` island 在同一 Gallery 容器内接管普通点击，hydration 前或 JavaScript 不可用时仍可直接访问原图。传入 island 的照片仅投影 ID、原图 URL、尺寸、alt/caption 和 `isHDR` 等 UI 必需字段，不序列化完整 Manifest/EXIF 或 draft。
+- 自写原生 modal dialog 外壳负责关闭、非循环前后切换、Escape/方向键/Home/End、焦点恢复、背景滚动锁定及 loading/error/retry。首次打开才动态导入 `photo-engine/browser`，复用上游 WebGPU → WebGL，GPU 全失败或模块加载失败时显示原始 URL 的普通 `<img>`。`isHDR` 仅说明源图片，实际 HDR 标志只来自 `onHDRChange`；切图卸载旧实例，取消旧状态影响。
+- 缩略图有保留尺寸的加载背景与失败提示；移动端单列 Gallery、可触达按钮和动态视口 Viewer。没有另建图片处理或 Project 数据接口。测试在 `.cache/` 的独立 Astro root 中使用 fixture，不写正式 Project/Manifest/缩略图；包含静态构建、无 JavaScript 浏览、桌面/移动交互、资源失败和 GPU 回退。
+
 ## 8. 许可证边界
 
 依据锁定 commit 的 [LICENSE](https://github.com/Afilmory/afilmory/blob/a3db486b0a8f2572de3032eabdfce24e726e83f3/LICENSE)：仓库采用 ANL 双轨，Library Code 为 MIT；Project Code 为 AGPL-3.0-or-later，并附 UI attribution 条款。Builder、GPU Viewer、viewer-motion 的 package 明示 MIT；typing/utils/ui 等复用库按根许可的用途分类判断，提取时仍须逐文件检查 SPDX、单独 LICENSE 与第三方代码，不可仅凭 `packages/` 路径判定。
@@ -172,7 +183,7 @@ MIT 复用须保留版权和许可文本。复制/改编 `apps/web` 的应用代
 
 ## 9. 后续实现准入
 
-Phase 1 的独立 Engine smoke test 已通过：用锁定源码包处理普通 JPEG、HDR / gain-map JPEG、已有/缺失/损坏缩略图、重复 basename / ID 和更新图片，核对原生 v10 schema、worker 输出路径及无远端写入；Viewer 包的独立生产构建、CORS 和回退也已实测通过。`pnpm test` 执行 strict 检查、Project 测试、Engine smoke、Viewer bundle/worker 隔离检查和 Astro build；浏览器能力测试单独运行，结果见报告。技术验证发现不兼容时，先修订本文，不能在页面中绕过三层边界。
+Phase 1 的独立 Engine smoke test 已通过：用锁定源码包处理普通 JPEG、HDR / gain-map JPEG、已有/缺失/损坏缩略图、重复 basename / ID 和更新图片，核对原生 v10 schema、worker 输出路径及无远端写入；Viewer 包的独立生产构建、CORS 和回退也已实测通过。`pnpm test` 执行 strict 检查、Project 测试、Engine smoke、Viewer bundle/worker 隔离检查、Phase 3 Website 生产构建/浏览器测试和本站 Astro build。Website 测试使用固定 Playwright 1.62.1 与 Chromium（首次运行需 `pnpm exec playwright install chromium`）；Phase 1 的 HDR 设备能力测试仍可单独运行，边界见报告。技术验证发现不兼容时，先修订本文，不能在页面中绕过三层边界。
 
 
 ## 10. Phase 1 实测边界与当时的 Phase 2 准入事项

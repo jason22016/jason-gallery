@@ -16,7 +16,10 @@
     "test:viewer": "node --import tsx tests/viewer/prepare.ts && vite build --config tests/viewer/vite.config.ts && node --import tsx tests/viewer/check-bundle.ts",
     "viewer:dev": "node --import tsx tests/viewer/prepare.ts && vite --config tests/viewer/vite.config.ts",
     "test:projects": "node --import tsx --test tests/projects/*.test.ts",
-    "test": "pnpm check && pnpm test:projects && pnpm test:smoke && pnpm test:viewer && pnpm build",
+    "test:website": "node --import tsx --test tests/website/*.test.ts",
+    "website:fixture": "node --import tsx tests/website/fixture.ts",
+    "website:preview": "node --import tsx tests/website/server.ts",
+    "test": "pnpm check && pnpm test:projects && pnpm test:smoke && pnpm test:viewer && pnpm test:website && pnpm build",
     "photos:verify": "node --import tsx scripts/photos/verify-full.ts"
   },
   "dependencies": {
@@ -34,6 +37,7 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@webgpu/types": "0.1.72",
+    "playwright": "1.62.1",
     "sharp": "0.35.1",
     "tsx": "4.21.0",
     "typescript": "6.0.3",

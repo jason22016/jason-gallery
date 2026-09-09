@@ -1,0 +1,25 @@
+---
+import type { ResolvedProject } from '../projects';
+import Thumbnail from './ui/Thumbnail.astro';
+import PhotoViewer from './viewer/PhotoViewer';
+import { viewerPhotos } from './viewer/photos';
+interface Props { project: ResolvedProject; }
+const { project } = Astro.props;
+const photos = viewerPhotos(project);
+---
+<section class="gallery-section" data-project-gallery aria-label={`${project.title} photographs`}>
+  <div class="section-label"><h2>Photographs</h2><span>{photos.length}</span></div>
+  <ol class="photo-grid">
+    {project.photos.map(({ photo, photoId, caption }, index) => (
+      <li data-photo-id={photoId}>
+        <figure>
+          <a class="photo-link" href={photo.originalUrl} data-gallery-index={index} aria-label={`Open photograph ${index + 1}: ${photos[index]!.alt}`}>
+            <Thumbnail src={photo.thumbnailUrl} alt={photos[index]!.alt} width={photo.width} height={photo.height} eager={index < 2} />
+          </a>
+          <figcaption><span class="photo-number">{String(index + 1).padStart(2, '0')}</span>{caption && <span>{caption}</span>}</figcaption>
+        </figure>
+      </li>
+    ))}
+  </ol>
+  <PhotoViewer photos={photos} projectTitle={project.title} client:only="react" />
+</section>
