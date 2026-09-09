@@ -1,0 +1,60 @@
+{
+  "commit": "a3db486b0a8f2572de3032eabdfce24e726e83f3",
+  "files": [
+    {
+      "upstream": "packages/viewer-motion/src/useViewerMobileInteractions.ts",
+      "local": "packages/afilmory/viewer-motion/src/useViewerMobileInteractions.ts",
+      "sha256": "0bc8d544f7c81d1f0b84021190cf8ad1e9cede6412a9b668f04623e34c576854"
+    },
+    {
+      "upstream": "packages/viewer-motion/src/SharedElementTransitionPreview.tsx",
+      "local": "packages/afilmory/viewer-motion/src/SharedElementTransitionPreview.tsx",
+      "sha256": "d805f1fc6d4014cf43154e15c38acd5795a46eb3c1759b7f0a8e84f8fc8d9b0b"
+    },
+    {
+      "upstream": "packages/viewer-motion/src/mobile-interaction-utils.ts",
+      "local": "packages/afilmory/viewer-motion/src/mobile-interaction-utils.ts",
+      "sha256": "b2661103fea68d842c72a90ba68a2489b55bb849a98d08239ea0a13f8fd7fbd9"
+    },
+    {
+      "upstream": "packages/viewer-motion/src/contracts.ts",
+      "local": "packages/afilmory/viewer-motion/src/contracts.ts",
+      "sha256": "10580280bf3d211217316d71748e0f11a0b160dde3213a94925c8e47e19af772"
+    },
+    {
+      "upstream": "packages/viewer-motion/src/spring.ts",
+      "local": "packages/afilmory/viewer-motion/src/spring.ts",
+      "sha256": "dc443ca2c09446016c8174d801cdad50c9e68c11c42e2493907f9aaab4eb3a74"
+    },
+    {
+      "upstream": "packages/viewer-motion/src/useWindowViewport.ts",
+      "local": "packages/afilmory/viewer-motion/src/useWindowViewport.ts",
+      "sha256": "2db6d62618d7166098aa9a9ae0b34744875a093a7b8baa23000fdc1a57773e49"
+    },
+    {
+      "upstream": "packages/viewer-motion/src/types.ts",
+      "local": "packages/afilmory/viewer-motion/src/types.ts",
+      "sha256": "3c2ccefd17b37df334a9185caaafcdcba51e54bc350e00c405f3f33ee1d97e6d"
+    },
+    {
+      "upstream": "packages/viewer-motion/src/frame-utils.ts",
+      "local": "packages/afilmory/viewer-motion/src/frame-utils.ts",
+      "sha256": "e2a69ff08baf02e7226193a0a1f2aa66f8d765f73ea503e13d15e22e0bccd36f"
+    },
+    {
+      "upstream": "packages/viewer-motion/src/useViewerTransitions.ts",
+      "local": "packages/afilmory/viewer-motion/src/useViewerTransitions.ts",
+      "sha256": "f91ac714606ed63a2a0c21d0ed171ddb681bd521a8af2ec89ab7eebd981313a3"
+    },
+    {
+      "upstream": "packages/viewer-motion/src/index.ts",
+      "local": "packages/afilmory/viewer-motion/src/index.ts",
+      "sha256": "c698acc7e8a891ba3c5e32040749dec763ff5df5d46de074aa6f9fe273d3f8f3"
+    },
+    {
+      "upstream": "packages/viewer-motion/src/trigger-utils.ts",
+      "local": "packages/afilmory/viewer-motion/src/trigger-utils.ts",
+      "sha256": "4e84074b70aa9bf54079ba2a2cea540d83faa6efd51a5da80a552ca91874eaa4"
+    }
+  ]
+}

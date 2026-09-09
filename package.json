@@ -20,7 +20,8 @@
     "website:fixture": "node --import tsx tests/website/fixture.ts",
     "website:preview": "node --import tsx tests/website/server.ts",
     "test": "pnpm check && pnpm test:projects && pnpm test:smoke && pnpm test:viewer && pnpm test:website && pnpm build",
-    "photos:verify": "node --import tsx scripts/photos/verify-full.ts"
+    "photos:verify": "node --import tsx scripts/photos/verify-full.ts",
+    "ui:preview": "node --import tsx tests/website/preview.ts --serve"
   },
   "dependencies": {
     "@afilmory/builder": "workspace:*",
@@ -30,7 +31,14 @@
     "astro": "7.3.2",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "zod": "4.5.4"
+    "zod": "4.5.4",
+    "@afilmory/viewer-motion": "workspace:*",
+    "masonic": "4.1.0",
+    "motion": "12.38.0",
+    "maplibre-gl": "5.24.0",
+    "lucide-react": "1.18.0",
+    "thumbhash": "0.1.1",
+    "@afilmory/utils": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

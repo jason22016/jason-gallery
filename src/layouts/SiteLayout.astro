@@ -1,24 +1,21 @@
 ---
 import '../styles/global.css';
-interface Props { title?: string; description?: string; }
-const { title, description = 'Photography projects by Jason.' } = Astro.props;
+interface Props { title?: string; description?: string; gallery?: boolean; }
+const { title, description = 'Photography projects by Jason.', gallery = false } = Astro.props;
 ---
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#f4f2ed" />
+    <meta name="theme-color" content={gallery ? '#161616' : '#ffffff'} />
     <title>{title ? `${title} — Jason Gallery` : 'Jason Gallery — Photography'}</title>
   </head>
-  <body>
-    <a class="skip-link" href="#main">Skip to content</a>
-    <header class="site-header shell">
-      <a class="wordmark" href="/" aria-label="Jason Gallery home">Jason<span>Gallery</span></a>
-      <nav aria-label="Main navigation"><a href="/" aria-current={Astro.url.pathname === '/' ? 'page' : undefined}>Projects</a></nav>
-    </header>
-    <main id="main" class="shell" tabindex="-1"><slot /></main>
-    <footer class="site-footer shell"><a href="/">Jason Gallery</a><span>Photography</span></footer>
+  <body class={gallery ? 'gallery-page' : 'portfolio-page'}>
+    <a class="skip-link" href="#main">跳至内容</a>
+    {!gallery && <header class="site-header shell"><a class="wordmark" href="/" aria-label="Jason Gallery 首页">Jason Gallery<span>.</span></a></header>}
+    <main id="main" class={gallery ? 'gallery-main' : 'shell'} tabindex="-1"><slot /></main>
+    {!gallery && <footer class="site-footer shell"><span>© Jason Gallery</span><a href="/">Projects</a></footer>}
   </body>
 </html>

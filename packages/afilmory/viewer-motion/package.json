@@ -1,0 +1,18 @@
+{
+  "name": "@afilmory/viewer-motion",
+  "type": "module",
+  "version": "0.0.5",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "@use-gesture/react": "10.3.1",
+    "motion": "12.38.0"
+  },
+  "peerDependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  }
+}

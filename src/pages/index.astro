@@ -5,13 +5,32 @@ import { loadProjects } from '../projects';
 const projects = loadProjects().listProjects();
 ---
 <SiteLayout>
-  <section class="page-intro" aria-labelledby="projects-heading">
-    <p class="eyebrow">Photography</p>
-    <div class="heading-row"><h1 id="projects-heading">Projects</h1><span class="project-count">{String(projects.length).padStart(2, '0')}</span></div>
-  </section>
+  <h1 class="sr-only">Projects</h1>
   {projects.length > 0 ? (
-    <ul class="project-grid" aria-label="Photography projects">{projects.map((project, index) => <ProjectCard project={project} index={index} />)}</ul>
+    <ul class="project-grid" aria-label="摄影项目">{projects.map((project, index) => <ProjectCard project={project} index={index} />)}</ul>
   ) : (
-    <section class="empty-state"><h2>No published projects yet.</h2><p>Photography projects will appear here when they are published.</p></section>
+    <section class="empty-state"><h2>尚无公开项目</h2><p>发布后的摄影项目会展示在这里。</p></section>
   )}
 </SiteLayout>
+<script>
+  let active: HTMLAnchorElement | null = null;
+  let start: { x: number; y: number; id: number; touch: boolean; moved: boolean } | null = null;
+  const clear = () => { active?.removeAttribute('data-revealed'); active = null; };
+  document.addEventListener('pointerdown', event => {
+    start = { x: event.clientX, y: event.clientY, id: event.pointerId, touch: event.pointerType === 'touch', moved: false };
+    if (!(event.target instanceof Element) || !event.target.closest('.project-link')) clear();
+  }, { passive: true });
+  document.addEventListener('pointermove', event => {
+    if (start && start.id === event.pointerId && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) start.moved = true;
+  }, { passive: true });
+  document.addEventListener('pointercancel', () => { if (start) start.moved = true; });
+  document.addEventListener('click', event => {
+    const link = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>('.project-link') : null;
+    if (!link || !start?.touch || event.detail === 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const moved = start.moved; start = null;
+    if (moved) { event.preventDefault(); return; }
+    if (active === link) return;
+    event.preventDefault(); clear(); active = link; link.setAttribute('data-revealed', 'true');
+  });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') clear(); });
+</script>

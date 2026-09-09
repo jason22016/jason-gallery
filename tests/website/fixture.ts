@@ -46,7 +46,12 @@ export async function buildFixture() {
   await fs.writeFile(path.join(root, 'engine.log'), engineLog);
   const manifest: AfilmoryManifest = JSON.parse(await fs.readFile(path.join(engine, 'output/photos-manifest.json'), 'utf8'));
   // Rebase URLs only in this test manifest to the isolated local static fixture server.
-  for (const photo of manifest.data) photo.originalUrl = `/originals/${photo.s3Key}`;
+  for (const photo of manifest.data) {
+    photo.originalUrl = `/originals/${photo.s3Key}`;
+    if (photo.s3Key === 'portrait.jpg') { photo.title = '街角 Portrait'; photo.dateTaken = '2024-03-02T12:00:00+08:00'; photo.tags = ['城市']; photo.location = { latitude: 22.3, longitude: 114.17, city: '测试位置' }; photo.exif = { ...photo.exif, Make: 'NIKON', Model: 'Z6', LensModel: '35mm', FNumber: 2.8, ISO: 100, Artist: 'Fixture artist' } as typeof photo.exif; }
+    if (photo.s3Key === 'hdr.jpg') { photo.title = '天光 HDR'; photo.dateTaken = '2024-03-01T12:00:00+08:00'; photo.tags = ['天空']; }
+    if (photo.s3Key === 'ordinary.jpg') { photo.title = '远山 Landscape'; photo.dateTaken = '2024-02-29T12:00:00+08:00'; photo.tags = ['风景']; }
+  }
   await fs.mkdir(path.join(root, 'src/data'), { recursive: true });
   await fs.writeFile(path.join(root, 'src/data/photos-manifest.json'), JSON.stringify(manifest));
   await fs.cp(path.join(engine, 'output/public'), path.join(root, 'public'), { recursive: true });

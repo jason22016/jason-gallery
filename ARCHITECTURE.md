@@ -1,6 +1,6 @@
-# Architecture Lock — Phase 1 / Phase 2 / Phase 3
+# Architecture Lock — Phase 1 / Phase 2 / Phase 3 / UI Redesign
 
-状态：Phase 1（含真实图库 Final Gate）和 Phase 2 正式通过；2026-09-09。Phase 3 实现 Website MVP，继续保持 Photo Engine、Project System 和原生 Manifest 边界不变。本文是当前唯一架构基准，改变以下决策须先更新本文。本阶段不开发 Map、完整 EXIF 面板、搜索、后台、部署自动化或高级动画。验证记录见 `PHASE1_REPORT.md`、`PHASE2_REPORT.md`、`PHASE3_REPORT.md`。
+状态：Phase 1（含真实图库 Final Gate）和 Phase 2 正式通过；2026-09-09。Phase 3 实现 Website MVP，继续保持 Photo Engine、Project System 和原生 Manifest 边界不变。本文是当前唯一架构基准，改变以下决策须先更新本文。2026-09-10 用户批准 UI Redesign：新增 Map、EXIF 信息面板、搜索筛选和看图动画；不加入账号、评论、点赞、后台或部署。当前 UI 约定见下方 UI Redesign 小节，Phase 3 描述保留为历史基线。验证记录见 `PHASE1_REPORT.md`、`PHASE2_REPORT.md`、`PHASE3_REPORT.md`。
 
 ## 1. 技术栈与运行方式
 
@@ -116,7 +116,7 @@ GitHub Storage 配置锁定为 `provider: 'github'`、`owner: 'jason22016'`、`r
 | `@afilmory/builder` | 构建期 package 依赖；按锁定 commit 提取并应用上述最小补丁。GitHub provider、metadata、thumbnail、HDR 检测留在包内。 |
 | `@afilmory/typing`、`@afilmory/utils`、`@afilmory/og-renderer` | Builder 所需的同 commit 依赖闭包；上游为私有 workspace 包，不能假定可从 npm 安装。对外通过本站 facade 导出照片类型，前端仅 `import type`。OG 包是当前 Builder 的依赖，不代表本阶段开发 OG 页面。 |
 | `@afilmory/webgl-viewer` | 浏览器运行期 package 依赖，锁定源码 commit；使用 `ImageViewer` 公开接口。 |
-| `@afilmory/viewer-motion` | 后续需要开合/拖拽动画时按相同 commit 引入；本阶段不安装。 |
+| `@afilmory/viewer-motion` | UI Redesign 已按相同 commit 引入，复用开合动画和移动手势；来源见 `licenses/viewer-motion-files.json`。 |
 | `@afilmory/ui` | 私有 workspace 包；优先仅抽取 Thumbhash、基础按钮/对话框等实际需要的小组件及依赖，记录来源和许可证，不引入整个包 barrel。 |
 | `apps/web` 的 PhotoViewer、ProgressiveImage、Gallery、HDRBadge、Inspector | 已审阅作为功能参考；默认不复制。本站自行实现外壳、布局、状态、可访问性和信息展示。确需复制时按第 8 节处理。 |
 | Astro、`@astrojs/react`、React/ReactDOM 19、TypeScript、Zod | 本站直接依赖；Zod 4.5.4 用于 Phase 2 Project schema；基础样式用 CSS，按抽取组件需求再引入 Tailwind/Radix。 |
@@ -172,6 +172,21 @@ Project JSON 和上游来源/补丁提交 Git；Manifest、缩略图、缓存属
 - Astro 输出封面与 Gallery 的原生 `thumbnailUrl`、尺寸和原图链接；不用 image optimizer。单个 React `client:only="react"` island 在同一 Gallery 容器内接管普通点击，hydration 前或 JavaScript 不可用时仍可直接访问原图。传入 island 的照片仅投影 ID、原图 URL、尺寸、alt/caption 和 `isHDR` 等 UI 必需字段，不序列化完整 Manifest/EXIF 或 draft。
 - 自写原生 modal dialog 外壳负责关闭、非循环前后切换、Escape/方向键/Home/End、焦点恢复、背景滚动锁定及 loading/error/retry。首次打开才动态导入 `photo-engine/browser`，复用上游 WebGPU → WebGL，GPU 全失败或模块加载失败时显示原始 URL 的普通 `<img>`。`isHDR` 仅说明源图片，实际 HDR 标志只来自 `onHDRChange`；切图卸载旧实例，取消旧状态影响。
 - 缩略图有保留尺寸的加载背景与失败提示；移动端单列 Gallery、可触达按钮和动态视口 Viewer。没有另建图片处理或 Project 数据接口。测试在 `.cache/` 的独立 Astro root 中使用 fixture，不写正式 Project/Manifest/缩略图；包含静态构建、无 JavaScript 浏览、桌面/移动交互、资源失败和 GPU 回退。
+
+### UI Redesign — 当前 Website UI 约定（2026-09-10）
+
+用户批准首页采用 Light/空之塔截图风格，Project 内页对齐 Afilmory 作者图库（实际地址 `https://innei.afilmory.art/`）。以下替代 Phase 3 的视觉和浏览能力约定，三层数据边界保持不变。
+
+实现和验收结果见 [UI_REDESIGN_REPORT.md](UI_REDESIGN_REPORT.md)。
+
+- **首页**：白色底、灰色 Jason Gallery 字标和绿色句点；5:6 封面网格，>=1200px 四列、900–1199px 三列、600–899px 两列、<600px 单列。标题与 `period.start` 在桌面 hover/focus 时用 200ms 遮罩展示，日期缺失则隐藏。触屏第一次点击显示、第二次点击同一封面跳转，移动超过 10px 不触发跳转，点击外部/按 Escape 收起。所有封面保留原生链接，无 JS 时单击导航。
+- **Project 浏览**：48px 深色顶栏、4px 间距 Masonic 瀑布流、列表、搜索/日期/相机/镜头/标签筛选。默认保留项目编排顺序，可临时按拍摄时间排序，未知时间排在最后。视图/列数在 `jason-gallery:view:v1` 保存，排序和筛选只存在当前会话。项目信息收进面板。React island 与静态回退同处一页，hydration 完成才隐藏原图链接回退。
+- **显示数据**：`viewerPhotos()` 只投影当前公开项目必需的字段，新增缩略图、ThumbHash、标题/文件名、日期、标签、相机/镜头、基本曝光、格式/大小和照片坐标。详细 EXIF/影调从构建产物 `/projects/<slug>/photos/<id>.json` 按需读取；此路由只生成公开项目引用的照片，EXIF 使用展示字段白名单，不输出存储键、人物区域或完整 Manifest。不改变原始 Manifest 或 Project schema。
+- **看图**：动态加载 Viewer、GPU 引擎与详细元数据，使用同 commit 的 MIT viewer-motion 开合/手势库。模糊背景、两侧按钮、底部缩略图条、320px 桌面信息栏、手机底部信息抽屉；缩放时禁用切图手势。浏览器解码直方图在打开信息栏时计算，跨域失败尝试同源缩略图并标明来源。沿用 GPU 降级与真实 HDR 状态；普通图片降级也支持缩放/平移。原生 dialog 提供隔离，引用计数式滚动锁覆盖加载弹窗到灯箱的交接。
+- **分享与历史**：`?photo=<id>` 表示当前项目照片，首开 push、切图 replace；支持直达、刷新、前进/后退与关闭后恢复位置/焦点。非法 ID 移除参数并显示提示。分享按钮使用 Web Share 或复制 URL，失败时显示可复制链接。静态分享链接不新增逐照片 OG 页面。
+- **地图**：仅加载当前筛选结果中有效坐标；MapLibre + CARTO Dark Matter，保留地图 attribution，支持点和聚合。地图按需加载，不请求用户当前位置；无 GPS 显示空状态，底图或 GPU 失败时仍可用照片列表打开相应照片。
+- **独立预览**：`pnpm ui:preview` 使用已导出的真实照片及缩略图，在 `.cache/ui-preview/` 生成四个临时选集并于 `127.0.0.1:4324` 提供预览。此内容不写入正式 Project、Manifest 或缩略图。`tests/website` 继续使用独立、合成且有确定元数据的 fixture，覆盖全部交互和失败分支。
+- **明确差异**：保留 Jason Gallery 品牌及 Project 层级，首页使用用户给定白色封面风格；不包含 Afilmory 的账号、社交和后台服务；地图、EXIF 等仅展示现有照片数据。源站视觉对照不包含复制第三方应用代码。
 
 ## 8. 许可证边界
 

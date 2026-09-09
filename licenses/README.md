@@ -11,8 +11,9 @@ Only `src/` and package manifests from these library packages were extracted:
 | packages/afilmory/utils | packages/utils | @afilmory/utils |
 | packages/afilmory/renderer | packages/renderer | @afilmory/og-renderer |
 | packages/afilmory/webgl-viewer | packages/webgl-viewer | @afilmory/webgl-viewer |
+| packages/afilmory/viewer-motion | packages/viewer-motion | @afilmory/viewer-motion |
 
-No `apps/`, backend, UI package, upstream media, or example photos were copied. Upstream tests and Markdown inside source folders were omitted. Per-file SHA-256 provenance (before and after patches) is in `afilmory-files.json`.
+No `apps/`, backend, UI package, upstream media, or example photos were copied. Upstream tests and Markdown inside source folders were omitted. Per-file SHA-256 provenance (before and after patches) is in `afilmory-files.json`; the added, unmodified viewer-motion sources are recorded in `viewer-motion-files.json`.
 
 Builder and Viewer package manifests declare MIT; the typing, utils and renderer code is reused as linked library code under Section 1/3 of the preserved root `AFILMORY-LICENSE` (Copyright 2025 Afilmory Team). Source files were scanned for SPDX, alternate licenses, copyright and external origin notices: no conflicting source-specific license was found. The Viewer’s own LICENSE is also preserved. `renderer/src/og/tweemoji.ts` retains its Twitter MIT notice and Satori origin comment; corresponding `TWEMOJI-LICENSE` (13.1.0) and `SATORI-LICENSE` (0.26.0) are included. OG rendering is not enabled or tested in Phase 1. Registry dependencies retain their own package licenses and exact resolutions in pnpm-lock.yaml. Photographs remain separately owned and are not included in these code licenses.
 
@@ -24,3 +25,9 @@ Builder and Viewer package manifests declare MIT; the typing, utils and renderer
 - `src/vendor-types.d.ts` is a local declaration for the untyped HEIC conversion dependency, not a change to upstream processing.
 
 Patches are in `patches/`; ID generation, metadata processing, Manifest schema, gain-map detection and Viewer rendering code are unchanged.
+
+## UI redesign (2026-09-10)
+
+`viewer-motion` is linked as MIT Library Code at the same pinned upstream commit. Its source files are unchanged; its local manifest exports TypeScript sources, pins Motion 12.38.0 and @use-gesture/react 10.3.1, and omits upstream build-only tooling. The root Afilmory license and copyright remain in `AFILMORY-LICENSE`.
+
+The portfolio, gallery, metadata, and map application components are authored locally from the user-approved visual and interaction specification. No Afilmory `apps/web` components, Typecho theme code, reference-site logos or reference-site photographs are included. Masonic, Motion, Lucide, ThumbHash, and MapLibre are registry dependencies with pinned versions and their distributed licenses. The map loads CARTO's Dark Matter style, which supplies its own map attributions; the application leaves MapLibre's attribution control enabled. The preview uses the user's existing Photo Engine output in a separate ignored directory.

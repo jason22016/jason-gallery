@@ -6,10 +6,8 @@ const { project, index } = Astro.props;
 const coverEntry = project.photos.find(entry => entry.photoId === project.coverPhotoId)!;
 ---
 <li class="project-card" data-project-slug={project.slug}>
-  <a class="project-link" href={`/projects/${project.slug}/`}>
-    <Thumbnail src={project.cover.thumbnailUrl} alt={coverEntry.alt ?? project.title} width={project.cover.width} height={project.cover.height} eager={index < 2} />
-    <div class="project-card-heading"><h2>{project.title}</h2><span aria-hidden="true">↗</span></div>
-    {project.summary && <p class="project-summary">{project.summary}</p>}
-    <p class="project-meta">{[project.location, project.period?.start.slice(0, 4), `${project.photos.length} ${project.photos.length === 1 ? 'photograph' : 'photographs'}`].filter(Boolean).join(' · ')}</p>
+  <a class="project-link" href={`/projects/${project.slug}/`} aria-label={`查看项目：${project.title}`}>
+    <Thumbnail src={project.cover.thumbnailUrl} alt={coverEntry.alt ?? project.title} width={project.cover.width} height={project.cover.height} eager={index < 4} />
+    <div class="project-overlay"><h2>{project.title}</h2>{project.period && <time datetime={project.period.start}>{project.period.start}</time>}</div>
   </a>
 </li>

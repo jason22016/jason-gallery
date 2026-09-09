@@ -70,7 +70,7 @@ async function projectPage(ctx: BrowserContext, slug = 'fixture-beta') {
   return page;
 }
 async function open(page: Page, index = 0) {
-  await page.locator('[data-gallery-index]').nth(index).click();
+  await page.locator('.gallery-live [data-gallery-index]').nth(index).click();
   await expect(page.getByRole('dialog')).toBeVisible();
 }
 async function loaded(page: Page) { await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loaded', { timeout: 15_000 }); }
@@ -89,6 +89,7 @@ test('production routes, published order, cover, project fields and Gallery orde
     await expect(page.locator('.photo-grid img').nth(i)).toHaveAttribute('src', photo.thumbnailUrl);
     await expect(page.locator('[data-gallery-index]').nth(i)).toHaveAttribute('href', photo.originalUrl);
   }
+  await page.locator('.static-info summary').click();
   await expect(page.locator('.project-details')).toContainText('Fixture location');
   await expect(page.locator('.project-details')).toContainText('2024-02-29 — 2024-03-01');
   await expect(page.locator('.project-description')).toContainText('<script>window.fixtureInjection = true</script>');
@@ -103,8 +104,8 @@ test('draft/unknown routes return custom 404 and draft data never enters HTML or
   for (const slug of ['secret-draft', 'unknown-project']) {
     const response = await page.goto(`${server.url}/projects/${slug}/`);
     assert.equal(response!.status(), 404);
-    await expect(page.getByRole('heading', { name: 'Page not found.' })).toBeVisible();
-    await page.getByRole('link', { name: 'Return to projects' }).click();
+    await expect(page.getByRole('heading', { name: '找不到页面' })).toBeVisible();
+    await page.getByRole('link', { name: '返回项目' }).click();
     await expect(page.getByRole('heading', { name: 'Projects', exact: true })).toBeVisible();
   }
   const files = await fs.readdir(dist, { recursive: true });
@@ -135,19 +136,19 @@ test('lazy Viewer, selection, buttons, keyboard limits, focus trap/restoration a
   await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/hdr.jpg');
   await expect(page.locator('.hdr-status')).toHaveText('HDR source');
   assert.equal(await page.evaluate(() => document.body.style.overflow), 'hidden');
-  await expect(page.getByRole('button', { name: 'Close photo viewer' })).toBeFocused();
+  await expect(page.getByRole('button', { name: '关闭照片' })).toBeFocused();
   await page.keyboard.press('ArrowRight'); await loaded(page);
   await expect(page.locator('.viewer-counter')).toHaveText('3 / 3');
   await expect(page.locator('.hdr-status')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Next photograph' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '下一张照片' })).toBeDisabled();
   await page.keyboard.press('ArrowRight');
   await expect(page.locator('.viewer-counter')).toHaveText('3 / 3');
   await page.keyboard.press('Home'); await loaded(page);
-  await expect(page.getByRole('button', { name: 'Previous photograph' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '上一张照片' })).toBeDisabled();
   await page.keyboard.press('ArrowLeft');
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 3');
-  await page.getByRole('button', { name: 'Next photograph' }).click(); await loaded(page);
-  await page.getByRole('button', { name: 'Previous photograph' }).click(); await loaded(page);
+  await page.getByRole('button', { name: '下一张照片' }).click(); await loaded(page);
+  await page.getByRole('button', { name: '上一张照片' }).click(); await loaded(page);
   await page.keyboard.press('End'); await loaded(page);
   await expect(page.locator('.viewer-counter')).toHaveText('3 / 3');
   for (let i = 0; i < 8; i++) {
@@ -160,11 +161,11 @@ test('lazy Viewer, selection, buttons, keyboard limits, focus trap/restoration a
   }
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.locator('[data-gallery-index]').nth(1)).toBeFocused();
+  await expect(page.locator('.gallery-live [data-gallery-index]').nth(1)).toBeFocused();
   assert.equal(await page.evaluate(() => document.body.style.overflow), '');
   await page.keyboard.press('Enter'); await loaded(page);
-  await page.getByRole('button', { name: 'Close photo viewer' }).click();
-  await expect(page.locator('[data-gallery-index]').nth(1)).toBeFocused();
+  await page.getByRole('button', { name: '关闭照片' }).click();
+  await expect(page.locator('.gallery-live [data-gallery-index]').nth(1)).toBeFocused();
 });
 
 test('loading is visible; switching/closing while requests are pending cannot revive an old photo', async t => {
@@ -175,7 +176,7 @@ test('loading is visible; switching/closing while requests are pending cannot re
   t.after(() => release());
   await page.route('**/originals/portrait.jpg', async route => { await pending; await route.continue().catch(() => {}); });
   await open(page);
-  await expect(page.getByRole('status')).toHaveText('Loading photograph…');
+  await expect(page.locator('.viewer-status')).toContainText('正在加载照片…');
   await page.keyboard.press('ArrowRight'); await loaded(page);
   release();
   await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/hdr.jpg');
@@ -187,7 +188,7 @@ test('loading is visible; switching/closing while requests are pending cannot re
   await page.unroute('**/originals/portrait.jpg');
   await page.route('**/originals/portrait.jpg', async route => { await closedRequest; await route.continue().catch(() => {}); });
   await open(page);
-  await expect(page.getByRole('status')).toHaveText('Loading photograph…');
+  await expect(page.locator('.viewer-status')).toContainText('正在加载照片…');
   await page.keyboard.press('Escape');
   releaseClosed();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -211,16 +212,16 @@ test('thumbnail error, original error and successful retry remain usable', async
   await page.route('**/originals/portrait.jpg', route => route.abort());
   await page.goto(`${server.url}/projects/fixture-beta/`);
   await page.locator('[data-viewer-ready="true"]').waitFor({ state: 'attached' });
-  await expect(page.locator('.thumbnail-error').first()).toBeVisible();
+  await expect(page.locator('.gallery-live .thumbnail-error').first()).toBeVisible();
   await open(page);
-  await expect(page.getByRole('alert')).toHaveText('This photograph could not be loaded.');
-  await expect(page.getByRole('link', { name: 'Original' })).toHaveAttribute('href', '/originals/portrait.jpg');
+  await expect(page.getByRole('alert')).toHaveText('照片加载失败');
+  await expect(page.locator('.viewer-actions a[aria-label="打开原图"]')).toHaveAttribute('href', '/originals/portrait.jpg');
   await page.unroute('**/originals/portrait.jpg');
-  await page.getByRole('button', { name: 'Try again' }).click(); await loaded(page);
+  await page.getByRole('button', { name: '重新加载' }).click(); await loaded(page);
   await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/portrait.jpg');
   await page.keyboard.press('ArrowRight'); await loaded(page);
   await expect(page.locator('.viewer-counter')).toHaveText('2 / 3');
-  await page.getByRole('button', { name: 'Close photo viewer' }).click();
+  await page.getByRole('button', { name: '关闭照片' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
@@ -230,7 +231,7 @@ test('real Afilmory WebGPU initialization failure falls back to WebGL in the Ast
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await open(page, 1); await loaded(page);
   await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'webgl');
-  await expect(page.locator('canvas[role="img"]')).toHaveAttribute('aria-label', 'Fixture HDR image');
+  await expect(page.locator('.viewer-media canvas[role="img"]')).toHaveAttribute('aria-label', 'Fixture HDR image');
   await expect(page.locator('.hdr-status')).toHaveText('HDR source');
   await page.keyboard.press('ArrowRight'); await loaded(page);
   await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'webgl');
@@ -238,25 +239,26 @@ test('real Afilmory WebGPU initialization failure falls back to WebGL in the Ast
   assert.deepEqual(errors, []);
 });
 
-test('mobile single-column layout, touch controls, single-photo boundaries and viewport resizing', async t => {
+test('mobile masonry layout, touch controls, single-photo boundaries and viewport resizing', async t => {
   const ctx = await context({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }); t.after(() => ctx.close());
   const page = await projectPage(ctx, 'fixture-zeta');
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-  await page.locator('[data-gallery-index]').tap(); await loaded(page);
-  for (const label of ['Previous photograph', 'Next photograph']) await expect(page.getByRole('button', { name: label })).toBeDisabled();
+  await page.locator('.gallery-live [data-gallery-index]').tap(); await loaded(page);
+  for (const label of ['上一张照片', '下一张照片']) await expect(page.getByRole('button', { name: label })).toBeDisabled();
   for (const size of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 320, height: 568 }]) {
     await page.setViewportSize(size);
     const box = await page.getByRole('dialog').boundingBox();
     assert(box && Math.abs(box.height - size.height) < 2 && Math.abs(box.width - size.width) < 2);
-    const close = await page.getByRole('button', { name: 'Close photo viewer' }).boundingBox();
+    const close = await page.getByRole('button', { name: '关闭照片' }).boundingBox();
     assert(close && close.height >= 44 && close.width >= 44);
     const media = await page.locator('.viewer-media').boundingBox(); assert(media && media.height > 100);
   }
-  await page.getByRole('button', { name: 'Close photo viewer' }).tap();
+  await page.getByRole('button', { name: '关闭照片' }).tap();
   await page.goto(`${server.url}/projects/fixture-beta/`);
-  const positions = await page.locator('.photo-grid > li').evaluateAll(nodes => nodes.map(node => ({ left: node.getBoundingClientRect().left, top: node.getBoundingClientRect().top })));
-  assert.equal(positions[0]!.left, positions[1]!.left);
-  assert(positions[0]!.top < positions[1]!.top);
+  await page.locator('.gallery-live [data-gallery-index]').first().waitFor();
+  const positions = await page.locator('.gallery-live [data-gallery-index]').evaluateAll(nodes => nodes.map(node => ({ left: node.getBoundingClientRect().left, top: node.getBoundingClientRect().top })));
+  assert.notEqual(positions[0]!.left, positions[1]!.left, 'mobile masonry has two columns');
+  assert.equal(positions[0]!.top, positions[1]!.top);
   await page.screenshot({ path: path.join(root, 'mobile-gallery.png'), fullPage: true });
 });
 
@@ -271,6 +273,7 @@ test('desktop fixture screenshots and ordinary browsing have no uncaught runtime
   await page.locator('[data-viewer-ready="true"]').waitFor({ state: 'attached' });
   await page.screenshot({ path: path.join(root, 'desktop-gallery.png'), fullPage: true });
   await open(page); await loaded(page);
+  await page.locator('[data-viewer-transition-variant]').waitFor({ state: 'detached' });
   await page.screenshot({ path: path.join(root, 'desktop-viewer.png') });
   await page.keyboard.press('Escape');
   assert.deepEqual(errors, []);
@@ -287,7 +290,7 @@ test('empty public catalog builds a useful home page, even when draft content ex
     const ctx = await context(); t.after(() => ctx.close());
     const page = await ctx.newPage();
     await page.goto(host.url);
-    await expect(page.getByRole('heading', { name: 'No published projects yet.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '尚无公开项目' })).toBeVisible();
     await expect(page.locator('[data-project-slug]')).toHaveCount(0);
     const html = await fs.readFile(path.join(emptyDist, 'index.html'), 'utf8');
     assert(!html.includes('DRAFT WEBSITE SECRET'));
@@ -296,4 +299,138 @@ test('empty public catalog builds a useful home page, even when draft content ex
   } finally {
     for (const project of published) await fs.writeFile(path.join(directory, `${project.slug}.json`), JSON.stringify(project));
   }
+});
+
+test('Light home: responsive cover geometry, hover/focus overlay, and two deliberate touch taps', async t => {
+  const ctx = await context({ viewport: { width: 2048, height: 1000 } }); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await page.goto(server.url);
+  const cover = page.locator('.project-link').first(), overlay = cover.locator('.project-overlay');
+  await expect(overlay).toHaveCSS('opacity', '0'); await cover.hover(); await expect(overlay).toHaveCSS('opacity', '1');
+  await expect(overlay.locator('time')).toHaveText('2024-02-29');
+  for (const [width, count] of [[2048, 4], [1440, 4], [1000, 3], [768, 2], [390, 1]]) {
+    await page.setViewportSize({ width: width!, height: 1000 });
+    assert.equal(await page.locator('.project-grid').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length), count);
+    const box = await cover.boundingBox(); assert(box && Math.abs(box.width / box.height - 5 / 6) < .01);
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  }
+  await page.mouse.move(0, 0); await cover.focus(); await expect(overlay).toHaveCSS('opacity', '1');
+  const touchContext = await context({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); t.after(() => touchContext.close());
+  const mobile = await touchContext.newPage(); await mobile.goto(server.url);
+  const first = mobile.locator('.project-link').first();
+  await first.tap(); await expect(first).toHaveAttribute('data-revealed', 'true'); await expect(mobile).toHaveURL(`${server.url}/`);
+  await mobile.locator('.site-header').tap({ position: { x: 300, y: 60 } }); await expect(first).not.toHaveAttribute('data-revealed', 'true');
+  await first.tap(); await first.tap(); await expect(mobile).toHaveURL(/projects\/fixture-beta\/$/);
+});
+
+test('project information, filters, chronological sort, list persistence, and shared viewer sequence', async t => {
+  const ctx = await context(); t.after(() => ctx.close()); const page = await projectPage(ctx);
+  await page.getByRole('button', { name: '项目信息', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('Fixture location');
+  await page.getByRole('button', { name: '关闭面板' }).click();
+  await page.getByRole('button', { name: '搜索和筛选' }).click();
+  await page.getByLabel('相机', { exact: true }).selectOption('NIKON Z6');
+  await page.getByRole('button', { name: '查看 1 张照片' }).click();
+  await expect(page.locator('.gallery-live [data-gallery-index]')).toHaveCount(1);
+  await open(page); await loaded(page); await expect(page.locator('.viewer-counter')).toHaveText('1 / 1');
+  await expect(page.locator('.viewer-inspector')).toContainText('Fixture artist');
+  await expect(page.getByRole('button', { name: '下一张照片' })).toBeDisabled();
+  await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: '清除筛选' }).click();
+  await page.getByRole('button', { name: '显示设置' }).click();
+  await page.getByLabel('照片排序').selectOption('asc'); await page.getByLabel('瀑布流列数').selectOption('2');
+  await page.getByRole('button', { name: '关闭面板' }).click();
+  await open(page); await loaded(page); await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/ordinary.jpg');
+  await page.getByRole('button', { name: '下一张照片' }).click(); await loaded(page); await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/hdr.jpg');
+  await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: '列表视图' }).click(); await expect(page.locator('.photo-list > li')).toHaveCount(3);
+  await page.reload(); await expect(page.locator('.photo-list > li')).toHaveCount(3);
+  await page.getByRole('button', { name: '搜索和筛选' }).click();
+  await page.getByRole('searchbox').fill('no matching photograph'); await page.getByRole('button', { name: '查看 0 张照片' }).click();
+  await expect(page.getByRole('heading', { name: '没有符合条件的照片' })).toBeVisible();
+});
+
+test('photo URLs support direct entry, refresh, Back/Forward, invalid IDs and project-scoped metadata', async t => {
+  const ctx = await context({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  const page = await projectPage(ctx); await open(page, 1); await loaded(page);
+  await expect(page).toHaveURL(new RegExp(`photo=${fixture.photos[1]!.photoId}`));
+  await page.goBack(); await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.goForward(); await loaded(page); await expect(page.locator('.viewer-counter')).toHaveText('2 / 3');
+  await page.reload(); await loaded(page); await expect(page.locator('[data-viewer-transition-variant]')).toHaveCount(0);
+  await page.getByRole('button', { name: '关闭照片' }).click(); await expect(page).toHaveURL(/fixture-beta\/$/);
+  await page.goto(`${server.url}/projects/fixture-beta/?photo=missing`); await expect(page.locator('.gallery-notice')).toContainText('此照片不在当前项目中');
+  await expect(page).toHaveURL(/fixture-beta\/$/);
+  const details = await ctx.request.get(`${server.url}/projects/fixture-beta/photos/${fixture.photos[0]!.photoId}.json`);
+  assert.equal(details.status(), 200); const json = await details.json(); assert.equal(json.exif.Artist, 'Fixture artist'); assert(!('s3Key' in json)); assert(!('RegionInfo' in json.exif));
+  const privateId = fixture.manifest.data.find(p => p.s3Key === 'private.jpg')!.id;
+  assert.equal((await ctx.request.get(`${server.url}/projects/fixture-beta/photos/${privateId}.json`)).status(), 404);
+  assert.equal((await ctx.request.get(`${server.url}/projects/secret-draft/photos/${privateId}.json`)).status(), 404);
+});
+
+test('map has an accessible fallback and obeys current filters; missing GPS produces an empty state', async t => {
+  const ctx = await context(); t.after(() => ctx.close()); const page = await projectPage(ctx);
+  await page.route('**/*cartocdn.com/**', route => route.abort());
+  await page.getByRole('button', { name: '地图探索' }).click();
+  await expect(page.locator('.map-photo-list button')).toHaveCount(1);
+  await page.locator('.map-photo-list button').click(); await loaded(page);
+  await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/portrait.jpg');
+  await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: '搜索和筛选' }).click(); await page.getByLabel('标签', { exact: true }).selectOption('风景');
+  await page.getByRole('button', { name: '查看 1 张照片' }).click(); await page.getByRole('button', { name: '地图探索' }).click();
+  await expect(page.getByRole('heading', { name: '没有可显示的位置' })).toBeVisible();
+});
+
+test('fallback zoom disables swipe navigation, resets, and the mobile inspector remains operable', async t => {
+  const ctx = await context({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  const page = await projectPage(ctx); await open(page); await loaded(page);
+  await page.getByRole('button', { name: '照片信息', exact: true }).tap();
+  await expect(page.locator('.mobile-inspector')).toBeVisible();
+  await expect(page.locator('.mobile-inspector')).toContainText('Fixture artist');
+  assert.equal(await page.locator('.mobile-inspector').evaluate(el => el.scrollTop), 0);
+  await page.getByRole('button', { name: '收起照片信息' }).tap(); await expect(page.locator('.mobile-inspector')).toHaveCount(0);
+  await page.locator('.fallback-stage').dblclick({ position: { x: 150, y: 250 } });
+  await expect(page.locator('.viewer-fallback')).toHaveAttribute('style', /scale\(2\)/);
+  await page.keyboard.press('ArrowRight'); await expect(page.locator('.viewer-counter')).toHaveText('1 / 3');
+  await page.locator('.fallback-stage').dblclick({ position: { x: 150, y: 250 } });
+  await page.keyboard.press('ArrowRight'); await loaded(page); await expect(page.locator('.viewer-counter')).toHaveText('2 / 3');
+  await page.getByRole('button', { name: '关闭照片' }).tap(); await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('native touch gestures switch photos, reveal the inspector, dismiss, and ignore homepage scrolls', async t => {
+  const ctx = await context({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'no-preference' }); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await page.goto(server.url);
+  const touch = await ctx.newCDPSession(page);
+  const swipe = async (from: [number, number], to: [number, number]) => {
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from[0], y: from[1] }] });
+    for (let i = 1; i <= 8; i++) await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from[0] + (to[0] - from[0]) * i / 8, y: from[1] + (to[1] - from[1]) * i / 8 }] });
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  };
+  await swipe([200, 520], [200, 240]);
+  await expect(page).toHaveURL(`${server.url}/`); await expect(page.locator('[data-revealed]')).toHaveCount(0);
+  await page.goto(`${server.url}/projects/fixture-beta/`); await page.locator('.gallery-live [data-gallery-index]').first().waitFor();
+  await open(page); await loaded(page); await page.locator('[data-viewer-transition-variant]').waitFor({ state: 'detached' });
+  await swipe([300, 340], [80, 340]); await loaded(page); await expect(page.locator('.viewer-counter')).toHaveText('2 / 3');
+  await swipe([190, 470], [190, 210]); await expect(page.locator('.mobile-inspector')).toBeVisible();
+  await page.getByRole('button', { name: '收起照片信息' }).tap(); await expect(page.locator('.mobile-inspector')).toHaveCount(0);
+  await swipe([190, 250], [190, 540]); await expect(page.getByRole('dialog')).toHaveCount(0);
+  assert.equal(await page.evaluate(() => document.body.style.overflow), '');
+});
+
+test('native hexadecimal ThumbHash produces the correct preview colours before the JPEG loads', async t => {
+  const ctx = await context(); t.after(() => ctx.close()); const page = await ctx.newPage();
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; }); t.after(() => release());
+  await page.route(`**/thumbnails/${fixture.photos[0]!.photoId}.jpg`, async route => { await pending; await route.continue().catch(() => {}); });
+  await page.goto(`${server.url}/projects/fixture-beta/`, { waitUntil: 'domcontentloaded' });
+  const thumbnail = page.locator('.gallery-live [data-gallery-index="0"] .gallery-thumbnail');
+  await thumbnail.waitFor();
+  const colour = await thumbnail.evaluate(async element => {
+    const src = (element as HTMLElement).style.backgroundImage.slice(5, -2);
+    const image = new Image(); image.src = src; await image.decode();
+    const canvas = document.createElement('canvas'); canvas.width = 1; canvas.height = 1;
+    const context = canvas.getContext('2d')!; context.drawImage(image, 0, 0, 1, 1);
+    return Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3);
+  });
+  // The native builder fixture is a solid #9d7155 portrait, so its preview should stay brown.
+  for (const [i, channel] of [157, 113, 85].entries()) assert(Math.abs(colour[i]! - channel) < 20, `Incorrect placeholder colour: ${colour}`);
+  release(); await expect(thumbnail.locator('img')).toHaveCSS('opacity', '1');
 });

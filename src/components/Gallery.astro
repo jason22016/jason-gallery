@@ -1,25 +1,29 @@
 ---
 import type { ResolvedProject } from '../projects';
 import Thumbnail from './ui/Thumbnail.astro';
-import PhotoViewer from './viewer/PhotoViewer';
+import ProjectGallery from './gallery/ProjectGallery';
 import { viewerPhotos } from './viewer/photos';
+import '../styles/gallery.css';
 interface Props { project: ResolvedProject; }
 const { project } = Astro.props;
 const photos = viewerPhotos(project);
+const { title, slug, summary, description, location, period, tags } = project;
 ---
-<section class="gallery-section" data-project-gallery aria-label={`${project.title} photographs`}>
-  <div class="section-label"><h2>Photographs</h2><span>{photos.length}</span></div>
-  <ol class="photo-grid">
-    {project.photos.map(({ photo, photoId, caption }, index) => (
-      <li data-photo-id={photoId}>
-        <figure>
-          <a class="photo-link" href={photo.originalUrl} data-gallery-index={index} aria-label={`Open photograph ${index + 1}: ${photos[index]!.alt}`}>
-            <Thumbnail src={photo.thumbnailUrl} alt={photos[index]!.alt} width={photo.width} height={photo.height} eager={index < 2} />
-          </a>
-          <figcaption><span class="photo-number">{String(index + 1).padStart(2, '0')}</span>{caption && <span>{caption}</span>}</figcaption>
-        </figure>
-      </li>
-    ))}
-  </ol>
-  <PhotoViewer photos={photos} projectTitle={project.title} client:only="react" />
+<section data-project-gallery aria-label={`${project.title} photographs`}>
+  <div data-static-gallery>
+    <header class="gallery-header"><a href="/" aria-label="返回首页">←</a><h1>{title}</h1><span class="gallery-count">{photos.length}</span>
+      <details class="static-info"><summary>项目信息</summary><div class="panel-body">
+        {summary && <p>{summary}</p>}
+        <dl class="project-details"><dt>地点</dt><dd>{location}</dd><dt>日期</dt><dd>{period?.start}{period?.end && period.end !== period.start && ` — ${period.end}`}</dd></dl>
+        {description && <p class="project-description">{description}</p>}
+        <ul class="tags">{tags?.map(tag => <li>{tag}</li>)}</ul>
+      </div></details>
+    </header>
+    <ol class="photo-grid static-grid">{photos.map((photo, index) => <li data-photo-id={photo.id}>
+      <a class="photo-link" href={photo.src} data-gallery-index={index} aria-label={`查看照片：${photo.alt}`}>
+        <Thumbnail src={photo.thumbnail} alt={photo.alt} width={photo.width} height={photo.height} eager={index < 5} />
+      </a>
+    </li>)}</ol>
+  </div>
+  <ProjectGallery photos={photos} project={{ title, slug, summary, description, location, period, tags }} client:only="react" />
 </section>
