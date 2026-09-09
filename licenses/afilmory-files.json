@@ -1,0 +1,695 @@
+{
+  "commit": "a3db486b0a8f2572de3032eabdfce24e726e83f3",
+  "files": [
+    {
+      "path": "packages/afilmory/builder/package.json",
+      "upstream": "packages/builder/package.json",
+      "upstreamSha256": "ee7cf748105fbc9471ef1c00693becb86317a1c4477b4bb6aa5de3a700caba62",
+      "sha256": "04f625a42bd1242a0f94826fa0e9b85d9dd291eb908cb56cbae4911c81a464b5"
+    },
+    {
+      "path": "packages/afilmory/builder/src/builder/builder.ts",
+      "upstream": "packages/builder/src/builder/builder.ts",
+      "upstreamSha256": "db0970c754f4927207d897b0e51e4f422ccd05a6fc72826bdafaba83f07cdade",
+      "sha256": "db0970c754f4927207d897b0e51e4f422ccd05a6fc72826bdafaba83f07cdade"
+    },
+    {
+      "path": "packages/afilmory/builder/src/builder/index.ts",
+      "upstream": "packages/builder/src/builder/index.ts",
+      "upstreamSha256": "68804e421f4432c72e020050b06fdbd881d9011bd4f814ce8f61d5e02ee3b27f",
+      "sha256": "68804e421f4432c72e020050b06fdbd881d9011bd4f814ce8f61d5e02ee3b27f"
+    },
+    {
+      "path": "packages/afilmory/builder/src/cli/tui.ts",
+      "upstream": "packages/builder/src/cli/tui.ts",
+      "upstreamSha256": "aca9dc3420da53001f1b30ffeba21aa681e0ac683e8c5ca8ad799d9f13fa51b4",
+      "sha256": "aca9dc3420da53001f1b30ffeba21aa681e0ac683e8c5ca8ad799d9f13fa51b4"
+    },
+    {
+      "path": "packages/afilmory/builder/src/cli.ts",
+      "upstream": "packages/builder/src/cli.ts",
+      "upstreamSha256": "0eaec66c113f77bbafbd4d45b54cc995c9ef5038b0a983c0544f0a1a0964aa59",
+      "sha256": "0eaec66c113f77bbafbd4d45b54cc995c9ef5038b0a983c0544f0a1a0964aa59"
+    },
+    {
+      "path": "packages/afilmory/builder/src/cluster/cache.ts",
+      "upstream": "packages/builder/src/cluster/cache.ts",
+      "upstreamSha256": "43b31bb7198e9e6f1c9ccb25a60d45e910c1d1020405f93ced3094fe2955d88f",
+      "sha256": "43b31bb7198e9e6f1c9ccb25a60d45e910c1d1020405f93ced3094fe2955d88f"
+    },
+    {
+      "path": "packages/afilmory/builder/src/cluster/cli.ts",
+      "upstream": "packages/builder/src/cluster/cli.ts",
+      "upstreamSha256": "eb368ec3e9838a335a5d60bfb1a0edba8f69825d3050ba151606a6c3c2047ea4",
+      "sha256": "eb368ec3e9838a335a5d60bfb1a0edba8f69825d3050ba151606a6c3c2047ea4"
+    },
+    {
+      "path": "packages/afilmory/builder/src/cluster/embedder.ts",
+      "upstream": "packages/builder/src/cluster/embedder.ts",
+      "upstreamSha256": "fc723fd2fae3b5067a0156094dd3bdfc95db6e73f4fd790c72c930141bb32497",
+      "sha256": "fc723fd2fae3b5067a0156094dd3bdfc95db6e73f4fd790c72c930141bb32497"
+    },
+    {
+      "path": "packages/afilmory/builder/src/cluster/report.ts",
+      "upstream": "packages/builder/src/cluster/report.ts",
+      "upstreamSha256": "ea1a379e5512dcc012e4a8062197bf8eeaa752e575f6bb2ab18ff3bed03a4cce",
+      "sha256": "ea1a379e5512dcc012e4a8062197bf8eeaa752e575f6bb2ab18ff3bed03a4cce"
+    },
+    {
+      "path": "packages/afilmory/builder/src/cluster/similarity.ts",
+      "upstream": "packages/builder/src/cluster/similarity.ts",
+      "upstreamSha256": "3bc07ae19850fe4bb092521fc423812b466c2c8f64f2ce1ac81da051e36e0289",
+      "sha256": "3bc07ae19850fe4bb092521fc423812b466c2c8f64f2ce1ac81da051e36e0289"
+    },
+    {
+      "path": "packages/afilmory/builder/src/config/defaults.ts",
+      "upstream": "packages/builder/src/config/defaults.ts",
+      "upstreamSha256": "05e6d17d95dbd7703a8372eac7df4204a041e7c0e56dabb9d1a6ecb5546dea53",
+      "sha256": "05e6d17d95dbd7703a8372eac7df4204a041e7c0e56dabb9d1a6ecb5546dea53"
+    },
+    {
+      "path": "packages/afilmory/builder/src/config/helper.ts",
+      "upstream": "packages/builder/src/config/helper.ts",
+      "upstreamSha256": "7e71b7fce8780396c19cf0dde2f813e09e657b160b777089b4e46e36f2c41716",
+      "sha256": "7e71b7fce8780396c19cf0dde2f813e09e657b160b777089b4e46e36f2c41716"
+    },
+    {
+      "path": "packages/afilmory/builder/src/config/index.ts",
+      "upstream": "packages/builder/src/config/index.ts",
+      "upstreamSha256": "aa863f72e8c7b2c61e0e09c4d409a197cf24e9466e08bf04f6e1c18b6b1dbf73",
+      "sha256": "aa863f72e8c7b2c61e0e09c4d409a197cf24e9466e08bf04f6e1c18b6b1dbf73"
+    },
+    {
+      "path": "packages/afilmory/builder/src/constants/index.ts",
+      "upstream": "packages/builder/src/constants/index.ts",
+      "upstreamSha256": "5adc2772efe0ffa6e66b0335e479729a14c42ab7a3e4e195c5cc9e785f1f920f",
+      "sha256": "5adc2772efe0ffa6e66b0335e479729a14c42ab7a3e4e195c5cc9e785f1f920f"
+    },
+    {
+      "path": "packages/afilmory/builder/src/image/blurhash.ts",
+      "upstream": "packages/builder/src/image/blurhash.ts",
+      "upstreamSha256": "2e0b5ea038ede07f00cc364976d84ba953824a358bbdb12a032d1a5952f0bb18",
+      "sha256": "2e0b5ea038ede07f00cc364976d84ba953824a358bbdb12a032d1a5952f0bb18"
+    },
+    {
+      "path": "packages/afilmory/builder/src/image/exif.ts",
+      "upstream": "packages/builder/src/image/exif.ts",
+      "upstreamSha256": "bda97b95082df67f56cd437a52a350a996b7c23f94547219222d357a2a882bb8",
+      "sha256": "ac57751bd36c87cdbb0566150e9e0af3b497efa6cdfc52a719dd815423d405f3"
+    },
+    {
+      "path": "packages/afilmory/builder/src/image/histogram.ts",
+      "upstream": "packages/builder/src/image/histogram.ts",
+      "upstreamSha256": "b8e1fafe2a84db25e70fb0abc819f625a74c18f793b5228d661c39afe8af3887",
+      "sha256": "b8e1fafe2a84db25e70fb0abc819f625a74c18f793b5228d661c39afe8af3887"
+    },
+    {
+      "path": "packages/afilmory/builder/src/image/processor.ts",
+      "upstream": "packages/builder/src/image/processor.ts",
+      "upstreamSha256": "8bbe8e130eb8d9138a2ca2f5e10db700f960594fbd1e09e79988fba4ed4344b0",
+      "sha256": "8bbe8e130eb8d9138a2ca2f5e10db700f960594fbd1e09e79988fba4ed4344b0"
+    },
+    {
+      "path": "packages/afilmory/builder/src/image/thumbnail.ts",
+      "upstream": "packages/builder/src/image/thumbnail.ts",
+      "upstreamSha256": "d9c13c747b70f415e6a7c3736b48db02f0894e6c35709aac215587f104e2bbd9",
+      "sha256": "d9c13c747b70f415e6a7c3736b48db02f0894e6c35709aac215587f104e2bbd9"
+    },
+    {
+      "path": "packages/afilmory/builder/src/index.ts",
+      "upstream": "packages/builder/src/index.ts",
+      "upstreamSha256": "ec2c2680d026857f1b8ba25b6c89b4a22e8987a5c996f48ee924819345a6d8b0",
+      "sha256": "ec2c2680d026857f1b8ba25b6c89b4a22e8987a5c996f48ee924819345a6d8b0"
+    },
+    {
+      "path": "packages/afilmory/builder/src/logger/index.ts",
+      "upstream": "packages/builder/src/logger/index.ts",
+      "upstreamSha256": "c9e8ee90430746cdffeae2ae558bf0932f30be0923d206820955dab9ef18469d",
+      "sha256": "c9e8ee90430746cdffeae2ae558bf0932f30be0923d206820955dab9ef18469d"
+    },
+    {
+      "path": "packages/afilmory/builder/src/manifest/manager.ts",
+      "upstream": "packages/builder/src/manifest/manager.ts",
+      "upstreamSha256": "2c8097f95a45924804605a4df319f676d1790053a8157194035e9a52f02d8414",
+      "sha256": "2c8097f95a45924804605a4df319f676d1790053a8157194035e9a52f02d8414"
+    },
+    {
+      "path": "packages/afilmory/builder/src/manifest/migrate.ts",
+      "upstream": "packages/builder/src/manifest/migrate.ts",
+      "upstreamSha256": "ac48b3470caf1ae12f0df88726bf83abae85c19a3e2334cee5d14ee951af71aa",
+      "sha256": "ac48b3470caf1ae12f0df88726bf83abae85c19a3e2334cee5d14ee951af71aa"
+    },
+    {
+      "path": "packages/afilmory/builder/src/manifest/migrations/index.ts",
+      "upstream": "packages/builder/src/manifest/migrations/index.ts",
+      "upstreamSha256": "aee69d6ec92030d14cc6988b7e0cb14c02fcd6ba7a2fb480b908407db7ca44a6",
+      "sha256": "aee69d6ec92030d14cc6988b7e0cb14c02fcd6ba7a2fb480b908407db7ca44a6"
+    },
+    {
+      "path": "packages/afilmory/builder/src/manifest/migrations/v1-to-v6.ts",
+      "upstream": "packages/builder/src/manifest/migrations/v1-to-v6.ts",
+      "upstreamSha256": "4b36c1dcaeaa7774a70462ab0978be0585e93609911e41669b8d8e0c0d881be0",
+      "sha256": "4b36c1dcaeaa7774a70462ab0978be0585e93609911e41669b8d8e0c0d881be0"
+    },
+    {
+      "path": "packages/afilmory/builder/src/manifest/migrations/v6-to-v7.ts",
+      "upstream": "packages/builder/src/manifest/migrations/v6-to-v7.ts",
+      "upstreamSha256": "5bdc5b7feeb727c1d6df1c4f408f20c6c4de16275bb2dad6d7295e9ae69de77b",
+      "sha256": "5bdc5b7feeb727c1d6df1c4f408f20c6c4de16275bb2dad6d7295e9ae69de77b"
+    },
+    {
+      "path": "packages/afilmory/builder/src/manifest/migrations/v7-to-v8.ts",
+      "upstream": "packages/builder/src/manifest/migrations/v7-to-v8.ts",
+      "upstreamSha256": "6ebe8c235018ba5f27c33be307e10429a5cd90d810ef66aa6a1615dbb6314173",
+      "sha256": "6ebe8c235018ba5f27c33be307e10429a5cd90d810ef66aa6a1615dbb6314173"
+    },
+    {
+      "path": "packages/afilmory/builder/src/manifest/migrations/v8-to-v9.ts",
+      "upstream": "packages/builder/src/manifest/migrations/v8-to-v9.ts",
+      "upstreamSha256": "92467a71e51d81fb67e8e92b01138c1dd1dbde8d710c8c5b4e898473473b9e96",
+      "sha256": "92467a71e51d81fb67e8e92b01138c1dd1dbde8d710c8c5b4e898473473b9e96"
+    },
+    {
+      "path": "packages/afilmory/builder/src/manifest/migrations/v9-to-v10.ts",
+      "upstream": "packages/builder/src/manifest/migrations/v9-to-v10.ts",
+      "upstreamSha256": "8ff70f3ff11908f8b21041db8e475911035328f3a016f9f842dc5f0ce4ad9097",
+      "sha256": "8ff70f3ff11908f8b21041db8e475911035328f3a016f9f842dc5f0ce4ad9097"
+    },
+    {
+      "path": "packages/afilmory/builder/src/manifest/version.ts",
+      "upstream": "packages/builder/src/manifest/version.ts",
+      "upstreamSha256": "0aef62242f69c5a9f50f0fc4513a6858c62c7df36d6a92b6957a6c5bffcb1064",
+      "sha256": "0aef62242f69c5a9f50f0fc4513a6858c62c7df36d6a92b6957a6c5bffcb1064"
+    },
+    {
+      "path": "packages/afilmory/builder/src/path.ts",
+      "upstream": "packages/builder/src/path.ts",
+      "upstreamSha256": "903bd9fae1c84416c533853ed619eb843d9c7b2a1a19a4a3deb8d6bff3633480",
+      "sha256": "a7fc3e8e82075bc6ea59baf0ec54e839221489784d8a3a051ced9713501a18e1"
+    },
+    {
+      "path": "packages/afilmory/builder/src/photo/cache-manager.ts",
+      "upstream": "packages/builder/src/photo/cache-manager.ts",
+      "upstreamSha256": "caa3e797ae266ae818c4d09877b97ac4dcaf27a97b7c236fac237c14523d0565",
+      "sha256": "caa3e797ae266ae818c4d09877b97ac4dcaf27a97b7c236fac237c14523d0565"
+    },
+    {
+      "path": "packages/afilmory/builder/src/photo/data-processors.ts",
+      "upstream": "packages/builder/src/photo/data-processors.ts",
+      "upstreamSha256": "b74891f33bb5739884a32f981e80ce7e3e3567eae67c610f4cd788f185d5e9f8",
+      "sha256": "b74891f33bb5739884a32f981e80ce7e3e3567eae67c610f4cd788f185d5e9f8"
+    },
+    {
+      "path": "packages/afilmory/builder/src/photo/execution-context.ts",
+      "upstream": "packages/builder/src/photo/execution-context.ts",
+      "upstreamSha256": "06aaaca16015740a11eda0f51499cbbeb89b77d94f329f74145954beefe8ba15",
+      "sha256": "06aaaca16015740a11eda0f51499cbbeb89b77d94f329f74145954beefe8ba15"
+    },
+    {
+      "path": "packages/afilmory/builder/src/photo/gainmap-detector.ts",
+      "upstream": "packages/builder/src/photo/gainmap-detector.ts",
+      "upstreamSha256": "d6a635c1da73b9c58a0b57b6366c50eb5c0f9ae9b9fd17623fb854d0fb5d930b",
+      "sha256": "d6a635c1da73b9c58a0b57b6366c50eb5c0f9ae9b9fd17623fb854d0fb5d930b"
+    },
+    {
+      "path": "packages/afilmory/builder/src/photo/geocoding.ts",
+      "upstream": "packages/builder/src/photo/geocoding.ts",
+      "upstreamSha256": "34c7fc5ededb3cf68bf1ae4139c0b4ecfb8704ea01712daff502f1ca24f98e66",
+      "sha256": "34c7fc5ededb3cf68bf1ae4139c0b4ecfb8704ea01712daff502f1ca24f98e66"
+    },
+    {
+      "path": "packages/afilmory/builder/src/photo/image-pipeline.ts",
+      "upstream": "packages/builder/src/photo/image-pipeline.ts",
+      "upstreamSha256": "a4165c28a1650a19f1de5a344e6840a9cc8c2effe2a160d4a42afea857fb9006",
+      "sha256": "a4165c28a1650a19f1de5a344e6840a9cc8c2effe2a160d4a42afea857fb9006"
+    },
+    {
+      "path": "packages/afilmory/builder/src/photo/index.ts",
+      "upstream": "packages/builder/src/photo/index.ts",
+      "upstreamSha256": "654e610a4b7b155b3e0c0abf87f784e7510531e844342beaff41d9874161f91e",
+      "sha256": "654e610a4b7b155b3e0c0abf87f784e7510531e844342beaff41d9874161f91e"
+    },
+    {
+      "path": "packages/afilmory/builder/src/photo/info-extractor.ts",
+      "upstream": "packages/builder/src/photo/info-extractor.ts",
+      "upstreamSha256": "05fb9aea434d66c93489c7eb28132e65eb6da98ea936a971ed5d979d3bf39aa4",
+      "sha256": "05fb9aea434d66c93489c7eb28132e65eb6da98ea936a971ed5d979d3bf39aa4"
+    },
+    {
+      "path": "packages/afilmory/builder/src/photo/live-photo-handler.ts",
+      "upstream": "packages/builder/src/photo/live-photo-handler.ts",
+      "upstreamSha256": "3458f9284a715379c076d14f795789dc361ae10f1b2c414ddc46681cdd4b5c94",
+      "sha256": "3458f9284a715379c076d14f795789dc361ae10f1b2c414ddc46681cdd4b5c94"
+    },
+    {
+      "path": "packages/afilmory/builder/src/photo/logger-adapter.ts",
+      "upstream": "packages/builder/src/photo/logger-adapter.ts",
+      "upstreamSha256": "4c52a1530751fabf604f19780bbb7863765d06f16aab0f74169ff649d0111af2",
+      "sha256": "4c52a1530751fabf604f19780bbb7863765d06f16aab0f74169ff649d0111af2"
+    },
+    {
+      "path": "packages/afilmory/builder/src/photo/motion-photo-detector.ts",
+      "upstream": "packages/builder/src/photo/motion-photo-detector.ts",
+      "upstreamSha256": "1285e4b7334959335905003add3571de280a6d54bb936285d68f25cc45088404",
+      "sha256": "1285e4b7334959335905003add3571de280a6d54bb936285d68f25cc45088404"
+    },
+    {
+      "path": "packages/afilmory/builder/src/photo/processor.ts",
+      "upstream": "packages/builder/src/photo/processor.ts",
+      "upstreamSha256": "c8f660814292130d621982b119770adefbfa37fec231f7e8b344f9d2b0d22b62",
+      "sha256": "c8f660814292130d621982b119770adefbfa37fec231f7e8b344f9d2b0d22b62"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/geocoding.ts",
+      "upstream": "packages/builder/src/plugins/geocoding.ts",
+      "upstreamSha256": "f346b7aea4595b7b8bd16cad79ad7eaabaa320a46a54f96ba3b1ebd530224123",
+      "sha256": "f346b7aea4595b7b8bd16cad79ad7eaabaa320a46a54f96ba3b1ebd530224123"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/github-repo-sync.ts",
+      "upstream": "packages/builder/src/plugins/github-repo-sync.ts",
+      "upstreamSha256": "5b53e95312c1acde9d543161779847631452effdf5d5b1de43d607bf7c0a72a5",
+      "sha256": "5b53e95312c1acde9d543161779847631452effdf5d5b1de43d607bf7c0a72a5"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/loader.ts",
+      "upstream": "packages/builder/src/plugins/loader.ts",
+      "upstreamSha256": "eeb31d228ec18b8bcc3647d6abd0ec15a6c8848447a37a408d6bcf61c9c860f3",
+      "sha256": "eeb31d228ec18b8bcc3647d6abd0ec15a6c8848447a37a408d6bcf61c9c860f3"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/manager.ts",
+      "upstream": "packages/builder/src/plugins/manager.ts",
+      "upstreamSha256": "40c2eed11a7fde5e078022acfe3125bf48007cae5775d2ed892cb20ba91959bf",
+      "sha256": "40c2eed11a7fde5e078022acfe3125bf48007cae5775d2ed892cb20ba91959bf"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/og-image-storage/index.ts",
+      "upstream": "packages/builder/src/plugins/og-image-storage/index.ts",
+      "upstreamSha256": "4bc5eecfe686ea26be8f1e6d0d7a3c7a93b44f7d422f296f956df2831b5a289f",
+      "sha256": "4bc5eecfe686ea26be8f1e6d0d7a3c7a93b44f7d422f296f956df2831b5a289f"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/og-image-storage/vendors/cloudflare-moddleware.ts",
+      "upstream": "packages/builder/src/plugins/og-image-storage/vendors/cloudflare-moddleware.ts",
+      "upstreamSha256": "ee65713c0ac22b2c8dee329b34f06bce4754537a069092afb267acac524dcb94",
+      "sha256": "ee65713c0ac22b2c8dee329b34f06bce4754537a069092afb267acac524dcb94"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/og-image-storage/vendors/templates/cloudflare-middleware.njk",
+      "upstream": "packages/builder/src/plugins/og-image-storage/vendors/templates/cloudflare-middleware.njk",
+      "upstreamSha256": "13b9ee2bc5c3dc4bc0274e8298353f5cf01aa52873a8a5b094de67b0b173e170",
+      "sha256": "13b9ee2bc5c3dc4bc0274e8298353f5cf01aa52873a8a5b094de67b0b173e170"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/og-image-storage/vendors/types.ts",
+      "upstream": "packages/builder/src/plugins/og-image-storage/vendors/types.ts",
+      "upstreamSha256": "6213d96933f014ad20d2548726b759c8871452dde5542b8004eaccc75f9a429a",
+      "sha256": "6213d96933f014ad20d2548726b759c8871452dde5542b8004eaccc75f9a429a"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/storage/b2.ts",
+      "upstream": "packages/builder/src/plugins/storage/b2.ts",
+      "upstreamSha256": "98f8feb1324097939e3b76a10df2a499df5d5b0049cbf0d5b9e491cc0c5364c5",
+      "sha256": "98f8feb1324097939e3b76a10df2a499df5d5b0049cbf0d5b9e491cc0c5364c5"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/storage/eagle.ts",
+      "upstream": "packages/builder/src/plugins/storage/eagle.ts",
+      "upstreamSha256": "4e43172a99eec8b2ab378332cdceb0456b323eaac539e8b2fb2c5bdca1cc2b7f",
+      "sha256": "4e43172a99eec8b2ab378332cdceb0456b323eaac539e8b2fb2c5bdca1cc2b7f"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/storage/github.ts",
+      "upstream": "packages/builder/src/plugins/storage/github.ts",
+      "upstreamSha256": "d01cadbc0343828b8e5ed40fb1d368b716f8afbb01e29ef687f2bb71e2718daa",
+      "sha256": "d01cadbc0343828b8e5ed40fb1d368b716f8afbb01e29ef687f2bb71e2718daa"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/storage/local.ts",
+      "upstream": "packages/builder/src/plugins/storage/local.ts",
+      "upstreamSha256": "92d899cb1b2c3f6651598a0f0e302f5e0f28bc2564809ba82a1cc8f9e59fa945",
+      "sha256": "92d899cb1b2c3f6651598a0f0e302f5e0f28bc2564809ba82a1cc8f9e59fa945"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/storage/s3.ts",
+      "upstream": "packages/builder/src/plugins/storage/s3.ts",
+      "upstreamSha256": "feb7acdbf1b56d74d85308ad408bb909460028b280a2a665f9cbb13a86ad3944",
+      "sha256": "feb7acdbf1b56d74d85308ad408bb909460028b280a2a665f9cbb13a86ad3944"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/thumbnail-storage/index.ts",
+      "upstream": "packages/builder/src/plugins/thumbnail-storage/index.ts",
+      "upstreamSha256": "dbd9e07fb04050624230c35124b145f9c623ed1658f0230daea15556ba18fd57",
+      "sha256": "dbd9e07fb04050624230c35124b145f9c623ed1658f0230daea15556ba18fd57"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/thumbnail-storage/shared.ts",
+      "upstream": "packages/builder/src/plugins/thumbnail-storage/shared.ts",
+      "upstreamSha256": "12e50a778b9b76e0b4bf6e32f406dc385e7bd2deb9d7c8e20fda962b2044fb55",
+      "sha256": "12e50a778b9b76e0b4bf6e32f406dc385e7bd2deb9d7c8e20fda962b2044fb55"
+    },
+    {
+      "path": "packages/afilmory/builder/src/plugins/types.ts",
+      "upstream": "packages/builder/src/plugins/types.ts",
+      "upstreamSha256": "a64a96181213526d27a666de84e6943d235cc943efaca58ff01efac9cea6ad10",
+      "sha256": "a64a96181213526d27a666de84e6943d235cc943efaca58ff01efac9cea6ad10"
+    },
+    {
+      "path": "packages/afilmory/builder/src/runAsWorker.ts",
+      "upstream": "packages/builder/src/runAsWorker.ts",
+      "upstreamSha256": "f2c44c5f9e979fea6d09e343794f79824bbbf4b48aa9ef594732b0798c0f7584",
+      "sha256": "f2c44c5f9e979fea6d09e343794f79824bbbf4b48aa9ef594732b0798c0f7584"
+    },
+    {
+      "path": "packages/afilmory/builder/src/s3/client.ts",
+      "upstream": "packages/builder/src/s3/client.ts",
+      "upstreamSha256": "6f6acdffe70ac09989c738e8822e5926da1469587b3103eee932e2e7188a548b",
+      "sha256": "6f6acdffe70ac09989c738e8822e5926da1469587b3103eee932e2e7188a548b"
+    },
+    {
+      "path": "packages/afilmory/builder/src/storage/factory.ts",
+      "upstream": "packages/builder/src/storage/factory.ts",
+      "upstreamSha256": "f7593c6147f8a6c6cd4f74654e6850cfe60afb95307693c4f8b584a820af17a8",
+      "sha256": "f7593c6147f8a6c6cd4f74654e6850cfe60afb95307693c4f8b584a820af17a8"
+    },
+    {
+      "path": "packages/afilmory/builder/src/storage/index.ts",
+      "upstream": "packages/builder/src/storage/index.ts",
+      "upstreamSha256": "bec658bb87c86bfddcb3d0b974ccb2b7935c080e02c8a608ab24a054b7156325",
+      "sha256": "bec658bb87c86bfddcb3d0b974ccb2b7935c080e02c8a608ab24a054b7156325"
+    },
+    {
+      "path": "packages/afilmory/builder/src/storage/interfaces.ts",
+      "upstream": "packages/builder/src/storage/interfaces.ts",
+      "upstreamSha256": "f374ce6090c737500182eb6c319883a63780b2f801117680241e8897495881a3",
+      "sha256": "f374ce6090c737500182eb6c319883a63780b2f801117680241e8897495881a3"
+    },
+    {
+      "path": "packages/afilmory/builder/src/storage/manager.ts",
+      "upstream": "packages/builder/src/storage/manager.ts",
+      "upstreamSha256": "15dc9bd8bc7afd0f532782cd18701c487f06fdb8f91b60109a69e01009c775fd",
+      "sha256": "15dc9bd8bc7afd0f532782cd18701c487f06fdb8f91b60109a69e01009c775fd"
+    },
+    {
+      "path": "packages/afilmory/builder/src/storage/providers/b2-provider.ts",
+      "upstream": "packages/builder/src/storage/providers/b2-provider.ts",
+      "upstreamSha256": "17c398c8ffd5b383480b9cb9d13fe794e87125cca0216480866cf37579ce8ee1",
+      "sha256": "17c398c8ffd5b383480b9cb9d13fe794e87125cca0216480866cf37579ce8ee1"
+    },
+    {
+      "path": "packages/afilmory/builder/src/storage/providers/eagle-provider.ts",
+      "upstream": "packages/builder/src/storage/providers/eagle-provider.ts",
+      "upstreamSha256": "3d2c43cdb0e053d13e29198d992653dc65a05a31ae7706f6c443badf69e61142",
+      "sha256": "3d2c43cdb0e053d13e29198d992653dc65a05a31ae7706f6c443badf69e61142"
+    },
+    {
+      "path": "packages/afilmory/builder/src/storage/providers/github-provider.ts",
+      "upstream": "packages/builder/src/storage/providers/github-provider.ts",
+      "upstreamSha256": "33e0969df93d7221d041152da483eabbfc53549647a6f6d3b44e4ddbbc1ad6f2",
+      "sha256": "33e0969df93d7221d041152da483eabbfc53549647a6f6d3b44e4ddbbc1ad6f2"
+    },
+    {
+      "path": "packages/afilmory/builder/src/storage/providers/local-provider.ts",
+      "upstream": "packages/builder/src/storage/providers/local-provider.ts",
+      "upstreamSha256": "a270b8ef0d08488c502f2ea7fbc9c68255960a0bf4b121f8c00a722a9561822e",
+      "sha256": "a270b8ef0d08488c502f2ea7fbc9c68255960a0bf4b121f8c00a722a9561822e"
+    },
+    {
+      "path": "packages/afilmory/builder/src/storage/providers/register.ts",
+      "upstream": "packages/builder/src/storage/providers/register.ts",
+      "upstreamSha256": "7655fb5a17d5b98592d303bec2a70cfb51754fcf31fb19302edbadf240b8a321",
+      "sha256": "7655fb5a17d5b98592d303bec2a70cfb51754fcf31fb19302edbadf240b8a321"
+    },
+    {
+      "path": "packages/afilmory/builder/src/storage/providers/s3-client.ts",
+      "upstream": "packages/builder/src/storage/providers/s3-client.ts",
+      "upstreamSha256": "1cc3cf4e1d4743b09f06ebf8b7a1949a7d4c34ebaffe79629ca9ec4b95c8ce4f",
+      "sha256": "1cc3cf4e1d4743b09f06ebf8b7a1949a7d4c34ebaffe79629ca9ec4b95c8ce4f"
+    },
+    {
+      "path": "packages/afilmory/builder/src/storage/providers/s3-provider.ts",
+      "upstream": "packages/builder/src/storage/providers/s3-provider.ts",
+      "upstreamSha256": "90aba3a07dde92caef602a7e6db85f2a80d031af1c2218316a39c151acb6e38b",
+      "sha256": "90aba3a07dde92caef602a7e6db85f2a80d031af1c2218316a39c151acb6e38b"
+    },
+    {
+      "path": "packages/afilmory/builder/src/storage/providers/s3-utils.ts",
+      "upstream": "packages/builder/src/storage/providers/s3-utils.ts",
+      "upstreamSha256": "26ece69215be074fb88dbd4f41f7af818b041126066427ea3febc5b41794abb0",
+      "sha256": "26ece69215be074fb88dbd4f41f7af818b041126066427ea3febc5b41794abb0"
+    },
+    {
+      "path": "packages/afilmory/builder/src/types/config.ts",
+      "upstream": "packages/builder/src/types/config.ts",
+      "upstreamSha256": "73d0e821a7ff4fabe054428861b7733e2602bc3f9c0c5b9aea0c83420a8f508b",
+      "sha256": "73d0e821a7ff4fabe054428861b7733e2602bc3f9c0c5b9aea0c83420a8f508b"
+    },
+    {
+      "path": "packages/afilmory/builder/src/types/s3.ts",
+      "upstream": "packages/builder/src/types/s3.ts",
+      "upstreamSha256": "92eb51f79fd5697936c7abf0d20612e9cc238b813eb3c2a7a2e2496197cd10e4",
+      "sha256": "92eb51f79fd5697936c7abf0d20612e9cc238b813eb3c2a7a2e2496197cd10e4"
+    },
+    {
+      "path": "packages/afilmory/builder/src/utils/clone.ts",
+      "upstream": "packages/builder/src/utils/clone.ts",
+      "upstreamSha256": "77629f7e9680e7ed5cb31ee20350677890fbe3a1a430146d2eb27e47e8a495a3",
+      "sha256": "77629f7e9680e7ed5cb31ee20350677890fbe3a1a430146d2eb27e47e8a495a3"
+    },
+    {
+      "path": "packages/afilmory/builder/src/worker/cluster-pool.ts",
+      "upstream": "packages/builder/src/worker/cluster-pool.ts",
+      "upstreamSha256": "b60d2c239006b6f93b6ca2b38c1e8a7e8106273de3deef4a11c7491797c2ff5e",
+      "sha256": "b60d2c239006b6f93b6ca2b38c1e8a7e8106273de3deef4a11c7491797c2ff5e"
+    },
+    {
+      "path": "packages/afilmory/builder/src/worker/pool.ts",
+      "upstream": "packages/builder/src/worker/pool.ts",
+      "upstreamSha256": "b1e133aa783b7cd70a487004c164ea96937282d4412321794ca1599d9ea773ac",
+      "sha256": "b1e133aa783b7cd70a487004c164ea96937282d4412321794ca1599d9ea773ac"
+    },
+    {
+      "path": "packages/afilmory/typing/package.json",
+      "upstream": "packages/typing/package.json",
+      "upstreamSha256": "9980c774f564ca735a22a8a324f0d0217a4a8bb99f92099b6302805c5a57af5b",
+      "sha256": "b4a16e7712ec53f5b9700c0663dad3c413db0bc4cf4c6a2adc9894161a5af62c"
+    },
+    {
+      "path": "packages/afilmory/typing/src/index.ts",
+      "upstream": "packages/typing/src/index.ts",
+      "upstreamSha256": "86f738d32d1079b15800635cb42d78c683841c22754450adfabee74dd6da20d0",
+      "sha256": "86f738d32d1079b15800635cb42d78c683841c22754450adfabee74dd6da20d0"
+    },
+    {
+      "path": "packages/afilmory/typing/src/manifest.ts",
+      "upstream": "packages/typing/src/manifest.ts",
+      "upstreamSha256": "6b798f3f969a582afeb3dc6b780e476b792bdcfcf16e16f26361544a21428c28",
+      "sha256": "6b798f3f969a582afeb3dc6b780e476b792bdcfcf16e16f26361544a21428c28"
+    },
+    {
+      "path": "packages/afilmory/typing/src/photo.ts",
+      "upstream": "packages/typing/src/photo.ts",
+      "upstreamSha256": "14e200e7ac647bc22aa222c71e03d91021a662e3ebacaa5eeb2345e8004fc787",
+      "sha256": "14e200e7ac647bc22aa222c71e03d91021a662e3ebacaa5eeb2345e8004fc787"
+    },
+    {
+      "path": "packages/afilmory/utils/package.json",
+      "upstream": "packages/utils/package.json",
+      "upstreamSha256": "a5458d94753a76e976f1d632f6ec8e5888680bc428d64591c4e52eac861d4893",
+      "sha256": "d44ab94a3d24b1bc1f6ca74a381488a61e508a5071d97d4db289c363985b93b1"
+    },
+    {
+      "path": "packages/afilmory/utils/src/backoff.ts",
+      "upstream": "packages/utils/src/backoff.ts",
+      "upstreamSha256": "6c9afe0f43d0370ade90e6764cf972ccc61f366e16a09789ea90fd15e5639cc2",
+      "sha256": "6c9afe0f43d0370ade90e6764cf972ccc61f366e16a09789ea90fd15e5639cc2"
+    },
+    {
+      "path": "packages/afilmory/utils/src/cn.ts",
+      "upstream": "packages/utils/src/cn.ts",
+      "upstreamSha256": "a02fc7b13eea89b791f7ec2f7e1fb5d879c6d583fad85d74ace702688eedfaa6",
+      "sha256": "a02fc7b13eea89b791f7ec2f7e1fb5d879c6d583fad85d74ace702688eedfaa6"
+    },
+    {
+      "path": "packages/afilmory/utils/src/index.ts",
+      "upstream": "packages/utils/src/index.ts",
+      "upstreamSha256": "19510b0a883dcddd1dc15cae523e69ed0a48c78525f3c858959e83458299ee3d",
+      "sha256": "19510b0a883dcddd1dc15cae523e69ed0a48c78525f3c858959e83458299ee3d"
+    },
+    {
+      "path": "packages/afilmory/utils/src/rss.ts",
+      "upstream": "packages/utils/src/rss.ts",
+      "upstreamSha256": "e4ef044fe609888dfb0a09a43e9352fb166037ed1dec7c404b7480ee6132cc2c",
+      "sha256": "e4ef044fe609888dfb0a09a43e9352fb166037ed1dec7c404b7480ee6132cc2c"
+    },
+    {
+      "path": "packages/afilmory/utils/src/semaphore.ts",
+      "upstream": "packages/utils/src/semaphore.ts",
+      "upstreamSha256": "f3cf110a99aa3b785d015be716efdade16d576015fadb56b50200d4307673734",
+      "sha256": "f3cf110a99aa3b785d015be716efdade16d576015fadb56b50200d4307673734"
+    },
+    {
+      "path": "packages/afilmory/utils/src/spring.ts",
+      "upstream": "packages/utils/src/spring.ts",
+      "upstreamSha256": "e76ac4b40ffd369794200f0af704475c10e8b98ae00162a6f591396e65060614",
+      "sha256": "e76ac4b40ffd369794200f0af704475c10e8b98ae00162a6f591396e65060614"
+    },
+    {
+      "path": "packages/afilmory/utils/src/storage-provider.ts",
+      "upstream": "packages/utils/src/storage-provider.ts",
+      "upstreamSha256": "e9de6e9e209bea7485f81519f897da6feb1f0dd667d8201c014590fbdb38f735",
+      "sha256": "e9de6e9e209bea7485f81519f897da6feb1f0dd667d8201c014590fbdb38f735"
+    },
+    {
+      "path": "packages/afilmory/utils/src/tenant.ts",
+      "upstream": "packages/utils/src/tenant.ts",
+      "upstreamSha256": "679b25c05568d60a2298f510bec2676ebb30ddbfabc164e7d21ae8fa91e18e44",
+      "sha256": "679b25c05568d60a2298f510bec2676ebb30ddbfabc164e7d21ae8fa91e18e44"
+    },
+    {
+      "path": "packages/afilmory/utils/src/u8array.ts",
+      "upstream": "packages/utils/src/u8array.ts",
+      "upstreamSha256": "dc9049770a2dc00e001211b5bb671f15b8afc3fb1fdf9c728779890b418f667c",
+      "sha256": "dc9049770a2dc00e001211b5bb671f15b8afc3fb1fdf9c728779890b418f667c"
+    },
+    {
+      "path": "packages/afilmory/renderer/package.json",
+      "upstream": "packages/renderer/package.json",
+      "upstreamSha256": "7ca3011df69585fbcb28b5d661c83c9f400d1020d47a3b7b243b414f66acff9e",
+      "sha256": "39c36c0531e4a332dce85e238cc48e42e3bc8f3dfdba6571e3017bad21da725e"
+    },
+    {
+      "path": "packages/afilmory/renderer/src/index.ts",
+      "upstream": "packages/renderer/src/index.ts",
+      "upstreamSha256": "a5716322dd2d3859ef24f0491029d259b500b6b19c9dd90ef1415f9a8084e6be",
+      "sha256": "a5716322dd2d3859ef24f0491029d259b500b6b19c9dd90ef1415f9a8084e6be"
+    },
+    {
+      "path": "packages/afilmory/renderer/src/og/og.renderer.tsx",
+      "upstream": "packages/renderer/src/og/og.renderer.tsx",
+      "upstreamSha256": "09483ede4d83c3c9a2076cb3bf198a8d5d96f3707db22c1b0a78b7280745b298",
+      "sha256": "09483ede4d83c3c9a2076cb3bf198a8d5d96f3707db22c1b0a78b7280745b298"
+    },
+    {
+      "path": "packages/afilmory/renderer/src/og/og.template.tsx",
+      "upstream": "packages/renderer/src/og/og.template.tsx",
+      "upstreamSha256": "628e1578ebbfe9d45d556d44a0d692c07419ae11edc1944a5a0b5d2f4bfa8229",
+      "sha256": "628e1578ebbfe9d45d556d44a0d692c07419ae11edc1944a5a0b5d2f4bfa8229"
+    },
+    {
+      "path": "packages/afilmory/renderer/src/og/tweemoji.ts",
+      "upstream": "packages/renderer/src/og/tweemoji.ts",
+      "upstreamSha256": "2b447f8e40a98470f74bc7393c88a991ee43ecb3c9c3724589160fea2e390b1b",
+      "sha256": "2b447f8e40a98470f74bc7393c88a991ee43ecb3c9c3724589160fea2e390b1b"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/LICENSE",
+      "upstream": "packages/webgl-viewer/LICENSE",
+      "upstreamSha256": "e8ff35190b25d1b9ab7ed79829ce664557b9ee498386fade770467ae26914ff2",
+      "sha256": "e8ff35190b25d1b9ab7ed79829ce664557b9ee498386fade770467ae26914ff2"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/package.json",
+      "upstream": "packages/webgl-viewer/package.json",
+      "upstreamSha256": "5c13bbaafa01683aecbd0932b190977078e88abc15db123f42e2346abceafe71",
+      "sha256": "e0a6055695314c6cfecb752247fba502bdb462c169a2cc9f08bc15bfe94b3bdd"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/DebugInfo.tsx",
+      "upstream": "packages/webgl-viewer/src/DebugInfo.tsx",
+      "upstreamSha256": "c440e3fc6ae9525b9310f0742d294f86e145f10dcf5693996f63210a5ed4edfc",
+      "sha256": "c440e3fc6ae9525b9310f0742d294f86e145f10dcf5693996f63210a5ed4edfc"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/ImageViewer.tsx",
+      "upstream": "packages/webgl-viewer/src/ImageViewer.tsx",
+      "upstreamSha256": "e1a063ec8a2f0fe269c1593bf08a02edbcb1438d71ea148b8894c25ff5d00451",
+      "sha256": "e1a063ec8a2f0fe269c1593bf08a02edbcb1438d71ea148b8894c25ff5d00451"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/ImageViewerEngineBase.ts",
+      "upstream": "packages/webgl-viewer/src/ImageViewerEngineBase.ts",
+      "upstreamSha256": "063c5c5f38aeab3cc70c80a234401914c776e0a596b83baba3a8d8aba70a7cf1",
+      "sha256": "063c5c5f38aeab3cc70c80a234401914c776e0a596b83baba3a8d8aba70a7cf1"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/WebGLImageViewerEngine.ts",
+      "upstream": "packages/webgl-viewer/src/WebGLImageViewerEngine.ts",
+      "upstreamSha256": "d9bd6b692387bc4111c73e115790b9c2468b2ab5e995406d950ee65e532575ae",
+      "sha256": "d9bd6b692387bc4111c73e115790b9c2468b2ab5e995406d950ee65e532575ae"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/WebGPUImageViewerEngine.ts",
+      "upstream": "packages/webgl-viewer/src/WebGPUImageViewerEngine.ts",
+      "upstreamSha256": "ba767f28f4046e3aed35efd10d210e4960f9a7795966c3d44fe424882f87d56e",
+      "sha256": "ba767f28f4046e3aed35efd10d210e4960f9a7795966c3d44fe424882f87d56e"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/constants.ts",
+      "upstream": "packages/webgl-viewer/src/constants.ts",
+      "upstreamSha256": "9028e442c01e5608ecb4c82104c57631a2336b9a9a66f8e19f52d4f7f1961660",
+      "sha256": "9028e442c01e5608ecb4c82104c57631a2336b9a9a66f8e19f52d4f7f1961660"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/double-click-zoom.ts",
+      "upstream": "packages/webgl-viewer/src/double-click-zoom.ts",
+      "upstreamSha256": "d158881d552c20a7f2ea2d3ee0e0efd7f8b7b3b8b33d26449e058c933f15e6c0",
+      "sha256": "d158881d552c20a7f2ea2d3ee0e0efd7f8b7b3b8b33d26449e058c933f15e6c0"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/enum.ts",
+      "upstream": "packages/webgl-viewer/src/enum.ts",
+      "upstreamSha256": "a1f29d00d23d922f3f69a674bd3809324993e029395678a8b718ba50fc290d02",
+      "sha256": "a1f29d00d23d922f3f69a674bd3809324993e029395678a8b718ba50fc290d02"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/index.ts",
+      "upstream": "packages/webgl-viewer/src/index.ts",
+      "upstreamSha256": "78995a8b0d9681b315c5236d8ec280ea171c1662ac9bf191775ed4ce38cdb131",
+      "sha256": "78995a8b0d9681b315c5236d8ec280ea171c1662ac9bf191775ed4ce38cdb131"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/interface.ts",
+      "upstream": "packages/webgl-viewer/src/interface.ts",
+      "upstreamSha256": "2736a6f77a3763ea090c70b6cc18272a55d69aa4b23dfcda0fd9928ea6448ef0",
+      "sha256": "2736a6f77a3763ea090c70b6cc18272a55d69aa4b23dfcda0fd9928ea6448ef0"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/jpeg-gainmap.ts",
+      "upstream": "packages/webgl-viewer/src/jpeg-gainmap.ts",
+      "upstreamSha256": "1fc56fd15a686818da48ae469fb558834c1f2ca2ac74d02816fe7dffe96d5b82",
+      "sha256": "1fc56fd15a686818da48ae469fb558834c1f2ca2ac74d02816fe7dffe96d5b82"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/shaders.ts",
+      "upstream": "packages/webgl-viewer/src/shaders.ts",
+      "upstreamSha256": "5870f5e01c5c2682e7a61caddb50e8f49cd406f261fc01ffb410aadeef754198",
+      "sha256": "5870f5e01c5c2682e7a61caddb50e8f49cd406f261fc01ffb410aadeef754198"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/texture.worker.js",
+      "upstream": "packages/webgl-viewer/src/texture.worker.js",
+      "upstreamSha256": "463daa038a56d42164174f6bb8f67bd13a69e7061d58623c429f67de943adacb",
+      "sha256": "463daa038a56d42164174f6bb8f67bd13a69e7061d58623c429f67de943adacb"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/webgpu-shaders.ts",
+      "upstream": "packages/webgl-viewer/src/webgpu-shaders.ts",
+      "upstreamSha256": "bbe3533646ef126d4286146c1c3a38ab2de926c719742849ae22ebe8074aedff",
+      "sha256": "bbe3533646ef126d4286146c1c3a38ab2de926c719742849ae22ebe8074aedff"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/webgpu-texture.worker.ts",
+      "upstream": "packages/webgl-viewer/src/webgpu-texture.worker.ts",
+      "upstreamSha256": "687a8b66dc5961d53baebe2e22e513caed08734723f85a21d021fa7ca0e1ec47",
+      "sha256": "687a8b66dc5961d53baebe2e22e513caed08734723f85a21d021fa7ca0e1ec47"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/webgpu-tiles.ts",
+      "upstream": "packages/webgl-viewer/src/webgpu-tiles.ts",
+      "upstreamSha256": "95eb45e604dcfdd1827e9e176beae1ed768aeb6067e7ce8c403c224601326a6e",
+      "sha256": "95eb45e604dcfdd1827e9e176beae1ed768aeb6067e7ce8c403c224601326a6e"
+    }
+  ]
+}

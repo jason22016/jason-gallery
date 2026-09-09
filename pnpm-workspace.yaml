@@ -1,0 +1,8 @@
+packages:
+  - packages/afilmory/*
+allowBuilds:
+  esbuild: true
+  sharp: true
+minimumReleaseAgeExclude:
+  - '@astrojs/markdown-satteri@0.4.1'
+  - astro@7.3.2

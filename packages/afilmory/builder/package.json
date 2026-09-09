@@ -1,0 +1,31 @@
+{
+  "name": "@afilmory/builder",
+  "type": "module",
+  "version": "0.2.2",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "@afilmory/og-renderer": "workspace:*",
+    "@afilmory/typing": "workspace:*",
+    "@resvg/resvg-js": "2.6.2",
+    "@vingle/bmp-js": "0.2.5",
+    "blurhash": "2.0.5",
+    "c12": "4.0.0-beta.5",
+    "consola": "3.4.2",
+    "dotenv-expand": "13.0.0",
+    "execa": "9.6.1",
+    "exiftool-vendored": "36.0.0",
+    "fast-xml-parser": "5.9.0",
+    "heic-convert": "2.1.0",
+    "nunjucks": "3.2.4",
+    "satori": "0.26.0",
+    "sharp": "0.35.1",
+    "thumbhash": "0.1.1",
+    "@afilmory/utils": "workspace:*",
+    "es-toolkit": "1.47.1"
+  },
+  "private": true
+}

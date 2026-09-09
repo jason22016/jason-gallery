@@ -1,0 +1,201 @@
+--- a/packages/builder/package.json
++++ b/packages/builder/package.json
+@@ -2,55 +2,30 @@
+   "name": "@afilmory/builder",
+   "type": "module",
+   "version": "0.2.2",
+-  "description": "Afilmory Builder",
+-  "author": "Innei",
+   "license": "MIT",
+   "exports": {
+     ".": "./src/index.ts",
+     "./*": "./src/*"
+   },
+-  "scripts": {
+-    "build": "tsdown",
+-    "bump": "nbump",
+-    "cli": "tsx src/cli.ts",
+-    "cluster": "tsx src/cluster/cli.ts",
+-    "type-check": "tsc --noEmit"
+-  },
+   "dependencies": {
+     "@afilmory/og-renderer": "workspace:*",
+     "@afilmory/typing": "workspace:*",
+     "@resvg/resvg-js": "2.6.2",
+-    "@vingle/bmp-js": "^0.2.5",
++    "@vingle/bmp-js": "0.2.5",
+     "blurhash": "2.0.5",
+     "c12": "4.0.0-beta.5",
+     "consola": "3.4.2",
+-    "dotenv-expand": "catalog:",
++    "dotenv-expand": "13.0.0",
+     "execa": "9.6.1",
+     "exiftool-vendored": "36.0.0",
+     "fast-xml-parser": "5.9.0",
+     "heic-convert": "2.1.0",
+-    "heic-to": "1.5.2",
+     "nunjucks": "3.2.4",
+-    "satori": "catalog:",
++    "satori": "0.26.0",
+     "sharp": "0.35.1",
+-    "thumbhash": "0.1.1"
++    "thumbhash": "0.1.1",
++    "@afilmory/utils": "workspace:*",
++    "es-toolkit": "1.47.1"
+   },
+-  "devDependencies": {
+-    "@afilmory/utils": "workspace:*",
+-    "tsdown": "0.22.2"
+-  },
+-  "publishConfig": {
+-    "access": "public",
+-    "main": "./dist/index.mjs",
+-    "exports": {
+-      ".": {
+-        "types": "./dist/index.d.mts",
+-        "import": "./dist/index.mjs"
+-      },
+-      "./*": {
+-        "types": "./dist/*.d.mts",
+-        "import": "./dist/*.mjs"
+-      }
+-    }
+-  }
++  "private": true
+ }
+--- a/packages/builder/src/image/exif.ts
++++ b/packages/builder/src/image/exif.ts
+@@ -225,7 +225,7 @@
+     Reflect.deleteProperty(result, key)
+   }
+   for (const key of pickKeys) {
+-    result[key] = exifData[key]
++    result[key] = (exifData as unknown as Record<string, unknown>)[key]
+   }
+ 
+   return {
+--- a/packages/builder/src/path.ts
++++ b/packages/builder/src/path.ts
+@@ -3,4 +3,8 @@
+ 
+ const __dirname = path.dirname(fileURLToPath(import.meta.url))
+ 
+-export const workdir = path.resolve(__dirname, '../../../apps/web')
++const configuredWorkdir = process.env.JASON_GALLERY_PHOTO_WORKDIR
++if (configuredWorkdir && !path.isAbsolute(configuredWorkdir)) {
++  throw new Error('JASON_GALLERY_PHOTO_WORKDIR must be absolute')
++}
++export const workdir = configuredWorkdir ?? path.resolve(__dirname, '../../../apps/web')
+--- a/packages/typing/package.json
++++ b/packages/typing/package.json
+@@ -2,12 +2,12 @@
+   "name": "@afilmory/typing",
+   "type": "module",
+   "version": "0.0.1",
+-  "private": true,
+   "exports": {
+     ".": "./src/index.ts",
+     "./*": "./src/*"
+   },
+   "dependencies": {
+     "exiftool-vendored": "36.0.0"
+-  }
++  },
++  "private": true
+ }
+--- a/packages/utils/package.json
++++ b/packages/utils/package.json
+@@ -2,17 +2,15 @@
+   "name": "@afilmory/utils",
+   "type": "module",
+   "version": "0.0.1",
+-  "private": true,
+   "exports": {
+     ".": "./src/index.ts",
+     "./*": "./src/*"
+   },
+   "dependencies": {
+     "@afilmory/typing": "workspace:*",
+-    "clsx": "^2.1.1",
+-    "tailwind-merge": "^3.6.0"
++    "clsx": "2.1.1",
++    "tailwind-merge": "3.6.0",
++    "motion": "12.38.0"
+   },
+-  "devDependencies": {
+-    "motion": "12.38.0"
+-  }
++  "private": true
+ }
+--- a/packages/renderer/package.json
++++ b/packages/renderer/package.json
+@@ -1,15 +1,15 @@
+ {
+   "name": "@afilmory/og-renderer",
+   "type": "module",
+-  "private": true,
+   "exports": {
+     ".": "./src/index.ts",
+-    "./renderer": "./src/og.renderer.tsx",
+-    "./template": "./src/og.template.tsx"
++    "./renderer": "./src/og/og.renderer.tsx",
++    "./template": "./src/og/og.template.tsx"
+   },
+-  "devDependencies": {
++  "private": true,
++  "dependencies": {
+     "@resvg/resvg-js": "2.6.2",
+-    "hono": "4.12.34",
+-    "satori": "catalog:"
++    "satori": "0.26.0",
++    "hono": "4.12.34"
+   }
+ }
+--- a/packages/webgl-viewer/package.json
++++ b/packages/webgl-viewer/package.json
+@@ -2,44 +2,15 @@
+   "name": "@afilmory/webgl-viewer",
+   "type": "module",
+   "version": "0.2.0",
+-  "packageManager": "pnpm@11.1.2",
+-  "description": "Afilmory GPU Image Viewer",
+-  "author": "Innei",
+   "license": "MIT",
+   "exports": {
+     ".": "./src/index.ts"
+   },
+-  "main": "./src/index.ts",
+-  "scripts": {
+-    "build": "vite build",
+-    "test": "vitest run",
+-    "test:watch": "vitest",
+-    "type-check": "tsc --noEmit"
+-  },
+   "peerDependencies": {
+     "react": ">=19.0.0"
+-  },
+-  "publishConfig": {
+-    "access": "public",
+-    "main": "./dist/index.js",
+-    "exports": {
+-      ".": {
+-        "types": "./dist/index.d.ts",
+-        "import": "./dist/index.js"
+-      }
+-    }
+   },
+   "dependencies": {
+     "fast-xml-parser": "5.9.0"
+   },
+-  "devDependencies": {
+-    "@types/react": "catalog:",
+-    "@webgpu/types": "^0.1.72",
+-    "nbump": "2.1.8",
+-    "react": "^19.2.7",
+-    "tsdown": "0.22.2",
+-    "unplugin-dts": "1.0.2",
+-    "vite": "8.0.16",
+-    "vitest": "4.1.9"
+-  }
++  "private": true
+ }

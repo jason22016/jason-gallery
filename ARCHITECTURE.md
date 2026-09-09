@@ -1,0 +1,178 @@
+# Architecture Lock — Phase 1
+
+状态：Phase 1 正式通过，包含真实图库 Final Gate；2026-09-09。本文是当前唯一架构基准，改变以下决策须先更新本文。Phase 1 仅包含最小运行骨架、Photo Engine 与独立测试，不开发首页、Project 页面、Gallery、Map、完整 Viewer UI、部署或后端。验证记录见 `PHASE1_REPORT.md`。
+
+## 1. 技术栈与运行方式
+
+采用 **Astro 静态生成 + React 19 + TypeScript strict + pnpm**。Astro 负责路由、内容、HTML 与 SEO；React island 承载未来的照片交互和 Viewer。官方 [`@astrojs/react`](https://docs.astro.build/en/guides/integrations-guide/react/) 支持 React 渲染与客户端 hydration。
+
+照片处理在 Node.js 构建进程完成，部署物只有 HTML、JS、CSS、JSON 和图片资源。已验证并固定 Node **24.19.0**（`.node-version`）、pnpm **11.19.0**、Astro **7.3.2**、`@astrojs/react` **6.0.5**、React/ReactDOM **19.2.7**、TypeScript **6.0.3**；依赖使用精确版本和 lockfile。TypeScript strict 覆盖本站 `src/`、构建脚本、配置及独立 Viewer 测试。无需 SSR adapter、API、CMS、认证或 Afilmory SaaS。
+
+Viewer 经浏览器专用入口延迟加载（Astro `client:only="react"`），静态照片内容仍由 Astro 输出。同一交互区域共享一个 React 根的 Viewer 状态，避免跨 island 隐式共享 Context。浏览器不得导入 Builder、Sharp、ExifTool 或构建凭据。
+
+## 2. 源码核查与版本基线
+
+审阅的 [Afilmory commit](https://github.com/Afilmory/afilmory/tree/a3db486b0a8f2572de3032eabdfce24e726e83f3)：`a3db486b0a8f2572de3032eabdfce24e726e83f3`。以下路径均相对此 commit。
+
+| 已读代码 | 对架构的影响 |
+| --- | --- |
+| `packages/builder/src/index.ts`、`builder/builder.ts`、`photo/{processor,image-pipeline,data-processors}.ts` | 复用扫描、增量处理、EXIF、尺寸、ThumbHash、色调分析和照片生成流水线；不重写图片引擎。 |
+| `storage/providers/github-provider.ts`、`storage/manager.ts`、`plugins/storage/github.ts` | GitHub provider 按配置 path 返回相对 key；须显式排除派生图片目录。 |
+| `plugins/thumbnail-storage/{index,shared}.ts`、`image/thumbnail.ts` | 默认远端目录是 `.afilmory/thumbnails`；插件会上传。已有缩略图复用逻辑检查本地 `public/thumbnails/<id>.jpg`。 |
+| `packages/typing/src/{manifest,photo}.ts`、Builder `manifest/{version,manager,migrate}.ts` | 当前 schema 为 `v10`，顶层为 `{ version, data, cameras, lenses }`。保持原样。 |
+| `photo/gainmap-detector.ts`、`photo/image-pipeline.ts` | `isHDR` 来自 EXIF 的 Gain Map/ISO 标记及 ContainerDirectory 检测。 |
+| `packages/webgl-viewer/src/{ImageViewer,WebGPUImageViewerEngine,WebGLImageViewerEngine,jpeg-gainmap}.*` | 可独立复用 GPU Viewer；当前源码支持 WebGPU、gain map 和 WebGL 回退。 |
+| `apps/web/src/modules/viewer/{PhotoViewer,ProgressiveImage}.tsx`、`modules/gallery/{MasonryView,Masonic,MasonryPhotoItem}.tsx` | 完整 Viewer/Gallery 与应用状态、路由、翻译、Inspector、社交功能耦合，不是独立组件包。 |
+| `packages/ui/src/thumbhash/index.tsx`、各包 `package.json`、根 `LICENSE` | 小型 UI 可选择性抽取；不能把整个仓库当作 MIT。 |
+
+**源码版本不等于 npm 同号版本。** 已检查 registry 元数据与发布 tarball：npm `@afilmory/builder@0.2.2` 仍生成 `v8`；npm `@afilmory/webgl-viewer@0.2.0` 的声明没有当前源码的 `onHDRChange`/WebGPU 接口。不得用 npm 同号包替代上述 commit 并假设功能一致。
+
+因此锁定：Phase 1 从该 commit 提取所需 library packages，保留上游包名，通过 pnpm workspace package 依赖使用。只保留依赖闭包，不移植整个应用。将来改用 registry 发布包前，先核对 API、schema、worker 产物与许可证，再更新本文和 lockfile。
+
+## 3. 三层边界
+
+| 层 | 拥有的职责与接口 | 禁止的依赖 |
+| --- | --- | --- |
+| **Afilmory Photo Engine** | 上游 packages + 本站构建适配器；只读 GitHub 输入，生成原生 Manifest 和派生资产；提供 `PhotoManifestItem` 类型及只读 `getPhoto(id)` / `listPhotos()` 查询。 | 不知道 Project、页面、站点导航。 |
+| **Project Layer** | 本地编辑内容、项目 schema、顺序、封面、发布状态；构建时按 ID 解析照片，生成临时 Project view model。 | 不处理图片、不读取 GitHub、不复制 EXIF/HDR 数据，不反向修改 Manifest。 |
+| **Website UI** | Astro 页面与视觉系统；React Viewer wrapper；消费照片只读查询和已解析 Project。 | 不调用 Storage/Builder，不直接遍历仓库，不维护第二份照片事实库。 |
+
+依赖方向：`Website UI → Project Layer → Photo Engine 的只读数据接口`；UI 也可直接读取照片查询。GPU Viewer 是 Photo Engine 的独立浏览器入口，由 UI wrapper 调用，与 Node 构建入口隔离。
+
+## 4. Project 数据契约
+
+每个项目一个 `src/content/projects/<slug>.json`，使用 Zod 在构建期校验；长文暂不引入 MDX。契约如下（设计声明，Phase 2 再创建 Project schema 代码）：
+
+```ts
+type PhotoId = PhotoManifestItem['id'];
+
+interface Project {
+  schemaVersion: 1;
+  id: string;                    // 项目永久标识，独立于 slug
+  slug: string;                  // 唯一路由片段
+  title: string;
+  summary?: string;
+  location?: string;             // 可选地点描述，后续 Project schema 支持
+  description?: string;          // 纯文本
+  coverPhotoId: PhotoId;
+  photos: Array<{
+    photoId: PhotoId;
+    caption?: string;            // 仅在本项目生效
+    alt?: string;
+  }>;                           // 数组顺序就是展示顺序
+  tags?: string[];               // 项目编辑标签，独立于照片 tags
+  period?: { start: string; end?: string }; // ISO YYYY-MM-DD
+  order: number;                // 项目列表顺序，升序，slug 打破平局
+  status: 'draft' | 'published';
+}
+```
+
+同一照片可以属于多个 Project；项目内不允许重复 photo ID。`id`、`slug` 必须唯一，项目照片不能为空，封面必须属于项目，日期区间须有效。所有引用必须在 Manifest 中存在；悬空引用或照片 ID 冲突使构建失败，不能静默丢图。草稿不进入公开路由和公开 Project 数据。
+
+Project 不存文件路径、URL、尺寸、EXIF、HDR 或缩略图副本；不向 `PhotoManifestItem` 添加 `projectId`。解析结果只在构建/渲染中派生，不成为新的手工数据源。Manifest schema 升级仅走上游 migration，不引入本站扩展。
+
+## 5. 现有照片仓库兼容
+
+实际输入是 [jason22016/jason-photos](https://github.com/jason22016/jason-photos/tree/6a7ae47d75dd71bc6874e8d3f222f25b2c05e27f)，不是另一个名为 `afilmory-photos` 的仓库。核查快照为 `6a7ae47d75dd71bc6874e8d3f222f25b2c05e27f`：154 张 `.jpg` 原图、59 张同名 `.jpg` 缩略图，95 张缺缩略图，无原图 basename 冲突；未发现 Photo Manifest。上述为文件树核查，未据此声称照片内容或 HDR 效果已验证。
+
+```text
+images/DSC_0129.jpg
+images/.afilmory/thumbnails/DSC_0129.jpg
+```
+
+GitHub Storage 配置锁定为 `provider: 'github'`、`owner: 'jason22016'`、`repo: 'jason-photos'`、`path: 'images'`、`useRawUrl: true`。每次构建先把 `main` 解析为 commit SHA，再将该 SHA 用作 provider 的 `branch`/ref，保证扫描、原图 URL、缩略图来自同一快照。例如 key 为 `DSC_0129.jpg`，原图 URL 为 `https://raw.githubusercontent.com/jason22016/jason-photos/<sha>/images/DSC_0129.jpg`。
+
+兼容步骤锁定为：
+
+缩略图属于可重建派生资产；缺失或损坏时自动生成，Phase 1 暂不写回 `jason-photos`。
+
+1. 本站薄适配插件在 `onInit` 调用 `builder.getStorageManager().addExcludePrefix('.afilmory')`。使用原生 GitHub provider 在固定 SHA 下扫描一次，缓存 listing；照片列表排除包含 `.afilmory` 路径段的文件，`.gitkeep` 等非照片由上游格式集合过滤。派生目录可单独读取用于 reconciliation，不进入 Manifest。
+2. 本地缩略图只有在原图 blob SHA、远端缩略图 blob SHA、Builder commit/配置摘要均匹配，且本地字节摘要及完整解码通过时才复用。远端候选优先 `<photoId>.jpg`；兼容旧 `<basename>.jpg`，但 basename 不唯一时不得猜测映射。预填充文件名按上游公开源码规则预测，保存前逐项与 Builder **实际生成**的 ID 核对；不替换原生 ID 算法。
+3. 旧远端缩略图不带源摘要；冷缓存时仅允许原图与缩略图的最后一次路径修改来自同一 commit 的配对复用。无法满足该保守条件时重新生成。这避免原图更新而远端缩略图未更新时，即使清空本站缓存也错误复用。此约定不验证图片语义配对；以后可增加独立来源摘要记录，不能往原生 Manifest 加字段。
+4. 在每次独立 run workdir 中，先完整解码合格候选并预填 `public/thumbnails/<id>.jpg`。上游损坏缩略图的某条路径会吞掉解码错误并返回空 ThumbHash，故必须在适配器前置检查，不能只依赖“文件存在”。缺失/坏候选不预填，由原生 Builder 生成 SDR JPEG 和 ThumbHash。
+5. Phase 1 固定使用 `isForceManifest: true`、`isForceMode: false`、`isForceThumbnails: false`。每次用原图重建 metadata、HDR 和原生 v10 Manifest；校验过的缩略图仍可复用。这样避开上游部分增量检查使用 basename、更新时可能保留旧 EXIF 的问题，同时自然刷新未变化照片的 commit 原图 URL。原图按 Git blob SHA 缓存且逐次校验字节；metadata 增量优化留待后续。
+6. Final Gate 每次完整解码原图（Sharp failOn warning），保存固定快照 listing；任何单张失败都中止。保存前检查照片数量、逐张处理结果、key/ID 对应、实际 ID 唯一、尺寸、EXIF/影调结果、ThumbHash 及所有缩略图的可解码性。失败不替换上次成功的输出 Manifest。Manifest 保留 `{ version, data, cameras, lenses }` 与原生 `/thumbnails/<id>.jpg`；`pnpm photos --export` 仅将通过完整检查的未过滤结果复制到本站 `src/data/` 与 `public/thumbnails/`，不涉及网络发布。
+
+**不启用**上游 `thumbnailStoragePlugin` 或 `githubRepoSyncPlugin`：两者有远端写入用途。本方案仅借用前者的目录约定，通过本地预填充使用后者之外的正常构建流程。可选的 `JASON_PHOTOS_READ_TOKEN` 仅在构建环境中使用，只应授予照片仓库只读权限，显式 `--git-credential` 可复用用户已有 GitHub 认证，仅在进程内使用，不保存凭据；本程序仍仅发送读取请求。入口拒绝非 GET/HEAD 网络请求，StorageManager 的上传、移动与删除接口均显式报错；读取请求限时 60 秒，网络异常/408/429/5xx 最多尝试三次并记录状态及限额响应；403 不循环重试；静态产物和请求审计日志不含 token；原图必须匿名可访问，不采用需代理才能浏览的私有源。
+
+固定 `digestSuffixLength: 8`，ID 为 Builder 原生 basename 加 key 摘要后缀，以降低未来同名照片冲突风险。ID 由 Builder 生成，Project 只消费生成结果；不自行生成 UUID。允许不同 key 的同名原图；生成后的 ID 仍必须唯一，实际 ID 冲突使构建失败。改名会改变 ID，必须同步迁移 Project 引用；不得静默切换摘要后缀规则。目录不是 Project，不按目录自动创建项目。
+
+## 6. 必需的构建适配与依赖
+
+当前 `packages/builder/src/path.ts` 将 workdir 固定为相对包路径的 `../../../apps/web`，Manifest 固定写入 `src/data/photos-manifest.json`；发布包也保留该假设。仅更改 `cwd` 无法解决。
+
+允许在提取的 Builder package 中维护一个有记录的最小补丁：通过本站命名环境变量 `JASON_GALLERY_PHOTO_WORKDIR` 指定绝对工作目录，并使 worker/子进程继承；未设置时保留上游默认值。本站统一使用 `.cache/photo-engine/`：`run-*/` 为独立 Builder workdir，`cache/` 保存 blob、缩略图摘要与状态，`output/` 为上次成功产物。CLI 在动态导入 Builder **之前**设置 workdir；构建完按原样复制 Manifest 与静态资产。补丁限于路径、打包、类型声明和依赖可移植性，不更改算法、ID、schema 或 HDR 判断。实际源码补丁仅为 workdir 和一处 EXIF 动态索引的类型断言；package manifest 展开 catalog、补齐根目录原先提供的运行依赖，并修正 renderer 的子路径入口。完整差异与逐文件摘要见 `patches/afilmory-portability.patch`、`licenses/afilmory-files.json`。
+
+| 依赖/代码 | 使用决策 |
+| --- | --- |
+| `@afilmory/builder` | 构建期 package 依赖；按锁定 commit 提取并应用上述最小补丁。GitHub provider、metadata、thumbnail、HDR 检测留在包内。 |
+| `@afilmory/typing`、`@afilmory/utils`、`@afilmory/og-renderer` | Builder 所需的同 commit 依赖闭包；上游为私有 workspace 包，不能假定可从 npm 安装。对外通过本站 facade 导出照片类型，前端仅 `import type`。OG 包是当前 Builder 的依赖，不代表本阶段开发 OG 页面。 |
+| `@afilmory/webgl-viewer` | 浏览器运行期 package 依赖，锁定源码 commit；使用 `ImageViewer` 公开接口。 |
+| `@afilmory/viewer-motion` | 后续需要开合/拖拽动画时按相同 commit 引入；本阶段不安装。 |
+| `@afilmory/ui` | 私有 workspace 包；优先仅抽取 Thumbhash、基础按钮/对话框等实际需要的小组件及依赖，记录来源和许可证，不引入整个包 barrel。 |
+| `apps/web` 的 PhotoViewer、ProgressiveImage、Gallery、HDRBadge、Inspector | 已审阅作为功能参考；默认不复制。本站自行实现外壳、布局、状态、可访问性和信息展示。确需复制时按第 8 节处理。 |
+| Astro、`@astrojs/react`、React/ReactDOM 19、TypeScript、Zod | 前四项为本站直接依赖；Zod 在 Phase 2 实现 Project schema 时加入；基础样式用 CSS，按抽取组件需求再引入 Tailwind/Radix。 |
+| Sharp、ExifTool、ThumbHash 等 | 保留 Builder 的传递依赖；原生工具仅在 Node 构建机运行。提取包时展开 `catalog:` 并补齐实际运行依赖，不能原样复制失效的 workspace 配置。 |
+
+HDR 必须区分“照片含 HDR 信息”（Manifest `isHDR`）与“当前设备实际以 HDR 显示”（Viewer `onHDRChange`）。原图不经 Astro image optimizer 或会抹掉 gain map 的转码；缩略图可为 SDR。保留上游 WebGPU → WebGL 回退，GPU 全部失败时 wrapper 提供普通图片。Phase 1 已在 Chromium 152 的独立测试及生产 bundle 中验证 worker 加载、WebGPU `onHDRChange(true)`、WebGPU 故障 → WebGL，以及 GPU 全失效 → 普通 `<img>` 的测试外壳回退；GitHub 原图匿名 CORS/Canvas 读取通过。此处是 API/运行路径验证，不代表屏幕亮度或色彩的仪器测量；其他浏览器及实际相机 HDR 样本仍需扩展测试。
+
+## 7. 目录与数据流
+
+以下为当前及后续目录约定（Project 和正式 UI 目录尚未创建）：
+
+```text
+ARCHITECTURE.md
+astro.config.mjs / package.json / pnpm-workspace.yaml / pnpm-lock.yaml
+builder.config.ts
+scripts/photos/                 # 只读同步、缓存、执行 Builder、独立 smoke test
+tests/viewer/                   # 独立浏览器验证 fixture，不进入网站路由
+packages/afilmory/              # 锁定 commit 的所需 library packages
+patches/                       # 路径/可移植性补丁
+src/
+  photo-engine/                # types、只读 Manifest loader/index；浏览器入口分离
+  projects/                    # schema、校验、ID 解析
+  content/projects/            # 人工编辑 JSON
+  data/photos-manifest.json    # 原生生成物，禁止手工编辑
+  components/ui/               # 自写或有来源记录的小组件
+  components/viewer/           # 未来的 React wrapper
+  pages/health.txt.ts           # 唯一 bootstrap 探针，无首页
+  layouts/ / styles/            # 未来的 Astro 网站
+public/thumbnails/             # 构建产物
+.cache/photo-engine/           # Builder workdir、增量缓存，不提交
+licenses/                      # 上游许可、版本、来源与修改记录
+```
+
+```text
+GitHub main → 固定照片 commit → 原图 + 已有缩略图
+  → Node 适配器（排除派生目录、预填充本地缩略图）
+  → Afilmory Builder → 原生 Manifest + 缩略图
+  → 只读 Photo Index ← Project JSON 校验/按 ID 解析
+  → Astro build → 静态部署物
+  → 浏览器 React Viewer → 直接读取该 commit 的原图
+```
+
+Project JSON 和上游来源/补丁提交 Git；Manifest、缩略图、缓存属于可重建产物。照片仓库提交只有在下一次构建后才体现在网站；触发方式后续配置。构建必须核对扫描原图与 Manifest 数量、唯一 ID、Project 引用、缩略图可用性；处理失败不得发布删图后的不完整 Manifest，保留上次成功部署。
+
+## 8. 许可证边界
+
+依据锁定 commit 的 [LICENSE](https://github.com/Afilmory/afilmory/blob/a3db486b0a8f2572de3032eabdfce24e726e83f3/LICENSE)：仓库采用 ANL 双轨，Library Code 为 MIT；Project Code 为 AGPL-3.0-or-later，并附 UI attribution 条款。Builder、GPU Viewer、viewer-motion 的 package 明示 MIT；typing/utils/ui 等复用库按根许可的用途分类判断，提取时仍须逐文件检查 SPDX、单独 LICENSE 与第三方代码，不可仅凭 `packages/` 路径判定。
+
+MIT 复用须保留版权和许可文本。复制/改编 `apps/web` 的应用代码则须保留 AGPL 与修改记录，并为使用者提供对应版本的 Corresponding Source，以及显著位置的 Afilmory attribution、精确源码版本链接和许可说明；静态托管、改框架或拆分模块不会自动消除这些义务。默认路线是复用 library packages、自写网站 UI，若引入应用代码须先更新本文中的复用清单及许可策略。
+
+上游文档和非代码媒体默认另有 CC BY 4.0 条款；不复制 Afilmory 品牌、示例照片或暗示官方背书。`jason-photos` 未见许可证文件；照片权利独立于程序许可，不将其自动纳入本站代码许可证。
+
+## 9. 后续实现准入
+
+Phase 1 的独立 Engine smoke test 已通过：用锁定源码包处理普通 JPEG、HDR / gain-map JPEG、已有/缺失/损坏缩略图、重复 basename / ID 和更新图片，核对原生 v10 schema、worker 输出路径及无远端写入；Viewer 包的独立生产构建、CORS 和回退也已实测通过。`pnpm test` 执行 strict 检查、Engine smoke、Viewer bundle/worker 隔离检查和 Astro build；浏览器能力测试单独运行，结果见报告。技术验证发现不兼容时，先修订本文，不能在页面中绕过三层边界。
+
+
+## 10. Phase 1 实测边界与 Phase 2 准入事项
+
+- 真实 GitHub 快照仍为 `6a7ae47d75dd71bc6874e8d3f222f25b2c05e27f`。实际 listing 为 214 个 `images/` 下文件（154 原图、59 缩略图、1 `.gitkeep`）；Builder 照片列表为 154。Final Gate 已无过滤处理全量 154 张、1,964,370,036 字节原图，原生 v10 与缩略图均为 154；冷缓存和完整 warm 重跑均通过。95 张缺失缩略图自动生成、59 张来源未核实的旧远端缩略图保守重建；第二次全部复用 154 张有效本地缩略图，逐张字节摘要一致。
+- 离线 smoke 含 7 张自建原图。HDR fixture 有实际 SDR 主图、可解码 gain-map JPEG 和 XMP，不是只设置 `isHDR` 标志；两图比例一致。测试了 warm/cold cache、坏缩略图、更新 metadata/URL、真实 8 位摘要碰撞的拒绝，以及坏原图构建失败后保留上次成功 Manifest。
+- 运行模式是上游 **in-process async worker pool**（并发 2）；cluster 子进程模式未启用、未验收，插件闭包不能直接序列化。ExifTool 子进程实际执行。未来启用 cluster 前必须设计可序列化插件配置并另行验证输出目录。
+- 全量资源验收已完成：初次匿名请求因 60 次 API 额度耗尽而在处理前失败；认证后冷/热完整构建分别 314.37/44.14 秒，430/4 次 GET 全部为 200，无重试、坏图、丢图或警告。缓存约 2.0 GiB，磁盘余约 59 GiB。原生 provider 仍有逐文件 contents 与路径历史查询，新环境须准备足够的只读 API 额度；限额不足不能输出不完整 Manifest。
+- 远端旧缩略图来源信息不足时可能重建更多图片；目前不追求最大复用率、不复用旧 metadata、不启用多次构建并发写同一缓存目录。缓存/旧 run 的清理和原子目录发布需在正式发布流程前处理。
+- Phase 2 实现 Project schema（含可选 `location`）和引用校验后才能检查真实 Project 引用。本阶段没有 Project 数据。正式 Viewer wrapper、跨浏览器 HDR、真实相机 gain-map/ISO/MPF 多样性和屏幕视觉质量继续验证，不把本次合成 fixture 结果外推到全部设备。
+
+Final Gate 的独立命令为 `pnpm photos:verify --run <completed-workdir> --exported`；它拒绝抽样结果，并核对扫描集合、Manifest、缓存原图和各处缩略图的完整性。最终机器摘要见 `reports/phase1-final-gate.json`，错误/资源与复现详情见 `PHASE1_REPORT.md`。本次未进入 Phase 2。

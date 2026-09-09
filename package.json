@@ -1,0 +1,40 @@
+{
+  "name": "jason-gallery",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": "24.19.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "check": "tsc --noEmit",
+    "photos": "node --import tsx scripts/photos/cli.ts",
+    "test:smoke": "node --import tsx scripts/photos/network-smoke.ts && node --import tsx scripts/photos/smoke.ts",
+    "test:viewer": "node --import tsx tests/viewer/prepare.ts && vite build --config tests/viewer/vite.config.ts && node --import tsx tests/viewer/check-bundle.ts",
+    "viewer:dev": "node --import tsx tests/viewer/prepare.ts && vite --config tests/viewer/vite.config.ts",
+    "test": "pnpm check && pnpm test:smoke && pnpm test:viewer && pnpm build",
+    "photos:verify": "node --import tsx scripts/photos/verify-full.ts"
+  },
+  "dependencies": {
+    "astro": "7.3.2",
+    "@astrojs/react": "6.0.5",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "@afilmory/builder": "workspace:*",
+    "@afilmory/typing": "workspace:*",
+    "@afilmory/webgl-viewer": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "tsx": "4.21.0",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "@webgpu/types": "0.1.72",
+    "sharp": "0.35.1",
+    "vite": "8.0.16"
+  }
+}

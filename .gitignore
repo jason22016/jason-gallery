@@ -1,0 +1,10 @@
+node_modules/
+.cache/
+.astro/
+dist/
+src/data/photos-manifest.json
+public/thumbnails/
+.env
+.env.*
+.DS_Store
+.pnpm-store/
