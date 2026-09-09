@@ -1,6 +1,6 @@
-# Architecture Lock — Phase 1
+# Architecture Lock — Phase 1 / Phase 2
 
-状态：Phase 1 正式通过，包含真实图库 Final Gate；2026-09-09。本文是当前唯一架构基准，改变以下决策须先更新本文。Phase 1 仅包含最小运行骨架、Photo Engine 与独立测试，不开发首页、Project 页面、Gallery、Map、完整 Viewer UI、部署或后端。验证记录见 `PHASE1_REPORT.md`。
+状态：Phase 1 正式通过，包含真实图库 Final Gate；2026-09-09。Phase 2 仅实现 Project System，继续保持 Photo Engine 和原生 Manifest 不变。本文是当前唯一架构基准，改变以下决策须先更新本文。不开发首页、Project 页面、Gallery、Map、完整 Viewer UI、部署或后端。验证记录见 `PHASE1_REPORT.md`、`PHASE2_REPORT.md`。
 
 ## 1. 技术栈与运行方式
 
@@ -41,7 +41,7 @@ Viewer 经浏览器专用入口延迟加载（Astro `client:only="react"`），�
 
 ## 4. Project 数据契约
 
-每个项目一个 `src/content/projects/<slug>.json`，使用 Zod 在构建期校验；长文暂不引入 MDX。契约如下（设计声明，Phase 2 再创建 Project schema 代码）：
+每个项目一个 `src/content/projects/<slug>.json`，使用 Zod 在构建期校验；长文暂不引入 MDX。契约如下：
 
 ```ts
 type PhotoId = PhotoManifestItem['id'];
@@ -52,7 +52,7 @@ interface Project {
   slug: string;                  // 唯一路由片段
   title: string;
   summary?: string;
-  location?: string;             // 可选地点描述，后续 Project schema 支持
+  location?: string;             // 可选地点描述
   description?: string;          // 纯文本
   coverPhotoId: PhotoId;
   photos: Array<{
@@ -70,6 +70,14 @@ interface Project {
 同一照片可以属于多个 Project；项目内不允许重复 photo ID。`id`、`slug` 必须唯一，项目照片不能为空，封面必须属于项目，日期区间须有效。所有引用必须在 Manifest 中存在；悬空引用或照片 ID 冲突使构建失败，不能静默丢图。草稿不进入公开路由和公开 Project 数据。
 
 Project 不存文件路径、URL、尺寸、EXIF、HDR 或缩略图副本；不向 `PhotoManifestItem` 添加 `projectId`。解析结果只在构建/渲染中派生，不成为新的手工数据源。Manifest schema 升级仅走上游 migration，不引入本站扩展。
+
+### Phase 2 校验与查询约定
+
+- Zod 固定为已有依赖树中的 `4.5.4`，加入本站直接依赖。所有对象（含照片引用和 period）拒绝未知字段，不做类型强制转换。必填标识与 title 不可为空白；slug 使用小写 ASCII 字母/数字及单连字符分段，并要求 JSON 文件名与 slug 完全一致。`order` 为有限数字，允许负数和小数。日期为 `0001`–`9999` 年真实公历 `YYYY-MM-DD`，允许同日起止和仅 start。
+- `src/projects/schema.ts` 定义原始契约；`resolver.ts` 对全部项目（包括 draft）检查集合唯一性与 Photo Index 引用，再派生 `cover` 和每个照片条目的 `photo`。保留引用 ID、项目内照片顺序和局部 caption/alt，照片信息只来自只读 `getPhoto`。
+- `loadProjects()` 为公开入口，只返回 published 的 `listProjects()`、`getProject(id)`、`getProjectBySlug(slug)`。构建/编辑工具显式使用 `loadProjectCatalog()` 获取分离的 `published`、`drafts` 索引；公开索引没有切换到草稿的参数。两种索引均按 `order` 升序、slug ASCII 字典序排序，类型递归 readonly，运行时深度冻结，不暴露内部 Map。
+- `astro:build:start` 无条件读取并验证整个 Project 目录与 Phase 1 Photo Index，直接 `astro build` 也无法绕过；失败带来源文件和字段路径。空目录合法且不创建正式内容；目录缺失、JSON 解析失败或不符合每项目一个顶层 JSON 的布局会报错。`.gitkeep` 仅用于保留空目录。
+- 不持久化解析结果、不增加公开 JSON 或路由。`pnpm test:projects` 使用独立 fixture 验证契约、解析、只读接口与真实 Astro 构建拒绝路径，并加入完整 `pnpm test`。
 
 ## 5. 现有照片仓库兼容
 
@@ -111,14 +119,14 @@ GitHub Storage 配置锁定为 `provider: 'github'`、`owner: 'jason22016'`、`r
 | `@afilmory/viewer-motion` | 后续需要开合/拖拽动画时按相同 commit 引入；本阶段不安装。 |
 | `@afilmory/ui` | 私有 workspace 包；优先仅抽取 Thumbhash、基础按钮/对话框等实际需要的小组件及依赖，记录来源和许可证，不引入整个包 barrel。 |
 | `apps/web` 的 PhotoViewer、ProgressiveImage、Gallery、HDRBadge、Inspector | 已审阅作为功能参考；默认不复制。本站自行实现外壳、布局、状态、可访问性和信息展示。确需复制时按第 8 节处理。 |
-| Astro、`@astrojs/react`、React/ReactDOM 19、TypeScript、Zod | 前四项为本站直接依赖；Zod 在 Phase 2 实现 Project schema 时加入；基础样式用 CSS，按抽取组件需求再引入 Tailwind/Radix。 |
+| Astro、`@astrojs/react`、React/ReactDOM 19、TypeScript、Zod | 本站直接依赖；Zod 4.5.4 用于 Phase 2 Project schema；基础样式用 CSS，按抽取组件需求再引入 Tailwind/Radix。 |
 | Sharp、ExifTool、ThumbHash 等 | 保留 Builder 的传递依赖；原生工具仅在 Node 构建机运行。提取包时展开 `catalog:` 并补齐实际运行依赖，不能原样复制失效的 workspace 配置。 |
 
 HDR 必须区分“照片含 HDR 信息”（Manifest `isHDR`）与“当前设备实际以 HDR 显示”（Viewer `onHDRChange`）。原图不经 Astro image optimizer 或会抹掉 gain map 的转码；缩略图可为 SDR。保留上游 WebGPU → WebGL 回退，GPU 全部失败时 wrapper 提供普通图片。Phase 1 已在 Chromium 152 的独立测试及生产 bundle 中验证 worker 加载、WebGPU `onHDRChange(true)`、WebGPU 故障 → WebGL，以及 GPU 全失效 → 普通 `<img>` 的测试外壳回退；GitHub 原图匿名 CORS/Canvas 读取通过。此处是 API/运行路径验证，不代表屏幕亮度或色彩的仪器测量；其他浏览器及实际相机 HDR 样本仍需扩展测试。
 
 ## 7. 目录与数据流
 
-以下为当前及后续目录约定（Project 和正式 UI 目录尚未创建）：
+以下为当前及后续目录约定（正式 UI 目录尚未创建，Project 内容目录保持空白）：
 
 ```text
 ARCHITECTURE.md
@@ -126,6 +134,7 @@ astro.config.mjs / package.json / pnpm-workspace.yaml / pnpm-lock.yaml
 builder.config.ts
 scripts/photos/                 # 只读同步、缓存、执行 Builder、独立 smoke test
 tests/viewer/                   # 独立浏览器验证 fixture，不进入网站路由
+tests/projects/                 # Project fixture、契约/解析/构建集成测试
 packages/afilmory/              # 锁定 commit 的所需 library packages
 patches/                       # 路径/可移植性补丁
 src/
@@ -163,10 +172,10 @@ MIT 复用须保留版权和许可文本。复制/改编 `apps/web` 的应用代
 
 ## 9. 后续实现准入
 
-Phase 1 的独立 Engine smoke test 已通过：用锁定源码包处理普通 JPEG、HDR / gain-map JPEG、已有/缺失/损坏缩略图、重复 basename / ID 和更新图片，核对原生 v10 schema、worker 输出路径及无远端写入；Viewer 包的独立生产构建、CORS 和回退也已实测通过。`pnpm test` 执行 strict 检查、Engine smoke、Viewer bundle/worker 隔离检查和 Astro build；浏览器能力测试单独运行，结果见报告。技术验证发现不兼容时，先修订本文，不能在页面中绕过三层边界。
+Phase 1 的独立 Engine smoke test 已通过：用锁定源码包处理普通 JPEG、HDR / gain-map JPEG、已有/缺失/损坏缩略图、重复 basename / ID 和更新图片，核对原生 v10 schema、worker 输出路径及无远端写入；Viewer 包的独立生产构建、CORS 和回退也已实测通过。`pnpm test` 执行 strict 检查、Project 测试、Engine smoke、Viewer bundle/worker 隔离检查和 Astro build；浏览器能力测试单独运行，结果见报告。技术验证发现不兼容时，先修订本文，不能在页面中绕过三层边界。
 
 
-## 10. Phase 1 实测边界与 Phase 2 准入事项
+## 10. Phase 1 实测边界与当时的 Phase 2 准入事项
 
 - 真实 GitHub 快照仍为 `6a7ae47d75dd71bc6874e8d3f222f25b2c05e27f`。实际 listing 为 214 个 `images/` 下文件（154 原图、59 缩略图、1 `.gitkeep`）；Builder 照片列表为 154。Final Gate 已无过滤处理全量 154 张、1,964,370,036 字节原图，原生 v10 与缩略图均为 154；冷缓存和完整 warm 重跑均通过。95 张缺失缩略图自动生成、59 张来源未核实的旧远端缩略图保守重建；第二次全部复用 154 张有效本地缩略图，逐张字节摘要一致。
 - 离线 smoke 含 7 张自建原图。HDR fixture 有实际 SDR 主图、可解码 gain-map JPEG 和 XMP，不是只设置 `isHDR` 标志；两图比例一致。测试了 warm/cold cache、坏缩略图、更新 metadata/URL、真实 8 位摘要碰撞的拒绝，以及坏原图构建失败后保留上次成功 Manifest。
@@ -175,4 +184,4 @@ Phase 1 的独立 Engine smoke test 已通过：用锁定源码包处理普通 J
 - 远端旧缩略图来源信息不足时可能重建更多图片；目前不追求最大复用率、不复用旧 metadata、不启用多次构建并发写同一缓存目录。缓存/旧 run 的清理和原子目录发布需在正式发布流程前处理。
 - Phase 2 实现 Project schema（含可选 `location`）和引用校验后才能检查真实 Project 引用。本阶段没有 Project 数据。正式 Viewer wrapper、跨浏览器 HDR、真实相机 gain-map/ISO/MPF 多样性和屏幕视觉质量继续验证，不把本次合成 fixture 结果外推到全部设备。
 
-Final Gate 的独立命令为 `pnpm photos:verify --run <completed-workdir> --exported`；它拒绝抽样结果，并核对扫描集合、Manifest、缓存原图和各处缩略图的完整性。最终机器摘要见 `reports/phase1-final-gate.json`，错误/资源与复现详情见 `PHASE1_REPORT.md`。本次未进入 Phase 2。
+Final Gate 的独立命令为 `pnpm photos:verify --run <completed-workdir> --exported`；它拒绝抽样结果，并核对扫描集合、Manifest、缓存原图和各处缩略图的完整性。最终机器摘要见 `reports/phase1-final-gate.json`，错误/资源与复现详情见 `PHASE1_REPORT.md`。该 Final Gate 仅验收 Phase 1；后续 Project System 实现与测试见 `PHASE2_REPORT.md`。
