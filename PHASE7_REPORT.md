@@ -16,7 +16,7 @@
 - Worker `wrangler deploy --dry-run` 打包通过，没有上传/部署。真实 UI bundle 无服务端凭据/代码、fixture 数据；正式 Project 目录仍只有 `.gitkeep`。
 - 已确认最新 main 的真实 [Gallery sync 34452182457](https://github.com/jason22016/jason-gallery/actions/runs/34452182457) 成功：来源 `jason-photos` commit `6a7ae47d75dd71bc6874e8d3f222f25b2c05e27f`，154 张、0 处理 / 154 复用、无失败；deployment=`not_requested`。这是上游修复合并后的真实任务，不是本阶段模拟或新部署。
 - 本地用正式后台读取代码和已有 Git 凭据**只读**读取该任务的真实摘要、154 张完整索引和抽样缩略图，文件摘要通过；快照 `b92dcd3e72712d83032ce0a4e85159ca60f056087b3db6dc4581b62b2d14914c`。凭据只在进程内，未输出或写入文件。证据 `.cache/admin-read-real.json`；全回归 `.cache/phase7-final-regression.log`。
-- GitHub Actions：最终分支检查链接在提交后补充。
+- GitHub Actions：[本分支 Gallery checks](https://github.com/jason22016/jason-gallery/actions/workflows/checks.yml?query=branch%3Acodex%2Fphase7-admin) 执行完整回归（含正式后台 build、本地 workerd 和所有后台测试）；具体提交与结果以该运行记录为准。
 
 ## 上线前仍需真实验收
 
