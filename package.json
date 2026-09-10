@@ -31,6 +31,7 @@
     "test:admin": "node --import tsx --test --test-concurrency=1 tests/admin/*.test.ts",
     "admin:build": "vite build --config admin/vite.config.ts",
     "admin:dev": "pnpm admin:build && wrangler dev --config admin/wrangler.jsonc",
+    "admin:profile": "pnpm admin:build && wrangler deploy --dry-run --config admin/wrangler.jsonc --outdir .cache/admin-profile-worker && node --import tsx tests/admin/profile.ts",
     "admin:types": "wrangler types admin/worker-configuration.d.ts --config admin/wrangler.jsonc --include-runtime false --strict-vars false"
   },
   "dependencies": {

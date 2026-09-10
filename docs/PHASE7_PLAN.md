@@ -36,4 +36,8 @@ main 合并后 [Gallery automation 34449154936](https://github.com/jason22016/ja
 
 ## 全面接入与验收
 
-用户已明确确认 UI，正式接口、鉴权与拒绝测试、配置影响分析、冲突提交、跨源引用及任务/过期状态已实现。详细配置与资源上限见 [ADMIN_SETUP.md](ADMIN_SETUP.md)。上线需用户配置 Cloudflare 域名/Worker/Access application AUD/issuer/管理员邮箱、Worker GitHub Secret、Pages production Environment 与部署 Secrets。真实 Access 登录、真实服务端 GitHub 保存/dispatch、Cloudflare 发布与线上浏览均未验收；本阶段禁止生产部署与 main 合并。
+用户已明确确认 UI，正式接口、鉴权与拒绝测试、配置影响分析、冲突提交、跨源引用及任务/过期状态已实现。详细配置与资源上限见 [ADMIN_SETUP.md](ADMIN_SETUP.md)。上线需用户配置 Cloudflare 域名/Worker/Access application AUD/issuer/管理员邮箱、Worker GitHub Secret、Pages production Environment 与部署 Secrets。真实 Access 登录、真实服务端 GitHub 保存/dispatch、Cloudflare 发布与线上浏览均未验收；初始阶段禁止生产部署与 main 合并；随后用户授权 Phase 7 合并，main 已到 `daee9bd`，生产部署仍未执行。
+
+## 免费优先修正
+
+移除 Paid CPU 假设；仍沿用 Worker + Access OTP。先运行完整认证的本地 workerd 请求剖析并优化重复 ZIP/Git 读取，真实 Free CPU/登录/发布仍未验收。当前冷请求与大列表无法证明满足免费限制，不把默认配置误称免费可部署。结果与继续免费上线所需工作见 [ADMIN_CPU_PROFILE.md](ADMIN_CPU_PROFILE.md)。

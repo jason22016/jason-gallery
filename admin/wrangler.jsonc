@@ -9,6 +9,7 @@
   "assets": { "directory": "../.cache/admin-release", "binding": "ASSETS", "run_worker_first": true, "not_found_handling": "single-page-application" },
   "vars": { "ADMIN_ORIGIN": "", "ACCESS_ISSUER": "", "ACCESS_AUD": "", "ADMIN_EMAILS": "", "GITHUB_REPOSITORY": "jason22016/jason-gallery", "PUBLISH_ENABLED": "false" },
   "secrets": { "required": ["GITHUB_TOKEN"] },
-  "observability": { "enabled": false },
-  "limits": { "cpu_ms": 30000 }
+  // Free-first evaluation: use the account plan limit; no Paid CPU override.
+  // Local profiling is not Free acceptance; see docs/ADMIN_CPU_PROFILE.md.
+  "observability": { "enabled": false }
 }

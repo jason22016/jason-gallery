@@ -276,6 +276,14 @@ Final Gate 的独立命令为 `pnpm photos:verify --run <completed-workdir> --ex
 - **任务**：复用现有 sync/publish workflow，新输入 `request_id` / `expected_website_commit` 提供关联与 dispatch 版本保护。API 返回 pending，Actions steps/summary 提供真实进度、每源计数/失败、网站构建/部署状态。只有成功 run 与成功/unchanged deployment 的 URL/version 才认定发布已确认。发布默认禁用；照片包过期/配置不符/处理器变化时提供重新同步。最终发布沿用原 HEAD 新鲜度、公开资产过滤和远端版本验证。
 - **权限与实现**：JOSE / zip.js 仅在 Worker；网站限定 PAT 放 Worker Secret，Cloudflare 发布凭据仅 Actions production。照片仓库无写权限，不实现原图上传/删除、账号/角色、独立 DB 或图片代理。共享 React/CSS 保留已确认 UI，fixture 在测试入口，正式管理 bundle 不包含 fixture 数据或服务端模块，也不会混入公开 Astro dist。
 
-最新 main `9a41478` 的公开源修复已同步到后台分支。真实 sync [34452182457](https://github.com/jason22016/jason-gallery/actions/runs/34452182457) 成功，154 张 / 0 处理 / 154 复用，部署 not_requested；正式后台读取代码已在本地只读核对真实摘要、全量索引与抽样缩略图。Cloudflare Access 登录、正式 GitHub 保存/dispatch 和 Cloudflare 发布仍未真实验收。本阶段不合并后台到 main、不生产部署、不创建正式 Project。
+最新 main `9a41478` 的公开源修复已同步到后台分支。真实 sync [34452182457](https://github.com/jason22016/jason-gallery/actions/runs/34452182457) 成功，154 张 / 0 处理 / 154 复用，部署 not_requested；正式后台读取代码已在本地只读核对真实摘要、全量索引与抽样缩略图。Cloudflare Access 登录、正式 GitHub 保存/dispatch 和 Cloudflare 发布仍未真实验收。Phase 7 随后按用户授权合并 main（`daee9bd`），[合并后 automation](https://github.com/jason22016/jason-gallery/actions/runs/34483846044) 成功；没有生产部署或创建正式 Project。
 
 配置、接口边界和上线步骤见 [ADMIN_SETUP.md](docs/ADMIN_SETUP.md)，设计来源见 [PHASE7_PLAN.md](docs/PHASE7_PLAN.md)，验证结果见 [PHASE7_REPORT.md](PHASE7_REPORT.md)。
+
+### Phase 7 后续修复：编辑保护与免费优先
+
+替换 Project 编辑对象统一经过未保存确认；保存成功才执行待定切换，校验/网络/409 冲突保留当前编辑与照片选择。浏览器回归覆盖新建/其他 Project、取消、显式放弃、失败和成功路径。
+
+后台不再假设 Workers Paid，移除 30 秒 CPU override，服从账户套餐限额。完整认证的本地 workerd 测量发现并修复 fetch 接收者及 redirect 模式兼容性问题。Cache API 增加不可变 artifact 解压文件缓存，读取后仍复用共享校验/摘要；单请求内合并重复不可变 Git/Gallery run 读取，HEAD 与写入始终重新请求。没有更改 Photo Engine / 原生 Manifest / HDR。
+
+免费上线尚未成立：154 照片热照片库本地 V8 采样中位数 18.1 ms，40 Project 冷请求 71 次外部调用；本地测量不等于 Free 计费 CPU。继续优先免费，需要进一步控制冷请求/批量内容开销并完成实际 Free 账户验收，不能默认升级 Paid。方法、原始样本和待办见 [ADMIN_CPU_PROFILE.md](docs/ADMIN_CPU_PROFILE.md)。

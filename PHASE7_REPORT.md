@@ -1,6 +1,6 @@
 # Phase 7 — 轻量后台
 
-2026-09-10。独立分支 `codex/phase7-admin`；用户确认 fixture UI 后全面接入。最新 main `9a41478` 已同步到本分支；未将后台合并到 main，未执行生产部署，未创建正式摄影 Project。Polish、SEO 和性能优化顺延 Phase 8。
+2026-09-10。独立分支 `codex/phase7-admin`；用户确认 fixture UI 后全面接入。最新 main `9a41478` 已同步到本分支；后续按用户授权合并 main（`daee9bd`），[合并后 automation](https://github.com/jason22016/jason-gallery/actions/runs/34483846044) 成功；未执行生产部署，未创建正式摄影 Project。Polish、SEO 和性能优化顺延 Phase 8。
 
 ## 交付
 
@@ -22,6 +22,14 @@
 
 Cloudflare 尚未配置。Access OTP 登录与非管理员拒绝、正式 Worker 的 GitHub 保存/冲突/dispatch、生产 Secrets、Pages 实际发布与线上版本探针均**未真实验收**；本地签名测试和 dry-run 不能替代这些环节。
 
-上线配置：Worker Custom Domain、Access application/policy/AUD/issuer/管理员邮箱、仅网站仓库 Contents/Actions 的 GitHub PAT Worker Secret、现有 Pages production Environment。当前按 Workers Paid 额度配置；没有购买套餐。`PUBLISH_ENABLED=false`、`AUTO_DEPLOY_ENABLED=false`，后台分支须先获准合并，再同步新处理版本产物。
+上线配置：Worker Custom Domain、Access application/policy/AUD/issuer/管理员邮箱、仅网站仓库 Contents/Actions 的 GitHub PAT Worker Secret、现有 Pages production Environment。已移除 Paid CPU 配置，优先免费；[本地测量](docs/ADMIN_CPU_PROFILE.md)显示冷请求/批量内容仍不满足免费目标，不能作为免费部署验收。没有购买套餐。`PUBLISH_ENABLED=false`、`AUTO_DEPLOY_ENABLED=false`，正式部署前仍需同步与当前处理版本一致的照片产物。
 
 完整步骤、权限、容量上限和故障处理见 [ADMIN_SETUP.md](docs/ADMIN_SETUP.md)。架构见 [ARCHITECTURE.md](ARCHITECTURE.md)，Afilmory 实际源码与许可证核查见 [PHASE7_PLAN.md](docs/PHASE7_PLAN.md)。原生 Photo Engine、Manifest 和 HDR 算法未修改。
+
+## 后续修复（独立分支 `codex/admin-drafts-free-profile`）
+
+- 未保存 Project 在加入新建/其他 Project 前统一询问保留、放弃或保存后继续。新增生产 UI 浏览器回归覆盖取消、顺序/字段/选图保留、校验失败、HTTP 500、409 冲突及成功切换。
+- 增加正式 Worker 完整认证请求的本地 workerd 回归，发现并修复原生 fetch 接收者和 redirect 模式兼容性。此前仅未登录 workerd 测试及 Node 传输 fixture 不足以证明这些路径兼容。
+- 本地 CPU 采样重放双源 fixture 与 154 照片产物，覆盖来源/Project 保存、照片库/缩略图、sync/publish 触发、任务、40 Project。增加解压文件缓存与单请求重复读取合并，仍保留认证、摘要、新鲜度和两个冲突窗口。移除 Paid CPU override，明确免费上线仍未通过；详情见 [评估报告](docs/ADMIN_CPU_PROFILE.md)。
+- 所有保存/dispatch 为隔离 fixture；真实 Access、Cloudflare Free CPU 与正式发布仍未验收。本轮未合并 main、未生产部署。
+- 本轮完整 `pnpm test` 通过：后台扩展到 13 项（含新增浏览器与认证 workerd 回归），原有 Project/Engine/Viewer/Website/automation/真实 metadata 和生产构建通过；`admin:types` 及 Worker dry-run 通过。GitHub 分支检查结果见交付提交对应的 Gallery checks。

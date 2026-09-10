@@ -16,3 +16,9 @@ test('actual local workerd protects static assets and every write without a sign
     for(const [p,method] of [['/','GET'],['/api/save','POST'],['/api/impact','POST'],['/api/dispatch','POST'],['/api/tasks','GET'],['/api/thumbnail/1/test','GET']]){const r=await fetch(`http://127.0.0.1:${port}${p}`,{method});assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');assert(!(await r.text()).includes('runtime-test-only-sentinel'));}
   }finally{child.kill('SIGTERM');await new Promise<void>(resolve=>{if(child.exitCode!==null)return resolve();child.once('exit',()=>resolve());setTimeout(()=>{child.kill('SIGKILL');resolve();},5000).unref();});}
 });
+
+// The production bundle and native fetch/Cache/ZIP paths run inside workerd. Only upstreams are fixtures.
+test('authenticated workerd requests validate artifacts, thumbnails, saves and pending dispatches with cold/warm caches', {timeout:60000}, async()=>{
+  run(['node_modules/wrangler/bin/wrangler.js','deploy','--dry-run','--config','admin/wrangler.jsonc','--outdir','.cache/admin-runtime-authenticated'],repo);
+  run(['--import','tsx','tests/admin/profile.ts','admin/.cache/admin-runtime-authenticated/worker.js','.cache/admin-runtime-authenticated','--smoke'],repo);
+});

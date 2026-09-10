@@ -7,6 +7,7 @@ import { ProjectSchema, type Project } from '../../src/projects/schema';
 import type { PreviewData, PreviewPhoto } from './model';
 
 type Page = 'photos' | 'projects' | 'sources' | 'tasks';
+type ProjectSwitch = { next: Project | null; dirty: boolean; clearSelection: boolean };
 type ArtifactState = 'ready' | 'empty' | 'expired' | 'failed';
 const names = { photos: '照片', projects: 'Project', sources: '照片源', tasks: '同步与发布' };
 const icons = { photos: Images, projects: FolderOpen, sources: Layers3, tasks: RefreshCw };
@@ -51,30 +52,40 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
   const [taskMode, setTaskMode] = useState('sync');
   const [publishConfirm, setPublishConfirm] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [projectSwitch, setProjectSwitch] = useState<ProjectSwitch | null>(null);
   const sourceName = (id: string) => sources.find(s => s.sourceId === id)?.name ?? id;
   const photo = (id: string) => photos.find(p => p.photo.id === (media?.aliases?.[id] ?? id));
   const available = photos.filter(p => sources.find(s => s.sourceId === p.sourceId)?.enabled);
   const shown = available.filter(p => (filter === 'all' || p.sourceId === filter) && (p.photo.title ?? '').toLowerCase().includes(search.toLowerCase()));
   const toggle = (id: string) => setSelected(s => s.includes(id) ? s.filter(v => v !== id) : [...s, id]);
   const navigate = (next: Page) => { setPage(next); setError(''); };
-  const edit = (next: Project) => { setProject(structuredClone(next)); setDirty(false); navigate('projects'); };
+  function applyProjectSwitch(intent: ProjectSwitch) {
+    setProject(intent.next && structuredClone(intent.next)); setDirty(intent.dirty);
+    if (intent.clearSelection) setSelected([]);
+    setProjectSwitch(null); setAddTarget(false); navigate('projects');
+  }
+  function requestProjectSwitch(intent: ProjectSwitch) {
+    if (dirty && project) { setProjectSwitch(intent); setAddTarget(false); setError(''); }
+    else applyProjectSwitch(intent);
+  }
+  const edit = (next: Project, nextDirty = false, clearSelection = false) => requestProjectSwitch({ next, dirty: nextDirty, clearSelection });
   const changeProject = (patch: Partial<Project>) => { setProject(p => p && { ...p, ...patch }); setDirty(true); };
   const newProject = (ids = selected) => {
-    setProject({ schemaVersion: 1, id: `project-${crypto.randomUUID()}`, slug: '', title: '', summary: '', location: '', coverPhotoId: ids[0] ?? '', photos: ids.map(photoId => ({ photoId })), order: projects.length, status: 'draft' });
-    setDirty(true); setAddTarget(false); navigate('projects');
+    requestProjectSwitch({ next: { schemaVersion: 1, id: `project-${crypto.randomUUID()}`, slug: '', title: '', summary: '', location: '', coverPhotoId: ids[0] ?? '', photos: ids.map(photoId => ({ photoId })), order: projects.length, status: 'draft' }, dirty: true, clearSelection: true });
   };
   async function saveProject() {
-    if (!project) return;
+    if (!project) return false;
     const result = ProjectSchema.safeParse(project);
-    if (!result.success) { setError(result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('\n')); return; }
-    if (projects.some(p => p.id !== project.id && p.slug === project.slug)) { setError('此 slug 已被其他 Project 使用。'); return; }
-    if (project.photos.some(p => !available.some(a => a.photo.id === (media?.aliases?.[p.photoId] ?? p.photoId)))) { setError('照片引用已失效，请检查照片源。'); return; }
+    if (!result.success) { setError(result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('\n')); return false; }
+    if (projects.some(p => p.id !== project.id && p.slug === project.slug)) { setError('此 slug 已被其他 Project 使用。'); return false; }
+    if (project.photos.some(p => !available.some(a => a.photo.id === (media?.aliases?.[p.photoId] ?? p.photoId)))) { setError('照片引用已失效，请检查照片源。'); return false; }
     if (management) {
       setBusy(true);
       try { const saved = await request('/api/save', { kind: 'project', expectedHead: head, project: result.data }); setHead(saved.head); }
-      catch (e) { fail(e); return; } finally { setBusy(false); }
+      catch (e) { fail(e); return false; } finally { setBusy(false); }
     }
     setProjects(ps => [...ps.filter(p => p.id !== project.id), result.data]); setDirty(false); setError(''); setNotice(management ? 'Project 已提交 GitHub。网站尚未发布。' : 'Project 已保存到本次预览内存。未提交 GitHub，未发布网站。');
+    return true;
   }
   const localImpacts = source && originalSource && (!source.enabled || ['owner', 'repo', 'branch', 'path'].some(k => source[k as keyof PhotoSource] !== originalSource[k as keyof PhotoSource]))
     ? projects.filter(p => p.photos.some(r => photo(r.photoId)?.sourceId === originalSource.sourceId)) : [];
@@ -146,7 +157,7 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
         {selected.length > 0 && state === 'ready' && <div className="selection-bar"><span className="selection-count">{selected.length}</span><span>张照片已选中</span><button onClick={() => setSelected([])}>取消选择</button><button className="primary" onClick={() => setAddTarget(true)}>加入 Project <ArrowRight size={15} /></button></div>}
       </>}
       {page === 'projects' && (!project ? <div className="project-cards">{projects.map(p => <button className="project-card panel" key={p.id} onClick={() => edit(p)}><img src={photo(p.coverPhotoId)?.photo.thumbnailUrl} alt={p.title} /><div><span>{badge(p.status === 'draft' ? '草稿' : '待网站发布', p.status === 'draft' ? '' : 'green')}</span><h2>{p.title}</h2><p>{p.photos.length} 张照片 · {p.slug}</p></div><ArrowRight size={20} /></button>)}</div> : <>
-        <button className="back" onClick={() => { if (dirty) { setError('请先保存当前预览修改，或使用下方放弃按钮。'); return; } setProject(null); }}><ArrowLeft size={14} />全部 Project</button>{dirty && <button className="back" onClick={() => { setProject(null); setDirty(false); setError(''); }}>放弃当前修改</button>}
+        <button className="back" onClick={() => { if (dirty) { setError('请先保存当前预览修改，或使用下方放弃按钮。'); return; } setProject(null); }}><ArrowLeft size={14} />全部 Project</button>{dirty && <button className="back" onClick={() => requestProjectSwitch({ next: null, dirty: false, clearSelection: false })}>放弃当前修改</button>}
         <div className="editor-layout"><aside className="panel project-form"><div className="panel-title"><h2>Project 信息</h2>{badge(project.status === 'draft' ? '草稿' : '待网站发布')}</div><label>标题<input value={project.title} onChange={e => changeProject({ title: e.target.value })} placeholder="为这组作品起个名字" /></label><label>网址标识 · slug<input disabled={!!management && projects.some(p => p.id === project.id)} value={project.slug} onChange={e => changeProject({ slug: e.target.value })} placeholder="between-places" /></label><label>简短介绍<textarea rows={3} value={project.summary ?? ''} onChange={e => changeProject({ summary: e.target.value })} /></label><label>地点<input value={project.location ?? ''} onChange={e => changeProject({ location: e.target.value })} /></label><label>状态<select aria-label="Project 状态" value={project.status} onChange={e => changeProject({ status: e.target.value as Project['status'] })}><option value="draft">Draft · 草稿</option><option value="published">Published · 下次发布时公开</option></select></label><p className="field-hint">保存 published 状态后，仍需单独发布网站才会上线。</p><div className="form-note"><GitBranch size={16} /><span>只保存 Project 内容与照片引用。<br />照片信息沿用原有产物。</span></div></aside>
           <section className="panel sequence"><div className="panel-title"><div><h2>照片编排 <span className="muted">{project.photos.length}</span></h2><p>第一眼的封面，与之后的观看顺序。</p></div><button className="secondary" onClick={() => { setSelected([]); navigate('photos'); setNotice('选择照片后点击“加入 Project”，即可添加到正在编辑的 Project。'); }}><Plus size={15} />添加照片</button></div>
             {project.photos.length === 0 && <div className="empty"><Images /><p>从照片库中选择照片，开始编排。</p></div>}
@@ -161,7 +172,12 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
       <footer><span>jason / gallery <span className="footer-sep">·</span> 一个安静整理作品的地方</span><span>Phase 7 · {management ? '管理后台' : '界面预览'}</span></footer>
     </main>
     {source && <Modal title={originalSource ? '编辑照片源' : '新增照片源'} close={() => { setSource(null); setError(''); }}><div className="source-form" inert={busy}><p className="muted">照片从 GitHub 只读同步，凭据在服务端配置。</p>{([['name', '显示名称'], ['sourceId', '稳定来源 ID'], ['owner', 'GitHub 用户 / 组织'], ['repo', '仓库名称'], ['branch', '分支'], ['path', '图片目录']] as const).map(([key, label]) => <label key={key}>{label}<input value={source[key]} disabled={key === 'sourceId' && !!originalSource} onChange={e => setSource({ ...source, [key]: e.target.value })} /></label>)}<label className="checkbox-label"><input type="checkbox" checked={source.enabled} onChange={e => setSource({ ...source, enabled: e.target.checked })} />启用此照片源</label><div className={impacts.length ? 'impact error' : 'impact'}><strong>Project 引用影响</strong>{impacts.length ? <><p>此修改将使以下 Project 的照片引用失效：</p>{impacts.map(p => <p key={'projectId' in p ? p.projectId : p.id}>{p.title} · {p.status} · {'count' in p ? p.count : p.photos.filter((r: any) => photo(r.photoId)?.sourceId === originalSource!.sourceId).length} 张</p>)}<p>请先迁移或移除这些引用，不能静默替换。</p></> : <p>{management ? impactError || (serverImpacts === null ? '正在检查 Project 引用影响…' : '服务端未发现失效的 Project 引用。') : '当前修改未发现失效的预览 Project 引用。'}</p>}</div>{error && <p role="alert" className="error">{error}</p>}<div className="dialog-actions"><button className="secondary" onClick={() => { setSource(null); setError(''); }}>取消</button><button className="primary" disabled={busy || impacts.length > 0 || !!management && (serverImpacts === null || !!impactError)} onClick={saveSource}>{management ? '保存配置到 GitHub' : '保存配置到预览'}</button></div></div></Modal>}
-    {addTarget && <Modal title={`将 ${selected.length} 张照片加入 Project`} close={() => setAddTarget(false)}><div className="choose-project">{project && <button className="panel" onClick={() => { const ids = [...new Set([...project.photos.map(p => p.photoId), ...selected])]; changeProject({ photos: ids.map(photoId => project.photos.find(p => p.photoId === photoId) ?? { photoId }), coverPhotoId: project.coverPhotoId || ids[0]! }); setSelected([]); setAddTarget(false); navigate('projects'); }}>继续编辑：{project.title || '新的 Project'}<ArrowRight size={16} /></button>}{projects.filter(p => p.id !== project?.id).map(p => <button className="panel" key={p.id} onClick={() => { const ids = [...new Set([...p.photos.map(r => r.photoId), ...selected])]; edit({ ...p, photos: ids.map(photoId => p.photos.find(r => r.photoId === photoId) ?? { photoId }) }); setDirty(true); setSelected([]); setAddTarget(false); }}>{p.title}{badge(p.status)}<ArrowRight size={16} /></button>)}<button className="primary" onClick={() => newProject()}><Plus size={16} />新建 Project</button></div></Modal>}
+    {addTarget && <Modal title={`将 ${selected.length} 张照片加入 Project`} close={() => setAddTarget(false)}><div className="choose-project">{project && <button className="panel" onClick={() => { const ids = [...new Set([...project.photos.map(p => p.photoId), ...selected])]; changeProject({ photos: ids.map(photoId => project.photos.find(p => p.photoId === photoId) ?? { photoId }), coverPhotoId: project.coverPhotoId || ids[0]! }); setSelected([]); setAddTarget(false); navigate('projects'); }}>继续编辑：{project.title || '新的 Project'}<ArrowRight size={16} /></button>}{projects.filter(p => p.id !== project?.id).map(p => <button className="panel" key={p.id} onClick={() => { const ids = [...new Set([...p.photos.map(r => r.photoId), ...selected])]; edit({ ...p, photos: ids.map(photoId => p.photos.find(r => r.photoId === photoId) ?? { photoId }) }, true, true); }}>{p.title}{badge(p.status)}<ArrowRight size={16} /></button>)}<button className="primary" onClick={() => newProject()}><Plus size={16} />新建 Project</button></div></Modal>}
+    {projectSwitch && <Modal title="当前 Project 有未保存修改" close={() => { if (!busy) setProjectSwitch(null); }}><div className="publish-info" inert={busy}>
+      <p>“{project?.title || '新的 Project'}”尚未保存。切换后，这些编辑将被替换。</p>
+      {error && <p role="alert" className="error">{error}</p>}
+      <div className="dialog-actions"><button className="secondary" onClick={() => setProjectSwitch(null)}>保留编辑，取消切换</button><button className="secondary" onClick={() => applyProjectSwitch(projectSwitch)}>放弃编辑并继续</button><button className="primary" disabled={!!management && state !== 'ready'} onClick={async () => { const intent = projectSwitch; if (await saveProject()) applyProjectSwitch(intent); }}>保存后继续</button></div>
+    </div></Modal>}
     {conflict && <Modal title="保存版本冲突" close={() => setConflict(false)}><div className="publish-info"><p>其他修改已经进入仓库。当前编辑仍保留，请复制需要的文字，再加载最新内容并手动合并。</p><pre style={{ maxHeight: 250, overflow: 'auto', whiteSpace: 'pre-wrap' }}>{JSON.stringify(source ?? project, null, 2)}</pre><button className="secondary" onClick={() => setConflict(false)}>保留编辑，返回检查</button><button className="primary" onClick={() => location.reload()}>放弃本地编辑，加载最新版本</button></div></Modal>}
     {publishConfirm && <Modal title="发布网站" close={() => setPublishConfirm(false)}><div className="publish-info"><CloudUpload size={30} /><h3>{management?.publishEnabled ? '发布当前已保存内容' : 'Cloudflare 尚未配置'}</h3><p>正式操作会校验当前 GitHub 版本、Project 引用和照片快照，再运行已有 publish 工作流。</p>{management ? <><p>版本 {head.slice(0, 7)} · 照片任务 #{media?.runId ?? '无'}。这会调用已有 publish 工作流。</p><p>只会发布已保存且状态为 published 的 Project。</p>{management.publishEnabled && <button className="primary" disabled={busy || state !== 'ready'} onClick={() => startTask('publish')}>确认发布已保存版本</button>}</> : <p>本预览无法执行发布，也没有线上成功状态。</p>}<button className="primary" onClick={() => setPublishConfirm(false)}>知道了</button></div></Modal>}
   </div>;
