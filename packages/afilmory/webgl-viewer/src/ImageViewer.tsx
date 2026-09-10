@@ -186,6 +186,11 @@ export const ImageViewer = ({
         lifecycleRef.current.onError?.(error)
       }
     }
+    // A lost WebGL context can occur after loadImage has already resolved.
+    // Route it through the same failure callback so the host can show an image.
+    const canvas = canvasRef.current
+    const contextLost = () => fail(new Error('WebGL context lost'))
+    canvas.addEventListener('webglcontextlost', contextLost)
     const config: Required<ImageViewerOptions> = {
       src,
       className: '',
@@ -249,6 +254,7 @@ export const ImageViewer = ({
     }
     return () => {
       disposed = true
+      canvas.removeEventListener('webglcontextlost', contextLost)
       engine?.destroy()
       if (viewerRef.current === engine) {
         viewerRef.current = null

@@ -7,6 +7,7 @@ import { chromium, type Browser, type BrowserContext, type Page } from 'playwrig
 import { expect } from 'playwright/test';
 import { buildFixture, dist, repo, root, run } from './fixture';
 import { serve } from './server';
+import { colorFixtures } from '../viewer/color-fixtures';
 
 let fixture: Awaited<ReturnType<typeof buildFixture>>;
 let browser: Browser;
@@ -576,4 +577,47 @@ test('map network failure with WebGL available and lazy module failure retain se
   await expect(fresh.getByRole('alert')).toContainText('地图组件加载失败');
   await fresh.locator('.map-photo-list button').click(); await loaded(fresh);
   await expect(fresh.locator('.viewer-counter')).toHaveText('1 / 3');
+});
+
+test('WebGL context loss after a loaded HDR source reaches the normal image fallback', async t => {
+  const ctx = await context({}, 'webgpu-failure'); t.after(() => ctx.close());
+  const page = await projectPage(ctx); await open(page, 1); await loaded(page);
+  await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'webgl');
+  await page.locator('.viewer-media canvas').evaluate(canvas => {
+    (canvas as HTMLCanvasElement).getContext('webgl')!.getExtension('WEBGL_lose_context')!.loseContext();
+  });
+  await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'image'); await loaded(page);
+  await expect(page.locator('.hdr-status')).toHaveText('HDR source');
+  await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/hdr.jpg');
+  await page.keyboard.press('ArrowRight'); await loaded(page);
+  await expect(page.locator('.hdr-status')).toHaveCount(0);
+});
+
+test('HDR active requires successful reconstruction; capability changes, malformed gain and next photo clear it', async t => {
+  const gpuBrowser = await chromium.launch({ executablePath: process.env.JASON_TEST_CHROMIUM || undefined, args: ['--enable-unsafe-swiftshader', '--enable-unsafe-webgpu', '--use-angle=swiftshader'] });
+  t.after(() => gpuBrowser.close());
+  const ctx = await gpuBrowser.newContext();
+  // This only simulates the media capability. The worker, WebGPU device and shader are real.
+  await ctx.addInitScript({ content: `
+    const original = window.matchMedia.bind(window), media = new EventTarget();
+    let high = true;
+    Object.defineProperty(media, 'matches', { get: () => high });
+    window.matchMedia = query => query === '(dynamic-range: high)' ? media : original(query);
+    window.setTestHDR = value => { high = value; media.dispatchEvent(new Event('change')); };
+  ` });
+  const page = await projectPage(ctx); await open(page, 1); await loaded(page);
+  await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'webgpu');
+  await expect(page.locator('.hdr-status')).toHaveText('HDR active');
+  await page.evaluate(() => (window as unknown as { setTestHDR: (v: boolean) => void }).setTestHDR(false));
+  await expect(page.locator('.hdr-status')).toHaveText('HDR source');
+  await page.evaluate(() => (window as unknown as { setTestHDR: (v: boolean) => void }).setTestHDR(true));
+  await expect(page.locator('.hdr-status')).toHaveText('HDR active');
+  await page.keyboard.press('ArrowRight'); await loaded(page);
+  await expect(page.locator('.hdr-status')).toHaveCount(0);
+  // Manifest still marks a source; the worker must independently validate the fetched bytes.
+  const brokenGain = (await colorFixtures())['broken-gain.jpg'];
+  await page.route('**/originals/hdr.jpg', route => route.fulfill({ contentType: 'image/jpeg', body: brokenGain }));
+  await page.keyboard.press('ArrowLeft'); await loaded(page);
+  await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'webgpu');
+  await expect(page.locator('.hdr-status')).toHaveText('HDR source');
 });

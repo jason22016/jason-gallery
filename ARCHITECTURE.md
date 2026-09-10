@@ -1,4 +1,4 @@
-# Architecture Lock — Phase 1 / Phase 2 / Phase 3 / UI Redesign / Phase 4
+# Architecture Lock — Phase 1 / Phase 2 / Phase 3 / UI Redesign / Phase 4 / Phase 5
 
 状态：Phase 1（含真实图库 Final Gate）和 Phase 2 正式通过；2026-09-09。Phase 3 实现 Website MVP，继续保持 Photo Engine、Project System 和原生 Manifest 边界不变。本文是当前唯一架构基准，改变以下决策须先更新本文。2026-09-10 用户批准 UI Redesign：新增 Map、EXIF 信息面板、搜索筛选和看图动画；不加入账号、评论、点赞、后台或部署。当前 UI 约定见下方 UI Redesign 小节，Phase 3 描述保留为历史基线。验证记录见 `PHASE1_REPORT.md`、`PHASE2_REPORT.md`、`PHASE3_REPORT.md`。
 
@@ -109,7 +109,7 @@ GitHub Storage 配置锁定为 `provider: 'github'`、`owner: 'jason22016'`、`r
 
 当前 `packages/builder/src/path.ts` 将 workdir 固定为相对包路径的 `../../../apps/web`，Manifest 固定写入 `src/data/photos-manifest.json`；发布包也保留该假设。仅更改 `cwd` 无法解决。
 
-允许在提取的 Builder package 中维护一个有记录的最小补丁：通过本站命名环境变量 `JASON_GALLERY_PHOTO_WORKDIR` 指定绝对工作目录，并使 worker/子进程继承；未设置时保留上游默认值。本站统一使用 `.cache/photo-engine/`：`run-*/` 为独立 Builder workdir，`cache/` 保存 blob、缩略图摘要与状态，`output/` 为上次成功产物。CLI 在动态导入 Builder **之前**设置 workdir；构建完按原样复制 Manifest 与静态资产。补丁限于路径、打包、类型声明和依赖可移植性，不更改算法、ID、schema 或 HDR 判断。实际源码补丁仅为 workdir 和一处 EXIF 动态索引的类型断言；package manifest 展开 catalog、补齐根目录原先提供的运行依赖，并修正 renderer 的子路径入口。完整差异与逐文件摘要见 `patches/afilmory-portability.patch`、`licenses/afilmory-files.json`。
+允许在提取的 Builder package 中维护一个有记录的最小补丁：通过本站命名环境变量 `JASON_GALLERY_PHOTO_WORKDIR` 指定绝对工作目录，并使 worker/子进程继承；未设置时保留上游默认值。本站统一使用 `.cache/photo-engine/`：`run-*/` 为独立 Builder workdir，`cache/` 保存 blob、缩略图摘要与状态，`output/` 为上次成功产物。CLI 在动态导入 Builder **之前**设置 workdir；构建完按原样复制 Manifest 与静态资产。Phase 1 补丁限于路径、打包、类型声明和依赖可移植性，不更改算法、ID、schema 或 HDR 判断；Phase 5 的 Viewer 生命周期补丁例外见下文。实际源码补丁仅为 workdir 和一处 EXIF 动态索引的类型断言；package manifest 展开 catalog、补齐根目录原先提供的运行依赖，并修正 renderer 的子路径入口。完整差异与逐文件摘要见 `patches/afilmory-portability.patch`、`licenses/afilmory-files.json`。
 
 | 依赖/代码 | 使用决策 |
 | --- | --- |
@@ -196,6 +196,12 @@ Project JSON 和上游来源/补丁提交 Git；Manifest、缩略图、缓存属
 - URL 在 `photo` 外保存筛选字段、`sort` 和 `panel=map`。首开 push、切图 replace；同文档 Forward 后关闭回到原历史条目，直达/刷新关闭只移除 `photo`。照片与链接筛选冲突时显式清除筛选并提示。地图打开 Viewer 后返回相同筛选与地图视角；视角只在当前页面保留，分享链接不保存缩放/平移。
 - 地图保留懒加载、真实点位与聚合，以及无 GPS、网络/GPU/模块失败的列表回退；加载超时给出可重试提示。验收同时包含真实 CARTO 网络路径和独立本地样式的 WebGL 点位交互测试，二者不互相替代。
 - `src/website/public-assets.ts` 在 Astro 构建完成后只清理输出目录：保留 published Project 引用的本地照片资产，移除未引用/旧缩略图及 Manifest 中未公开的本地图片资产。源 `public/`、Manifest、Photo Engine 与 Project System 不变。正式项目为空时，公开产物无照片缩略图或详情 JSON。
+
+### Phase 5 — HDR / Color（2026-09-10）
+
+- 继续使用原图 URL 和原生 `isHDR`；SDR 缩略图不作为 GPU 原图输入。`HDR source` 仅说明 Engine 检测到源标记；`HDR active` 要求 Viewer 成功解析 gain map、配置 extended canvas、设备报告高动态范围且图片加载完成。普通 `<img>` 由浏览器自行色彩管理，其实际 HDR 状态不可由本 wrapper 证明，因此不标 active。
+- 允许一项实证驱动的 Viewer 生命周期补丁：已加载的 WebGL 上下文丢失未触发上游错误回调，会留下空画布；在 `ImageViewer.tsx` 将该事件接入现有失败路径，清理时移除监听。继续锁定同一 commit；补丁及摘要记录在 `patches/afilmory-hdr-color.patch`、`licenses/afilmory-files.json`，不修改 HDR 判断或色彩算法。
+- 格式、色彩与降级验证的支持范围和未验证项以 `PHASE5_REPORT.md` 为准；合成 fixture、软件 GPU 和浏览器截图不等于实体 HDR 屏幕验收。
 
 ## 8. 许可证边界
 

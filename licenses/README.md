@@ -24,7 +24,11 @@ Builder and Viewer package manifests declare MIT; the typing, utils and renderer
 - Package manifests: source-only private workspace packages, exact dependency versions, expanded catalogs; utils is moved into Builder runtime dependencies and the previously root-hoisted `es-toolkit@1.47.1` is declared. Renderer gets actual Hono JSX, Satori and Resvg runtime dependencies; its two incorrect subpath exports now point to `src/og/`. Unused upstream `heic-to` is omitted; `heic-convert` remains. Build/release dev toolchains are not copied.
 - `src/vendor-types.d.ts` is a local declaration for the untyped HEIC conversion dependency, not a change to upstream processing.
 
-Patches are in `patches/`; ID generation, metadata processing, Manifest schema, gain-map detection and Viewer rendering code are unchanged.
+Patches are in `patches/`; ID generation, metadata processing, Manifest schema, gain-map detection and color reconstruction algorithms are unchanged.
+
+## Phase 5 HDR / Color (2026-09-10)
+
+`webgl-viewer/src/ImageViewer.tsx` now listens for `webglcontextlost` and routes it to its existing failure callback, removing the listener on cleanup. A real `WEBGL_lose_context` regression reproduced a blank canvas remaining in the loaded state after the load promise had resolved; the callback lets the website use its existing ordinary-image fallback. This six-line lifecycle patch is locally authored against the same pinned commit above, recorded in `patches/afilmory-hdr-color.patch`, with the updated local hash in `afilmory-files.json`. No package upgrade, shader, color conversion, HDR detection, or Manifest change is involved.
 
 ## UI redesign (2026-09-10)
 

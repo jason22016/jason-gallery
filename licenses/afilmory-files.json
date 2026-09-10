@@ -605,7 +605,7 @@
       "path": "packages/afilmory/webgl-viewer/src/ImageViewer.tsx",
       "upstream": "packages/webgl-viewer/src/ImageViewer.tsx",
       "upstreamSha256": "e1a063ec8a2f0fe269c1593bf08a02edbcb1438d71ea148b8894c25ff5d00451",
-      "sha256": "e1a063ec8a2f0fe269c1593bf08a02edbcb1438d71ea148b8894c25ff5d00451"
+      "sha256": "db64bc375b426952a7cb965159683769a9353e15f8276a92712ba96b066e383c"
     },
     {
       "path": "packages/afilmory/webgl-viewer/src/ImageViewerEngineBase.ts",
