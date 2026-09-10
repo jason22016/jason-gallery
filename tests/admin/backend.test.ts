@@ -39,7 +39,7 @@ test('source/project validation, impact for draft and published, strict paths, a
   const disabled={...config,sources:config.sources.map(s=>({...s,enabled:false}))};const impacts=sourceImpacts(config,disabled,[project as any,{...project,status:'published'} as any]);assert.equal(impacts.length,4);
   assert.equal((await api(f,'/api/save',{kind:'sources',expectedHead:head,config:disabled})).status,422);
   f.setProjects([]);assert.equal((await api(f,'/api/save',{kind:'project',expectedHead:head,project})).status,200);
-  assert.equal(f.mutations.at(-1).body.force,false);assert.equal(f.mutations.find(m=>m.p==='/git/trees').body.tree[0].path,'src/content/projects/isolated.json');assert(f.mutations.find(m=>m.p==='/git/commits').body.message.includes('[skip ci]'));
+  const mutation=f.mutations.at(-1);assert.equal(mutation.p,'/graphql');assert.equal(mutation.body.variables.input.expectedHeadOid,head);assert.equal(mutation.body.variables.input.fileChanges.additions[0].path,'src/content/projects/isolated.json');assert.deepEqual(JSON.parse(Buffer.from(mutation.body.variables.input.fileChanges.additions[0].contents,'base64').toString()),project);assert(mutation.body.variables.input.message.headline.includes('[skip ci]'));
   const count=f.mutations.length;assert.equal((await api(f,'/api/save',{kind:'sources',expectedHead:head,config})).status,409);assert.equal(f.mutations.length,count);
   const race=await fixture();race.setRace();assert.equal((await api(race,'/api/save',{kind:'sources',expectedHead:head,config})).status,409);
   await assert.rejects(new GitHub(env,f.fetcher).commit(next,[{path:'.github/workflows/evil.yml',data:{}}]),/路径/);

@@ -1,5 +1,5 @@
 import { ApiError, jsonBody } from './errors';
-import { createHash } from 'node:crypto';
+import { hash } from 'node:crypto';
 export const workflow = '.github/workflows/automation.yml';
 export type TreeEntry = { path: string; sha: string; type: string; mode: string; size?: number };
 export class GitHub {
@@ -46,7 +46,7 @@ export class GitHub {
         if (!blob || blob.oid !== entry.sha || blob.isBinary !== false || blob.isTruncated !== false || typeof blob.text !== 'string') throw new ApiError(422, 'file', 'Git blob 缺失、截断或版本不匹配');
         const size = Buffer.byteLength(blob.text);
         total += size;
-        if (size !== blob.byteSize || size > 512000 || total > 4 * 1024 ** 2 + 512000 || createHash('sha1').update(`blob ${size}\0`).update(blob.text).digest('hex') !== entry.sha) throw new ApiError(422, 'file', 'Git blob 摘要或大小不匹配');
+        if (size !== blob.byteSize || size > 512000 || total > 4 * 1024 ** 2 + 512000 || hash('sha1', `blob ${size}\0${blob.text}`, 'hex') !== entry.sha) throw new ApiError(422, 'file', 'Git blob 摘要或大小不匹配');
         this.fileSizes.set(entry.sha, size);
         result.push(JSON.parse(blob.text));
       }
@@ -58,13 +58,22 @@ export class GitHub {
   verifyRun(run: any) { if (!Number.isSafeInteger(run.id) || run.id <= 0 || !Number.isSafeInteger(run.run_attempt) || run.run_attempt <= 0 || !/^[a-f0-9]{40}$/.test(run.head_sha) || run.head_branch !== 'main' || run.path !== workflow || run.repository?.full_name?.toLowerCase() !== this.env.GITHUB_REPOSITORY.toLowerCase() || run.head_repository?.full_name?.toLowerCase() !== this.env.GITHUB_REPOSITORY.toLowerCase() || !['push', 'schedule', 'workflow_dispatch'].includes(run.event)) throw new ApiError(422, 'run', '只接受本站 main 的 Gallery automation 任务'); return run; }
   async artifacts(id: number) { const data = await this.read(`/actions/runs/${id}/artifacts?per_page=100`); if (data.total_count > data.artifacts.length) throw new ApiError(413, 'artifact_limit', '任务产物列表不完整'); return data.artifacts as any[]; }
   async commit(expected: string, changes: { path: string; data: unknown }[]) {
-    if (await this.head() !== expected) throw new ApiError(409, 'conflict', '仓库已有更新，请保留当前编辑并重新加载后合并');
     for (const change of changes) if (change.path !== 'config/photo-sources.json' && !/^src\/content\/projects\/[a-z0-9]+(?:-[a-z0-9]+)*\.json$/.test(change.path)) throw new ApiError(403, 'path', '不允许写入此路径');
-    const parent = await this.call(`/git/commits/${expected}`);
-    const tree = await this.call('/git/trees', 'POST', { base_tree: parent.tree.sha, tree: changes.map(c => ({ path: c.path, mode: '100644', type: 'blob', content: JSON.stringify(c.data, null, 2) + '\n' })) });
-    const commit = await this.call('/git/commits', 'POST', { message: 'Save gallery admin content [skip ci]', tree: tree.sha, parents: [expected] });
-    // Non-force fast-forward is a compare-and-swap: a sibling commit cannot overwrite a new head.
-    await this.call('/git/refs/heads/main', 'PATCH', { sha: commit.sha, force: false });
-    return commit.sha as string;
+    if (!/^[a-f0-9]{40}$/.test(expected)) throw new ApiError(422, 'head', '提交版本无效');
+    // GitHub checks expectedHeadOid and creates/advances the commit atomically.
+    // A sibling update cannot be overwritten; no multi-request tree/commit/ref chain.
+    const input = { branch: { repositoryNameWithOwner: this.env.GITHUB_REPOSITORY, branchName: 'main' }, expectedHeadOid: expected,
+      message: { headline: 'Save gallery admin content [skip ci]' }, fileChanges: { additions: changes.map(c => ({ path: c.path, contents: Buffer.from(JSON.stringify(c.data, null, 2) + '\n').toString('base64') })) } };
+    const query = 'mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }';
+    const response = await this.transport('https://api.github.com/graphql', { method: 'POST', redirect: 'manual', headers: { Authorization: `Bearer ${this.env.GITHUB_TOKEN}`, 'Content-Type': 'application/json', 'User-Agent': 'jason-gallery-admin' }, body: JSON.stringify({ query, variables: { input } }), signal: AbortSignal.timeout(20000) });
+    if (!response.ok) { await response.body?.cancel(); throw new ApiError(502, 'save_unconfirmed', 'GitHub 保存结果尚未确认，请核对仓库后再重试'); }
+    const result = await jsonBody(response);
+    if (result.errors?.length) {
+      if (result.data?.createCommitOnBranch === null && result.errors.every((e: any) => e.type === 'STALE_DATA')) throw new ApiError(409, 'conflict', '仓库已有更新，请保留当前编辑并重新加载后合并');
+      throw new ApiError(502, 'save_unconfirmed', 'GitHub 保存结果尚未确认，请核对仓库后再重试');
+    }
+    const oid = result.data?.createCommitOnBranch?.commit?.oid;
+    if (typeof oid !== 'string' || !/^[a-f0-9]{40}$/.test(oid) || oid === expected) throw new ApiError(502, 'save_unconfirmed', 'GitHub 未确认新的保存版本，请核对仓库后再重试');
+    return oid;
   }
 }

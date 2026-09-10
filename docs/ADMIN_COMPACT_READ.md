@@ -49,3 +49,5 @@ Worker 从受信任的本站 main automation run 读取执行摘要，先用 Git
 真实 Free 短测中，第一版紧凑读取仍超过 CPU 门槛。因此上传验证现在把原样 `catalog.json` 字符串、实际 ZIP 大小及 `previews.bin` 的绝对字节位置一并写入执行摘要（`sealedCatalogVersion: 1`）。该位置来自完整下载、GitHub SHA-256 验证及 STORE 结构校验后的实际字节；不能由上传前猜测偏移替代。
 
 Worker 先验证执行摘要的 GitHub artifact 摘要，再核对封存记录与当前产物元数据、原照片产物及任务身份。state 无需再次下载预览包；缩略图只下载封存位置对应的一段，验证 Content-Range、长度和单图 SHA-256。来源配置、处理器摘要与 Project 引用检查不变。旧紧凑产物仍按原有有界 STORE 读取路径验证，无 ZIP 解压回退。封存后的摘要受 512 KB 上限约束；CI 超限即失败。
+
+保存使用 GitHub `createCommitOnBranch`，将 `expectedHeadOid`、目标 main 和允许路径的文件内容提交为一次原子变更。它保留旧 HEAD 检查和提交竞态保护，省去额外的 Git tree、commit、ref 往返。GraphQL 只返回部分结果、异常或未确认的新 OID 时，不报告成功、不重试写入；明确的 stale-head 错误显示冲突。参见 [GitHub 提交 API](https://docs.github.com/en/graphql/reference/commits) 与 [文件变更格式](https://docs.github.com/en/graphql/reference/git)。

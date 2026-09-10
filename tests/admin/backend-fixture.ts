@@ -65,6 +65,12 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
     assert.equal(url.origin,'https://api.github.com'); assert(url.pathname.startsWith('/repos/fixture/website/') || url.pathname === '/graphql'); assert.equal(headers.get('authorization'),`Bearer ${env.GITHUB_TOKEN}`);
     const p=url.pathname.replace('/repos/fixture/website','');
     const body=init?.body ? JSON.parse(String(init.body)) : null;
+    if(p==='/graphql' && body.query.startsWith('mutation')) {
+      mutations.push({p,method,body});
+      const input=body.variables.input; assert.equal(input.branch.repositoryNameWithOwner,env.GITHUB_REPOSITORY);assert.equal(input.branch.branchName,'main');
+      if(race || input.expectedHeadOid!==currentHead) return Response.json({data:{createCommitOnBranch:null},errors:[{type:'STALE_DATA'}]});
+      currentHead=next; return Response.json({data:{createCommitOnBranch:{commit:{oid:next}}}});
+    }
     if(p==='/graphql') { const repository: Record<string, unknown> = {}; for(const match of body.query.matchAll(/(b\d+): object\(oid: "([a-f\d]{40})"\)/g)) repository[match[1]] = [activeConfig, ...projects].map(blob).find(b => b.oid === match[2]) ?? null; return Response.json({data:{repository}}); }
     if(method!=='GET') mutations.push({p,method,body});
     if(p==='/git/ref/heads/main') return Response.json({object:{sha:currentHead}});

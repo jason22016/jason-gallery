@@ -1,8 +1,8 @@
-import { createHash } from 'node:crypto';
+import { hash } from 'node:crypto';
 import { processingInputs } from '../../src/photo-engine/processing-inputs';
 import { verifySnapshot, type PhotoSnapshot } from '../../src/photo-engine/source-contract';
 
-export const sha256 = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
+export const sha256 = (bytes: Uint8Array | string) => hash('sha256', bytes, 'hex');
 export const processingDigest = (tree: { path: string; type: string; sha: string }[]) => sha256(JSON.stringify(tree
   .filter(e => e.type === 'blob' && processingInputs.some(p => e.path === p || e.path.startsWith(p + '/')))
   .map(e => [e.path, e.sha]).sort((a, b) => a[0]! < b[0]! ? -1 : a[0]! > b[0]! ? 1 : 0)));
@@ -27,8 +27,8 @@ function check(value: unknown): asserts value { if (!value) throw new Error('Inv
 // Validate the compact wire representation without cloning/re-projecting EXIF data.
 // Authenticity comes from the trusted run's immutable artifact + execution-summary,
 // not from the catalog's own claims or a self-supplied checksum.
-export function parseCatalog(bytes: Uint8Array): ReadCatalog {
-  const c = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+export function parseCatalog(bytes: Uint8Array | string): ReadCatalog {
+  const c = JSON.parse(typeof bytes === 'string' ? bytes : new TextDecoder('utf-8', { fatal: true }).decode(bytes));
   check(c && c.schemaVersion === 1 && typeof c.repository === 'string' && positive(c.runId) && positive(c.runAttempt));
   check(hex(c.websiteCommit, 40) && positive(c.photosArtifactId) && hex(c.processingDigest, 64));
   check(c.artifact && hex(c.artifact.version, 64) && hex(c.artifact.websiteCommit, 40));

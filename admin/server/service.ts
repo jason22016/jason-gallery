@@ -70,7 +70,7 @@ export class AdminService {
     const zip = sealed ? null : await storedArchive(this.github, info, ['catalog.json', 'previews.bin']);
     let catalog: ReadCatalog;
     try {
-      const bytes = sealed ? new TextEncoder().encode(seal.catalog) : await zip!.read('catalog.json');
+      const bytes = sealed ? seal.catalog : await zip!.read('catalog.json');
       if (sha256(bytes) !== seal.catalogHash) throw new Error('catalog digest');
       catalog = parseCatalog(bytes);
       if (catalog.repository !== seal.repository || catalog.runId !== run.id || catalog.runAttempt !== run.run_attempt || catalog.websiteCommit !== run.head_sha || catalog.photosArtifactId !== original.id || catalog.artifact.version !== seal.photosArtifactVersion || (sealed ? seal.previewOffset + catalog.previewBytes > info.size_in_bytes : catalog.previewBytes !== zip!.size('previews.bin'))) throw new Error('catalog identity');

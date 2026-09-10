@@ -134,3 +134,19 @@ test('sealed catalogs reject altered bytes, range proofs, removed artifacts and 
     assert.equal(f.mutations.length, 0);
   }
 });
+
+test('atomic save never retries an uncertain mutation or accepts partial GraphQL success', async () => {
+  for (const mode of ['network', 'http', 'empty', 'partial', 'same-head']) {
+    let calls = 0;
+    const github = new GitHub(env, async () => {
+      calls++;
+      if (mode === 'network') throw new TypeError('connection ended after submission');
+      if (mode === 'http') return new Response('upstream', { status: 503 });
+      if (mode === 'empty') return Response.json({ data: { createCommitOnBranch: null } });
+      if (mode === 'partial') return Response.json({ data: { createCommitOnBranch: { commit: { oid: 'b'.repeat(40) } } }, errors: [{ type: 'UNKNOWN' }] });
+      return Response.json({ data: { createCommitOnBranch: { commit: { oid: head } } } });
+    });
+    await assert.rejects(github.commit(head, [{ path: 'config/photo-sources.json', data: config }]));
+    assert.equal(calls, 1, mode);
+  }
+});
