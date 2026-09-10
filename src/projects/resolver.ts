@@ -27,6 +27,23 @@ export interface ProjectSource {
   readonly expectedSlug?: string;
 }
 
+/** For schema-validated editor content: validate all statuses without cloning photo metadata. */
+export function validateProjectReferences(projects: readonly Project[], canonicalId: (id: string) => string | undefined, sourceName = (project: Project) => project.slug) {
+  const ids = new Set<string>(); const slugs = new Set<string>();
+  for (const project of projects) {
+    if (ids.has(project.id) || slugs.has(project.slug)) throw new Error('Duplicate Project ID/slug');
+    ids.add(project.id); slugs.add(project.slug);
+    const photos = new Set<string>();
+    for (const [index, ref] of project.photos.entries()) {
+      const id = canonicalId(ref.photoId);
+      if (!id) throw new Error(`Invalid Project ${sourceName(project)}: photos.${index}.photoId: unknown photo ID "${ref.photoId}"`);
+      if (photos.has(id)) throw new Error('duplicate canonical photo reference (legacy alias and qualified ID)');
+      photos.add(id);
+    }
+    if (!project.photos.some(p => p.photoId === project.coverPhotoId)) throw new Error('Cover must belong to this Project');
+  }
+}
+
 function freezeDeep<T>(value: T): DeepReadonly<T> {
   if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
     for (const child of Object.values(value)) freezeDeep(child);
@@ -72,6 +89,8 @@ export function resolveProjects(
     return { source, project };
   });
 
+  const sourceNames = new Map(projects.map(p => [p.project.id, p.source]));
+  validateProjectReferences(projects.map(p => p.project), id => photoIndex.getPhoto(id)?.id, p => sourceNames.get(p.id)!);
   const resolved = projects.map(({ source, project }) => {
     const photos = project.photos.map((reference, index) => {
       const photo = photoIndex.getPhoto(reference.photoId);

@@ -33,3 +33,15 @@ Cloudflare 尚未配置。Access OTP 登录与非管理员拒绝、正式 Worker
 - 本地 CPU 采样重放双源 fixture 与 154 照片产物，覆盖来源/Project 保存、照片库/缩略图、sync/publish 触发、任务、40 Project。增加解压文件缓存与单请求重复读取合并，仍保留认证、摘要、新鲜度和两个冲突窗口。移除 Paid CPU override，明确免费上线仍未通过；详情见 [评估报告](docs/ADMIN_CPU_PROFILE.md)。
 - 所有保存/dispatch 为隔离 fixture；真实 Access、Cloudflare Free CPU 与正式发布仍未验收。本轮未合并 main、未生产部署。
 - 本轮完整 `pnpm test` 通过：后台扩展到 13 项（含新增浏览器与认证 workerd 回归），原有 Project/Engine/Viewer/Website/automation/真实 metadata 和生产构建通过；`admin:types` 及 Worker dry-run 通过。GitHub 分支检查结果见交付提交对应的 Gallery checks。
+
+
+## Phase 7 免费方案优化（`codex/phase7-free-optimization`）
+
+本轮保持完整照片库和现有交互，没有进入 Phase 8。主要改动：固定 blob OID 每批 25 个读取 Project/config、完整校验后的精简目录缓存、共享纯引用校验、64 KiB 请求内 ZIP 合并与减少重复缓存。修复真实并发预览暴露的 zip.js inline 队列跨 workerd 请求 Promise 问题。
+
+- 当前 154 照片的热读取 / Project 保存 / publish V8 采样为 **9.7 / 8.7 / 6.2 ms**，本轮基线为 18.0 / 21.3 / 17.2 ms。40 Project 冷读取外部调用 **71 → 18**；计入 Cache API 后，冷读取 / 保存 / publish 为 **41 / 45 / 40** 次。此前仅统计 fetch 会低估 Free 总预算。
+- **仍未通过 Free 上线验收**：154 照片相关冷路径约 46–75 ms；小 fixture 也存在冷 CPU 风险。热值接近限额且有波动，不能以本地样本证明线上 Free 可用。功能验证范围、全部样本、UI 延迟异常、剩余瓶颈和最小 CI 读取产物调整建议见 [ADMIN_CPU_PROFILE.md](docs/ADMIN_CPU_PROFILE.md)。
+- 用户体验保留：全库搜索、跨来源选择、照片顺序、编辑内容/选择状态和未保存保护。缓存丢失/到期/故障自动回源，不要求用户手动同步；原产物失效仍拒绝过期数据。真实 154 照片 / 40 Project 的浏览器首屏、预览、选图和保存均重测；可比较的旧版 UI 基线仅补并发队列修复，原始旧版并发失败如实记录。
+- 完整 `pnpm test` 通过：Project 46、Viewer 5、Website 27、automation 21、后台 16、真实 metadata 1、Engine/network smoke、TypeScript 和 Astro 生产构建。新增回归覆盖批次末尾 draft/published 悬空引用、部分/截断/OID/大小错误、派生缓存键绑定/损坏/过期/故障、配置/处理器变化、alias/canonical 重复、12 个全冷并发缩略图及正式 UI → 正式 workerd 流程。CI 不以毫秒采样作为通过标准。
+- 新 GraphQL 接口已用现有 Git 凭据对真实网站 main 配置进行**只读** OID、字节数和 Git blob SHA-1 验证，无写入。正式 Access OTP、Worker Secret/fine-grained PAT、Cloudflare Free CPU/子请求限额和部署仍未验收。
+- 没有购买套餐、生产部署或创建正式摄影 Project。`PUBLISH_ENABLED=false` 与现有生产保护保持不变。分支推送后的 [Gallery checks](https://github.com/jason22016/jason-gallery/actions/workflows/checks.yml?query=branch%3Acodex%2Fphase7-free-optimization) 对交付提交执行回归。

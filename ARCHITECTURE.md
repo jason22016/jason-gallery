@@ -287,3 +287,15 @@ Final Gate 的独立命令为 `pnpm photos:verify --run <completed-workdir> --ex
 后台不再假设 Workers Paid，移除 30 秒 CPU override，服从账户套餐限额。完整认证的本地 workerd 测量发现并修复 fetch 接收者及 redirect 模式兼容性问题。Cache API 增加不可变 artifact 解压文件缓存，读取后仍复用共享校验/摘要；单请求内合并重复不可变 Git/Gallery run 读取，HEAD 与写入始终重新请求。没有更改 Photo Engine / 原生 Manifest / HDR。
 
 免费上线尚未成立：154 照片热照片库本地 V8 采样中位数 18.1 ms，40 Project 冷请求 71 次外部调用；本地测量不等于 Free 计费 CPU。继续优先免费，需要进一步控制冷请求/批量内容开销并完成实际 Free 账户验收，不能默认升级 Paid。方法、原始样本和待办见 [ADMIN_CPU_PROFILE.md](docs/ADMIN_CPU_PROFILE.md)。
+
+
+### Phase 7 免费方案优化（本轮，不进入 Phase 8）
+
+- 保持完整照片库的现有交互契约：一次返回全部轻量条目，浏览器在完整集合上搜索、按来源筛选和跨来源选图。不改编辑状态、照片顺序或未保存保护，不引入用户手动翻页。
+- 管理内容从每文件 REST 请求改为固定 blob OID 的 GraphQL 批次（每批 25 个），逐文件校验普通文件模式、OID、UTF-8 字节数、Git blob SHA-1、完整返回及原 schema/总量边界。不可变内容批次可缓存；当前 main HEAD/tree 仍逐请求读取，新增、删除和修改 Project 不能藏在旧批次里。仍采用同一网站 PAT。
+- 只有共享 `readCollection` 完整验证通过后，才生成可丢弃的后台精简目录缓存：snapshot、producer/version、canonical/legacy 引用、来源和 UI 必要字段/缩略图摘要。热请求仍从 GitHub 检查当前任务、产物存续、摘要、配置和 processor tree；缓存键绑定仓库/artifact/version，记录同时校验键/到期时间/内容。冷路径仍执行全部原生/完整索引/文件摘要校验；不修改 Photo Engine 或持久化第二套照片事实。
+- Project 保存/发布复用共享 `validateProjectReferences`，对全部已通过 schema 的 draft/published 检查唯一 ID/slug、引用存在、canonical 重复与封面归属；不再为校验复制/冻结所有 EXIF 数据。expected head、单父提交、非强制 ref 更新及 workflow 最终新鲜度检查保留。
+- ZIP 在请求内按 64 KiB 窗口合并相邻读取，只将尾部目录及解压文件放入跨请求缓存，避免正文窗口与解压字节的双重缓存开销。所有范围、解压、CRC 与取出文件的 sealed hash 限制保留。zip.js inline codec 禁用全局等待队列（无 Web Workers），使并发预览的解压 Promise 留在创建它的 workerd 请求中；不通过串行前端、隐藏照片或关闭运行时保护规避并发问题。
+- 缓存清空、过期、损坏的派生记录或 Cache API 故障会自动回源重建。原产物已过期、来源配置/处理输入变化或完整性失败仍拒绝操作，不能用旧缓存兜底接受过期数据。
+
+本轮完成本地功能与性能评估，不能据此认定 Cloudflare Free 正式可用。50 个来源/500 个 Project 仍只是 schema 上限；冷 ZIP/完整校验、验签、Git 写入及 Cache API 总预算需要实际 Free 数据验证。详见 [ADMIN_CPU_PROFILE.md](docs/ADMIN_CPU_PROFILE.md)。没有购买套餐、生产部署、正式摄影 Project 或 Phase 8 改动。

@@ -1,10 +1,15 @@
-import { Reader, ZipReader, Uint8ArrayWriter, type Entry } from '@zip.js/zip.js';
+import { configure, Reader, ZipReader, Uint8ArrayWriter, type Entry } from '@zip.js/zip.js';
 import { ApiError, bytes } from './errors';
 import { ArtifactCache } from './cache';
 import type { GitHub } from './github';
+// Inline codecs must stay in the creating workerd request. zip.js otherwise queues
+// promises globally when two concurrent reads occupy its default pool. There are no
+// Web Workers here: disable that queue, retaining the per-request byte/memory bounds.
+configure({ useWebWorkers: false, maxWorkers: Number.MAX_SAFE_INTEGER });
 // Only signed, time-limited GitHub artifact storage URLs are followed. No authorization header follows the redirect.
 class RangeReader extends Reader<string> {
   private transferred = 0;
+  private readonly windows: { start: number; value: Uint8Array }[] = [];
   constructor(readonly url: string, readonly transport: typeof fetch, readonly cache: ArtifactCache, readonly cacheKey: string, readonly ttl: number) { super(url); }
   async init() {
     const cached = await this.cache.get(this.cacheKey + '/size');
@@ -16,13 +21,33 @@ class RangeReader extends Reader<string> {
     await this.cache.put(this.cacheKey + '/size', String(size), this.ttl);
   }
   async readUint8Array(index: number, length: number) {
-    this.transferred += length;
-    if (index < 0 || length < 0 || length > 8 * 1024 ** 2 || this.transferred > 32 * 1024 ** 2) throw new ApiError(413, 'archive', '照片包索引超过后台按需读取上限');
-    const key = this.cacheKey + `/range/${index}-${length}`;
-    const cached = await this.cache.get(key); if (cached) return bytes(cached, length);
-    const res = await this.transport(this.url, { headers: { Range: `bytes=${index}-${index + length - 1}` }, redirect: 'manual', signal: AbortSignal.timeout(15000) });
-    if (res.status !== 206 || res.headers.get('content-range') !== `bytes ${index}-${index + length - 1}/${this.size}`) { await res.body?.cancel(); throw new ApiError(502, 'archive', '照片存储未返回所请求的字节范围'); }
-    const value = await bytes(res, length); if (value.length !== length) throw new ApiError(502, 'archive', '照片包读取不完整'); await this.cache.put(key, value, this.ttl); return value;
+    if (!Number.isSafeInteger(index) || !Number.isSafeInteger(length) || index < 0 || length < 0 || index + length > this.size || length > 8 * 1024 ** 2) throw new ApiError(413, 'archive', '照片包索引超过后台按需读取上限');
+    if (!length) return new Uint8Array();
+    const existing = this.windows.find(w => index >= w.start && index + length <= w.start + w.value.length);
+    if (existing) return existing.value.slice(index - existing.start, index - existing.start + length);
+    // Coalesce ZIP's adjacent header/data reads. Never fetch the whole archive.
+    const start = Math.floor(index / 65536) * 65536;
+    const end = Math.min(this.size, Math.ceil((index + length) / 65536) * 65536);
+    const size = end - start;
+    this.transferred += size;
+    if (this.transferred > 32 * 1024 ** 2) throw new ApiError(413, 'archive', '照片包索引超过后台按需读取上限');
+    const key = this.cacheKey + `/window/${start}-${size}`;
+    // The ZIP directory at the tail benefits every thumbnail. Body windows are
+    // request-local: decoded files already have their own cache. Caching both
+    // duplicates Cache API calls, which also consume the Free subrequest budget.
+    const shared = end === this.size;
+    const cached = shared ? await this.cache.get(key) : undefined;
+    let value: Uint8Array;
+    if (cached) value = await bytes(cached, size);
+    else {
+      const res = await this.transport(this.url, { headers: { Range: `bytes=${start}-${end - 1}` }, redirect: 'manual', signal: AbortSignal.timeout(15000) });
+      if (res.status !== 206 || res.headers.get('content-range') !== `bytes ${start}-${end - 1}/${this.size}`) { await res.body?.cancel(); throw new ApiError(502, 'archive', '照片存储未返回所请求的字节范围'); }
+      value = await bytes(res, size);
+      if (shared && value.length === size) await this.cache.put(key, value, this.ttl);
+    }
+    if (value.length !== size) throw new ApiError(502, 'archive', '照片包读取不完整');
+    this.windows.push({ start, value });
+    return value.slice(index - start, index - start + length);
   }
 }
 export async function archive(github: GitHub, artifact: any) {

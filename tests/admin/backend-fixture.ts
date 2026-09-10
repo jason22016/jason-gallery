@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import sharp from 'sharp';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { ZipWriter, Uint8ArrayWriter, Uint8ArrayReader } from '@zip.js/zip.js';
 import { parseSources, LEGACY_SOURCE, makeSnapshot, photoReference, originalURL } from '../../src/photo-engine/source-contract';
@@ -21,7 +23,7 @@ async function collection() {
     const photo = { id: 'same_12345678', title: 'Same name', s3Key: 'same.jpg', width: 400, height: 300, thumbnailUrl: '/thumbnails/same_12345678.jpg', originalUrl: originalURL(s,s.commit,'same.jpg') };
     const manifest = { version: 'v10', data: [photo] } as unknown as AfilmoryManifest; manifests.set(s.sourceId,manifest);
     const prefix = `sources/${s.sourceId}/`;
-    put(prefix+'photos-manifest.json',manifest); const thumb = new Uint8Array([0xff,0xd8,0xff,0xd9]); files.set(prefix+'public/thumbnails/same_12345678.jpg',thumb); files.set(`public/thumbnails/${photoReference(s,photo.id)}.jpg`,thumb);
+    put(prefix+'photos-manifest.json',manifest); const thumb = new Uint8Array(await sharp({ create: { width: 4, height: 3, channels: 3, background: '#809080' } }).jpeg().toBuffer()); files.set(prefix+'public/thumbnails/same_12345678.jpg',thumb); files.set(`public/thumbnails/${photoReference(s,photo.id)}.jpg`,thumb);
     const native = { schemaVersion: 1, kind: 'photos', complete: true, source:'github', photoCommit:s.commit, fingerprint:'fingerprint', websiteCommit:head, photos:1, processed:1, reused:0, files: { 'photos-manifest.json':hashBytes(files.get(prefix+'photos-manifest.json')!), 'public/thumbnails/same_12345678.jpg':hashBytes(thumb) }, sourceConfig: config.sources.find(v=>v.sourceId===s.sourceId) };
     put(prefix+'artifact.json',{...native,version:hashBytes(JSON.stringify(native))}); statuses.push({sourceId:s.sourceId,status:'success',total:1,processed:1,reused:0,commit:s.commit,failureReason:null});
   }
@@ -32,10 +34,11 @@ async function collection() {
 }
 async function zip(files: Map<string,Uint8Array>) { const writer = new ZipWriter(new Uint8ArrayWriter(), { useWebWorkers:false }); for(const [name,data] of files) await writer.add(name,new Uint8ArrayReader(data)); return writer.close(); }
 async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any; config: typeof config }) {
-  const c = replay ?? await collection(); const activeConfig = replay?.config ?? config; let summary: any = {schemaVersion:2,action:'sync',websiteCommit:head,photos:{status:'success',artifactVersion:c.artifact.version},sources:c.artifact.sources,website:{status:'not_started'},deployment:{status:'not_requested'}};
+  const c = replay ?? await collection(); let activeConfig = replay?.config ?? config; let summary: any = {schemaVersion:2,action:'sync',websiteCommit:head,photos:{status:'success',artifactVersion:c.artifact.version},sources:c.artifact.sources,website:{status:'not_started'},deployment:{status:'not_requested'}};
   let currentHead = head; let race = false; let expired = false; let tamper = false; let codeStale = false;
   let projects: any[] = []; const mutations: any[] = []; const network: any[] = [];
   const photosZip = await zip(c.files);
+  const blob = (value: unknown) => { const text = JSON.stringify(value); const byteSize = Buffer.byteLength(text); return { text, byteSize, oid: createHash('sha1').update(`blob ${byteSize}\0`).update(text).digest('hex'), isBinary: false, isTruncated: false }; };
   const run = {id:1,head_branch:'main',path:'.github/workflows/automation.yml',repository:{full_name:env.GITHUB_REPOSITORY},head_repository:{full_name:env.GITHUB_REPOSITORY},head_sha:head,status:'completed',event:'workflow_dispatch',conclusion:'success',display_title:'Gallery sync · fixture'};
   const fetcher: typeof fetch = async (input, init) => {
     const url = new URL(String(input)); const headers = new Headers(init?.headers); const method=init?.method||'GET'; network.push({url: url.origin+url.pathname,method,auth:headers.get('authorization')});
@@ -48,13 +51,14 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
       const range=headers.get('range')!.match(/bytes=(\d+)-(\d+)/)!; const start=+range[1],end=+range[2];
       return new Response(data.slice(start,end+1),{status:206,headers:{'content-range':`bytes ${start}-${end}/${data.length}`}});
     }
-    assert.equal(url.origin,'https://api.github.com'); assert(url.pathname.startsWith('/repos/fixture/website/')); assert.equal(headers.get('authorization'),`Bearer ${env.GITHUB_TOKEN}`);
+    assert.equal(url.origin,'https://api.github.com'); assert(url.pathname.startsWith('/repos/fixture/website/') || url.pathname === '/graphql'); assert.equal(headers.get('authorization'),`Bearer ${env.GITHUB_TOKEN}`);
     const p=url.pathname.replace('/repos/fixture/website','');
     const body=init?.body ? JSON.parse(String(init.body)) : null;
+    if(p==='/graphql') { const repository: Record<string, unknown> = {}; for(const match of body.query.matchAll(/(b\d+): object\(oid: "([a-f\d]{40})"\)/g)) repository[match[1]] = [activeConfig, ...projects].map(blob).find(b => b.oid === match[2]) ?? null; return Response.json({data:{repository}}); }
     if(method!=='GET') mutations.push({p,method,body});
     if(p==='/git/ref/heads/main') return Response.json({object:{sha:currentHead}});
-    if(p.startsWith('/git/trees/') && method==='GET') return Response.json({truncated:false,tree:[{path:'config/photo-sources.json',type:'blob',mode:'100644',sha:'config'},...projects.map((p,i)=>({path:`src/content/projects/${p.slug}.json`,sha:`project-${i}`,type:'blob',mode:'100644'})),{path:'pnpm-lock.yaml',type:'blob',sha:codeStale&&p.endsWith(head)?'old':'code'}]});
-    if(p.startsWith('/git/blobs/')) { const value=p.endsWith('config')?activeConfig:projects[Number(p.split('-').at(-1))]; return Response.json({encoding:'base64',content:Buffer.from(JSON.stringify(value)).toString('base64')}); }
+    if(p.startsWith('/git/trees/') && method==='GET') return Response.json({truncated:false,tree:[{path:'config/photo-sources.json',type:'blob',mode:'100644',sha:blob(activeConfig).oid},...projects.map((p,i)=>({path:`src/content/projects/${p.slug}.json`,sha:blob(p).oid,type:'blob',mode:'100644'})),{path:'pnpm-lock.yaml',type:'blob',sha:codeStale&&p.endsWith(head)?'old':'code'}]});
+    if(p.startsWith('/git/blobs/')) { const value=[activeConfig, ...projects].find(v => p.endsWith(blob(v).oid)); return Response.json({encoding:'base64',content:Buffer.from(JSON.stringify(value)).toString('base64')}); }
     if(p===`/git/commits/${head}`) return Response.json({tree:{sha:'tree'}});
     if(p==='/git/trees' || p==='/git/commits') return Response.json({sha:next});
     if(p==='/git/refs/heads/main') { if(race) return Response.json({}, {status:422}); currentHead=next; return Response.json({object:{sha:next}}); }
@@ -66,7 +70,7 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
     if(p==='/actions/workflows/automation.yml/dispatches') return new Response(null,{status:204});
     throw new Error('Unexpected '+p);
   };
-  return { c, fetcher, mutations, network, setProjects:(v:any[])=>projects=v, setHead:(v:string)=>currentHead=v, setRace:()=>race=true,setExpired:()=>expired=true,setTamper:()=>tamper=true,setStale:()=>{codeStale=true;currentHead=next;}, setSummary:(v:any)=>summary=v, summary, run };
+  return { c, fetcher, mutations, network, setProjects:(v:any[])=>projects=v, setConfig:(v:typeof config)=>activeConfig=v, setHead:(v:string)=>currentHead=v, setRace:()=>race=true,setExpired:()=>expired=true,setTamper:()=>tamper=true,setStale:()=>{codeStale=true;currentHead=next;}, setSummary:(v:any)=>summary=v, summary, run };
 }
 
 export { head, next, env, prepareKeys, token, config, snapshot, fixture };

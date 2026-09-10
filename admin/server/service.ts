@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { parseSources, sourceIdentity, LEGACY_SOURCE, type SourcesConfig } from '../../src/photo-engine/source-contract';
+import { parseSources, sourceIdentity, LEGACY_SOURCE, verifySnapshot, type PhotoSnapshot, type SourcesConfig } from '../../src/photo-engine/source-contract';
 import { readCollection } from '../../src/photo-engine/collection-contract';
 import { processingInputs } from '../../src/photo-engine/processing-inputs';
 import { ProjectSchema, type Project } from '../../src/projects/schema';
-import { resolveProjects } from '../../src/projects/resolver';
+import { validateProjectReferences } from '../../src/projects/resolver';
 import { GitHub } from './github';
 import { archive } from './archive';
 import { ApiError, assert } from './errors';
@@ -20,17 +20,28 @@ export function sourceImpacts(before: SourcesConfig, after: SourcesConfig, proje
     return count ? [{ sourceId: s.sourceId, projectId: p.id, title: p.title, status: p.status, count }] : [];
   }));
 }
+// A disposable projection of a fully verified collection, never an independently edited index.
+interface PhotoCatalog {
+  artifact: { version: string; websiteCommit: string; snapshot: PhotoSnapshot };
+  aliases: [string, string][];
+  photos: { id: string; sourceId: string; title: string; width: number; height: number; hash: string }[];
+}
+function validateReferences(projects: Project[], catalog: PhotoCatalog) {
+  const ids = new Set(catalog.photos.map(p => p.id)); const aliases = new Map(catalog.aliases);
+  validateProjectReferences(projects, id => { const ref = aliases.get(id) ?? id; return ids.has(ref) ? ref : undefined; });
+}
 export class AdminService {
   readonly cache: ArtifactCache;
   constructor(readonly github: GitHub) { this.cache = new ArtifactCache(github.env.GITHUB_REPOSITORY); }
   async content() {
     const head = await this.github.head(); const tree = await this.github.tree(head);
     const entry = tree.find(e => e.path === 'config/photo-sources.json'); assert(entry, '缺少照片源配置');
-    const config = parseSources(await this.github.file(entry));
     const entries = tree.filter(e => projectPath.test(e.path));
     assert(entries.length <= 500, 'Project 超过后台 500 个上限');
+    const [sourceFile, ...projectFiles] = await this.github.files([entry, ...entries]);
+    const config = parseSources(sourceFile);
     const projects: Project[] = []; let contentBytes = 0;
-    for (const entry of entries) { const p = ProjectSchema.parse(await this.github.file(entry)); contentBytes += Buffer.byteLength(JSON.stringify(p)); assert(contentBytes <= 4 * 1024 ** 2, 'Project 总内容超过后台 4 MB 上限'); assert(p.slug === entry.path.match(projectPath)![1], 'Project slug 与文件名不一致'); projects.push(p); }
+    for (const [i, entry] of entries.entries()) { const p = ProjectSchema.parse(projectFiles[i]); contentBytes += Buffer.byteLength(JSON.stringify(p)); assert(contentBytes <= 4 * 1024 ** 2, 'Project 总内容超过后台 4 MB 上限'); assert(p.slug === entry.path.match(projectPath)![1], 'Project slug 与文件名不一致'); projects.push(p); }
     assert(new Set(projects.map(p => p.id)).size === projects.length, 'Project ID 重复');
     return { head, tree, config, projects };
   }
@@ -40,7 +51,7 @@ export class AdminService {
     const zip = await archive(this.github, artifact);
     try { const value = JSON.parse(new TextDecoder().decode(await zip.read('summary.json'))); assert(value.schemaVersion === 2 && value.websiteCommit === run.head_sha, '执行摘要与任务版本不匹配'); return value; } finally { await zip.close(); }
   }
-  async photos(content: Awaited<ReturnType<AdminService['content']>>, requestedRun?: number) {
+  async photos(content: Awaited<ReturnType<AdminService['content']>>, requestedRun?: number, withPreviews = true) {
     const runs = requestedRun ? [await this.github.run(requestedRun)] : await this.github.runs();
     const run = runs.find(r => r.status === 'completed' && r.event !== 'pull_request');
     if (!run) throw new ApiError(404, 'empty', '还没有完整照片产物，请先同步');
@@ -51,22 +62,34 @@ export class AdminService {
     if (!artifactInfo) throw new ApiError(410, 'expired', '照片产物缺失或已过期，请重新同步');
     const zip = await archive(this.github, artifactInfo);
     try {
-      const collection = await readCollection(zip.read, content.config);
-      assert(collection.artifact.version === summary.photos.artifactVersion, '产物与执行摘要不匹配');
+      const cacheKey = `catalog-v1/${artifactInfo.id}/${summary.photos.artifactVersion}`;
+      let catalog = await this.cache.derived<PhotoCatalog>(cacheKey);
+      if (!catalog) {
+        const collection = await readCollection(zip.read, content.config);
+        assert(collection.artifact.version === summary.photos.artifactVersion, '产物与执行摘要不匹配');
+        const sourceIds = new Map(collection.index.entries.map(e => [e.reference, e.sourceId]));
+        catalog = {
+          artifact: { version: collection.artifact.version, websiteCommit: collection.artifact.websiteCommit!, snapshot: collection.artifact.snapshot },
+          aliases: [...collection.aliases],
+          photos: collection.photos.map(p => ({ id: p.id, sourceId: sourceIds.get(p.id)!, title: p.title, width: p.width, height: p.height, hash: collection.artifact.files[`public/thumbnails/${p.id}.jpg`] })),
+        };
+        await this.cache.putDerived(cacheKey, catalog, Math.floor((Date.parse(artifactInfo.expires_at) - Date.now()) / 1000));
+      }
+      assert(catalog.artifact.version === summary.photos.artifactVersion, '产物与执行摘要不匹配');
+      verifySnapshot(catalog.artifact.snapshot, content.config);
       // A Project-only commit does not age photos; any processor input/dependency change does.
-      const producer = collection.artifact.websiteCommit;
+      const producer = catalog.artifact.websiteCommit;
       assert(producer && /^[a-f\d]{40}$/.test(producer), '照片产物缺少处理器版本');
       const before = await this.github.tree(producer);
       const code = (tree: typeof before) => JSON.stringify(tree.filter(e => e.type === 'blob' && processingInputs.some(p => e.path === p || e.path.startsWith(p + '/'))).map(e => [e.path, e.sha]).sort());
       if (code(before) !== code(content.tree)) throw new ApiError(409, 'stale', '照片处理器或依赖已更新，请重新同步');
-      await this.cache.put(`verified/${run.id}`, JSON.stringify({ info: { id: artifactInfo.id, expires_at: artifactInfo.expires_at, expired: false }, files: Object.fromEntries(collection.photos.map(p => [p.id, collection.artifact.files[`public/thumbnails/${p.id}.jpg`]])) }), Math.floor((Date.parse(artifactInfo.expires_at)-Date.now())/1000));
-      return { ...collection, close: zip.close, runId: run.id as number, expiresAt: artifactInfo.expires_at as string };
+      if (withPreviews) await this.cache.putDerived(`verified-v2/${run.id}`, { info: { id: artifactInfo.id, expires_at: artifactInfo.expires_at, expired: false }, files: Object.fromEntries(catalog.photos.map(p => [p.id, p.hash])) }, Math.floor((Date.parse(artifactInfo.expires_at)-Date.now())/1000));
+      return { ...catalog, read: async (path: string) => { const photo = catalog.photos.find(p => `public/thumbnails/${p.id}.jpg` === path); assert(photo, '照片不存在'); const value = await zip.read(path); assert(hashBytes(value) === photo.hash, '缩略图摘要不匹配'); return value; }, close: zip.close, runId: run.id as number, expiresAt: artifactInfo.expires_at as string };
     } catch (e) { await zip.close(); throw e; }
   }
   async thumbnail(runId: number, reference: string) {
-    const cached = await this.cache.get(`verified/${runId}`);
-    if (cached) {
-      const proof = await cached.json() as { info: any; files: Record<string,string> };
+    const proof = await this.cache.derived<{ info: any; files: Record<string,string> }>(`verified-v2/${runId}`);
+    if (proof) {
       if (Date.parse(proof.info.expires_at) > Date.now() && Object.hasOwn(proof.files, reference)) {
         const zip = await archive(this.github, proof.info);
         try { const value = await zip.read(`public/thumbnails/${reference}.jpg`); assert(hashBytes(value) === proof.files[reference], '缩略图摘要不匹配'); return value; } finally { await zip.close(); }
@@ -78,7 +101,7 @@ export class AdminService {
   async bootstrap() {
     const content = await this.content();
     let media: any = { state: 'empty', reason: '请先同步照片', photos: [], aliases: {} };
-    try { const p = await this.photos(content); try { media = { state: 'ready', reason: '', runId: p.runId, expiresAt: p.expiresAt, snapshot: p.artifact.snapshot, aliases: Object.fromEntries(p.aliases), photos: p.photos.map(photo => ({ sourceId: p.index.entries.find(e => e.reference === photo.id)!.sourceId, photo: { id: photo.id, title: photo.title, width: photo.width, height: photo.height, thumbnailUrl: `/api/thumbnail/${p.runId}/${encodeURIComponent(photo.id)}` } })) }; } finally { await p.close(); } }
+    try { const p = await this.photos(content); try { media = { state: 'ready', reason: '', runId: p.runId, expiresAt: p.expiresAt, snapshot: p.artifact.snapshot, aliases: Object.fromEntries(p.aliases), photos: p.photos.map(photo => ({ sourceId: photo.sourceId, photo: { id: photo.id, title: photo.title, width: photo.width, height: photo.height, thumbnailUrl: `/api/thumbnail/${p.runId}/${encodeURIComponent(photo.id)}` } })) }; } finally { await p.close(); } }
     catch (e) { media.state = e instanceof ApiError ? e.code : 'stale'; media.reason = e instanceof ApiError ? e.message : '照片产物验证未通过或与当前来源配置不符，请重新同步'; }
     return { head: content.head, sources: content.config.sources, projects: content.projects, media, publishEnabled: this.github.env.PUBLISH_ENABLED === 'true' };
   }
@@ -98,10 +121,9 @@ export class AdminService {
       assert(existing || content.projects.length < 500, 'Project 超过后台 500 个上限');
       assert(!existing || existing.slug === p.slug, '已保存 Project 的 slug 不可更改');
       assert(!content.projects.some(v => v.slug === p.slug && v.id !== p.id), 'Project slug 已存在');
-      const photos = await this.photos(content);
+      const photos = await this.photos(content, undefined, false);
       try {
-        const map = new Map(photos.photos.map(p => [p.id, p]));
-        resolveProjects([...content.projects.filter(v => v.id !== p.id), p].map(p => ({ source: p.slug + '.json', data: p, expectedSlug: p.slug })), { getPhoto: id => map.get(photos.aliases.get(id) ?? id) });
+        validateReferences([...content.projects.filter(v => v.id !== p.id), p], photos);
       } catch (error) { if (error instanceof ApiError) throw error; throw new ApiError(422, 'project_reference', 'Project 引用校验失败；照片缺失、重复或来源已变化'); } finally { await photos.close(); }
       changes = [{ path: `src/content/projects/${p.slug}.json`, data: p }];
     }
@@ -117,8 +139,8 @@ export class AdminService {
     const inputs: Record<string, string> = { mode: body.mode, request_id: requestId, expected_website_commit: content.head };
     if (body.mode === 'publish') {
       assert(body.photoRunId, '发布前请先同步并选择完整照片产物');
-      const photos = await this.photos(content, body.photoRunId);
-      try { const map = new Map(photos.photos.map(p => [p.id, p])); resolveProjects(content.projects.map(p => ({ source: p.slug, data: p })), { getPhoto: id => map.get(photos.aliases.get(id) ?? id) }); inputs.photo_run_id = String(photos.runId); inputs.photo_commits = JSON.stringify(Object.fromEntries(photos.artifact.snapshot.sources.map(s => [s.sourceId, s.commit]))); } finally { await photos.close(); }
+      const photos = await this.photos(content, body.photoRunId, false);
+      try { validateReferences(content.projects, photos); inputs.photo_run_id = String(photos.runId); inputs.photo_commits = JSON.stringify(Object.fromEntries(photos.artifact.snapshot.sources.map(s => [s.sourceId, s.commit]))); } finally { await photos.close(); }
     }
     try { await this.github.call('/actions/workflows/automation.yml/dispatches', 'POST', { ref: 'main', inputs }); }
     catch { throw new ApiError(502, 'dispatch_unconfirmed', 'GitHub 触发结果尚未确认；请先查看任务记录，避免重复触发', { requestId, mode: body.mode }); }

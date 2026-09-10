@@ -21,4 +21,5 @@ test('actual local workerd protects static assets and every write without a sign
 test('authenticated workerd requests validate artifacts, thumbnails, saves and pending dispatches with cold/warm caches', {timeout:60000}, async()=>{
   run(['node_modules/wrangler/bin/wrangler.js','deploy','--dry-run','--config','admin/wrangler.jsonc','--outdir','.cache/admin-runtime-authenticated'],repo);
   run(['--import','tsx','tests/admin/profile.ts','admin/.cache/admin-runtime-authenticated/worker.js','.cache/admin-runtime-authenticated','--smoke'],repo);
+  run(['--import','tsx','tests/admin/ui-profile.ts','admin/.cache/admin-runtime-authenticated/worker.js','.cache/admin-runtime-ui.json'],repo);
 });
