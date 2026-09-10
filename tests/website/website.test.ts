@@ -431,9 +431,29 @@ test('native touch gestures switch photos, reveal the inspector, dismiss, and ig
   await open(page); await loaded(page); await page.locator('[data-viewer-transition-variant]').waitFor({ state: 'detached' });
   await swipe([300, 340], [80, 340]); await loaded(page); await expect(page.locator('.viewer-counter')).toHaveText('2 / 3');
   await swipe([190, 470], [190, 210]); await expect(page.locator('.mobile-inspector')).toBeVisible();
-  await page.evaluate("window.testInspectorCloseClicks = 0; document.querySelector('.mobile-inspector button').addEventListener('click', () => window.testInspectorCloseClicks++)");
-  await page.getByRole('button', { name: '收起照片信息' }).tap();
-  assert.equal(await page.evaluate('window.testInspectorCloseClicks'), 1, 'Native tap must deliver the inspector close click');
+  await page.evaluate(`
+    window.testInspectorCloseClicks = 0;
+    window.testTouchEvents = [];
+    document.querySelector('.mobile-inspector button').addEventListener('click', () => window.testInspectorCloseClicks++);
+    for (const type of ['touchstart', 'touchend', 'pointerdown', 'pointerup', 'click']) {
+      document.addEventListener(type, event => window.testTouchEvents.push({ type, target: event.target.closest('button')?.getAttribute('aria-label') || event.target.tagName }), { capture: true });
+    }
+  `);
+  const closeButton = page.getByRole('button', { name: '收起照片信息' });
+  const box = await closeButton.boundingBox(); assert(box);
+  const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), point), '收起照片信息');
+  // Keep swipe and tap in one native CDP input stream. Switching to Playwright's
+  // touchscreen controller midway can lose the synthetic compatibility click.
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+  await frame();
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await frame();
+  try {
+    await expect.poll(() => page.evaluate('window.testInspectorCloseClicks'), { message: 'Native tap must deliver the inspector close click' }).toBe(1);
+  } finally {
+    console.log('Native touch close events:', await page.evaluate('window.testTouchEvents'));
+  }
   await expect(page.locator('.mobile-inspector')).toHaveCount(0);
   await swipe([190, 250], [190, 540]); await expect(page.getByRole('dialog')).toHaveCount(0);
   assert.equal(await page.evaluate(() => document.body.style.overflow), '');
