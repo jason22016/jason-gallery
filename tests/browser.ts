@@ -1,8 +1,8 @@
 import type { LaunchOptions } from 'playwright';
 
-// ANGLE (WebGL/compositor) and Dawn (WebGPU) select their adapters separately.
-// On Linux, implicit WebGPU fallback with SwANGLE can create a device but fail
-// when presenting the canvas SharedImage. Explicitly select Dawn's CPU path too.
+// ANGLE (WebGL), Dawn (WebGPU), and Skia (compositor) select backends separately.
+// Linux's GaneshGL + SwANGLE cannot back the WebGPU canvas SharedImage even if
+// requestDevice succeeds. Graphite/Dawn supports that software presentation path.
 // https://chromium.googlesource.com/chromium/src/+/HEAD/docs/gpu/swiftshader.md
 // https://dawn.googlesource.com/dawn/+/HEAD/webgpu-cts/README.md
 export function softwareGPUOptions(): LaunchOptions {
@@ -15,6 +15,8 @@ export function softwareGPUOptions(): LaunchOptions {
       '--use-gl=angle',
       '--use-angle=swiftshader',
       '--use-webgpu-adapter=swiftshader',
+      '--enable-skia-graphite',
+      '--skia-graphite-dawn-backend=swiftshader',
     ],
   };
 }

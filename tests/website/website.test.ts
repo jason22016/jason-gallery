@@ -46,18 +46,22 @@ after(async () => {
 async function context(options: Parameters<Browser['newContext']>[0] = {}, gpu: 'none' | 'webgpu-failure' | 'native' = 'none') {
   const result = await browser.newContext(options);
   result.setDefaultTimeout(10_000);
-  if (gpu !== 'native') await result.addInitScript(mode => {
+  // Raw browser code avoids tsx/esbuild's __name helper on nested functions;
+  // that helper does not exist in the browser's init-script realm.
+  if (gpu !== 'native') await result.addInitScript({ content: `
+    const mode = ${JSON.stringify(gpu)};
+    window.testGPUAdapterRequests = 0;
     Object.defineProperty(navigator, 'gpu', { configurable: true, value: mode === 'none' ? undefined : {
-      requestAdapter: async () => { throw new Error('Injected WebGPU initialization failure'); },
+      requestAdapter: async () => { window.testGPUAdapterRequests++; throw new Error('Injected WebGPU initialization failure'); },
     } });
     if (mode === 'none') {
       const original = HTMLCanvasElement.prototype.getContext;
-      HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...args: unknown[]) {
+      HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
         if (['webgl', 'webgl2', 'experimental-webgl', 'webgpu'].includes(kind)) return null;
         return Reflect.apply(original, this, [kind, ...args]);
-      } as typeof original;
+      };
     }
-  }, gpu);
+  ` });
   return result;
 }
 
@@ -72,6 +76,9 @@ async function open(page: Page, index = 0) {
   await expect(page.getByRole('dialog')).toBeVisible();
 }
 async function loaded(page: Page) { await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loaded', { timeout: 15_000 }); }
+async function assertGPUFailureInjected(page: Page) {
+  assert(await page.evaluate(() => (window as unknown as { testGPUAdapterRequests: number }).testGPUAdapterRequests > 0), 'Viewer must actually call the injected failing WebGPU adapter');
+}
 
 test('production routes, published order, cover, project fields and Gallery order work without JavaScript', async t => {
   const ctx = await context({ javaScriptEnabled: false }); t.after(() => ctx.close());
@@ -228,6 +235,7 @@ test('real Afilmory WebGPU initialization failure falls back to WebGL in the Ast
   const page = await projectPage(ctx);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await open(page, 1); await loaded(page);
+  await assertGPUFailureInjected(page);
   await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'webgl');
   await expect(page.locator('.viewer-media canvas[role="img"]')).toHaveAttribute('aria-label', 'Fixture HDR image');
   await expect(page.locator('.hdr-status')).toHaveText('HDR source');
@@ -579,6 +587,7 @@ test('map network failure with WebGL available and lazy module failure retain se
 test('WebGL context loss after a loaded HDR source reaches the normal image fallback', async t => {
   const ctx = await context({}, 'webgpu-failure'); t.after(() => ctx.close());
   const page = await projectPage(ctx); await open(page, 1); await loaded(page);
+  await assertGPUFailureInjected(page);
   await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'webgl');
   await page.locator('.viewer-media canvas').evaluate(canvas => {
     (canvas as HTMLCanvasElement).getContext('webgl')!.getExtension('WEBGL_lose_context')!.loseContext();
