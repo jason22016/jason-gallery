@@ -412,10 +412,18 @@ test('native touch gestures switch photos, reveal the inspector, dismiss, and ig
   const ctx = await context({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'no-preference' }); t.after(() => ctx.close());
   const page = await ctx.newPage(); await page.goto(server.url);
   const touch = await ctx.newCDPSession(page);
+  const frame = () => page.evaluate('new Promise(resolve => requestAnimationFrame(resolve))');
   const swipe = async (from: [number, number], to: [number, number]) => {
     await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from[0], y: from[1] }] });
-    for (let i = 1; i <= 8; i++) await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from[0] + (to[0] - from[0]) * i / 8, y: from[1] + (to[1] - from[1]) * i / 8 }] });
+    await frame();
+    // Preserve real gesture cadence: back-to-back CDP moves can be coalesced,
+    // leaving touchend/settling work racing the following tap on CI.
+    for (let i = 1; i <= 8; i++) {
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from[0] + (to[0] - from[0]) * i / 8, y: from[1] + (to[1] - from[1]) * i / 8 }] });
+      await frame();
+    }
     await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await frame();
   };
   await swipe([200, 520], [200, 240]);
   await expect(page).toHaveURL(`${server.url}/`); await expect(page.locator('[data-revealed]')).toHaveCount(0);
@@ -423,7 +431,10 @@ test('native touch gestures switch photos, reveal the inspector, dismiss, and ig
   await open(page); await loaded(page); await page.locator('[data-viewer-transition-variant]').waitFor({ state: 'detached' });
   await swipe([300, 340], [80, 340]); await loaded(page); await expect(page.locator('.viewer-counter')).toHaveText('2 / 3');
   await swipe([190, 470], [190, 210]); await expect(page.locator('.mobile-inspector')).toBeVisible();
-  await page.getByRole('button', { name: '收起照片信息' }).tap(); await expect(page.locator('.mobile-inspector')).toHaveCount(0);
+  await page.evaluate("window.testInspectorCloseClicks = 0; document.querySelector('.mobile-inspector button').addEventListener('click', () => window.testInspectorCloseClicks++)");
+  await page.getByRole('button', { name: '收起照片信息' }).tap();
+  assert.equal(await page.evaluate('window.testInspectorCloseClicks'), 1, 'Native tap must deliver the inspector close click');
+  await expect(page.locator('.mobile-inspector')).toHaveCount(0);
   await swipe([190, 250], [190, 540]); await expect(page.getByRole('dialog')).toHaveCount(0);
   assert.equal(await page.evaluate(() => document.body.style.overflow), '');
 });
@@ -464,8 +475,15 @@ test('metadata stays lazy, preserves units/offsets and zero values, retries, and
   await expect(page.locator('.metadata-content')).toContainText('Fixture artist');
   for (const value of ['2024-03-02 12:00:00+08:00', 'UTC+08:00', '35 mm', '1/125 s', '0 EV', '0 m', '22.3 °', '114.17 °']) await expect(page.locator('.metadata-content')).toContainText(value);
   let release!: () => void; const pending = new Promise<void>(resolve => { release = resolve; }); t.after(() => release());
-  await page.route('**/photos/map-near*.json', async route => { await pending; await route.continue().catch(() => {}); });
+  const nearId = fixture.manifest.data.find(photo => photo.s3Key === 'map-near.jpg')!.id;
+  let intercepted = 0;
+  await page.route(url => url.pathname === `/projects/fixture-alpha/photos/${nearId}.json`, async route => {
+    intercepted++;
+    await pending;
+    await route.continue().catch(() => {});
+  });
   await page.keyboard.press('ArrowRight'); await loaded(page);
+  await expect.poll(() => intercepted, { message: 'The next photo metadata response must be held by the test' }).toBe(1);
   await expect(page.locator('.metadata-content')).not.toContainText('Fixture artist');
   await expect(page.locator('.metadata-content')).toContainText('正在加载详细信息');
   await page.keyboard.press('ArrowRight'); await loaded(page); release();
