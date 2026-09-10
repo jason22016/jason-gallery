@@ -134,7 +134,7 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
         {message && <p className="viewer-message" role="status">{message}</p>}
         <div className="viewer-filmstrip" aria-label="照片缩略图导航">{photos.map((item, i) => <button key={item.id} data-filmstrip-id={item.id} tabIndex={i === index ? 0 : -1} className={i === index ? 'selected' : ''} aria-label={`跳至照片：${item.title}`} aria-current={i === index ? 'true' : undefined} onClick={() => navigate(i)}><PhotoThumbnail photo={item}/></button>)}</div>
       </div>
-      {detailsVisible && <aside className={`viewer-inspector ${mobile ? 'mobile-inspector' : ''}`} aria-label="照片信息"><header><span><Info size={14}/> 照片信息</span><button className="icon-button" onClick={toggleInspector} aria-label="收起照片信息">{mobile ? <X size={18}/> : <PanelRightClose size={18}/>}</button></header><MetadataPanel photo={photo}/></aside>}
+      {detailsVisible && <aside className={`viewer-inspector ${mobile ? 'mobile-inspector' : ''}`} aria-label="照片信息"><header><span><Info size={14}/> 照片信息</span><button className="icon-button" onClick={toggleInspector} aria-label="收起照片信息">{mobile ? <X size={18}/> : <PanelRightClose size={18}/>}</button></header><MetadataPanel key={photo.id} photo={photo}/></aside>}
       <p id={helpId} className="sr-only">左右方向键切换，Home 和 End 跳至首尾，Escape 关闭。I 显示信息。双击或双指缩放，放大后拖动平移。</p>
     </div>
     {transitions.entryTransition && !reduced && <SharedElementTransitionPreview transition={transitions.entryTransition} onReady={transitions.handleEntryTransitionReady} onComplete={transitions.handleEntryTransitionComplete}/>}

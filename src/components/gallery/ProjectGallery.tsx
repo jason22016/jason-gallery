@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type MouseEvent } from 'react';
 import { Masonry, type RenderComponentProps } from 'masonic';
 import { ArrowLeft, Grid2X2, List, Search, MapPin, SlidersHorizontal, Info, X, Camera } from 'lucide-react';
+import type { MapViewport } from './PhotoMap';
 import type { ViewerProps } from '../viewer/PhotoViewer';
 import { emptyFilters, formatBytes, selectPhotos, type Filters, type GalleryProject, type Sort, type ViewerPhoto } from '../viewer/photos';
 import PhotoThumbnail from './PhotoThumbnail';
@@ -24,7 +25,9 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
   const root = useRef<HTMLDivElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   const scrollPosition = useRef(0);
+  const mapViewport = useRef<{ key: string; viewport: MapViewport } | null>(null);
   const ownHistoryEntry = useRef(false);
+  const historyOwner = useRef(crypto.randomUUID());
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [sort, setSort] = useState<Sort>('project');
   const [view, setView] = useState<'masonry' | 'list'>('masonry');
@@ -38,12 +41,13 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
   const [mapError, setMapError] = useState(false);
   const [notice, setNotice] = useState('');
   const visible = useMemo(() => selectPhotos(photos, filters, sort), [photos, filters, sort]);
+  const mapKey = visible.map(photo => photo.id).join(',');
   const selectedPhoto = photos.find(p => p.id === selected);
   const sequence = selectedPhoto && !visible.some(p => p.id === selected) ? [...photos] : visible;
   const setPhotoURL = useCallback((id: string | null, push = false) => {
     const url = new URL(location.href);
     if (id) url.searchParams.set('photo', id); else url.searchParams.delete('photo');
-    history[push ? 'pushState' : 'replaceState']({ ...history.state, galleryViewer: !!id }, '', url);
+    history[push ? 'pushState' : 'replaceState']({ ...history.state, galleryViewer: id ? (push ? historyOwner.current : history.state?.galleryViewer) : null }, '', url);
   }, []);
   useEffect(() => {
     root.current?.closest('[data-project-gallery]')?.setAttribute('data-enhanced', 'true');
@@ -55,9 +59,23 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
       if (Number.isInteger(settings.columns) && settings.columns >= 0 && settings.columns <= 8) setColumns(settings.columns);
     } catch { /* Storage can be disabled; defaults remain usable. */ }
     const sync = () => {
-      const id = new URL(location.href).searchParams.get('photo');
+      const params = new URL(location.href).searchParams;
+      const nextFilters = { ...emptyFilters };
+      for (const key of Object.keys(nextFilters) as (keyof Filters)[]) nextFilters[key] = params.get(key) || '';
+      setFilters(nextFilters);
+      setSort(params.get('sort') === 'asc' ? 'asc' : params.get('sort') === 'desc' ? 'desc' : 'project');
+      setPanel(params.get('panel') === 'map' ? 'map' : null);
+      const id = params.get('photo');
+      ownHistoryEntry.current = history.state?.galleryViewer === historyOwner.current;
       if (id && !photos.some(p => p.id === id)) {
         setPhotoURL(null); setNotice('此照片不在当前项目中。'); setSelected(null); return;
+      }
+      if (id && !selectPhotos(photos, nextFilters, 'project').some(photo => photo.id === id)) {
+        setFilters(emptyFilters);
+        const url = new URL(location.href);
+        for (const key of Object.keys(emptyFilters)) url.searchParams.delete(key);
+        history.replaceState(history.state, '', url);
+        setNotice('此照片不符合链接中的筛选条件，已清除筛选。');
       }
       if (id) scrollPosition.current = window.scrollY;
       if (!id) {
@@ -86,9 +104,8 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
     ownHistoryEntry.current = true; setPhotoURL(photo.id, true); setSelected(photo.id); setLoadError('');
   }, [setPhotoURL]);
   const close = useCallback(() => {
-    setSelected(null);
     if (ownHistoryEntry.current) { ownHistoryEntry.current = false; history.back(); }
-    else setPhotoURL(null);
+    else { setSelected(null); setPhotoURL(null); }
     requestAnimationFrame(() => { window.scrollTo(0, scrollPosition.current); opener.current?.isConnected && opener.current.focus({ preventScroll: true }); });
   }, [setPhotoURL]);
   const items = useMemo(() => visible.map((photo, index) => ({ photo, index, onOpen: open })), [visible, open]);
@@ -96,7 +113,18 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
     setView(nextView); setColumns(nextColumns);
     try { localStorage.setItem(settingsKey, JSON.stringify({ view: nextView, columns: nextColumns })); } catch { /* Optional preference. */ }
   };
-  const updateFilter = (key: keyof Filters, value: string) => setFilters(previous => ({ ...previous, [key]: value }));
+  const replaceContext = (nextFilters: Filters, nextSort: Sort, map = false) => {
+    const url = new URL(location.href);
+    for (const key of Object.keys(nextFilters) as (keyof Filters)[]) {
+      if (nextFilters[key]) url.searchParams.set(key, nextFilters[key]); else url.searchParams.delete(key);
+    }
+    if (nextSort !== 'project') url.searchParams.set('sort', nextSort); else url.searchParams.delete('sort');
+    if (map) url.searchParams.set('panel', 'map'); else url.searchParams.delete('panel');
+    history.replaceState(history.state, '', url);
+  };
+  const changeFilters = (value: Filters) => { setFilters(value); replaceContext(value, sort); };
+  const updateFilter = (key: keyof Filters, value: string) => changeFilters({ ...filters, [key]: value });
+  const closePanel = () => { setPanel(null); replaceContext(filters, sort); };
   const options = (key: 'camera' | 'lens' | 'tags') => [...new Set(photos.flatMap(p => p[key]).filter(Boolean))].sort();
   const count = columns ? Math.min(columns, Math.max(1, Math.floor(width / (width < 768 ? 120 : 200)))) : Math.min(8, Math.max(1, Math.floor((width + 4) / (width < 768 ? 154 : 254))));
   const hasFilters = Object.values(filters).some(Boolean);
@@ -107,26 +135,26 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
       <div className="header-actions">
         <div className="view-segment"><button className="icon-button" aria-label="瀑布流" aria-pressed={view === 'masonry'} onClick={() => saveView('masonry')}><Grid2X2 size={17} /></button><button className="icon-button" aria-label="列表视图" aria-pressed={view === 'list'} onClick={() => saveView('list')}><List size={18} /></button></div>
         <button className="icon-button" aria-label="搜索和筛选" title="搜索和筛选" data-active={hasFilters || undefined} onClick={() => setPanel('search')}><Search size={18} /></button>
-        <button className="icon-button" aria-label="地图探索" title="地图探索" onClick={() => setPanel('map')}><MapPin size={18} /></button>
+        <button className="icon-button" aria-label="地图探索" title="地图探索" onClick={() => { setPanel('map'); replaceContext(filters, sort, true); }}><MapPin size={18} /></button>
         <button className="icon-button" aria-label="显示设置" title="显示设置" onClick={() => setPanel('settings')}><SlidersHorizontal size={18} /></button>
         <button className="icon-button" aria-label="项目信息" title="项目信息" onClick={() => setPanel('info')}><Info size={18} /></button>
       </div>
     </header>
     {notice && <p className="gallery-notice" role="status">{notice}<button className="icon-button" onClick={() => setNotice('')} aria-label="关闭提示"><X size={16}/></button></p>}
-    {hasFilters && <div className="filter-summary"><span>找到 {visible.length} / {photos.length} 张照片</span><button onClick={() => setFilters(emptyFilters)}>清除筛选 <X size={13}/></button></div>}
-    {visible.length === 0 ? <div className="gallery-empty"><Search size={28} /><h2>没有符合条件的照片</h2><p>试试其他关键词，或清除筛选。</p><button onClick={() => setFilters(emptyFilters)}>清除筛选</button></div> : view === 'masonry' ? (
+    {hasFilters && <div className="filter-summary"><span>找到 {visible.length} / {photos.length} 张照片</span><button onClick={() => changeFilters(emptyFilters)}>清除筛选 <X size={13}/></button></div>}
+    {visible.length === 0 ? <div className="gallery-empty"><Search size={28} /><h2>没有符合条件的照片</h2><p>试试其他关键词，或清除筛选。</p><button onClick={() => changeFilters(emptyFilters)}>清除筛选</button></div> : view === 'masonry' ? (
       <div className="masonry-grid">{width > 0 && <Masonry key={`${count}:${visible.map(p => p.id).join(',')}`} items={items} render={PhotoItem} columnCount={count} columnGutter={4} rowGutter={4} itemKey={item => item.photo.id} overscanBy={2} />}</div>
     ) : <ol className="photo-list">{items.map(item => <li key={item.photo.id}><PhotoItem data={item} index={item.index} width={200}/><div className="list-info"><h2>{item.photo.title}</h2><p>{item.photo.date?.slice(0, 10)}　{item.photo.tags.join(' · ')}</p><p>{item.photo.caption || item.photo.description}</p><span><Camera size={14}/> {item.photo.camera || '未记录相机'}　{item.photo.exposure.join('　')}</span></div><span className="list-size">{formatBytes(item.photo.size)}</span></li>)}</ol>}
-    {panel && <Panel title={{ info: '项目信息', search: '搜索和筛选', settings: '显示设置', map: '地图探索' }[panel]} onClose={() => setPanel(null)} wide={panel === 'map'}>
+    {panel && !selected && <Panel title={{ info: '项目信息', search: '搜索和筛选', settings: '显示设置', map: '地图探索' }[panel]} onClose={closePanel} wide={panel === 'map'}>
       {panel === 'info' && <><h3 className="project-panel-title">{project.title}</h3>{project.summary && <p>{project.summary}</p>}<dl className="metadata-rows project-details">{project.location && <><dt>地点</dt><dd>{project.location}</dd></>}{project.period && <><dt>日期</dt><dd>{project.period.start}{project.period.end && project.period.end !== project.period.start && ` — ${project.period.end}`}</dd></>}<dt>照片</dt><dd>{photos.length}</dd></dl>{project.description && <p className="project-description">{project.description}</p>}<ul className="tags">{project.tags?.map(tag => <li key={tag}>{tag}</li>)}</ul></>}
       {panel === 'search' && <form onSubmit={e => { e.preventDefault(); setPanel(null); }} className="filter-form">
         <label>搜索<input type="search" placeholder="标题、文件名、说明、标签…" value={filters.query} onChange={e => updateFilter('query', e.target.value)} autoFocus /></label>
         <div className="date-fields"><label>开始日期<input type="date" value={filters.start} max={filters.end || undefined} onChange={e => updateFilter('start', e.target.value)} /></label><label>结束日期<input type="date" value={filters.end} min={filters.start || undefined} onChange={e => updateFilter('end', e.target.value)} /></label></div>
         {(['camera', 'lens', 'tag'] as const).map((field, i) => <label key={field}>{['相机', '镜头', '标签'][i]}<select aria-label={['相机', '镜头', '标签'][i]} value={filters[field]} onChange={e => updateFilter(field, e.target.value)}><option value="">全部</option>{options(field === 'tag' ? 'tags' : field).map(value => <option key={value}>{value}</option>)}</select></label>)}
-        <div className="form-actions"><button type="button" onClick={() => setFilters(emptyFilters)}>重置</button><button type="submit" className="primary-button">查看 {visible.length} 张照片</button></div>
+        <div className="form-actions"><button type="button" onClick={() => changeFilters(emptyFilters)}>重置</button><button type="submit" className="primary-button">查看 {visible.length} 张照片</button></div>
       </form>}
-      {panel === 'settings' && <div className="filter-form"><label>照片排序<select aria-label="照片排序" value={sort} onChange={e => setSort(e.target.value as Sort)}><option value="project">项目编排顺序</option><option value="desc">拍摄时间：从新到旧</option><option value="asc">拍摄时间：从旧到新</option></select></label><label>瀑布流列数<select aria-label="瀑布流列数" value={columns} onChange={e => saveView(view, Number(e.target.value))}><option value={0}>自动适配</option>{[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n} 列</option>)}</select></label><p className="muted">列数会根据屏幕宽度自动限制；视图偏好保存在此设备。</p></div>}
-      {panel === 'map' && (PhotoMap ? <PhotoMap photos={visible} onOpen={photo => { setPanel(null); open(photo, null); }} /> : mapError ? <p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p> : <p role="status">正在加载地图…</p>)}
+      {panel === 'settings' && <div className="filter-form"><label>照片排序<select aria-label="照片排序" value={sort} onChange={e => { setSort(e.target.value as Sort); replaceContext(filters, e.target.value as Sort); }}><option value="project">项目编排顺序</option><option value="desc">拍摄时间：从新到旧</option><option value="asc">拍摄时间：从旧到新</option></select></label><label>瀑布流列数<select aria-label="瀑布流列数" value={columns} onChange={e => saveView(view, Number(e.target.value))}><option value={0}>自动适配</option>{[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n}>{n} 列</option>)}</select></label><p className="muted">列数会根据屏幕宽度自动限制；视图偏好保存在此设备。</p></div>}
+      {panel === 'map' && (PhotoMap ? <PhotoMap photos={visible} initialViewport={mapViewport.current?.key === mapKey ? mapViewport.current.viewport : undefined} onViewport={viewport => { mapViewport.current = { key: mapKey, viewport }; }} onOpen={photo => open(photo, root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null)} /> : mapError ? <div><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><ul className="map-photo-list">{visible.filter(photo => photo.location).map(photo => <li key={photo.id}><button onClick={() => open(photo, null)}>{photo.title}</button></li>)}</ul></div> : <p role="status">正在加载地图…</p>)}
     </Panel>}
     {selectedPhoto && (Viewer ? <Viewer photos={sequence} projectTitle={project.title} index={sequence.findIndex(p => p.id === selected)} trigger={opener.current} onIndex={index => { const photo = sequence[index]; if (photo) { setSelected(photo.id); setPhotoURL(photo.id); } }} onClose={close} /> : <Panel title="打开照片" onClose={close}><p role={loadError ? 'alert' : 'status'}>{loadError || '正在加载看图组件…'}</p>{loadError && <button onClick={() => setLoadError('')}>重试</button>}<a className="text-link" href={selectedPhoto.src} target="_blank" rel="noreferrer">打开原图 ↗</a></Panel>)}
   </div>;

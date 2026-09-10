@@ -1,3 +1,4 @@
+import { aperture, captureDate, photoLocation, unit } from './metadata';
 import type { ResolvedProject } from '../../projects';
 import type { PhotoManifestItem } from '../../photo-engine';
 
@@ -36,10 +37,10 @@ export function viewerPhotos(project: ResolvedProject): readonly ViewerPhoto[] {
     width: photo.width, height: photo.height, alt: alt ?? `${project.title} — photograph ${index + 1}`,
     title: photo.title || photo.s3Key.split('/').at(-1) || photoId,
     filename: photo.s3Key.split('/').at(-1) || photoId, caption, description: photo.description,
-    date: photo.exif?.DateTimeOriginal || photo.dateTaken, tags: [...new Set([...photo.tags, ...photo.keywords])],
+    date: captureDate(photo.exif), tags: [...new Set([...photo.tags, ...photo.keywords])],
     camera: [photo.exif?.Make, photo.exif?.Model].filter(Boolean).join(' '), lens: photo.exif?.LensModel ?? '',
-    exposure: [photo.exif?.FocalLengthIn35mmFormat || photo.exif?.FocalLength, photo.exif?.FNumber ? `ƒ/${photo.exif.FNumber}` : '', photo.exif?.ExposureTime ? `${photo.exif.ExposureTime}s` : '', photo.exif?.ISO ? `ISO ${photo.exif.ISO}` : ''].filter(Boolean).map(String),
-    format: photo.format, size: photo.size, location: photo.location,
+    exposure: [unit(photo.exif?.FocalLength, 'mm') || (photo.exif?.FocalLengthIn35mmFormat ? `${unit(photo.exif.FocalLengthIn35mmFormat, 'mm')}（35mm 等效）` : ''), aperture(photo.exif?.FNumber), unit(photo.exif?.ExposureTime, 's'), photo.exif?.ISO ? `ISO ${photo.exif.ISO}` : ''].filter(Boolean),
+    format: photo.format, size: photo.size, location: photoLocation(photo),
     detailsUrl: `/projects/${project.slug}/photos/${encodeURIComponent(photoId)}.json`, isHDR: photo.isHDR ?? false,
   }));
 }
@@ -56,11 +57,13 @@ export function selectPhotos(photos: readonly ViewerPhoto[], filters: Filters, s
       && (!filters.start || (!!day && day >= filters.start)) && (!filters.end || (!!day && day <= filters.end));
   });
   if (sort !== 'project') result.sort((a, b) => {
-    const left = Date.parse(a.date), right = Date.parse(b.date);
+    // Unzoned EXIF is ordered by its recorded wall clock, independent of the browser zone.
+    const time = (value: string) => Date.parse(value && !/(Z|[+-]\d{2}:\d{2})$/.test(value) ? `${value}Z` : value);
+    const left = time(a.date), right = time(b.date);
     if (!Number.isFinite(left)) return Number.isFinite(right) ? 1 : 0;
     if (!Number.isFinite(right)) return -1;
     return (left - right) * (sort === 'asc' ? 1 : -1);
   });
   return result;
 }
-export const formatBytes = (size: number) => size >= 1048576 ? `${(size / 1048576).toFixed(1)} MB` : `${Math.round(size / 1024)} KB`;
+export const formatBytes = (size: number) => size >= 1048576 ? `${(size / 1048576).toFixed(1)} MiB` : `${Math.round(size / 1024)} KiB`;

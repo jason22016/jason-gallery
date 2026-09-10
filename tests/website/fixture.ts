@@ -30,7 +30,7 @@ export async function buildFixture() {
   await fs.writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({ extends: path.join(repo, 'tsconfig.json') }));
   // Astro discovers renderer bundling rules from the root dependency declarations.
   await fs.copyFile(path.join(repo, 'package.json'), path.join(root, 'package.json'));
-  const originals = { 'ordinary.jpg': await jpeg('#597c8b', 960, 640), 'portrait.jpg': await jpeg('#9d7155', 640, 960), 'hdr.jpg': await gainmapJPEG(), 'private.jpg': await jpeg('#6b7756') };
+  const originals = { 'ordinary.jpg': await jpeg('#597c8b', 960, 640), 'portrait.jpg': await jpeg('#9d7155', 640, 960), 'hdr.jpg': await gainmapJPEG(), 'private.jpg': await jpeg('#6b7756'), 'map-near.jpg': await jpeg('#7c9578'), 'map-far.jpg': await jpeg('#788295') };
   const files: Record<string, { file: string; commit: string }> = {};
   const commit = '3'.repeat(40);
   await fs.mkdir(path.join(root, 'sources'));
@@ -48,10 +48,17 @@ export async function buildFixture() {
   // Rebase URLs only in this test manifest to the isolated local static fixture server.
   for (const photo of manifest.data) {
     photo.originalUrl = `/originals/${photo.s3Key}`;
-    if (photo.s3Key === 'portrait.jpg') { photo.title = '街角 Portrait'; photo.dateTaken = '2024-03-02T12:00:00+08:00'; photo.tags = ['城市']; photo.location = { latitude: 22.3, longitude: 114.17, city: '测试位置' }; photo.exif = { ...photo.exif, Make: 'NIKON', Model: 'Z6', LensModel: '35mm', FNumber: 2.8, ISO: 100, Artist: 'Fixture artist' } as typeof photo.exif; }
+    if (photo.s3Key === 'portrait.jpg') { photo.title = '街角 Portrait'; photo.dateTaken = '2024-03-02T12:00:00+08:00'; photo.tags = ['城市']; photo.location = null; photo.exif = { ...photo.exif, Make: 'NIKON', Model: 'Z6', LensModel: '35mm', FNumber: 2.8, ISO: 100, Artist: 'Fixture artist', GPSLatitude: 22.3, GPSLongitude: 114.17, GPSAltitude: 0, ExposureTime: '1/125', FocalLength: '35 mm', FocalLengthIn35mmFormat: '50 mm', ExposureCompensation: 0, OffsetTimeOriginal: '+08:00' } as typeof photo.exif; }
     if (photo.s3Key === 'hdr.jpg') { photo.title = '天光 HDR'; photo.dateTaken = '2024-03-01T12:00:00+08:00'; photo.tags = ['天空']; }
     if (photo.s3Key === 'ordinary.jpg') { photo.title = '远山 Landscape'; photo.dateTaken = '2024-02-29T12:00:00+08:00'; photo.tags = ['风景']; }
   }
+  for (const photo of manifest.data) {
+    if (['portrait.jpg', 'hdr.jpg', 'ordinary.jpg'].includes(photo.s3Key)) photo.exif = { ...photo.exif, DateTimeOriginal: photo.dateTaken } as typeof photo.exif;
+  }
+  const near = manifest.data.find(p => p.s3Key === 'map-near.jpg')!;
+  near.exif = { DateTimeOriginal: '2024-03-01T01:00:00', GPSLatitude: 22.301, GPSLongitude: 114.171 } as typeof near.exif;
+  const far = manifest.data.find(p => p.s3Key === 'map-far.jpg')!;
+  far.exif = null; far.location = { latitude: 22.34, longitude: 114.22 };
   await fs.mkdir(path.join(root, 'src/data'), { recursive: true });
   await fs.writeFile(path.join(root, 'src/data/photos-manifest.json'), JSON.stringify(manifest));
   await fs.cp(path.join(engine, 'output/public'), path.join(root, 'public'), { recursive: true });
@@ -71,7 +78,7 @@ export async function buildFixture() {
   };
   const projects: Project[] = [
     { ...base, id: 'fixture-zeta', slug: 'fixture-zeta', title: 'Fixture — single image', order: 4, photos: [photos[0]!], coverPhotoId: photos[0]!.photoId },
-    { ...base, id: 'fixture-alpha', slug: 'fixture-alpha', title: 'Fixture — shared photographs', order: 4 },
+    { ...base, id: 'fixture-alpha', slug: 'fixture-alpha', title: 'Fixture — shared photographs', order: 4, photos: [photos[0]!, { photoId: id('map-near.jpg') }, { photoId: id('map-far.jpg') }, photos[2]!]  },
     base,
     { ...base, id: 'secret-draft', slug: 'secret-draft', title: 'DRAFT WEBSITE SECRET', summary: 'PRIVATE PROJECT SUMMARY', order: -100, status: 'draft', coverPhotoId: id('private.jpg'), photos: [{ photoId: id('private.jpg'), caption: 'PRIVATE PROJECT CAPTION' }] },
   ];

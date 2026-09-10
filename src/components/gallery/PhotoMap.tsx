@@ -1,24 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { validLocation } from '../viewer/metadata';
 import type { ViewerPhoto } from '../viewer/photos';
-export default function PhotoMap({ photos, onOpen }: { photos: readonly ViewerPhoto[]; onOpen: (photo: ViewerPhoto) => void }) {
+export interface MapViewport { center: [number, number]; zoom: number; bearing: number; pitch: number }
+export default function PhotoMap({ photos, onOpen, initialViewport, onViewport }: { photos: readonly ViewerPhoto[]; onOpen: (photo: ViewerPhoto) => void; initialViewport?: MapViewport; onViewport?: (viewport: MapViewport) => void }) {
   const container = useRef<HTMLDivElement>(null);
   const [error, setError] = useState(false);
+  const [ready, setReady] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const located = photos.filter(p => p.location && Number.isFinite(p.location.latitude) && Number.isFinite(p.location.longitude) && Math.abs(p.location.latitude) <= 90 && Math.abs(p.location.longitude) <= 180);
+  const located = photos.filter(p => validLocation(p.location));
   const open = useRef(onOpen); open.current = onOpen;
   useEffect(() => {
     if (!container.current || !located.length) return;
     let map: maplibregl.Map | undefined;
-    setError(false);
+    let active = true;
+    setError(false); setReady(false);
+    const failed = () => { if (active) setError(true); };
+    const timeout = window.setTimeout(failed, 15_000);
     try {
-      map = new maplibregl.Map({ container: container.current, style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json', center: [located[0]!.location!.longitude, located[0]!.location!.latitude], zoom: 9, attributionControl: { compact: true } });
+      map = new maplibregl.Map({ container: container.current, style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json', center: [located[0]!.location!.longitude, located[0]!.location!.latitude], zoom: 9, ...initialViewport, attributionControl: { compact: true } });
       map.addControl(new maplibregl.NavigationControl(), 'top-right');
       const bounds = new maplibregl.LngLatBounds();
       located.forEach(p => bounds.extend([p.location!.longitude, p.location!.latitude]));
-      if (located.length > 1) map.fitBounds(bounds, { padding: 60, maxZoom: 13, duration: 0 });
-      map.on('error', () => setError(true));
+      if (!initialViewport && located.length > 1) map.fitBounds(bounds, { padding: 60, maxZoom: 13, duration: 0 });
+      map.on('moveend', () => { if (active && map) onViewport?.({ center: map.getCenter().toArray(), zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() }); });
+      map.on('error', failed);
+      map.getCanvas().addEventListener('webglcontextlost', failed);
+      map.once('idle', () => { if (active) { clearTimeout(timeout); setReady(true); } });
       map.on('load', () => {
         if (!map) return;
         const current = map;
@@ -29,17 +38,17 @@ export default function PhotoMap({ photos, onOpen }: { photos: readonly ViewerPh
         current.on('click', 'photo', event => { const photo = located.find(p => p.id === event.features?.[0]?.properties.id); if (photo) open.current(photo); });
         current.on('click', 'clusters', async event => {
           const feature = event.features?.[0]; if (!feature || feature.geometry.type !== 'Point') return;
-          try { const zoom = await (current.getSource('photos') as maplibregl.GeoJSONSource).getClusterExpansionZoom(feature.properties.cluster_id); current.easeTo({ center: feature.geometry.coordinates as [number, number], zoom }); } catch { setError(true); }
+          try { const zoom = await (current.getSource('photos') as maplibregl.GeoJSONSource).getClusterExpansionZoom(feature.properties.cluster_id); if (active) current.easeTo({ center: feature.geometry.coordinates as [number, number], zoom }); } catch { failed(); }
         });
         for (const layer of ['photo', 'clusters']) {
           current.on('mouseenter', layer, () => { current.getCanvas().style.cursor = 'pointer'; });
           current.on('mouseleave', layer, () => { current.getCanvas().style.cursor = ''; });
         }
       });
-    } catch { setError(true); }
-    return () => { map?.remove(); };
+    } catch { failed(); }
+    return () => { active = false; clearTimeout(timeout); map?.remove(); };
     // The panel gets a new instance when its filtered result changes.
   }, [photos, attempt]);
   if (!located.length) return <div className="gallery-empty"><h3>没有可显示的位置</h3><p>当前照片没有 GPS 坐标。</p></div>;
-  return <><div className="photo-map" ref={container} aria-label="照片位置地图" />{error && <p className="map-error" role="status">底图暂时不可用，你仍可从下方打开照片。<button onClick={() => setAttempt(n => n + 1)}>重试地图</button></p>}<p className="muted">{located.length} 张照片有位置记录</p><ul className="map-photo-list">{located.map(p => <li key={p.id}><button onClick={() => onOpen(p)}><img src={p.thumbnail} alt=""/><span>{p.title}<small>{p.location?.locationName || p.location?.city || `${p.location!.latitude.toFixed(3)}, ${p.location!.longitude.toFixed(3)}`}</small></span></button></li>)}</ul></>;
+  return <><div className="photo-map" ref={container} aria-label="照片位置地图" aria-busy={!ready && !error} data-map-state={error ? 'error' : ready ? 'ready' : 'loading'} />{error && <p className="map-error" role="status">底图暂时不可用，你仍可从下方打开照片。<button onClick={() => setAttempt(n => n + 1)}>重试地图</button></p>}<p className="muted">{located.length} 张照片有位置记录</p><ul className="map-photo-list">{located.map(p => <li key={p.id}><button onClick={() => onOpen(p)}><img src={p.thumbnail} alt=""/><span>{p.title}<small>{p.location?.locationName || p.location?.city || `${p.location!.latitude.toFixed(3)}, ${p.location!.longitude.toFixed(3)}`}</small></span></button></li>)}</ul></>;
 }

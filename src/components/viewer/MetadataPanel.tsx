@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { altitude, aperture, captureZone, unit } from './metadata';
 import { Camera, Aperture, Timer, Focus } from 'lucide-react';
 import { formatBytes, type PhotoDetails, type ViewerPhoto } from './photos';
 const cache = new Map<string, PhotoDetails>();
@@ -25,13 +26,12 @@ export default function MetadataPanel({ photo }: { photo: ViewerPhoto }) {
   }, [photo.detailsUrl, attempt]);
   const exif = details?.exif;
   const tone = details?.toneAnalysis;
-  const icons = [Focus, Aperture, Timer, Camera];
   return <div className="metadata-content" key={photo.id}>
     <Section title="基本信息"><Rows values={[
       ['文件名', photo.filename], ['格式', photo.format.toUpperCase()], ['尺寸', `${photo.width} × ${photo.height}`], ['文件大小', formatBytes(photo.size)], ['像素', `${(photo.width * photo.height / 1e6).toFixed(1)} MP`],
-      ['色彩空间', exif?.ColorSpace], ['拍摄时间', exif?.DateTimeOriginal ? exif.DateTimeOriginal.replace('T', ' ').replace(/(\.\d+)?(Z|[+-]\d{2}:\d{2})$/, '') : photo.date?.replace('T', ' ').replace(/\.\d+Z$/, 'Z')], ['时区', exif?.zone || exif?.tz], ['艺术家', exif?.Artist], ['软件', exif?.Software],
+      ['色彩空间', exif?.ColorSpace], ['拍摄时间', photo.date ? photo.date.replace('T', ' ') : '未记录'], ['时区', captureZone(exif)], ['艺术家', exif?.Artist], ['软件', exif?.Software],
     ]}/></Section>
-    {photo.exposure.length > 0 && <Section title="拍摄参数"><div className="exposure-grid">{photo.exposure.map((value, i) => { const Icon = icons[i % icons.length]!; return <span key={`${i}:${value}`}><Icon size={15}/>{value}</span>; })}</div></Section>}
+    {photo.exposure.length > 0 && <Section title="拍摄参数"><div className="exposure-grid">{photo.exposure.map((value, i) => { const Icon = value.startsWith('ISO') ? Camera : value.startsWith('ƒ/') ? Aperture : value.endsWith(' s') ? Timer : Focus; return <span key={`${i}:${value}`}><Icon size={15}/>{value}</span>; })}</div></Section>}
     {(photo.caption || photo.description) && <Section title="照片说明"><p className="photo-caption">{photo.caption || photo.description}</p></Section>}
     {!!photo.tags.length && <Section title="标签"><ul className="tags">{photo.tags.map(tag => <li key={tag}>{tag}</li>)}</ul></Section>}
     {tone && <Section title="影调分析"><Rows values={[
@@ -39,20 +39,20 @@ export default function MetadataPanel({ photo }: { photo: ViewerPhoto }) {
     ]}/></Section>}
     <Section title="直方图"><Histogram photo={photo}/></Section>
     {(photo.camera || photo.lens) && <Section title="设备信息"><Rows values={[
-      ['相机', photo.camera], ['镜头', photo.lens], ['焦距', exif?.FocalLength], ['35mm 等效', exif?.FocalLengthIn35mmFormat], ['最大光圈', exif?.MaxApertureValue],
+      ['相机', photo.camera], ['镜头', photo.lens], ['焦距', unit(exif?.FocalLength, 'mm')], ['35mm 等效', unit(exif?.FocalLengthIn35mmFormat, 'mm')], ['最大光圈', aperture(exif?.MaxApertureValue)],
     ]}/></Section>}
     {exif && <Section title="拍摄模式"><Rows values={[
       ['曝光程序', exif.ExposureProgram], ['曝光模式', exif.ExposureMode], ['测光模式', exif.MeteringMode], ['白平衡', exif.WhiteBalance], ['闪光灯', exif.Flash], ['光源', exif.LightSource], ['场景', exif.SceneCaptureType],
     ]}/></Section>}
     {exif?.FujiRecipe && <Section title="胶片模拟配方"><Rows values={Object.entries(exif.FujiRecipe).map(([key, value]) => [({ FilmMode: '胶片模式', GrainEffectRoughness: '颗粒强度', GrainEffectSize: '颗粒大小', ColorChromeEffect: '色彩效果', ColorChromeFxBlue: '蓝色效果', WhiteBalance: '白平衡', WhiteBalanceFineTune: '白平衡微调', DynamicRange: '动态范围', HighlightTone: '高光色调', ShadowTone: '阴影色调', Saturation: '饱和度', Sharpness: '锐度', NoiseReduction: '降噪', Clarity: '清晰度', ColorTemperature: '色温', DevelopmentDynamicRange: '显影动态范围', DynamicRangeSetting: '动态范围设置' } as Record<string, string>)[key] || key, value])}/></Section>}
     {photo.location && <Section title="拍摄位置"><Rows values={[
-      ['国家', photo.location.country], ['城市', photo.location.city], ['地点', photo.location.locationName], ['纬度', photo.location.latitude], ['经度', photo.location.longitude], ['海拔', exif?.GPSAltitude],
+      ['国家', photo.location.country], ['城市', photo.location.city], ['地点', photo.location.locationName], ['纬度', unit(photo.location.latitude, '°')], ['经度', unit(photo.location.longitude, '°')], ['海拔', altitude(exif)],
     ]}/><a className="metadata-map-link" href={`https://www.openstreetmap.org/?mlat=${photo.location.latitude}&mlon=${photo.location.longitude}#map=14/${photo.location.latitude}/${photo.location.longitude}`} target="_blank" rel="noreferrer">在地图中查看 ↗</a></Section>}
     {exif && <Section title="技术参数"><Rows values={[
-      ['亮度', exif.BrightnessValue], ['曝光补偿', exif.ExposureCompensation], ['快门速度', exif.ShutterSpeedValue], ['光圈值', exif.ApertureValue], ['感光方式', exif.SensingMethod], ['焦平面 X 分辨率', exif.FocalPlaneXResolution], ['焦平面 Y 分辨率', exif.FocalPlaneYResolution], ['版权', exif.Copyright],
+      ['亮度', exif.BrightnessValue], ['曝光补偿', unit(exif.ExposureCompensation, 'EV')], ['快门速度', unit(exif.ShutterSpeedValue, 's')], ['光圈值', aperture(exif.ApertureValue)], ['感光方式', exif.SensingMethod], ['焦平面 X 分辨率（原始值）', exif.FocalPlaneXResolution], ['焦平面 Y 分辨率（原始值）', exif.FocalPlaneYResolution], ['版权', exif.Copyright],
     ]}/></Section>}
     {status === 'loading' && <p className="muted" role="status">正在加载详细信息…</p>}
-    {status === 'error' && <p className="muted" role="status">详细信息暂时不可用。<button onClick={() => setAttempt(n => n + 1)}>重试</button></p>}
+    {status === 'error' && <p className="muted" role="status">详细信息暂时不可用。<button onClick={event => { event.currentTarget.closest('dialog')?.querySelector<HTMLButtonElement>('.viewer-close')?.focus(); setAttempt(n => n + 1); }}>重试</button></p>}
     {status === 'ready' && !exif && <p className="muted">此照片没有 EXIF 信息。</p>}
   </div>;
 }

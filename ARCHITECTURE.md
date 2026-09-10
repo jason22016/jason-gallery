@@ -1,4 +1,4 @@
-# Architecture Lock — Phase 1 / Phase 2 / Phase 3 / UI Redesign
+# Architecture Lock — Phase 1 / Phase 2 / Phase 3 / UI Redesign / Phase 4
 
 状态：Phase 1（含真实图库 Final Gate）和 Phase 2 正式通过；2026-09-09。Phase 3 实现 Website MVP，继续保持 Photo Engine、Project System 和原生 Manifest 边界不变。本文是当前唯一架构基准，改变以下决策须先更新本文。2026-09-10 用户批准 UI Redesign：新增 Map、EXIF 信息面板、搜索筛选和看图动画；不加入账号、评论、点赞、后台或部署。当前 UI 约定见下方 UI Redesign 小节，Phase 3 描述保留为历史基线。验证记录见 `PHASE1_REPORT.md`、`PHASE2_REPORT.md`、`PHASE3_REPORT.md`。
 
@@ -177,16 +177,25 @@ Project JSON 和上游来源/补丁提交 Git；Manifest、缩略图、缓存属
 
 用户批准首页采用 Light/空之塔截图风格，Project 内页对齐 Afilmory 作者图库（实际地址 `https://innei.afilmory.art/`）。以下替代 Phase 3 的视觉和浏览能力约定，三层数据边界保持不变。
 
-实现和验收结果见 [UI_REDESIGN_REPORT.md](UI_REDESIGN_REPORT.md)。
+实现和验收结果见 [UI_REDESIGN_REPORT.md](UI_REDESIGN_REPORT.md)；Metadata / Map 补齐与验收见 [PHASE4_REPORT.md](PHASE4_REPORT.md)。
 
 - **首页**：白色底、灰色 Jason Gallery 字标和绿色句点；5:6 封面网格，>=1200px 四列、900–1199px 三列、600–899px 两列、<600px 单列。标题与 `period.start` 在桌面 hover/focus 时用 200ms 遮罩展示，日期缺失则隐藏。触屏第一次点击显示、第二次点击同一封面跳转，移动超过 10px 不触发跳转，点击外部/按 Escape 收起。所有封面保留原生链接，无 JS 时单击导航。
-- **Project 浏览**：48px 深色顶栏、4px 间距 Masonic 瀑布流、列表、搜索/日期/相机/镜头/标签筛选。默认保留项目编排顺序，可临时按拍摄时间排序，未知时间排在最后。视图/列数在 `jason-gallery:view:v1` 保存，排序和筛选只存在当前会话。项目信息收进面板。React island 与静态回退同处一页，hydration 完成才隐藏原图链接回退。
+- **Project 浏览**：48px 深色顶栏、4px 间距 Masonic 瀑布流、列表、搜索/日期/相机/镜头/标签筛选。默认保留项目编排顺序，可临时按拍摄时间排序，未知时间排在最后。视图/列数在 `jason-gallery:view:v1` 保存，排序和筛选编码在当前项目 URL 中，以便分享、刷新与历史恢复；不写入 Project。项目信息收进面板。React island 与静态回退同处一页，hydration 完成才隐藏原图链接回退。
 - **显示数据**：`viewerPhotos()` 只投影当前公开项目必需的字段，新增缩略图、ThumbHash、标题/文件名、日期、标签、相机/镜头、基本曝光、格式/大小和照片坐标。详细 EXIF/影调从构建产物 `/projects/<slug>/photos/<id>.json` 按需读取；此路由只生成公开项目引用的照片，EXIF 使用展示字段白名单，不输出存储键、人物区域或完整 Manifest。不改变原始 Manifest 或 Project schema。
 - **看图**：动态加载 Viewer、GPU 引擎与详细元数据，使用同 commit 的 MIT viewer-motion 开合/手势库。模糊背景、两侧按钮、底部缩略图条、320px 桌面信息栏、手机底部信息抽屉；缩放时禁用切图手势。浏览器解码直方图在打开信息栏时计算，跨域失败尝试同源缩略图并标明来源。沿用 GPU 降级与真实 HDR 状态；普通图片降级也支持缩放/平移。原生 dialog 提供隔离，引用计数式滚动锁覆盖加载弹窗到灯箱的交接。
 - **分享与历史**：`?photo=<id>` 表示当前项目照片，首开 push、切图 replace；支持直达、刷新、前进/后退与关闭后恢复位置/焦点。非法 ID 移除参数并显示提示。分享按钮使用 Web Share 或复制 URL，失败时显示可复制链接。静态分享链接不新增逐照片 OG 页面。
 - **地图**：仅加载当前筛选结果中有效坐标；MapLibre + CARTO Dark Matter，保留地图 attribution，支持点和聚合。地图按需加载，不请求用户当前位置；无 GPS 显示空状态，底图或 GPU 失败时仍可用照片列表打开相应照片。
 - **独立预览**：`pnpm ui:preview` 使用已导出的真实照片及缩略图，在 `.cache/ui-preview/` 生成四个临时选集并于 `127.0.0.1:4324` 提供预览。此内容不写入正式 Project、Manifest 或缩略图。`tests/website` 继续使用独立、合成且有确定元数据的 fixture，覆盖全部交互和失败分支。
 - **明确差异**：保留 Jason Gallery 品牌及 Project 层级，首页使用用户给定白色封面风格；不包含 Afilmory 的账号、社交和后台服务；地图、EXIF 等仅展示现有照片数据。源站视觉对照不包含复制第三方应用代码。
+
+### Phase 4 — Metadata / Map 补齐（2026-09-10）
+
+- `src/components/viewer/metadata.ts` 是 UI 只读投影：拍摄时间仅取有效 EXIF `DateTimeOriginal`，无内嵌偏移时可使用已有 `OffsetTimeOriginal`；保留原始墙上时间、精度与偏移，不转成浏览器时区。原生 `dateTaken` 可能来自构建时钟，因此不能作为缺失 EXIF 的拍摄时间兜底。未知日期不参与日期范围筛选，排序时置末；无偏移日期使用固定墙上时间排序键，不宣称与带偏移记录能准确比较绝对时刻。
+- GPS 优先使用有效原生 `location`，反向地理编码未启用时回退到 EXIF 数字坐标及南/西半球参考；保留零坐标，拒绝缺失、不完整、非有限或越界坐标，不补造地名。地图和 Metadata 共用此投影。曝光区优先显示实际焦距，等效焦距明确标注；秒、毫米、EV、海拔米与二进制文件大小单位分别处理，零值不当作缺失值。Engine 未保留分辨率单位时标为原始值。
+- 详细元数据仍按信息面板需要加载，白名单增加拍摄偏移、时区来源和海拔参考；切图重置详情，旧请求取消，重试保留键盘焦点。
+- URL 在 `photo` 外保存筛选字段、`sort` 和 `panel=map`。首开 push、切图 replace；同文档 Forward 后关闭回到原历史条目，直达/刷新关闭只移除 `photo`。照片与链接筛选冲突时显式清除筛选并提示。地图打开 Viewer 后返回相同筛选与地图视角；视角只在当前页面保留，分享链接不保存缩放/平移。
+- 地图保留懒加载、真实点位与聚合，以及无 GPS、网络/GPU/模块失败的列表回退；加载超时给出可重试提示。验收同时包含真实 CARTO 网络路径和独立本地样式的 WebGL 点位交互测试，二者不互相替代。
+- `src/website/public-assets.ts` 在 Astro 构建完成后只清理输出目录：保留 published Project 引用的本地照片资产，移除未引用/旧缩略图及 Manifest 中未公开的本地图片资产。源 `public/`、Manifest、Photo Engine 与 Project System 不变。正式项目为空时，公开产物无照片缩略图或详情 JSON。
 
 ## 8. 许可证边界
 
