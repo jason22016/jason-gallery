@@ -52,8 +52,8 @@ test('40 Project batches include the last draft/published reference and reject p
     const transport: typeof fetch = async (input, init) => {
       const res = await f.fetcher(input, init);
       if (!String(input).endsWith('/graphql')) return res;
-      const data = await res.json(); const b = data.data.repository.b0;
-      if (mode === 'missing') delete data.data.repository.b0;
+      const data = await res.json(); const b = data.data.repository.sourceFile;
+      if (mode === 'missing') delete data.data.repository.sourceFile;
       if (mode === 'errors') data.errors = [{ message: 'partial' }];
       if (mode === 'truncated') b.isTruncated = true;
       if (mode === 'oid') b.oid = 'e'.repeat(40);

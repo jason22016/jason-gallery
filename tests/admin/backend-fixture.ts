@@ -5,6 +5,7 @@ import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { ZipWriter, Uint8ArrayWriter, Uint8ArrayReader } from '@zip.js/zip.js';
 import { parseSources, LEGACY_SOURCE, makeSnapshot, photoReference, originalURL } from '../../src/photo-engine/source-contract';
 import { createUnifiedIndex } from '../../src/photo-engine/unified-index';
+import { processingInputs } from '../../src/photo-engine/processing-inputs';
 import { storedFiles } from '../../admin/server/stored-archive';
 import { buildReadFiles } from '../../scripts/admin/read-artifact';
 import { readCollection, hashBytes } from '../../src/photo-engine/collection-contract';
@@ -37,6 +38,7 @@ async function collection() {
 export async function zip(files: Map<string,Uint8Array>, level = 0) { const writer = new ZipWriter(new Uint8ArrayWriter(), { useWebWorkers:false, level, zip64: false }); for(const [name,data] of files) await writer.add(name,new Uint8ArrayReader(data)); return writer.close(); }
 async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any; config: typeof config }) {
   const c = replay ?? await collection(); let activeConfig = replay?.config ?? config; let summary: any = {schemaVersion:2,runId:1,runAttempt:1,action:'sync',websiteCommit:head,photos:{status:'success',artifactVersion:c.artifact.version},sources:c.artifact.sources,website:{status:'not_started'},deployment:{status:'not_requested'}};
+  let commitCount = 0;
   let currentHead = head; let race = false; let expired = false; let tamper = false; let codeStale = false;
   let projects: any[] = []; const mutations: any[] = []; const network: any[] = [];
   const photosZip = await zip(c.files);
@@ -65,11 +67,24 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
     assert.equal(url.origin,'https://api.github.com'); assert(url.pathname.startsWith('/repos/fixture/website/') || url.pathname === '/graphql'); assert.equal(headers.get('authorization'),`Bearer ${env.GITHUB_TOKEN}`);
     const p=url.pathname.replace('/repos/fixture/website','');
     const body=init?.body ? JSON.parse(String(init.body)) : null;
+    if(p==='/graphql' && body.query.startsWith('query AdminContent')) {
+      const entry = (name:string,value:unknown) => ({name,oid:blob(value).oid,type:'blob',mode:0o100644,object:{__typename:'Blob',...blob(value)}});
+      const source=entry('photo-sources.json',activeConfig);
+      const repository:any={configDirectory:{__typename:'Tree',entries:[source]},sourceFile:source.object,projectsDirectory:{__typename:'Tree',entries:projects.map(p=>entry(p.slug+'.json',p))}};
+      for(const [i,path] of processingInputs.entries()) repository[`processor${i}`]=path==='pnpm-lock.yaml'?{__typename:'Blob',oid:codeStale?'e'.repeat(40):'d'.repeat(40)}:null;
+      return Response.json({data:{repository}});
+    }
     if(p==='/graphql' && body.query.startsWith('mutation')) {
       mutations.push({p,method,body});
       const input=body.variables.input; assert.equal(input.branch.repositoryNameWithOwner,env.GITHUB_REPOSITORY);assert.equal(input.branch.branchName,'main');
       if(race || input.expectedHeadOid!==currentHead) return Response.json({data:{createCommitOnBranch:null},errors:[{type:'STALE_DATA'}]});
-      currentHead=next; return Response.json({data:{createCommitOnBranch:{commit:{oid:next}}}});
+      for (const change of input.fileChanges.additions) {
+        const value = JSON.parse(Buffer.from(change.contents, 'base64').toString('utf8'));
+        if (change.path === 'config/photo-sources.json') activeConfig = value;
+        else projects = [...projects.filter(p => `src/content/projects/${p.slug}.json` !== change.path), value];
+      }
+      currentHead = ++commitCount === 1 ? next : createHash('sha1').update(currentHead + JSON.stringify(input)).digest('hex');
+      return Response.json({data:{createCommitOnBranch:{commit:{oid:currentHead}}}});
     }
     if(p==='/graphql') { const repository: Record<string, unknown> = {}; for(const match of body.query.matchAll(/(b\d+): object\(oid: "([a-f\d]{40})"\)/g)) repository[match[1]] = [activeConfig, ...projects].map(blob).find(b => b.oid === match[2]) ?? null; return Response.json({data:{repository}}); }
     if(method!=='GET') mutations.push({p,method,body});

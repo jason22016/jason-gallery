@@ -1,6 +1,6 @@
 # 后台紧凑读取产物与 Free 修复进度
 
-2026-09-11。**实现及本地验证进行中；尚未完成新版 CI 迁移、Worker 部署和真实 Free 验收。** 旧部署的 1102 / exceededCpu 失败基线仍然有效，不能用本地结果覆盖。验收目标是 154 张照片＋40 个 Project，另有双源同原生 ID 的隔离回归；500 个 Project 是安全上限，不是 Free 性能承诺。
+2026-09-11。**新版 CI 迁移及前几轮部署已完成，但真实 Free 验收仍不通过；最新缩略图修复尚未部署。** 旧部署的 1102 / exceededCpu 失败基线仍然有效，不能用本地结果覆盖。验收目标是 154 张照片＋40 个 Project，另有双源同原生 ID 的隔离回归；500 个 Project 是安全上限，不是 Free 性能承诺。
 
 ## 产物与信任链
 
@@ -51,3 +51,19 @@ Worker 从受信任的本站 main automation run 读取执行摘要，先用 Git
 Worker 先验证执行摘要的 GitHub artifact 摘要，再核对封存记录与当前产物元数据、原照片产物及任务身份。state 无需再次下载预览包；缩略图只下载封存位置对应的一段，验证 Content-Range、长度和单图 SHA-256。来源配置、处理器摘要与 Project 引用检查不变。旧紧凑产物仍按原有有界 STORE 读取路径验证，无 ZIP 解压回退。封存后的摘要受 512 KB 上限约束；CI 超限即失败。
 
 保存使用 GitHub `createCommitOnBranch`，将 `expectedHeadOid`、目标 main 和允许路径的文件内容提交为一次原子变更。它保留旧 HEAD 检查和提交竞态保护，省去额外的 Git tree、commit、ref 往返。GraphQL 只返回部分结果、异常或未确认的新 OID 时，不报告成功、不重试写入；明确的 stale-head 错误显示冲突。参见 [GitHub 提交 API](https://docs.github.com/en/graphql/reference/commits) 与 [文件变更格式](https://docs.github.com/en/graphql/reference/git)。
+
+
+### 缩略图稳定性修复（待线上验收）
+
+state 完成可信目录校验后，为每张照片生成 HMAC-SHA256 读取证明，绑定管理站点、仓库、run、照片 ID、两个 artifact ID、读取包 digest/大小、绝对范围、单图 hash 和产物到期时间。使用现有服务端密钥并加专用域标识，不引入存储；证明不包含该密钥或 GitHub 签名下载 URL。每个缩略图请求仍先验证 Access 和管理员身份；随后验证证明、重新读取 GitHub 产物元数据确认仍有效，再下载指定范围并核对 SHA-256。无需重复读取全部照片目录、摘要或 Project。旧无证明 URL 保留原校验路径。证明是指定快照的读取授权，不代替 state/保存/发布的新鲜度检查。
+
+客户端只为可视范围附近的图片排队，下载并发上限 4；同 URL 的在途下载和已挂载图片共享结果，最后一个使用者卸载后释放 Blob URL。无 Cache API 或持久缓存依赖。网络错误及 502/503/504 最多自动重试一次，带随机短延迟；401/403/410/422 和非 JPEG 响应不自动重试。失败可见并提供手动重试，401 提示重新登录；失败响应 HTML 不作为图片或页面内容展示。
+
+错误日志和响应增加 `errorCode`、`errorStage`、`upstreamStatus`，结合 `X-Admin-Request-Id` 区分 GitHub、下载、Range、截断和 hash 失败。日志不记录证明参数或上游签名 URL；原有 502 和单次 401 仍没有足够证据可追溯定因。
+
+38 项后台回归通过，覆盖 154 图片排队、重试、认证失败、错误响应、40 个重复封面共享、证明篡改与跨照片/run/origin 重放、产物删除/过期以及错误阶段。正式 bundle 新 isolate 功能验证通过：state 7 次、缩略图 4 次上游请求，Cache API 0 次。真实照片重放和平台 CPU 必须分别记录；这些本地结果不代表已消除线上 1102。
+
+
+### 保存复用已验证的编辑快照
+
+新版 state 还签发绑定确切 HEAD 的 `saveProof`，在浏览器内随下一次 Project 保存提交。保存仍检查全部 draft/published 引用、最新完成任务和产物有效性；GitHub 的原子 expectedHeadOid 检查确保配置、处理器或其他内容的任何修改都会造成冲突。这样可省去保存请求内的内容和摘要/目录重读。每次成功返回新 HEAD 的证明，失败不推进客户端版本；无证明请求保留完整校验路径。具体信任边界、测试与尚缺的真实成功保存证据见 [保存修复记录](ADMIN_SAVE_FIX_2026-09-11.md)。

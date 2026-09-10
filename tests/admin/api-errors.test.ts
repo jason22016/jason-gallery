@@ -20,3 +20,18 @@ test('platform HTML, empty/bad JSON and network failures retain meaningful statu
     await assert.rejects(request('/api/state'),(e:unknown)=>e instanceof RequestError&&!e.outcomeUnknown&&e.code==='resource_limit');
   }finally{globalThis.fetch=original;}
 });
+
+
+test('HTTP 200 is not save success without a confirmed new HEAD', async () => {
+  const original = globalThis.fetch;
+  try {
+    for (const data of [{}, { head: 'b'.repeat(40) }, { status: 'saved', head: 'bad' }, { status: 'saved', head: 'a'.repeat(40) }, { status: 'saved', head: 'b'.repeat(40), saveProof: 123 }]) {
+      let calls = 0;
+      globalThis.fetch = async () => { calls++; return Response.json(data); };
+      await assert.rejects(request('/api/save', { expectedHead: 'a'.repeat(40) }), (error: unknown) => error instanceof RequestError && error.outcomeUnknown && error.code === 'invalid_save_response');
+      assert.equal(calls, 1);
+    }
+    globalThis.fetch = async () => Response.json({ status: 'saved', head: 'b'.repeat(40) });
+    assert.equal((await request('/api/save', { expectedHead: 'a'.repeat(40) })).head, 'b'.repeat(40));
+  } finally { globalThis.fetch = original; }
+});

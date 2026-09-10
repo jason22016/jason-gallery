@@ -1,10 +1,12 @@
 import { ApiError, jsonBody } from './errors';
+import { processingInputs } from '../../src/photo-engine/processing-inputs';
 import { hash } from 'node:crypto';
 export const workflow = '.github/workflows/automation.yml';
 export type TreeEntry = { path: string; sha: string; type: string; mode: string; size?: number };
 export class GitHub {
   readonly base: string;
   readonly fileSizes = new Map<string, number>();
+  private readonly contentBlobs = new Map<string, any>();
   private readonly reads = new Map<string, Promise<any>>();
   constructor(readonly env: Env, readonly transport: typeof fetch = fetch) {
     // workerd fetch requires its global receiver; storing it as a method changes `this`.
@@ -14,11 +16,12 @@ export class GitHub {
   }
   async response(path: string, method = 'GET', body?: unknown) {
     if (!path.startsWith('/') || path.includes('://')) throw new Error('Invalid internal GitHub path');
-    const response = await this.transport(this.base + path, { method, redirect: 'manual', headers: { Authorization: `Bearer ${this.env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'jason-gallery-admin', ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(20000) });
-    if (!response.ok && response.status !== 302) { await response.body?.cancel(); throw new ApiError(response.status === 409 || response.status === 422 && path === '/git/refs/heads/main' ? 409 : 502, 'github', `GitHub 请求失败（HTTP ${response.status}）；请检查权限或稍后重试`); }
+    let response: Response;
+    try { response = await this.transport(this.base + path, { method, redirect: 'manual', headers: { Authorization: `Bearer ${this.env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'jason-gallery-admin', ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(20000) }); } catch { throw new ApiError(502, 'github_network', 'GitHub 连接失败或超时，请稍后重试', undefined, { stage: 'github_request' }); }
+    if (!response.ok && response.status !== 302) { await response.body?.cancel(); throw new ApiError(response.status === 409 || response.status === 422 && path === '/git/refs/heads/main' ? 409 : 502, 'github', `GitHub 请求失败（HTTP ${response.status}）；请检查权限或稍后重试`, undefined, { stage: 'github_request', upstreamStatus: response.status }); }
     return response;
   }
-  async call(path: string, method = 'GET', body?: unknown): Promise<any> { const res = await this.response(path, method, body); return res.status === 204 ? null : jsonBody(res); }
+  async call(path: string, method = 'GET', body?: unknown): Promise<any> { const res = await this.response(path, method, body); if (res.status === 204) return null; try { return await jsonBody(res); } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(502, 'github_response', 'GitHub 响应未完整读取或格式无效，请稍后重试', undefined, { stage: 'github_response' }); } }
   // Request-local deduplication only; branch HEAD and all writes always go to GitHub.
   private read(path: string) {
     let result = this.reads.get(path);
@@ -27,6 +30,43 @@ export class GitHub {
   }
   async head() { return (await this.call('/git/ref/heads/main')).object.sha as string; }
   async tree(sha: string): Promise<TreeEntry[]> { const tree = await this.read(`/git/trees/${sha}?recursive=1`); if (tree.truncated) throw new ApiError(413, 'tree_limit', '仓库目录超过读取上限'); return tree.tree; }
+  async contentTree(head: string): Promise<TreeEntry[]> {
+    if (!/^[a-f0-9]{40}$/.test(head)) throw new ApiError(422, 'head', '仓库版本无效');
+    const [owner, name] = this.env.GITHUB_REPOSITORY.split('/');
+    const object = (alias: string, path: string, fields: string) => `${alias}: object(expression: ${JSON.stringify(`${head}:${path}`)}) { __typename oid ${fields} }`;
+    const metadata = 'name oid mode type';
+    const blob = '... on Blob { byteSize isBinary isTruncated text }';
+    const nested = (depth: number): string => depth ? `... on Tree { entries { ${metadata} object { __typename oid ${nested(depth-1)} } } }` : '';
+    const query = `query AdminContent { repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(name)}) { ${object('configDirectory', 'config', `... on Tree { entries { ${metadata} } }`)} ${object('sourceFile', 'config/photo-sources.json', blob)} ${object('projectsDirectory', 'src/content/projects', `... on Tree { entries { ${metadata} object { __typename oid ${blob} } } }`)} ${processingInputs.map((path,i) => object(`processor${i}`, path, nested(6))).join(' ')} } }`;
+    const response = await this.transport('https://api.github.com/graphql', { method: 'POST', redirect: 'manual', headers: { Authorization: `Bearer ${this.env.GITHUB_TOKEN}`, 'Content-Type': 'application/json', 'User-Agent': 'jason-gallery-admin' }, body: JSON.stringify({ query }), signal: AbortSignal.timeout(20000) });
+    if (!response.ok) { await response.body?.cancel(); throw new ApiError(502, 'github', `GitHub 内容读取失败（HTTP ${response.status}）`); }
+    const data = await jsonBody(response);
+    if (data.errors?.length || !data.data?.repository) throw new ApiError(502, 'github', 'GitHub 内容读取不完整');
+    const repository = data.data.repository, entries: TreeEntry[] = [];
+    const directory = (value: any) => { if (value?.__typename !== 'Tree' || !Array.isArray(value.entries)) throw new ApiError(422, 'tree', 'Git 目录缺失或不完整'); return value.entries as any[]; };
+    const entry = (p: string, e: any): TreeEntry => {
+      if (typeof e.name !== 'string' || !e.name || /[\/\0]/.test(e.name) || !/^[a-f0-9]{40}$/.test(e.oid) || !Number.isInteger(e.mode) || !['blob','tree','commit'].includes(e.type)) throw new ApiError(422, 'tree', 'Git 目录项无效');
+      return { path: p + e.name, sha: e.oid, mode: e.mode.toString(8), type: e.type };
+    };
+    const source = directory(repository.configDirectory).find(e => e.name === 'photo-sources.json');
+    if (!source) throw new ApiError(422, 'file', '缺少照片源配置');
+    entries.push(entry('config/', source)); this.contentBlobs.set(source.oid, repository.sourceFile);
+    if (repository.projectsDirectory !== null) for (const e of directory(repository.projectsDirectory)) {
+      const p = entry('src/content/projects/', e);
+      if (/^src\/content\/projects\/[a-z0-9]+(?:-[a-z0-9]+)*\.json$/.test(p.path)) { entries.push(p); this.contentBlobs.set(e.oid, e.object); }
+    }
+    let nodes = 0;
+    const walk = (path: string, value: any) => {
+      if (++nodes > 10000) throw new ApiError(413, 'tree_limit', '处理器目录超过后台读取上限');
+      if (!value || !/^[a-f0-9]{40}$/.test(value.oid)) throw new ApiError(422, 'tree', '处理器 Git 对象缺失');
+      if (value.__typename === 'Blob') entries.push({path,sha:value.oid,type:'blob',mode:'100644'});
+      else if (value.__typename === 'Tree') for (const e of directory(value)) { const child=entry(path+'/',e); if (child.type !== 'commit') { if (e.object?.oid !== e.oid) throw new ApiError(422, 'tree', '处理器 Git 对象版本不匹配'); walk(child.path,e.object); } }
+      else throw new ApiError(422, 'tree', '处理器 Git 对象类型无效');
+    };
+    for (const [i,path] of processingInputs.entries()) { if (!Object.hasOwn(repository,`processor${i}`)) throw new ApiError(502, 'github', '处理器目录响应不完整'); if (repository[`processor${i}`] !== null) walk(path,repository[`processor${i}`]); }
+    if (new Set(entries.map(e=>e.path)).size !== entries.length) throw new ApiError(422, 'tree', 'Git 路径重复');
+    return entries;
+  }
   async file(entry: TreeEntry) { if (entry.type !== 'blob' || entry.mode === '120000' || (entry.size ?? 0) > 512000) throw new ApiError(422, 'file', '管理文件必须是小于 512 KB 的普通文件'); const blob = await this.read(`/git/blobs/${entry.sha}`); if (blob.encoding !== 'base64') throw new Error('Invalid blob'); return JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8')); }
   async files(entries: TreeEntry[]): Promise<unknown[]> {
     for (const e of entries) if (e.type !== 'blob' || !['100644', '100755'].includes(e.mode) || (e.size ?? 0) > 512000 || !/^[a-f\d]{40}$/.test(e.sha)) throw new ApiError(422, 'file', '管理文件必须是小于 512 KB 的普通 Git blob');
@@ -36,10 +76,14 @@ export class GitHub {
     // truncated, binary, mismatched or partial GraphQL result fails the entire read.
     for (let offset = 0; offset < entries.length; offset += 50) {
       const batch = entries.slice(offset, offset + 50);
+      let data: any;
+      if (batch.every(e => this.contentBlobs.has(e.sha))) data = { data: { repository: Object.fromEntries(batch.map((e,i)=>[`b${i}`, this.contentBlobs.get(e.sha)])) } };
+      else {
       const query = `query { repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(name)}) { ${batch.map((e, i) => `b${i}: object(oid: "${e.sha}") { ... on Blob { oid byteSize isBinary isTruncated text } }`).join(' ')} } }`;
       const response = await this.transport('https://api.github.com/graphql', { method: 'POST', redirect: 'manual', headers: { Authorization: `Bearer ${this.env.GITHUB_TOKEN}`, 'Content-Type': 'application/json', 'User-Agent': 'jason-gallery-admin' }, body: JSON.stringify({ query }), signal: AbortSignal.timeout(20000) });
       if (!response.ok) { await response.body?.cancel(); throw new ApiError(502, 'github', `GitHub 批量读取失败（HTTP ${response.status}）`); }
-      const data = await jsonBody(response);
+      data = await jsonBody(response);
+      }
       if (data.errors?.length || !data.data?.repository) throw new ApiError(502, 'github', 'GitHub 批量读取不完整');
       for (const [i, entry] of batch.entries()) {
         const blob = data.data.repository[`b${i}`];
@@ -65,14 +109,21 @@ export class GitHub {
     const input = { branch: { repositoryNameWithOwner: this.env.GITHUB_REPOSITORY, branchName: 'main' }, expectedHeadOid: expected,
       message: { headline: 'Save gallery admin content [skip ci]' }, fileChanges: { additions: changes.map(c => ({ path: c.path, contents: Buffer.from(JSON.stringify(c.data, null, 2) + '\n').toString('base64') })) } };
     const query = 'mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }';
-    const response = await this.transport('https://api.github.com/graphql', { method: 'POST', redirect: 'manual', headers: { Authorization: `Bearer ${this.env.GITHUB_TOKEN}`, 'Content-Type': 'application/json', 'User-Agent': 'jason-gallery-admin' }, body: JSON.stringify({ query, variables: { input } }), signal: AbortSignal.timeout(20000) });
-    if (!response.ok) { await response.body?.cancel(); throw new ApiError(502, 'save_unconfirmed', 'GitHub 保存结果尚未确认，请核对仓库后再重试'); }
-    const result = await jsonBody(response);
-    if (result.errors?.length) {
+    let result: any;
+    let upstreamStatus: number | undefined;
+    try {
+      const response = await this.transport('https://api.github.com/graphql', { method: 'POST', redirect: 'manual', headers: { Authorization: `Bearer ${this.env.GITHUB_TOKEN}`, 'Content-Type': 'application/json', 'User-Agent': 'jason-gallery-admin' }, body: JSON.stringify({ query, variables: { input } }), signal: AbortSignal.timeout(20000) });
+      upstreamStatus = response.status;
+      if (!response.ok) { await response.body?.cancel(); throw new Error('Mutation response failed'); }
+      result = await jsonBody(response);
+    } catch {
+      throw new ApiError(502, 'save_unconfirmed', 'GitHub 保存结果尚未确认，请核对仓库后再重试', undefined, { stage: 'github_commit', upstreamStatus });
+    }
+    if (result?.errors?.length) {
       if (result.data?.createCommitOnBranch === null && result.errors.every((e: any) => e.type === 'STALE_DATA')) throw new ApiError(409, 'conflict', '仓库已有更新，请保留当前编辑并重新加载后合并');
       throw new ApiError(502, 'save_unconfirmed', 'GitHub 保存结果尚未确认，请核对仓库后再重试');
     }
-    const oid = result.data?.createCommitOnBranch?.commit?.oid;
+    const oid = result?.data?.createCommitOnBranch?.commit?.oid;
     if (typeof oid !== 'string' || !/^[a-f0-9]{40}$/.test(oid) || oid === expected) throw new ApiError(502, 'save_unconfirmed', 'GitHub 未确认新的保存版本，请核对仓库后再重试');
     return oid;
   }

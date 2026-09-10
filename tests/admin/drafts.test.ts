@@ -25,7 +25,7 @@ test('dirty Project replacement guards new/other targets; cancel, failure and co
       const url = new URL(route.request().url());
       if (url.pathname === '/api/state') return route.fulfill({ json: state });
       assert.equal(url.pathname, '/api/save'); saves.push(route.request().postDataJSON());
-      return route.fulfill({ status: saveStatus, json: saveStatus === 200 ? { head: 'b'.repeat(40) } : { message: saveStatus === 409 ? '版本冲突' : '保存失败，请重试' } });
+      return route.fulfill({ status: saveStatus, json: saveStatus === 200 ? { status: 'saved', head: 'b'.repeat(40) } : { message: saveStatus === 409 ? '版本冲突' : '保存失败，请重试' } });
     });
     await page.route('**/thumbnails/*', async route => route.fulfill({ contentType: 'image/jpeg', body: await fs.readFile(path.join(fixtureRoot, new URL(route.request().url()).pathname)) }));
     const nav = (name: string) => page.getByRole('navigation').getByRole('button', { name, exact: true }).click();

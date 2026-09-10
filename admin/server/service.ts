@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { proofSigner, verifyProof, type PreviewProof } from './preview-proof';
+import { signSaveProof, verifySaveProof, projectReferences, type SaveProof } from './save-proof';
 import { parseSources, sourceIdentity, LEGACY_SOURCE, type SourcesConfig } from '../../src/photo-engine/source-contract';
 import { parseCatalog, processingDigest, sha256, type ReadCatalog } from './read-contract';
 import { ProjectSchema, type Project } from '../../src/projects/schema';
@@ -10,7 +12,7 @@ import { digest } from '../../src/photo-engine/source-contract';
 const projectPath = /^src\/content\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)\.json$/;
 const headSchema = z.string().regex(/^[a-f\d]{40}$/);
 const idSchema = z.number().int().positive();
-const SaveSchema = z.discriminatedUnion('kind', [z.strictObject({ kind: z.literal('sources'), expectedHead: headSchema, config: z.unknown() }), z.strictObject({ kind: z.literal('project'), expectedHead: headSchema, project: ProjectSchema })]);
+const SaveSchema = z.discriminatedUnion('kind', [z.strictObject({ kind: z.literal('sources'), expectedHead: headSchema, config: z.unknown() }), z.strictObject({ kind: z.literal('project'), expectedHead: headSchema, project: ProjectSchema, saveProof: z.string().max(256000).optional() })]);
 const DispatchSchema = z.strictObject({ mode: z.enum(['sync', 'publish']), expectedHead: headSchema, photoRunId: idSchema.optional() });
 export function sourceImpacts(before: SourcesConfig, after: SourcesConfig, projects: Project[]) {
   const changed = before.sources.filter(s => { const next = after.sources.find(n => n.sourceId === s.sourceId); return !next || !next.enabled || sourceIdentity(s) !== sourceIdentity(next); });
@@ -27,7 +29,7 @@ function validateReferences(projects: Project[], catalog: ReadCatalog) {
 export class AdminService {
   constructor(readonly github: GitHub) {}
   async content() {
-    const head = await this.github.head(); const tree = await this.github.tree(head);
+    const head = await this.github.head(); const tree = await this.github.contentTree(head);
     const entry = tree.find(e => e.path === 'config/photo-sources.json'); assert(entry, '缺少照片源配置');
     const entries = tree.filter(e => projectPath.test(e.path));
     assert(entries.length <= 500, 'Project 超过后台 500 个上限');
@@ -75,7 +77,7 @@ export class AdminService {
       catalog = parseCatalog(bytes);
       if (catalog.repository !== seal.repository || catalog.runId !== run.id || catalog.runAttempt !== run.run_attempt || catalog.websiteCommit !== run.head_sha || catalog.photosArtifactId !== original.id || catalog.artifact.version !== seal.photosArtifactVersion || (sealed ? seal.previewOffset + catalog.previewBytes > info.size_in_bytes : catalog.previewBytes !== zip!.size('previews.bin'))) throw new Error('catalog identity');
     } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(422, 'integrity', '后台照片目录完整性验证失败'); }
-    return { ...catalog, read: async (path: string) => {
+    return { ...catalog, previewSeal: sealed ? { artifactId: info.id, photosArtifactId: original.id, artifactDigest: info.digest, archiveBytes: info.size_in_bytes, offset: seal.previewOffset } : undefined, read: async (path: string) => {
       const photo = catalog.photos.find(p => `public/thumbnails/${p.id}.jpg` === path);
       if (!photo) throw new ApiError(404, 'photo', '照片不存在');
       const value = sealed ? await sealedPreview(this.github, info, seal.previewOffset + photo.offset, photo.length) : await zip!.read('previews.bin', photo.offset, photo.length);
@@ -89,19 +91,89 @@ export class AdminService {
     if (catalog.processingDigest !== processingDigest(content.tree)) throw new ApiError(409, 'stale', '照片处理器或依赖已更新，请重新同步');
     return catalog;
   }
-  async thumbnail(runId: number, reference: string) {
+  async thumbnail(runId: number, reference: string, token?: string) {
+    if (token !== undefined) {
+      const proof = await verifyProof(this.github.env, token, runId, reference);
+      const artifacts = await this.github.artifacts(runId);
+      const reads = artifacts.filter(a => a.name === 'admin-read'), originals = artifacts.filter(a => a.name === 'photos');
+      if (!reads.length || !originals.length) throw new ApiError(410, 'expired', '缩略图产物缺失，请刷新照片目录', undefined, { stage: 'preview_artifacts' });
+      if (reads.length !== 1 || originals.length !== 1) throw new ApiError(422, 'integrity', '缩略图产物身份不唯一', undefined, { stage: 'preview_artifacts' });
+      const info = reads[0], original = originals[0]; alive(info); alive(original);
+      if (info.id !== proof.artifactId || original.id !== proof.photosArtifactId || info.digest !== proof.artifactDigest || info.size_in_bytes !== proof.archiveBytes) throw new ApiError(422, 'integrity', '缩略图产物与读取证明不匹配', undefined, { stage: 'preview_artifacts' });
+      const value = await sealedPreview(this.github, info, proof.offset, proof.length);
+      if (sha256(value) !== proof.hash) throw new ApiError(422, 'integrity', '缩略图摘要不匹配', undefined, { stage: 'preview_hash' });
+      return value;
+    }
     const catalog = await this.catalog(runId);
     return catalog.read(`public/thumbnails/${reference}.jpg`);
   }
   async bootstrap() {
     const content = await this.content();
+    let saveProof: string | undefined;
     let media: any = { state: 'empty', reason: '请先同步照片', photos: [], aliases: {} };
-    try { const p = await this.photos(content); try { media = { state: 'ready', reason: '', runId: p.runId, expiresAt: p.expiresAt, snapshot: p.artifact.snapshot, aliases: Object.fromEntries(p.aliases), photos: p.photos.map(photo => ({ sourceId: photo.sourceId, photo: { id: photo.id, title: photo.title, width: photo.width, height: photo.height, thumbnailUrl: `/api/thumbnail/${p.runId}/${encodeURIComponent(photo.id)}` } })) }; } finally { await p.close(); } }
+    try {
+      const p = await this.photos(content);
+      try {
+        const sign = await proofSigner(this.github.env);
+        if (p.previewSeal) {
+          const entries = new Map(content.tree.map(e => [e.path, e]));
+          const proof: SaveProof = {
+            version: 1, head: content.head, runId: p.runId, runAttempt: p.runAttempt, runHead: p.websiteCommit,
+            artifactId: p.previewSeal.artifactId, photosArtifactId: p.previewSeal.photosArtifactId,
+            artifactDigest: p.previewSeal.artifactDigest, archiveBytes: p.previewSeal.archiveBytes,
+            expiresAt: Date.parse(p.expiresAt), ids: p.photos.map(photo => photo.id), aliases: p.aliases,
+            projects: content.projects.map(project => projectReferences(project, this.github.fileSizes.get(entries.get(`src/content/projects/${project.slug}.json`)!.sha)!)),
+          };
+          saveProof = signSaveProof(this.github.env, proof);
+        }
+        media = {
+          state: 'ready', reason: '', runId: p.runId, expiresAt: p.expiresAt, snapshot: p.artifact.snapshot,
+          aliases: Object.fromEntries(p.aliases), photos: await Promise.all(p.photos.map(async photo => ({
+            sourceId: photo.sourceId, photo: {
+              id: photo.id, title: photo.title, width: photo.width, height: photo.height,
+              thumbnailUrl: `/api/thumbnail/${p.runId}/${encodeURIComponent(photo.id)}` + (p.previewSeal ? '?proof=' + await sign({
+                version: 1, repository: this.github.env.GITHUB_REPOSITORY, runId: p.runId, id: photo.id,
+                ...p.previewSeal, offset: p.previewSeal.offset + photo.offset, length: photo.length, hash: photo.hash, expiresAt: Date.parse(p.expiresAt),
+              } as PreviewProof) : ''),
+            },
+          }))),
+        };
+      } finally { await p.close(); }
+    }
     catch (e) { media.state = e instanceof ApiError ? e.code : 'unavailable'; media.reason = e instanceof ApiError ? e.message : '照片读取暂时失败，请稍后重试；尚未确认产物需要更新'; }
-    return { head: content.head, sources: content.config.sources, projects: content.projects, media, publishEnabled: this.github.env.PUBLISH_ENABLED === 'true' };
+    return { head: content.head, sources: content.config.sources, projects: content.projects, media, saveProof, publishEnabled: this.github.env.PUBLISH_ENABLED === 'true' };
+  }
+  private async saveWithProof(project: Project, expectedHead: string, token: string) {
+    const proof = verifySaveProof(this.github.env, token, expectedHead);
+    const existing = proof.projects.find(p => p.id === project.id);
+    assert(project.slug.length <= 120, 'Project slug 超过后台 120 字符上限');
+    assert(existing || proof.projects.length < 500, 'Project 超过后台 500 个上限');
+    assert(!existing || existing.slug === project.slug, '已保存 Project 的 slug 不可更改');
+    const size = Buffer.byteLength(JSON.stringify(project, null, 2) + '\n');
+    assert(size <= 512000, 'Project 内容超过后台 512 KB 上限');
+    const projects = [...proof.projects.filter(p => p.id !== project.id), projectReferences(project, size)];
+    assert(projects.reduce((sum, p) => sum + p.bytes, 0) <= 4 * 1024 ** 2, 'Project 总内容超过后台 4 MB 上限');
+    const ids = new Set(proof.ids), aliases = new Map(proof.aliases);
+    try { validateProjectReferences(projects, id => { const canonical = aliases.get(id) ?? id; return ids.has(canonical) ? canonical : undefined; }); }
+    catch { throw new ApiError(422, 'project_reference', 'Project 引用校验失败；照片缺失、重复或来源已变化'); }
+    const latest = (await this.github.runs(true))[0];
+    if (!latest || latest.status !== 'completed') throw new ApiError(409, 'stale', '照片任务已变化，请保留编辑并重新加载仓库');
+    this.github.verifyRun(latest);
+    if (latest.id !== proof.runId || latest.run_attempt !== proof.runAttempt || latest.head_sha !== proof.runHead) throw new ApiError(409, 'stale', '照片任务已变化，请保留编辑并重新加载仓库');
+    const artifacts = await this.github.artifacts(proof.runId);
+    const reads = artifacts.filter(a => a.name === 'admin-read'), originals = artifacts.filter(a => a.name === 'photos');
+    if (!reads.length || !originals.length) throw new ApiError(410, 'expired', '照片产物缺失，请保留编辑并重新同步');
+    if (reads.length !== 1 || originals.length !== 1) throw new ApiError(422, 'integrity', '照片产物身份不唯一');
+    const info = reads[0], original = originals[0]; alive(info); alive(original);
+    if (info.id !== proof.artifactId || original.id !== proof.photosArtifactId || info.digest !== proof.artifactDigest || info.size_in_bytes !== proof.archiveBytes) throw new ApiError(422, 'integrity', '照片产物与保存校验信息不匹配');
+    // This mutation is the authoritative HEAD check: any intervening content,
+    // source or processor update conflicts, including a race during validation.
+    const head = await this.github.commit(expectedHead, [{ path: `src/content/projects/${project.slug}.json`, data: project }]);
+    return { head, status: 'saved', saveProof: signSaveProof(this.github.env, { ...proof, head, projects }) };
   }
   async save(input: unknown) {
     const body = SaveSchema.parse(input);
+    if (body.kind === 'project' && body.saveProof !== undefined) return this.saveWithProof(body.project, body.expectedHead, body.saveProof);
     const content = await this.content();
     if (body.expectedHead !== content.head) throw new ApiError(409, 'conflict', '仓库已有更新；当前编辑已保留，请重新加载并合并后再保存');
     let changes: { path: string; data: unknown }[];

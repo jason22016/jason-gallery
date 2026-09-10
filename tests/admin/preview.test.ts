@@ -25,7 +25,7 @@ async function open(width = 1280) {
   const page = await browser.newPage({ viewport: { width, height: 900 } });
   page.on('pageerror', e => errors.push(e.message));
   page.on('request', r => {
-    if (!r.url().startsWith(host.url) && !r.url().startsWith('data:')) errors.push(`Unexpected external request: ${r.url()}`);
+    if (!r.url().startsWith(host.url) && !r.url().startsWith('data:') && !(r.url().startsWith('blob:') && new URL(r.url()).origin === new URL(host.url).origin)) errors.push(`Unexpected external request: ${r.url()}`);
     if (r.method() !== 'GET') errors.push(`Unexpected write request: ${r.method()}`);
   });
   await page.goto(host.url);

@@ -6,7 +6,7 @@ export function alive(info: any) {
   if (!info || !Number.isSafeInteger(info.id) || info.id <= 0 || !Number.isFinite(Date.parse(info.expires_at))) throw new ApiError(422, 'integrity', '产物身份或期限无效');
   if (info.expired || Date.parse(info.expires_at) <= Date.now()) throw new ApiError(410, 'expired', '照片产物缺失或已过期，请重新同步');
 }
-function invalid(): never { throw new ApiError(422, 'integrity', '后台读取产物结构或字节范围无效'); }
+function invalid(): never { throw new ApiError(422, 'integrity', '后台读取产物结构或字节范围无效', undefined, { stage: 'archive_structure' }); }
 function unsupported(): never { throw new ApiError(422, 'format', '这是旧版或不支持的后台产物；请运行一次新版同步，历史摘要可在 Actions 查看'); }
 interface StoredEntry { name: string; offset: number; size: number; flags: number }
 function text(value: Uint8Array) { try { return new TextDecoder('utf-8', { fatal: true }).decode(value); } catch { return invalid(); } }
@@ -73,7 +73,7 @@ export async function storedArchive(github: GitHub, info: any, names: string[], 
   if (url.protocol !== 'https:' || url.username || url.password || url.port || !['.blob.core.windows.net', '.actions.githubusercontent.com'].some(s => url.hostname.endsWith(s))) invalid();
   const fetchBytes = async (range?: string, limit = 8 * 1024 ** 2) => {
     const response = await github.transport(url.href, { redirect: 'manual', headers: range ? { Range: range } : {}, signal: AbortSignal.timeout(15000) });
-    if (response.status !== (range ? 206 : 200)) { await response.body?.cancel(); throw new ApiError(502, 'unavailable', '产物存储读取失败，请稍后重试'); }
+    if (response.status !== (range ? 206 : 200)) { await response.body?.cancel(); throw new ApiError(502, 'storage_http', '产物存储读取失败，请稍后重试', undefined, { stage: 'artifact_download', upstreamStatus: response.status }); }
     const value = await bytes(response, limit);
     return { value, contentRange: response.headers.get('content-range') };
   };
@@ -137,9 +137,12 @@ export async function sealedPreview(github: GitHub, info: any, offset: number, l
   try { url = new URL(location ?? ''); } catch { invalid(); }
   if (url.protocol !== 'https:' || url.username || url.password || url.port || !['.blob.core.windows.net', '.actions.githubusercontent.com'].some(s => url.hostname.endsWith(s))) invalid();
   const range = `bytes=${offset}-${offset + length - 1}`;
-  const response = await github.transport(url.href, { redirect: 'manual', headers: { Range: range }, signal: AbortSignal.timeout(15000) });
-  if (response.status !== 206) { await response.body?.cancel(); throw new ApiError(502, 'unavailable', '产物存储读取失败，请稍后重试'); }
-  if (response.headers.get('content-range') !== `bytes ${offset}-${offset + length - 1}/${info.size_in_bytes}`) { await response.body?.cancel(); invalid(); }
-  const value = await bytes(response, length); if (value.length !== length) invalid();
+  let response: Response;
+  try { response = await github.transport(url.href, { redirect: 'manual', headers: { Range: range }, signal: AbortSignal.timeout(15000) }); } catch { throw new ApiError(502, 'storage_network', '缩略图存储连接失败或超时，请稍后重试', undefined, { stage: 'preview_download' }); }
+  if (response.status !== 206) { await response.body?.cancel(); throw new ApiError(502, 'storage_http', '产物存储读取失败，请稍后重试', undefined, { stage: 'artifact_download', upstreamStatus: response.status }); }
+  if (response.headers.get('content-range') !== `bytes ${offset}-${offset + length - 1}/${info.size_in_bytes}`) { await response.body?.cancel(); throw new ApiError(422, 'integrity', '缩略图响应范围不匹配', undefined, { stage: 'preview_range' }); }
+  let value: Uint8Array;
+  try { value = await bytes(response, length); } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(502, 'storage_body', '缩略图下载中断，请稍后重试', undefined, { stage: 'preview_download' }); }
+  if (value.length !== length) throw new ApiError(502, 'storage_body', '缩略图下载不完整，请稍后重试', undefined, { stage: 'preview_download' });
   return value;
 }

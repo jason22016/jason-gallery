@@ -6,6 +6,8 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fixture, prepareKeys, token, env, head, config } from './backend-fixture';
+import { AdminService } from '../../admin/server/service';
+import { GitHub } from '../../admin/server/github';
 import { readCollection } from '../../src/photo-engine/collection-contract';
 const require = createRequire(import.meta.url);
 const { Miniflare, convertV4MiniflareOptions } = await import(pathToFileURL(require.resolve('miniflare', { paths: [dirname(require.resolve('wrangler/package.json'))] })).href);
@@ -50,32 +52,49 @@ try {
   const jwt = await token();
   const activeConfig = replay?.config ?? config;
   const photos = await readCollection(async name => f.c.files.get(name)!, activeConfig);
+  const proofState = await new AdminService(new GitHub(env, f.fetcher)).bootstrap();
+  assert.equal(proofState.media.state, 'ready');
+  const previewURLs = new Map<string,string>(proofState.media.photos.map((p: any) => [p.photo.id,p.photo.thumbnailUrl]));
   const ref = photos.photos[0].id;
-  const project = { schemaVersion: 1, id: 'profile-only', slug: 'profile-only', title: 'Isolated profile fixture', coverPhotoId: ref, photos: [{ photoId: ref }], status: 'draft', order: 0 };
-  const cases: { name: string; path: string; body?: unknown; projectCount?: number }[] = [
+  const saveRefs: string[] = collectionDir
+    ? JSON.parse(new TextDecoder().decode(f.c.files.get('photo-index.json')!)).entries.filter((p: any) => /^DSC_(0129|0160)_/.test(p.nativeId)).map((p: any) => p.reference)
+    : [photos.photos[0].id, photos.photos.at(-1)!.id];
+  assert.equal(new Set(saveRefs).size, 2, 'Save fixture must contain both approved photo references');
+  const project = { schemaVersion: 1, id: 'profile-only', slug: 'profile-only', title: '[TEST] 后台验收 2026-09-11', coverPhotoId: saveRefs[0], photos: saveRefs.map(photoId => ({ photoId })), status: 'draft', order: 0 };
+  const cases: { name: string; path: string; body?: unknown; projectCount?: number; signed?: boolean }[] = [
     { name: 'authenticated-assets', path: '/' },
     { name: 'state', path: '/api/state' },
-    { name: 'thumbnail', path: `/api/thumbnail/1/${ref}` },
+    { name: 'thumbnail', path: previewURLs.get(ref)! },
     { name: 'source-impact', path: '/api/impact', body: activeConfig },
     { name: 'source-save', path: '/api/save', body: { kind: 'sources', expectedHead: head, config: activeConfig } },
     { name: 'project-save', path: '/api/save', body: { kind: 'project', expectedHead: head, project } },
     { name: 'sync-dispatch', path: '/api/dispatch', body: { mode: 'sync', expectedHead: head } },
     { name: 'publish-dispatch', path: '/api/dispatch', body: { mode: 'publish', expectedHead: head, photoRunId: 1 } },
+    { name: 'signed-project-save', path: '/api/save', body: { kind: 'project', expectedHead: head, project }, signed: true },
+    { name: 'signed-project-save-40-projects', path: '/api/save', body: { kind: 'project', expectedHead: head, project }, projectCount: 40, signed: true },
     { name: 'tasks', path: '/api/tasks' },
     { name: 'state-40-projects', path: '/api/state', projectCount: 40 },
     { name: 'project-save-40-projects', path: '/api/save', body: { kind: 'project', expectedHead: head, project }, projectCount: 40 },
     { name: 'publish-40-projects', path: '/api/dispatch', body: { mode: 'publish', expectedHead: head, photoRunId: 1 }, projectCount: 40 },
   ];
+  const requestBody = async (scenario: typeof cases[number]) => scenario.signed
+    ? { ...scenario.body as object, saveProof: (await new AdminService(new GitHub(env, f.fetcher)).bootstrap()).saveProof }
+    : scenario.body;
+  const resetScenario = (scenario: typeof cases[number]) => {
+    f.setHead(head);
+    f.setProjects(Array.from({ length: scenario.projectCount ?? 0 }, (_, i) => ({ ...project, id: `profile-${i}`, slug: `profile-${i}` })));
+  };
   const results = [];
   for (const scenario of cases) {
     await mf.purgeCache();
     f.setProjects(Array.from({ length: scenario.projectCount ?? 0 }, (_, i) => ({ ...project, id: `profile-${i}`, slug: `profile-${i}` })));
     for (let iteration = 0; iteration < (smoke ? 2 : 6); iteration++) {
-      f.setHead(head);
+      resetScenario(scenario);
+      const bodyInput = await requestBody(scenario);
       const before = f.network.length;
       await cdp('Profiler.start');
       const started = performance.now();
-      const response = await mf.dispatchFetch(env.ADMIN_ORIGIN + scenario.path, { method: scenario.body === undefined ? 'GET' : 'POST', headers: { 'Cf-Access-Jwt-Assertion': jwt, ...(scenario.body === undefined ? {} : { Origin: env.ADMIN_ORIGIN, 'Content-Type': 'application/json' }) }, body: scenario.body === undefined ? undefined : JSON.stringify(scenario.body) });
+      const response = await mf.dispatchFetch(env.ADMIN_ORIGIN + scenario.path, { method: scenario.body === undefined ? 'GET' : 'POST', headers: { 'Cf-Access-Jwt-Assertion': jwt, ...(scenario.body === undefined ? {} : { Origin: env.ADMIN_ORIGIN, 'Content-Type': 'application/json' }) }, body: scenario.body === undefined ? undefined : JSON.stringify(bodyInput) });
       const body = await response.text();
       const wallMs = performance.now() - started;
       const { profile } = await cdp('Profiler.stop');
@@ -118,8 +137,8 @@ const counting_worker = { fetch(request, env, ctx) { return scope.run({ value: 0
       await counting.purgeCache();
       f.setProjects(Array.from({ length: scenario.projectCount ?? 0 }, (_, i) => ({ ...project, id: `profile-${i}`, slug: `profile-${i}` })));
       for (const cache of ['cold', 'warm']) {
-        f.setHead(head); const before = f.network.length;
-        const response = await counting.dispatchFetch(env.ADMIN_ORIGIN + scenario.path, { method: scenario.body === undefined ? 'GET' : 'POST', headers: { 'Cf-Access-Jwt-Assertion': jwt, Origin: env.ADMIN_ORIGIN, 'Content-Type': 'application/json' }, body: scenario.body === undefined ? undefined : JSON.stringify(scenario.body) });
+        resetScenario(scenario); const bodyInput = await requestBody(scenario); const before = f.network.length;
+        const response = await counting.dispatchFetch(env.ADMIN_ORIGIN + scenario.path, { method: scenario.body === undefined ? 'GET' : 'POST', headers: { 'Cf-Access-Jwt-Assertion': jwt, Origin: env.ADMIN_ORIGIN, 'Content-Type': 'application/json' }, body: scenario.body === undefined ? undefined : JSON.stringify(bodyInput) });
         await response.arrayBuffer(); assert.equal(response.status, 200);
         const cacheOperations = Number(response.headers.get('x-test-cache-operations'));
         assert.equal(cacheOperations, 0, 'Production paths must not call the unavailable Access Cache API');
@@ -128,21 +147,44 @@ const counting_worker = { fetch(request, env, ctx) { return scope.run({ value: 0
       }
     }
   } finally { await counting.dispose(); }
-  // Reproduce actual browser fan-out, including a totally cold artifact path. The
-  // inline ZIP codec must never hand a Promise to a different workerd request.
+  // Check every real preview at each observed fan-out, without shared Cache API.
+  const previewChecks = [];
   for (const concurrency of [12, 40]) {
-  await mf.purgeCache();
-  const previews = await Promise.all(Array.from({ length: concurrency }, async (_, i) => {
-    const photo = photos.photos[i % photos.photos.length];
-    const response = await mf.dispatchFetch(env.ADMIN_ORIGIN + `/api/thumbnail/1/${photo.id}`, { headers: { 'Cf-Access-Jwt-Assertion': jwt } });
-    assert.equal(response.status, 200); assert.deepEqual(new Uint8Array(await response.arrayBuffer()), f.c.files.get(`public/thumbnails/${photo.id}.jpg`));
-  }));
-  assert.equal(previews.length, concurrency);
+    await mf.purgeCache();
+    const before = f.network.length;
+    for (let offset = 0; offset < photos.photos.length; offset += concurrency) {
+      await Promise.all(photos.photos.slice(offset, offset + concurrency).map(async photo => {
+        const response = await mf.dispatchFetch(env.ADMIN_ORIGIN + previewURLs.get(photo.id)!, { headers: { 'Cf-Access-Jwt-Assertion': jwt } });
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get('Content-Type'), 'image/jpeg');
+        assert.deepEqual(new Uint8Array(await response.arrayBuffer()), f.c.files.get(`public/thumbnails/${photo.id}.jpg`));
+      }));
+    }
+    assert.equal(f.network.length - before, photos.photos.length * 4);
+    previewChecks.push({ concurrency, verified: photos.photos.length, upstreamRequestsPerImage: 4 });
+  }
+  resetScenario({ name: 'save-sequence', path: '/api/save', projectCount: 40 });
+  let saveState: { head: string; saveProof?: string } = await new AdminService(new GitHub(env, f.fetcher)).bootstrap();
+  assert(saveState.saveProof);
+  const signedSaveChecks = [];
+  for (let i = 1; i <= 20; i++) {
+    const edited = { ...project, id: 'profile-0', slug: 'profile-0', description: `Isolated verified save ${i}` };
+    const before = f.network.length;
+    const response: Response = await mf.dispatchFetch(env.ADMIN_ORIGIN + '/api/save', { method: 'POST', headers: { 'Cf-Access-Jwt-Assertion': jwt, Origin: env.ADMIN_ORIGIN, 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'project', expectedHead: saveState.head, project: edited, saveProof: saveState.saveProof }) });
+    const saved = await response.json() as any;
+    assert.equal(response.status, 200, JSON.stringify(saved)); assert.equal(saved.status, 'saved'); assert.notEqual(saved.head, saveState.head); assert(saved.saveProof);
+    assert.equal(f.network.length - before, 4);
+    const readback = await mf.dispatchFetch(env.ADMIN_ORIGIN + '/api/state', { headers: { 'Cf-Access-Jwt-Assertion': jwt } });
+    const state = await readback.json() as any; assert.equal(readback.status, 200); assert.equal(state.head, saved.head);
+    assert.equal(state.projects.length, 40); assert.deepEqual(state.projects.find((p: any) => p.id === edited.id), edited);
+    signedSaveChecks.push({ iteration: i, status: 200, exactReadback: true, upstreamRequests: 4 });
+    saveState = { ...saveState, head: saved.head, saveProof: saved.saveProof };
   }
   const freshIsolateChecks = [];
   for (const scenario of cases) {
     f.setHead(head);
     f.setProjects(Array.from({ length: scenario.projectCount ?? 0 }, (_, i) => ({ ...project, id: `fresh-${i}`, slug: `fresh-${i}` })));
+    const bodyInput = await requestBody(scenario);
     const fresh = new Miniflare(convertV4MiniflareOptions({ name: 'gallery-fresh', modules: true, scriptPath: bundle, compatibilityDate: '2026-09-10', compatibilityFlags: ['nodejs_compat'], bindings,
       serviceBindings: { ASSETS: () => new Response('fixture assets') },
       outboundService: async (request: Request) => f.fetcher(request.url, { method: request.method, headers: request.headers, body: ['GET', 'HEAD'].includes(request.method) ? undefined : await request.text() }),
@@ -150,7 +192,7 @@ const counting_worker = { fetch(request, env, ctx) { return scope.run({ value: 0
     try {
       const before = f.network.length;
       // Deliberately the first invocation, with no preceding auth probe or warm-up.
-      const response = await fresh.dispatchFetch(env.ADMIN_ORIGIN + scenario.path, { method: scenario.body === undefined ? 'GET' : 'POST', headers: { 'Cf-Access-Jwt-Assertion': jwt, Origin: env.ADMIN_ORIGIN, 'Content-Type': 'application/json' }, body: scenario.body === undefined ? undefined : JSON.stringify(scenario.body) });
+      const response = await fresh.dispatchFetch(env.ADMIN_ORIGIN + scenario.path, { method: scenario.body === undefined ? 'GET' : 'POST', headers: { 'Cf-Access-Jwt-Assertion': jwt, Origin: env.ADMIN_ORIGIN, 'Content-Type': 'application/json' }, body: scenario.body === undefined ? undefined : JSON.stringify(bodyInput) });
       const value = new Uint8Array(await response.arrayBuffer());
       assert.equal(response.status, 200, new TextDecoder().decode(value));
       if (scenario.path === '/api/state') { const data = JSON.parse(new TextDecoder().decode(value)); assert.equal(data.media.state, 'ready'); assert.deepEqual(data.media.photos.map((p: any) => p.photo.id), photos.photos.map(p => p.id)); assert.equal(data.projects.length, scenario.projectCount ?? 0); }
@@ -161,5 +203,5 @@ const counting_worker = { fetch(request, env, ctx) { return scope.run({ value: 0
       freshIsolateChecks.push({ name: scenario.name, status: response.status, upstreamAndAssetCalls: operations });
     } finally { await fresh.dispose(); }
   }
-  await writeFile(resolve(output, 'results.json'), JSON.stringify({ measuredAt: new Date().toISOString(), bundle, node: process.version, photos: photos.photos.length, sources: activeConfig.sources.length, fixture: collectionDir ? 'verified-local-collection' : 'isolated-two-source', cacheMode: 'disabled', caveat: 'Local sampled V8 CPU; excludes idle samples but may omit native CPU and include debugger overhead. Not billed CPU, not Free acceptance. Legacy cold/warm labels mean first/repeated samples in the shared isolate, not persistent cache. Separate fresh-isolate checks are functional assertions, not CPU measurements.', freshIsolateChecks, results }, null, 2) + '\n');
+  await writeFile(resolve(output, 'results.json'), JSON.stringify({ measuredAt: new Date().toISOString(), bundle, node: process.version, photos: photos.photos.length, sources: activeConfig.sources.length, fixture: collectionDir ? 'verified-local-collection' : 'isolated-two-source', cacheMode: 'disabled', caveat: 'Local sampled V8 CPU; excludes idle samples but may omit native CPU and include debugger overhead. Not billed CPU, not Free acceptance. Legacy cold/warm labels mean first/repeated samples in the shared isolate, not persistent cache. Separate fresh-isolate checks are functional assertions, not CPU measurements.', freshIsolateChecks, previewChecks, signedSaveChecks, results }, null, 2) + '\n');
 } finally { ws?.close(); await mf.dispose(); }

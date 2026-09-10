@@ -1,5 +1,5 @@
 export class ApiError extends Error {
-  constructor(public status: number, public code: string, message: string, public details?: unknown) { super(message); }
+  constructor(public status: number, public code: string, message: string, public details?: unknown, public diagnostic?: { stage: string; upstreamStatus?: number }) { super(message); }
 }
 export function assert(value: unknown, message: string): asserts value {
   if (!value) throw new ApiError(422, 'invalid', message);

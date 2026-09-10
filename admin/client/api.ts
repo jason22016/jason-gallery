@@ -16,5 +16,8 @@ export async function request(path: string, body?: unknown) {
     const message = resourceLimit ? '后台资源超限（Cloudflare 1102，HTTP 503）' : typeof data?.message === 'string' ? data.message : response.ok ? `后台响应格式无效（HTTP ${response.status}）` : `后台请求失败（HTTP ${response.status}），请稍后重试`;
     throw new RequestError(response.status, message + (unknown ? unconfirmed : ''), data?.details, resourceLimit ? 'resource_limit' : data?.error ?? 'invalid_response', unknown);
   }
+  if (write && path === '/api/save' && (data.status !== 'saved' || typeof data.head !== 'string' || !/^[a-f0-9]{40}$/.test(data.head) || data.head === (body as any)?.expectedHead || data.saveProof !== undefined && (typeof data.saveProof !== 'string' || !data.saveProof.length || data.saveProof.length > 256000))) {
+    throw new RequestError(response.status, '后台未返回有效的新保存版本' + unconfirmed, undefined, 'invalid_save_response', true);
+  }
   return data;
 }

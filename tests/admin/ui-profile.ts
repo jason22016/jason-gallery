@@ -18,9 +18,9 @@ if (input) {
   for (const name of ['artifact.json', ...Object.keys(artifact.files)]) files.set(name, new Uint8Array(await readFile(resolve(input, name))));
   replay = { files, artifact, config: artifact.snapshot.config };
 }
-const f = await fixture(replay); const collection = await readCollection(async name => f.c.files.get(name)!, replay?.config ?? config);
+const f = await fixture(replay); f.enableSealed(); const collection = await readCollection(async name => f.c.files.get(name)!, replay?.config ?? config);
 const refs = [collection.photos[0].id, collection.photos.at(-1)!.id];
-f.setProjects(Array.from({ length: 40 }, (_, i) => ({ schemaVersion: 1, id: `profile-${i}`, slug: `profile-${i}`, title: `Profile ${i}`, coverPhotoId: refs[0], photos: refs.map(photoId => ({ photoId })), status: i % 2 ? 'published' : 'draft', order: i })));
+const initialProjects = Array.from({ length: 40 }, (_, i) => ({ schemaVersion: 1, id: `profile-${i}`, slug: `profile-${i}`, title: `Profile ${i}`, coverPhotoId: refs[0], photos: refs.map(photoId => ({ photoId })), status: i % 2 ? 'published' : 'draft', order: i }));
 const bindings = { ...env }; delete (bindings as any).ASSETS;
 const mf = new Miniflare(convertV4MiniflareOptions({ name: 'gallery-ui-profile', modules: true, scriptPath: resolve(bundle), compatibilityDate: '2026-09-10', compatibilityFlags: ['nodejs_compat'], bindings,
   serviceBindings: { ASSETS: () => new Response('assets') }, outboundService: async (r: Request) => f.fetcher(r.url, { method: r.method, headers: r.headers, body: ['GET', 'HEAD'].includes(r.method) ? undefined : await r.text() }) }));
@@ -28,10 +28,11 @@ const host = await serve(resolve('.cache/admin-release')); const browser = await
 const samples = [];
 try {
   for (let iteration = 0; iteration < 4; iteration++) {
-    if (!iteration) await mf.purgeCache(); f.setHead(head);
+    if (!iteration) await mf.purgeCache(); f.setHead(head); f.setProjects(structuredClone(initialProjects));
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } }); const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
     await page.route('**/api/**', async route => {
       const r = route.request(); const u = new URL(r.url());
+      if (u.pathname === '/api/save') assert(JSON.parse(r.postData()!).saveProof, 'The connected editor must use its signed context');
       const response = await mf.dispatchFetch(env.ADMIN_ORIGIN + u.pathname + u.search, { method: r.method(), headers: { 'Cf-Access-Jwt-Assertion': jwt, Origin: env.ADMIN_ORIGIN, 'Content-Type': 'application/json' }, body: r.postData() ?? undefined });
       await route.fulfill({ status: response.status, contentType: response.headers.get('content-type') ?? undefined, body: Buffer.from(await response.arrayBuffer()) });
     });
@@ -62,6 +63,10 @@ try {
     const saveStart = performance.now(); await page.getByRole('button', { name: '保存 Project', exact: true }).click(); await page.getByText('Project 已提交 GitHub。网站尚未发布。', { exact: true }).waitFor();
     const saveVisibleMs = performance.now() - saveStart;
     assert.equal(await page.getByLabel('标题', { exact: true }).inputValue(), 'Profile edited'); assert.equal(await page.locator('.sequence-list').innerText(), sequence);
+    const readback = await mf.dispatchFetch(env.ADMIN_ORIGIN + '/api/state', { headers: { 'Cf-Access-Jwt-Assertion': jwt } });
+    const stored = await readback.json() as any; assert.equal(readback.status, 200); assert.notEqual(stored.head, head);
+    const savedProject = stored.projects.find((p: any) => p.id === 'profile-0');
+    assert.equal(savedProject.title, 'Profile edited'); assert.deepEqual(savedProject.photos.map((p: any) => p.photoId), [...refs].reverse());
     assert.deepEqual(errors, []); await page.close();
     samples.push({ cache: iteration ? 'warm' : 'cold', iteration, firstInteractiveMs, visiblePreviewsMs, selectedMs, saveVisibleMs });
   }

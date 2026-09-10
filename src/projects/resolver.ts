@@ -28,7 +28,7 @@ export interface ProjectSource {
 }
 
 /** For schema-validated editor content: validate all statuses without cloning photo metadata. */
-export function validateProjectReferences(projects: readonly Project[], canonicalId: (id: string) => string | undefined, sourceName = (project: Project) => project.slug) {
+export function validateProjectReferences<T extends Pick<Project, 'id' | 'slug' | 'photos' | 'coverPhotoId'>>(projects: readonly T[], canonicalId: (id: string) => string | undefined, sourceName = (project: T) => project.slug) {
   const ids = new Set<string>(); const slugs = new Set<string>();
   for (const project of projects) {
     if (ids.has(project.id) || slugs.has(project.slug)) throw new Error('Duplicate Project ID/slug');

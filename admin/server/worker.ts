@@ -8,7 +8,7 @@ function secure(response: Response, env: Env) {
   result.headers.set('Cache-Control', 'no-store');
   result.headers.set('X-Content-Type-Options', 'nosniff');
   result.headers.set('Referrer-Policy', 'no-referrer');
-  result.headers.set('Content-Security-Policy', "default-src 'self'; img-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+  result.headers.set('Content-Security-Policy', "default-src 'self'; img-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
   return result;
 }
 // Dependency injection is only for transport-level tests; no development login or auth bypass exists.
@@ -30,7 +30,7 @@ async function route(request: Request, env: Env, transport: typeof fetch, assetR
         data = await (url.pathname === '/api/save' ? service.save(body) : url.pathname === '/api/impact' ? service.impact(body) : service.dispatch(body));
       } else if (request.method === 'GET' && /^\/api\/thumbnail\/\d+\/[a-z\d-]+$/.test(url.pathname)) {
         const [, , , run, reference] = url.pathname.split('/');
-        response = new Response(await service.thumbnail(Number(run), reference) as BodyInit, { headers: { 'Content-Type': 'image/jpeg' } });
+        response = new Response(await service.thumbnail(Number(run), reference, url.searchParams.has('proof') ? url.searchParams.get('proof')! : undefined) as BodyInit, { headers: { 'Content-Type': 'image/jpeg' } });
         return secure(response!, env);
       } else throw new ApiError(404, 'route', '管理接口不存在');
       // Never echo token text even if a remote error/summary includes it.
@@ -41,7 +41,10 @@ async function route(request: Request, env: Env, transport: typeof fetch, assetR
   } catch (error) {
     const api = error instanceof ApiError ? error : error instanceof ZodError ? new ApiError(422, 'validation', '配置或 Project 格式无效', error.issues.map(i => ({ path: i.path, message: i.message }))) : new ApiError(502, 'unavailable', '服务暂不可用或产物验证失败，请检查配置并重试');
     const body = JSON.stringify({ error: api.code, message: api.message, details: api.details });
-    return secure(new Response(env.GITHUB_TOKEN ? body.split(env.GITHUB_TOKEN).join('[redacted]') : body, { status: api.status, headers: { 'Content-Type': 'application/json' } }), env);
+    const response = secure(new Response(env.GITHUB_TOKEN ? body.split(env.GITHUB_TOKEN).join('[redacted]') : body, { status: api.status, headers: { 'Content-Type': 'application/json' } }), env);
+    response.headers.set('X-Admin-Error-Code', api.code);
+    if (api.diagnostic) { response.headers.set('X-Admin-Error-Stage', api.diagnostic.stage); if (api.diagnostic.upstreamStatus) response.headers.set('X-Admin-Upstream-Status', String(api.diagnostic.upstreamStatus)); }
+    return response;
   }
 }
 export async function handle(request: Request, env: Env, transport: typeof fetch = fetch) {
@@ -58,7 +61,7 @@ export async function handle(request: Request, env: Env, transport: typeof fetch
   const label = /^\/api\/thumbnail\//.test(pathname) ? '/api/thumbnail/*' : ['/api/state', '/api/save', '/api/impact', '/api/dispatch', '/api/tasks'].includes(pathname) ? pathname : 'asset-or-unknown';
   // No URLs, identities, cookies, tokens, signed locations or payloads. CPU/outcome
   // are Cloudflare invocation fields, never inferred from this wall-clock duration.
-  console.info(JSON.stringify({ event: 'admin-request', requestId, route: label, method: request.method, status: response.status, upstreamRequests, assetRequests, cacheOperations: 0, wallMs: Date.now() - started }));
+  console.info(JSON.stringify({ event: 'admin-request', requestId, route: label, method: request.method, status: response.status, upstreamRequests, assetRequests, cacheOperations: 0, wallMs: Date.now() - started, ...(response.status >= 400 ? { errorCode: response.headers.get('X-Admin-Error-Code'), errorStage: response.headers.get('X-Admin-Error-Stage') ?? 'unclassified', upstreamStatus: Number(response.headers.get('X-Admin-Upstream-Status')) || undefined } : {}) }));
   return response;
 }
 export default { fetch: (request: Request, env: Env) => handle(request, env) };

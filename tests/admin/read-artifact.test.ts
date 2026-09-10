@@ -99,7 +99,7 @@ test('upstream failure is unavailable, not evidence of stale photos',async()=>{
     if(String(input).includes('/actions/')) throw new TypeError('network interrupted');
     return f.fetcher(input,init);
   }));
-  const state=await s.bootstrap();assert.equal(state.media.state,'unavailable');assert(!state.media.reason.includes('请重新同步'));
+  const state=await s.bootstrap();assert.equal(state.media.state,'github_network');assert(!state.media.reason.includes('请重新同步'));
 });
 
 
@@ -148,5 +148,30 @@ test('atomic save never retries an uncertain mutation or accepts partial GraphQL
     });
     await assert.rejects(github.commit(head, [{ path: 'config/photo-sources.json', data: config }]));
     assert.equal(calls, 1, mode);
+  }
+});
+
+test('immutable content query preserves nested processor paths and rejects incomplete tree objects', async () => {
+  const { processingInputs } = await import('../../src/photo-engine/processing-inputs');
+  const prefix='packages/afilmory/builder', alias=`processor${processingInputs.indexOf(prefix)}`;
+  for (const mode of ['valid','missing','wrong-oid','depth']) {
+    const f=await fixture(); let contentQueries=0;
+    const github=new GitHub(env,async (input,init)=>{
+      const response=await f.fetcher(input,init);
+      if (!String(input).endsWith('/graphql')) return response;
+      const query=JSON.parse(String(init?.body)).query; assert(query.startsWith('query AdminContent')); assert(!query.includes('main:')); assert(query.includes(head+':')); contentQueries++;
+      const result=await response.json();
+      const leaf={__typename:'Blob',oid:'f'.repeat(40)};
+      const child={name:'entry.ts',oid:leaf.oid,mode:0o100644,type:'blob',object:leaf};
+      result.data.repository[alias]={__typename:'Tree',oid:'e'.repeat(40),entries:[{name:'nested',oid:'d'.repeat(40),mode:0o40000,type:'tree',object:{__typename:'Tree',oid:'d'.repeat(40),entries:[child]}}]};
+      if(mode==='missing') delete result.data.repository[alias];
+      if(mode==='wrong-oid') child.oid='a'.repeat(40);
+      if(mode==='depth') {child.type='tree';child.object={__typename:'Tree',oid:child.oid};}
+      return Response.json(result);
+    });
+    if(mode==='valid') {
+      const tree=await github.contentTree(head);assert.deepEqual(tree.find(e=>e.path===prefix+'/nested/entry.ts'),{path:prefix+'/nested/entry.ts',sha:'f'.repeat(40),type:'blob',mode:'100644'});
+      assert.equal(contentQueries,1);assert(!f.network.some(r=>r.url.includes('/git/trees')));
+    } else await assert.rejects(github.contentTree(head));
   }
 });
