@@ -64,10 +64,14 @@
 
 | 补充验证 | 实际结果 |
 | --- | --- |
-| 两源隔离 fixture | 同 key/原生 ID 冲突、跨源 Project、热缓存、名称变化、配置/旧产物不匹配、published/draft 停用拒绝、单源解析失败、处理失败、目录替换及固定默认别名测试通过 |
-| 跨源浏览器 | 通过真实 Astro 生产构建、Chromium 首页/Gallery、逐源 Artist/GPS metadata、Viewer 前后切换、刷新/分享、真实 MapLibre ready 与跨源照片选择；所有照片仓库均为隔离 fixture |
+| 两源隔离 fixture | 同 key/原生 ID 冲突、跨源 Project、热缓存、名称变化、配置/旧产物不匹配、published/draft 停用拒绝、单源解析失败、处理失败、目录替换、照片/来源删除、全部停用及固定默认别名测试通过 |
+| 跨源浏览器 | 通过真实 Astro 生产构建、Chromium 首页/Gallery、逐源 Artist/GPS metadata、Viewer 前后切换、刷新/分享、真实 MapLibre ready 与跨源照片选择；第二来源 commit 或来源集合变化在部署 API 前拒绝；所有照片仓库均为隔离 fixture |
 | 完整本地 `pnpm test` | 退出码 0：Project 46/46、网络/Engine smoke、Color 5/5、Website 27/27、自动化 3/3、真实 metadata 审计 1/1、正式 Astro 构建；零失败、零跳过 |
 | 默认真实图库 | 固定 `6a7ae47d75dd71bc6874e8d3f222f25b2c05e27f`，154 张和缩略图全部通过；新处理版本首次 154 处理；同版本热缓存 0 处理/154 复用；原图仓库未修改 |
-| GitHub Actions | 本补充分支待推送并验证；不将本地通过当作 Actions 或部署成功 |
+| GitHub Actions | [run 34447691951](https://github.com/jason22016/jason-gallery/actions/runs/34447691951)，提交 `a81c8fdf94a92df3d8a25e46f63b4f7447c8ded0`，Gallery checks **success**：strict、Project 46/46、网络/Engine smoke、Color 5/5、Website 27/27、自动化/多源 3/3；零失败、零跳过，诊断产物上传成功 |
 
 本地证据：`.cache/phase6-multi-full.log`、`.cache/phase6-multi-browser.log`、`.cache/phase6-multi-automation.log`、`.cache/multi-source-test/report.json`、`.cache/phase6-multi-real.log`、`.cache/phase6-multi-real-warm.log`。多源机器产物/配置/迁移操作见 README 与架构补充。实际网站 URL 仍为 **无**；回滚方式沿用前文，需已有成功生产部署，本次未执行。
+
+最终真实兼容性审计：网站代码 `b480394`，快照 `b92dcd3e72712d83032ce0a4e85159ca60f056087b3db6dc4581b62b2d14914c`；154 个原生 ID 与迁移前完全一致，154 个固定默认来源旧别名逐一核对，热缓存 0 处理/154 复用，公开产物 0 照片缩略图。证据：`.cache/phase6-multi-real-verified.log`、`.cache/phase6-multi-real-verified-warm.log`、`.cache/phase6-multi-real-compatibility.json`。
+
+多源首次完整 CI run `34447331610` 的新增地图测试停在 loading，原有测试通过；Website 浏览器套件改为串行运行后，上述完整 run 通过。保持地图 ready 断言与 5 秒超时、全部 GPU/色彩断言，无跳过或放宽。双源发布测试还验证：仅第二源 commit 改变或来源集合变化，在调用托管 API 前拒绝发布。代码已推送到独立分支，main 仍为 `f6243bb`，本补充未合并、未部署。
