@@ -1,6 +1,6 @@
 # Phase 6 — 自动化、增量构建与部署
 
-2026-09-10。自动化代码及本地验证完成；**Cloudflare 尚未配置，没有成功的线上部署或实际网站网址**。正式 Project 为 **0 published / 0 draft**，没有用预览选集代替正式内容。UI、Project schema、原生 Manifest v10、上游 HDR/色彩算法不变，照片仓库只读。
+2026-09-10。自动化代码、本地验证及真实 Gallery checks 已通过；**Cloudflare 尚未配置，没有成功的线上部署或实际网站网址**。正式 Project 为 **0 published / 0 draft**，没有用预览选集代替正式内容。UI、Project schema、原生 Manifest v10、上游 HDR/色彩算法不变，照片仓库只读。
 
 ## 实现
 
@@ -20,6 +20,7 @@
 | Project 与公开产物 | Project-only 0 处理；所有照片索引含未公开照片，公开 dist 仅引用照片；悬空引用、临时预览文件、fixture 发布、篡改 release 均拒绝，保留上次成功产物 |
 | 发布/回滚控制 | 注入隔离托管接口，验证旧代码/旧照片/旧 run 拒绝、上传失败不替换线上、成功版本记录、不变版本跳过、验证失败恢复上一版本和显式 rollback；没有把模拟接口当作真实 Cloudflare 验收 |
 | 真实照片 | 固定 `6a7ae47d75dd71bc6874e8d3f222f25b2c05e27f`，154 张完整处理和热缓存复用；热缓存 0 张重新处理、154 张复用、154 张缩略图，5 次 GET 均 200，无原图下载，无照片仓库写入 |
+| 真实 GitHub Actions 修复验收 | [run 34443483110](https://github.com/jason22016/jason-gallery/actions/runs/34443483110)，代码 commit `ab62cb4dfa70a196d6181e36fc4a521f3f339b06`：Gallery checks **success**。strict、Project 46/46、网络/Engine smoke、Viewer/Color 5/5、Website 26/26、自动化 1/1，全部零失败、零跳过；fixture Astro 生产构建及发布隔离场景通过，诊断 artifact 上传成功。不是正式网站部署 |
 | Workflow | actionlint 1.7.12 通过；Actions 固定官方版本 SHA，Wrangler 4.130.0 已安装并验证参数；frozen-lockfile 安装通过 |
 
 本机证据：`.cache/phase6-full-test.log`、`.cache/phase6-automation.log`、`.cache/phase6-clean-checks.log`、`.cache/phase6-real-verify.log`、`.cache/automation-test/report.json`、`.cache/phase6-real-{final,warm}.log` 和相应 run 的 `result.json` / `requests.json`。修改照片的测试只使用隔离 fixture；未创建正式摄影 Project。实体 HDR 显示、跨浏览器及 Phase 7 全面优化不在本阶段。
@@ -32,10 +33,21 @@
 
 ## 部署状态与待配置
 
-已只读核实：`jason22016/jason-gallery` 为公开仓库，Actions 已启用，尚无 workflows、Actions Secrets、Repository Variables、Environment、GitHub Pages 或 homepage 配置（核查时）。已实际尝试推送独立 `codex/phase6-automation` 分支触发 Actions，但 GitHub 拒绝：当前 Git PAT 缺少 `workflow` scope。远程分支未创建，真实 Actions 未运行；更改已提交在本地分支。
+`codex/phase6-automation` 已成功推送，GitHub Actions 已实际执行。初次 Gallery checks [run 34439213192](https://github.com/jason22016/jason-gallery/actions/runs/34439213192) 失败；后续修复与真实检查结果见下方。此前推送凭据缺少 workflow 权限的问题已解除。Cloudflare 仍未配置，未触发生产部署。
 
 **实际网站 URL：无。** 未进行线上首页、正式 Project、Viewer、地图资源或照片直达链接验收。已有本地 Chromium fixture 路径测试通过，但不能替代线上验收；正式项目为空也无法验收真实 Project 浏览。
 
-需要先让 Git 推送凭据具备 workflow 更新权限（classic PAT 的 `workflow` scope，或 fine-grained token 的 Contents Write + Workflows Write），再推送本地分支。另需配置：Cloudflare Pages Direct Upload 项目（production branch `main`）；`production` Environment 限制 main；Secrets `CLOUDFLARE_ACCOUNT_ID`、`CLOUDFLARE_API_TOKEN`（指定账户 Pages Edit）；Repository Variables `CLOUDFLARE_PAGES_PROJECT`、`AUTO_DEPLOY_ENABLED=true`。可选照片专用 `JASON_PHOTOS_READ_TOKEN` 仅 Contents Read，否则使用短期 GITHUB_TOKEN 读取公共源。将 workflow 合入 main 后先 dispatch sync，再 publish，检查 `execution-summary` 中实际 URL 和版本。
+仍需配置：Cloudflare Pages Direct Upload 项目（production branch `main`）；`production` Environment 限制 main；Secrets `CLOUDFLARE_ACCOUNT_ID`、`CLOUDFLARE_API_TOKEN`（指定账户 Pages Edit）；Repository Variables `CLOUDFLARE_PAGES_PROJECT`、`AUTO_DEPLOY_ENABLED=true`。可选照片专用 `JASON_PHOTOS_READ_TOKEN` 仅 Contents Read，否则使用短期 GITHUB_TOKEN 读取公共源。将 workflow 合入 main 后先 dispatch sync，再 publish，检查 `execution-summary` 中实际 URL 和版本。
 
 回滚：先设 `AUTO_DEPLOY_ENABLED=false` 防止定时自动前滚，等待当前上传结束；运行 `gh workflow run automation.yml --ref main -f mode=rollback -f deployment_id=<成功production-deployment-UUID>`，检查摘要与 `/build-version.json`。也可在 Cloudflare Deployments 界面执行 Rollback。云端版本仍保留时不依赖 GitHub artifact 保留期；失败/网络不明确时检查 canonical deployment，不能推断一定未发布。
+
+## CI Chromium 修复（2026-09-10）
+
+- 初始 run 的 3 个 `webgpu` / `undefined` 失败，在仅增加诊断的 [run 34439788436](https://github.com/jason22016/jason-gallery/actions/runs/34439788436) 原样复现。Ubuntu 24.04 / Playwright 1.62.1 / Chromium 151.0.7922.34 的 GaneshGL + SwANGLE 无法创建 WebGPU 画布 SharedImage（RGBA_F16 和 RGBA_8888），设备丢失后 WebGL 也失败，fixture 最终 `fallbackLoaded=true`、`viewerError="WebGL not supported"`。不是照片下载错误，也不是缺少等待。
+- `tests/browser.ts` 统一固定同版 Chromium 的两种配置：WebGPU/色彩测试在 headless shell 显式指定 ANGLE、WebGPU SwiftShader 与 Skia Graphite/Dawn；普通交互/地图在 headless shell 使用 WebGL/GL 合成，专用 Website HDR 测试仍运行真实 WebGPU。仅指定适配器的 run 34440038424 仍失败，证明 `requestDevice` 成功不等于画布可用。CDP 的 `webgpu=unavailable_software` 本身也不能判定失败，需结合 fallback adapter 与真实呈现断言。产品 Viewer、HDR 算法、Manifest 和公开资产路径未改。
+- Website 的旧故障注入含被 tsx 序列化进浏览器的 `__name` 辅助函数，产生 ReferenceError；改用独立浏览器脚本，并断言 Viewer 实际调用了故障适配器。Color 每次加载核对真正的 renderer/loaded 状态及无未捕获异常；原有 HDR、ICC、像素容差、回退和 context-loss 断言保留，补充 SDR canvas 配置断言。
+- 完整检查还明确设置剪贴板不可用前提；原生滑动按实际时间发送并在松手前停留，面板出现后等待展开动画最终位置再 tap；核对实际命中、原生触摸及恰好一次关闭 click，metadata 使用具体原生 ID 的 URL 拦截并核对拦截次数，保留原有交互/加载状态断言。
+- 排查时完整 Chromium 请求 favicon 暴露了测试服务器问题；独立 Viewer fixture 没有 Astro `404.html`，测试服务器现以完整的普通 404 响应结束缺失请求，避免 async handler 未处理 rejection。
+- 两个 workflows 在检查步骤启用 `DEBUG=pw:browser`；`viewer-diagnostics` artifact 无论检查成功失败均尝试上传，保留 **14 天**。包含浏览器版本/启动参数、CDP GPU 状态、WebGPU 适配器及设备创建结果、逐次加载状态/控制台/请求错误、SDR 像素数据；仅为隔离 fixture 诊断，独立于照片产物和公开 dist。到期后重新运行检查生成。
+
+修复后的本地完整 `pnpm test:checks` 同样退出码 0（`.cache/phase6-paced-checks.log`），actionlint 与 `git diff --check` 通过。真实 CI 使用仓库固定的 Node 24.19.0、pnpm 11.19.0 和 frozen lockfile；没有跳过测试、重试掩盖失败、放宽像素容差或把 WebGPU 预期改为 fallback。
