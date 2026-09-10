@@ -2,6 +2,8 @@
 
 **完成本轮优化与本地回归，仍未通过 Cloudflare Free 上线验收。** 154 照片 / 40 Project 的读取、保存、发布触发在本地冷重放中，外部请求加 Cache API 调用分别为 41 / 45 / 40；原来的 71 次外部调用问题已消除。热 CPU 明显降低，但冷照片相关操作仍约 46–75 ms（本地 V8 采样）。即使双源 2 照片 fixture，冷请求也明显高于 10 ms 参考线，不能推荐直接以 Free 上线。
 
+**2026-09-11 部署准备补充**：[Cloudflare Cache API 文档](https://developers.cloudflare.com/workers/runtime-apis/cache/) 明确注明 Access 前置 Worker 目前不能使用 Cache API。本报告的本地 warm 命中由 workerd 模拟，不能视为 Access 线上可用路径；实际部署必须按持续 miss / no-op 重新验证，而不只是首次冷请求。用户选择默认 workers.dev 域名，服务端 Access 验证保持不变；改为自定义域名也不能据此推断此限制消失。最小调整建议中的紧凑 CI 产物必须使无持久缓存的每次请求足够轻，而非依赖 cache 才达到 Free。后续真实测量仍未进行。
+
 没有购买套餐、生产部署、正式摄影 Project、数据库、另一套认证或常驻服务器。本轮仅优化 Phase 7 后台，不进入 Phase 8。
 
 ## 方法、基线与证据

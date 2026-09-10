@@ -12,3 +12,4 @@ public/thumbnails/
 .pnpm-store/
 .dev.vars*
 .wrangler/
+admin/deployment.local.json

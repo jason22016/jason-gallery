@@ -22,10 +22,11 @@ test('complete catalog and ordering survive eviction, expired/corrupt derived re
     assert.equal(await cache.derived('proof-b'), undefined, 'a proof copied to another immutable key must be rejected');
     const f = await fixture(); const original = await service(f).bootstrap();
     assert.equal(original.media.state, 'ready');
-    for (const mode of ['evict', 'expire', 'corrupt', 'unavailable']) {
+    for (const mode of ['evict', 'expire', 'corrupt', 'no-op', 'no-op-again', 'unavailable']) {
       if (mode === 'evict') stored.clear();
       if (mode === 'expire') for (const [key, value] of stored) if (key.includes('catalog-v1') || key.includes('content-v1')) { const envelope = await value.clone().json(); envelope.until = 1; stored.set(key, Response.json(envelope)); }
       if (mode === 'corrupt') for (const key of stored.keys()) if (key.includes('catalog-v1') || key.includes('content-v1')) stored.set(key, new Response('{"data":"bad"}'));
+      if (mode.startsWith('no-op')) Object.defineProperty(globalThis, 'caches', { configurable: true, value: { default: { match: async () => undefined, put: async () => {} } } });
       if (mode === 'unavailable') Object.defineProperty(globalThis, 'caches', { configurable: true, value: { default: { match: async () => { throw new Error('cache offline'); }, put: async () => { throw new Error('cache offline'); } } } });
       const state = await service(f).bootstrap(); assert.equal(state.media.state, 'ready', mode);
       assert.deepEqual(state.media.photos, original.media.photos, mode); assert.deepEqual(state.media.aliases, original.media.aliases, mode);

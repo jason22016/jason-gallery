@@ -11,6 +11,8 @@ pnpm install --frozen-lockfile
 pnpm admin:fixture        # 4325：生成图片 + 隔离 UI 预览，只有内存编辑
 pnpm admin:preview        # 4325：使用既有本地缩略图，Project/来源仍为 fixture
 pnpm admin:build          # .cache/admin-release，仅管理 UI，无 fixture 数据/照片产物
+pnpm admin:prepare        # 本地部署包、配置完整性与 SHA-256 清单；不会上传
+pnpm admin:verify-package # 检查已生成包是否被改动；不代表线上验收
 pnpm admin:profile        # 完整认证请求的本地 CPU 采样；不等于 Free 验收
 pnpm admin:types          # 根据配置重新生成 Env 类型
 pnpm test:admin           # JWT、GitHub/ZIP 传输 fixture、正式 UI、真实本地 workerd
@@ -24,10 +26,10 @@ pnpm exec wrangler deploy --config admin/wrangler.jsonc --dry-run
 ## 上线前配置（本阶段尚未执行上线）
 
 1. **优先 Workers Free，但尚未通过免费上线验收**。未配置 Paid CPU override。Free 每请求 10 ms CPU、50 次子请求；Cache API 调用也共享该预算，不能只看外部 fetch 次数。Phase 7 已优化完整目录读取、不可变缓存、批量 Project 校验与并发预览，但冷路径仍有 CPU 风险，适用规模和测量结果见 [免费额度评估](ADMIN_CPU_PROFILE.md)。必须在实际 Free 账户完成验收后再考虑上线，不默认购买 Paid。[官方限制](https://developers.cloudflare.com/workers/platform/limits/)。
-2. Cloudflare 创建独立管理子域名，例如 `admin.your-domain.example`。将它作为 Worker Custom Domain 配置在 `admin/wrangler.jsonc` 的 `routes`，形如 `{"pattern":"admin.your-domain.example","custom_domain":true}`。**先创建 Access application 并覆盖整个主机**（包括 `/api/*` 与静态资源），再部署 Worker。不要给 API 或静态资源设置 Bypass；保留 `workers_dev:false`、`preview_urls:false`、`run_worker_first:true`。
+2. 用户选择先使用 `https://jason-gallery-admin.<账户子域名>.workers.dev`，暂不配置自定义域名。按 [部署准备说明](ADMIN_DEPLOYMENT_PREP.md) 填写 `admin/deployment.local.json`；准备命令为该默认域名显式开启 `workers_dev`，不生成自定义 routes，保留 `preview_urls:false` 与 `run_worker_first:true`。**先创建 Access application 并覆盖整个主机**（包括 `/api/*` 与静态资源），再部署 Worker。不能设置 Bypass 或只保护预览。以后切换自定义域名时生成唯一 Custom Domain route 并关闭 workers.dev。
 3. Access 选择 Self-hosted application，启用 One-time PIN 身份提供者；唯一 Allow policy 列出明确管理员邮箱，不允许 Everyone/整域名。记录 team issuer `https://TEAM.cloudflareaccess.com` 与 application AUD。
 4. 填写 Worker 非秘密配置：`ADMIN_ORIGIN`（无末尾斜线的 https origin）、`ACCESS_ISSUER`（无末尾斜线）、`ACCESS_AUD`、`ADMIN_EMAILS`（逗号分隔邮箱，与 Access policy 一致）、`GITHUB_REPOSITORY`（网站仓库）、`PUBLISH_ENABLED`（初始 `false`）。真实 Access/网站域名尚未配置时，仓库中的空值有意使服务拒绝访问。
-5. 为网站仓库创建 fine-grained GitHub PAT，仅选择这一仓库，授予 **Contents Read/Write、Actions Read/Write**（Metadata Read 为必需权限）。通过 `pnpm exec wrangler secret put GITHUB_TOKEN --config admin/wrangler.jsonc` 交互写入 Worker Secret。不要放到 `vars`、前端环境变量、命令参数、提交文件或日志；不要选择照片仓库。Token 对 main 的提交还必须符合现有分支规则；若规则阻止直接提交，应配置被批准的专用自动化身份权限，不能把 API 的 403 当保存成功。
+5. 为网站仓库创建 fine-grained GitHub PAT，仅选择这一仓库，授予 **Contents Read/Write、Actions Read/Write**（Metadata Read 为必需权限）。获准远端配置后，通过 `pnpm exec wrangler secret put GITHUB_TOKEN --config .cache/admin-deploy/wrangler.json` 交互写入 Worker Secret（使用准备命令生成的完整配置；此操作会写远端）。不要放到 `vars`、前端环境变量、命令参数、提交文件或日志；不要选择照片仓库。Token 对 main 的提交还必须符合现有分支规则；若规则阻止直接提交，应配置被批准的专用自动化身份权限，不能把 API 的 403 当保存成功。
 6. `AUTO_DEPLOY_ENABLED` 保持 `false`：后台保存提交使用固定消息 `[skip ci]`，不会触发 push workflow；定时 workflow 仍可能同步/构建，但此变量为 false 时不会自动部署。手动 publish 才表示明确发布意图。若想完全由后台发起同步，可另行停用定时调度；本阶段保留既有 schedule。
 7. 配置现有 GitHub `production` Environment：`CLOUDFLARE_ACCOUNT_ID`、`CLOUDFLARE_API_TOKEN`（所需账户 Pages Edit）、`CLOUDFLARE_PAGES_PROJECT`，Pages production branch 为 main。已有照片源只读 Secret 按 Phase 6 规则使用（`JASON_PHOTOS_READ_TOKENS` / `JASON_PHOTOS_READ_TOKEN`，缺省 workflow token）；照片必须公开且原图匿名可读。Cloudflare 发布凭据只给 Actions，后台 Worker 不需要这些凭据。
 8. 获准上线后构建并部署管理 Worker。先验证管理员 OTP 登录、非管理员拒绝、无 JWT 直接请求 API 拒绝、退出/过期登录重新认证、浏览器 Network 不含 GitHub/Cloudflare secret。将 GitHub 保存/冲突/触发验收安排在受控内容上，不用虚构正式摄影 Project 替代验收。只有 processor inputs/锁文件或来源配置发生变化才需同步新产物；缓存淘汰本身不要求 sync。

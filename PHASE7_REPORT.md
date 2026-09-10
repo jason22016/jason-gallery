@@ -1,5 +1,15 @@
 # Phase 7 — 轻量后台
 
+## 2026-09-11 部署准备补充
+
+按用户选择准备默认 `jason-gallery-admin.<账户子域名>.workers.dev`，暂不绑定自定义域名，由用户手动完成 Cloudflare 账户与 Access 配置。新增正式 bundle/静态资源打包、非秘密设置模板与完整文件摘要核验；设置缺失时不生成部署配置。默认域名仍要求完整主机的 Access OTP、全部页面/API 的服务端 JWT/邮箱校验、预览 URL 关闭和发布禁用。具体页面操作及本地命令见 [部署准备](docs/ADMIN_DEPLOYMENT_PREP.md)。
+
+新核对的官方限制是 **Access 前置 Worker 目前不能使用 Cache API**；因此下方历史本地热采样不是线上可用路径的证据，持续 miss/no-op 应作为真实 Free 验证基线。已补连续 no-op 的缓存恢复回归。此次仍未购买套餐、进行生产部署、创建正式摄影 Project 或进入 Phase 8。
+
+部署准备的完整 `pnpm test` 已通过：Project 46、Viewer 5、Website 27、automation 21、后台 21、真实 metadata 1，以及 TypeScript、Engine/network smoke 与 Astro 生产构建。后台新增 5 项覆盖配置缺失、错误/预览主机、全入口鉴权开关、秘密混入配置、包文件损坏/缺失/多出和两种域名配置的正式 Wrangler dry-run。默认域名仅做本地准备，真实账号/OTP/Free CPU 验收仍未完成。
+
+---
+
 2026-09-10。独立分支 `codex/phase7-admin`；用户确认 fixture UI 后全面接入。最新 main `9a41478` 已同步到本分支；后续按用户授权合并 main（`daee9bd`），[合并后 automation](https://github.com/jason22016/jason-gallery/actions/runs/34483846044) 成功；未执行生产部署，未创建正式摄影 Project。Polish、SEO 和性能优化顺延 Phase 8。
 
 ## 交付

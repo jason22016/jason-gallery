@@ -280,6 +280,8 @@ Final Gate 的独立命令为 `pnpm photos:verify --run <completed-workdir> --ex
 
 配置、接口边界和上线步骤见 [ADMIN_SETUP.md](docs/ADMIN_SETUP.md)，设计来源见 [PHASE7_PLAN.md](docs/PHASE7_PLAN.md)，验证结果见 [PHASE7_REPORT.md](PHASE7_REPORT.md)。
 
+部署准备使用 `admin:prepare` 从同一 `admin/wrangler.jsonc` 基准生成正式 bundle、仅管理 UI 的资产和逐文件摘要；本机非秘密参数放入 Git 忽略的 `admin/deployment.local.json`。2026-09-11 用户选择先用默认域名：生成配置仅为 `jason-gallery-admin.<账户子域名>.workers.dev` 显式开启 workers.dev，禁止 preview URL，不绑定自定义域名。此条替代上方“始终关闭 workers.dev”的约定，Access 必须保护完整主机且 Worker 仍独立校验所有请求。参数缺失时不生成部署配置；生成的 `no_bundle` 配置绑定本次编译物，发布保持禁用。以后自定义域名模式关闭 workers.dev。包完整性和 dry-run 都不是远端 Access 或 Workers Free 验收；官方当前注明 Access 前置 Worker 不能使用 Cache API，故不能外推本地热缓存结果，需以持续 cache miss 验证 CPU/体验。实际账户/权限及未完成项目见 [部署准备](docs/ADMIN_DEPLOYMENT_PREP.md)。
+
 ### Phase 7 后续修复：编辑保护与免费优先
 
 替换 Project 编辑对象统一经过未保存确认；保存成功才执行待定切换，校验/网络/409 冲突保留当前编辑与照片选择。浏览器回归覆盖新建/其他 Project、取消、显式放弃、失败和成功路径。
