@@ -8,6 +8,10 @@ import type { LaunchOptions } from 'playwright';
 // https://chromium.googlesource.com/chromium/src/+/HEAD/gpu/command_buffer/service/shared_image/wrapped_sk_image_backing_factory.cc
 export function softwareGPUOptions(renderer: 'webgpu' | 'webgl' = 'webgpu'): LaunchOptions {
   return {
+    // Chromium 151's Linux shell drops the touch-generated click after a swipe.
+    // Use the full browser for input/MapLibre coverage. Keep WebGPU on the shell:
+    // full Linux Chromium's Graphite GPU process crashes with this pinned build.
+    channel: renderer === 'webgl' ? 'chromium' : undefined,
     executablePath: process.env.JASON_TEST_CHROMIUM || undefined,
     timeout: 20_000,
     args: [
