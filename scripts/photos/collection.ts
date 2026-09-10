@@ -32,7 +32,6 @@ export async function sealCollection(directory: string, snapshot: PhotoSnapshot,
   return artifact;
 }
 export async function verifyCollection(directory: string, options: { config?: SourcesConfig; snapshot?: PhotoSnapshot; fingerprint?: string; production?: boolean } = {}) {
-  await readCollection(name => fs.readFile(path.join(directory, name)), options.config, options.production ?? false);
   const artifact: PhotoCollection = JSON.parse(await fs.readFile(path.join(directory, 'artifact.json'), 'utf8'));
   const { version, ...record } = artifact;
   if (artifact.schemaVersion !== 2 || artifact.kind !== 'photos' || artifact.complete !== true || sha256(JSON.stringify(record)) !== version) throw new Error('Invalid multi-source photo artifact; rebuild legacy artifacts');
@@ -69,6 +68,7 @@ export async function verifyCollection(directory: string, options: { config?: So
   const index: UnifiedIndex = JSON.parse(await fs.readFile(path.join(directory, 'photo-index.json'), 'utf8'));
   if (JSON.stringify(index) !== JSON.stringify(createUnifiedIndex(snapshot, manifests)) || artifact.photos !== total || artifact.processed !== processed || artifact.reused !== reused) throw new Error('Unified photo count/index mismatch');
   if (Object.keys(files).length !== expectedFiles.size || Object.keys(files).some(name => !expectedFiles.has(name))) throw new Error('Unexpected collection asset');
+  await readCollection(name => fs.readFile(path.join(directory, name)), options.config, options.production ?? false);
   return artifact;
 }
 export async function exportCollection(directory: string, root: string) {

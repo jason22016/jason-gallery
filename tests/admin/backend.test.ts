@@ -40,7 +40,7 @@ async function fixture() {
   let currentHead = head; let race = false; let expired = false; let tamper = false; let codeStale = false;
   let projects: any[] = []; const mutations: any[] = []; const network: any[] = [];
   const photosZip = await zip(c.files);
-  const run = {id:1,head_branch:'main',path:'.github/workflows/automation.yml',repository:{full_name:env.GITHUB_REPOSITORY},head_sha:head,status:'completed',event:'workflow_dispatch',conclusion:'success',display_title:'Gallery sync · fixture'};
+  const run = {id:1,head_branch:'main',path:'.github/workflows/automation.yml',repository:{full_name:env.GITHUB_REPOSITORY},head_repository:{full_name:env.GITHUB_REPOSITORY},head_sha:head,status:'completed',event:'workflow_dispatch',conclusion:'success',display_title:'Gallery sync · fixture'};
   const fetcher: typeof fetch = async (input, init) => {
     const url = new URL(String(input)); const headers = new Headers(init?.headers); const method=init?.method||'GET'; network.push({url: url.origin+url.pathname,method,auth:headers.get('authorization')});
     if (url.hostname==='fixture.cloudflareaccess.com') return Response.json({keys:[jwk]});
@@ -119,5 +119,22 @@ test('expired, stale, corrupt and failed artifacts cannot be selected or publish
   const service=new AdminService(new GitHub(env,f.fetcher));assert.equal((await service.tasks(queued.requestId)).pending,true);
   assert.equal((await service.tasks()).tasks[0].published,false);
   f.setSummary({...f.summary,action:'publish',deployment:{status:'success',version:'sealed-version',url:'https://gallery.example.com'}});assert.equal((await service.tasks()).tasks[0].published,true);
+  const enabled=new AdminService(new GitHub({...env,PUBLISH_ENABLED:'true'},f.fetcher));
+  const publish=await enabled.dispatch({mode:'publish',expectedHead:head,photoRunId:1});assert.equal(publish.state,'pending');assert.equal(f.mutations.at(-1).body.inputs.photo_run_id,'1');assert.deepEqual(JSON.parse(f.mutations.at(-1).body.inputs.photo_commits),Object.fromEntries(snapshot.sources.map(s=>[s.sourceId,s.commit])));
   f.run.conclusion='failure';assert.equal((await service.tasks()).tasks[0].published,false);
+});
+test('authenticated immutable thumbnail cache reduces GitHub reads, stores no credentials, and expires safely',async()=>{
+  const prior=globalThis.caches;const stored=new Map<string,Response>();
+  const storage={match:async(r:Request)=>stored.get(r.url)?.clone(),put:async(r:Request,v:Response)=>{stored.set(r.url,v.clone());}} as Cache;
+  Object.defineProperty(globalThis,'caches',{value:{default:storage},configurable:true});
+  try{
+    const f=await fixture();const state=await(await api(f,'/api/state')).json();assert.equal(state.media.state,'ready');
+    const path=state.media.photos[0].photo.thumbnailUrl;
+    const before=f.network.length;assert.equal((await api(f,path)).status,200);const calls=f.network.length-before;assert(calls<10,`cached thumbnail used ${calls} calls`);
+    const deniedBefore=f.network.length;assert.equal((await api(f,path,undefined,'')).status,401);assert.equal(f.network.length,deniedBefore);
+    for(const [key,res] of stored){assert(!key.includes('signed-never-expose'));const text=await res.clone().text();assert(!text.includes(env.GITHUB_TOKEN));assert(!text.includes('signed-never-expose'));}
+    stored.clear();f.setExpired();assert.equal((await api(f,path)).status,410);
+    const legacy={schemaVersion:1,id:'legacy',slug:'legacy',title:'Legacy dash filename',coverPhotoId:'file--with-dashes_abcd',photos:[{photoId:'file--with-dashes_abcd'}],order:0,status:'draft'} as const;
+    assert.equal(sourceImpacts(config,{...config,sources:config.sources.filter(s=>s.sourceId!=='jason-photos')},[legacy as any]).length,1);
+  }finally{Object.defineProperty(globalThis,'caches',{value:prior,configurable:true});}
 });

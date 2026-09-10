@@ -30,8 +30,7 @@ export async function handle(request: Request, env: Env, transport: typeof fetch
         data = await (url.pathname === '/api/save' ? service.save(body) : url.pathname === '/api/impact' ? service.impact(body) : service.dispatch(body));
       } else if (request.method === 'GET' && /^\/api\/thumbnail\/\d+\/[a-z\d-]+$/.test(url.pathname)) {
         const [, , , run, reference] = url.pathname.split('/');
-        const photos = await service.photos(await service.content(), Number(run));
-        try { if (!photos.photos.some(p => p.id === reference)) throw new ApiError(404, 'photo', '照片不存在'); response = new Response(await photos.read(`public/thumbnails/${reference}.jpg`) as BodyInit, { headers: { 'Content-Type': 'image/jpeg' } }); } finally { await photos.close(); }
+        response = new Response(await service.thumbnail(Number(run), reference) as BodyInit, { headers: { 'Content-Type': 'image/jpeg' } });
         return secure(response!, env);
       } else throw new ApiError(404, 'route', '管理接口不存在');
       // Never echo token text even if a remote error/summary includes it.

@@ -7,6 +7,8 @@ import { resolveProjects } from '../../src/projects/resolver';
 import { GitHub } from './github';
 import { archive } from './archive';
 import { ApiError, assert } from './errors';
+import { ArtifactCache } from './cache';
+import { hashBytes } from '../../src/photo-engine/collection-contract';
 const projectPath = /^src\/content\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)\.json$/;
 const headSchema = z.string().regex(/^[a-f\d]{40}$/);
 const idSchema = z.number().int().positive();
@@ -14,20 +16,21 @@ export function sourceImpacts(before: SourcesConfig, after: SourcesConfig, proje
   const changed = before.sources.filter(s => { const next = after.sources.find(n => n.sourceId === s.sourceId); return !next || !next.enabled || sourceIdentity(s) !== sourceIdentity(next); });
   return changed.flatMap(s => projects.flatMap(p => {
     // Bare legacy IDs have exactly one fixed source; unknown IDs are never guessed by filename.
-    const count = p.photos.filter(r => r.photoId.startsWith(s.sourceId + '--') || !r.photoId.includes('--') && s.sourceId === LEGACY_SOURCE.sourceId && sourceIdentity(s) === sourceIdentity(LEGACY_SOURCE)).length;
+    const count = p.photos.filter(r => (/^([a-z][a-z0-9]*(?:-[a-z0-9]+)*)--[a-f0-9]{64}--[a-f0-9]{64}$/.exec(r.photoId)?.[1] === s.sourceId) || !/^([a-z][a-z0-9]*(?:-[a-z0-9]+)*)--[a-f0-9]{64}--[a-f0-9]{64}$/.test(r.photoId) && s.sourceId === LEGACY_SOURCE.sourceId && sourceIdentity(s) === sourceIdentity(LEGACY_SOURCE)).length;
     return count ? [{ sourceId: s.sourceId, projectId: p.id, title: p.title, status: p.status, count }] : [];
   }));
 }
 export class AdminService {
-  constructor(readonly github: GitHub) {}
+  readonly cache: ArtifactCache;
+  constructor(readonly github: GitHub) { this.cache = new ArtifactCache(github.env.GITHUB_REPOSITORY); }
   async content() {
     const head = await this.github.head(); const tree = await this.github.tree(head);
     const entry = tree.find(e => e.path === 'config/photo-sources.json'); assert(entry, '缺少照片源配置');
     const config = parseSources(await this.github.file(entry));
     const entries = tree.filter(e => projectPath.test(e.path));
     assert(entries.length <= 500, 'Project 超过后台 500 个上限');
-    const projects: Project[] = [];
-    for (const entry of entries) { const p = ProjectSchema.parse(await this.github.file(entry)); assert(p.slug === entry.path.match(projectPath)![1], 'Project slug 与文件名不一致'); projects.push(p); }
+    const projects: Project[] = []; let contentBytes = 0;
+    for (const entry of entries) { const p = ProjectSchema.parse(await this.github.file(entry)); contentBytes += Buffer.byteLength(JSON.stringify(p)); assert(contentBytes <= 4 * 1024 ** 2, 'Project 总内容超过后台 4 MB 上限'); assert(p.slug === entry.path.match(projectPath)![1], 'Project slug 与文件名不一致'); projects.push(p); }
     assert(new Set(projects.map(p => p.id)).size === projects.length, 'Project ID 重复');
     return { head, tree, config, projects };
   }
@@ -56,8 +59,21 @@ export class AdminService {
       const before = await this.github.tree(producer);
       const code = (tree: typeof before) => JSON.stringify(tree.filter(e => e.type === 'blob' && processingInputs.some(p => e.path === p || e.path.startsWith(p + '/'))).map(e => [e.path, e.sha]).sort());
       if (code(before) !== code(content.tree)) throw new ApiError(409, 'stale', '照片处理器或依赖已更新，请重新同步');
+      await this.cache.put(`verified/${run.id}`, JSON.stringify({ info: { id: artifactInfo.id, expires_at: artifactInfo.expires_at, expired: false }, files: Object.fromEntries(collection.photos.map(p => [p.id, collection.artifact.files[`public/thumbnails/${p.id}.jpg`]])) }), Math.floor((Date.parse(artifactInfo.expires_at)-Date.now())/1000));
       return { ...collection, close: zip.close, runId: run.id as number, expiresAt: artifactInfo.expires_at as string };
     } catch (e) { await zip.close(); throw e; }
+  }
+  async thumbnail(runId: number, reference: string) {
+    const cached = await this.cache.get(`verified/${runId}`);
+    if (cached) {
+      const proof = await cached.json() as { info: any; files: Record<string,string> };
+      if (Date.parse(proof.info.expires_at) > Date.now() && Object.hasOwn(proof.files, reference)) {
+        const zip = await archive(this.github, proof.info);
+        try { const value = await zip.read(`public/thumbnails/${reference}.jpg`); assert(hashBytes(value) === proof.files[reference], '缩略图摘要不匹配'); return value; } finally { await zip.close(); }
+      }
+    }
+    const photos = await this.photos(await this.content(), runId);
+    try { if (!photos.photos.some(p => p.id === reference)) throw new ApiError(404, 'photo', '照片不存在'); return await photos.read(`public/thumbnails/${reference}.jpg`); } finally { await photos.close(); }
   }
   async bootstrap() {
     const content = await this.content();
@@ -78,6 +94,8 @@ export class AdminService {
     } else {
       const p = body.project;
       const existing = content.projects.find(v => v.id === p.id);
+      assert(p.slug.length <= 120, 'Project slug 超过后台 120 字符上限');
+      assert(existing || content.projects.length < 500, 'Project 超过后台 500 个上限');
       assert(!existing || existing.slug === p.slug, '已保存 Project 的 slug 不可更改');
       assert(!content.projects.some(v => v.slug === p.slug && v.id !== p.id), 'Project slug 已存在');
       const photos = await this.photos(content);

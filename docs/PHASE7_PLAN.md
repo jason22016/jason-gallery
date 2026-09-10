@@ -1,6 +1,6 @@
 # Phase 7 — 轻量后台决策与实施顺序
 
-2026-09-10，基线 main `bc54046`，开发分支 `codex/phase7-admin`。Phase 8 承接 Polish、SEO 和性能优化。
+2026-09-10，初始基线 main `bc54046`（全面接入时已同步最新 `9a41478`），开发分支 `codex/phase7-admin`。Phase 8 承接 Polish、SEO 和性能优化。
 
 ## 唯一选定方案
 
@@ -32,8 +32,8 @@ Access 的 Allow policy 只包含明确管理员邮箱。Worker 对全部管理 
 
 main 合并后 [Gallery automation 34449154936](https://github.com/jason22016/jason-gallery/actions/runs/34449154936) 的回归检查通过，resolve 失败。旧错误只有 “Photo repository must be anonymously readable”，丢失 HTTP 状态，无法据此确定历史请求是否限流。2026-09-10 实际查询照片仓库 `private=false / visibility=public`。
 
-修复：元信息请求复用既有只读 token，显式校验 `private === false`；HTTP 失败保留状态和剩余额度，不能等同于私有仓库。匿名原图 URL 不变。隔离回归覆盖带/不带凭据、private/缺少字段、403/404/429/503 与凭据不泄漏。修复尚未合并，main 的真实 automation 成功重跑留待获准合并后，不能把分支 checks 当成真实全库同步成功。
+修复：元信息请求复用既有只读 token，显式校验 `private === false`；HTTP 失败保留状态和剩余额度，不能等同于私有仓库。匿名原图 URL 不变。隔离回归覆盖带/不带凭据、private/缺少字段、403/404/429/503 与凭据不泄漏。后续 main 已通过独立修复 PR 合入更完整的 API 公开性 + 每张原图匿名检查（`9a41478`），后台分支采用该上游实现。真实 sync run `34452182457` 已成功：154 张，0 处理 / 154 复用，deployment=not_requested。
 
-## 后续验收
+## 全面接入与验收
 
-视觉确认后完成正式接口、鉴权与服务端拒绝测试、配置影响分析、冲突提交、跨源引用、任务与过期产物状态。上线需用户配置 Cloudflare 域名/Worker/Access application AUD/issuer/管理员邮箱、Worker GitHub Secret、Pages production Environment 与部署 Secrets。真实 Access 登录、真实服务端 GitHub 保存/dispatch、Cloudflare 发布与线上浏览均未验收；本阶段禁止生产部署与 main 合并。
+用户已明确确认 UI，正式接口、鉴权与拒绝测试、配置影响分析、冲突提交、跨源引用及任务/过期状态已实现。详细配置与资源上限见 [ADMIN_SETUP.md](ADMIN_SETUP.md)。上线需用户配置 Cloudflare 域名/Worker/Access application AUD/issuer/管理员邮箱、Worker GitHub Secret、Pages production Environment 与部署 Secrets。真实 Access 登录、真实服务端 GitHub 保存/dispatch、Cloudflare 发布与线上浏览均未验收；本阶段禁止生产部署与 main 合并。

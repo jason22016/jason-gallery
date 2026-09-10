@@ -1,21 +1,27 @@
-# Phase 7 — 轻量后台（视觉确认阶段）
+# Phase 7 — 轻量后台
 
-2026-09-10。独立分支 `codex/phase7-admin`，基于最新 main `bc54046`。**当前仅完成方案记录、automation 前置修复与 fixture UI，Phase 7 尚未完成正式接口验收。** 按用户要求，视觉确认后再全面接入管理接口。Polish、SEO 与性能优化顺延 Phase 8。
+2026-09-10。独立分支 `codex/phase7-admin`；用户确认 fixture UI 后全面接入。最新 main `9a41478` 已同步到本分支；未将后台合并到 main，未执行生产部署，未创建正式摄影 Project。Polish、SEO 和性能优化顺延 Phase 8。
 
-- 唯一方案：独立 Cloudflare Worker + Cloudflare Access 管理员邮箱 OTP；公开网站继续 Pages。每个管理 API 校验 JWT 与邮箱白名单，凭据只在服务端。决策、边界及上线配置见 [实施记录](docs/PHASE7_PLAN.md)。本阶段尚未实现正式认证或管理 API。
-- 查看了 Afilmory 精确 commit 的实际后台布局、导航、照片网格、来源表单、同步进度与结果源码；核对 ANL 许可。只参考交互与布局，自写 React/CSS，不复制其应用代码或引入其业务架构。
-- fixture 预览：照片源筛选/搜索、跨源选图、Project 新建编辑、封面/顺序、draft/published、来源新增编辑/启停、引用影响、空/过期/失败产物、任务排队与执行状态。暗色/浅色与移动布局。全部写操作仅保存在页面内存，无模拟登录、真实远端保存或部署。
-- 正式照片 schema、Project schema 不变；把来源纯 schema 从 Node 文件抽离以供浏览器复用，原 `sources.ts` 继续导出相同接口。正式 Project 目录保持空白。
-- 合并后的 [Gallery automation 34449154936](https://github.com/jason22016/jason-gallery/actions/runs/34449154936) 回归通过、resolve 失败，旧错误吞掉 HTTP 原因。实际仓库仍 public；修复元信息请求复用只读 token、严格拒绝 private、保留 HTTP/额度诊断。不能从旧日志断言历史请求必然限流。修复未合并，main automation 尚未成功重跑。
+## 交付
+
+- 独立 Cloudflare Worker 管理入口 + Access 邮箱 OTP。所有页面/API 服务端验证签名、issuer/AUD/时效及管理员邮箱；同源 JSON 写入。没有模拟登录或跳过认证模式。
+- 已确认的响应式 UI 接通真实管理 API：照片源新增/编辑/启停与全部 Project 引用影响检查；按来源浏览与跨源选图；Project 创建/编辑、封面、顺序、draft/published。
+- 配置/Project 仍保存在网站 GitHub 仓库。复用 Phase 6 来源身份与 Project schema/resolver，限定可写路径；expected head + 非强制原子 ref 更新拒绝并发覆盖，冲突保留编辑。保存、sync、publish 分开，保存提交不触发 push CI。
+- 读取原生 Manifest/完整索引及执行摘要，复用产物校验；按范围读取 ZIP，认证后才读取缓存和缩略图。缺失/过期/不匹配/同步失败提供明确状态和重试入口，不建立第二套 metadata，不代理原图。
+- Actions request UUID/预期网站 SHA 关联具体任务；展示 steps、每源处理/复用/总数、失败原因与部署状态。pending 不等于成功，摘要缺失/失败/取消不显示发布已确认。
 
 ## 验证
 
-本机使用固定 Node 24.19.0 / pnpm 11.19.0，完整 `pnpm test` 退出码 0：strict、Project 46/46、Engine/network smoke、Viewer/Color 5/5、Website 27/27、automation 4/4、后台 4/4、真实 metadata 1/1 与正式 Astro build；零失败、零跳过。`git diff --check` 通过。新增测试覆盖公开源鉴别与 HTTP 错误、跨源选图、Project schema、来源 schema/失效引用拦截、产物状态、排队不等于发布、390px 布局、键盘关闭对话框、无外部写请求及浏览器 bundle 不引入服务端凭据/Node 模块。
+- 本地完整 `pnpm test` 通过：TypeScript、Project 46、Engine/网络 smoke、Viewer 5、Website 27、automation 21、后台 11、真实 metadata 1、Astro 生产构建。后台覆盖缺失/伪造/过期/错误 AUD/邮箱身份、写入拒绝、schema/路径、两个冲突窗口、跨源引用、来源影响、缓存鉴权/过期、同步失败、产物损坏/过期/处理器变化、pending 与真实发布状态；正式 UI 接口测试和实际本地 workerd 测试均使用隔离 fixture。
+- Worker `wrangler deploy --dry-run` 打包通过，没有上传/部署。真实 UI bundle 无服务端凭据/代码、fixture 数据；正式 Project 目录仍只有 `.gitkeep`。
+- 已确认最新 main 的真实 [Gallery sync 34452182457](https://github.com/jason22016/jason-gallery/actions/runs/34452182457) 成功：来源 `jason-photos` commit `6a7ae47d75dd71bc6874e8d3f222f25b2c05e27f`，154 张、0 处理 / 154 复用、无失败；deployment=`not_requested`。这是上游修复合并后的真实任务，不是本阶段模拟或新部署。
+- 本地用正式后台读取代码和已有 Git 凭据**只读**读取该任务的真实摘要、154 张完整索引和抽样缩略图，文件摘要通过；快照 `b92dcd3e72712d83032ce0a4e85159ca60f056087b3db6dc4581b62b2d14914c`。凭据只在进程内，未输出或写入文件。证据 `.cache/admin-read-real.json`；全回归 `.cache/phase7-final-regression.log`。
+- GitHub Actions：最终分支检查链接在提交后补充。
 
-本地证据：`.cache/phase7-full-test.log`、`.cache/phase7-real-resolve.json`。修复后的真实公开源解析成功，仍为 `6a7ae47d75dd71bc6874e8d3f222f25b2c05e27f`；未进行全库重新同步。桌面与 390px 手机预览已检查。GitHub 分支检查结果在交付消息中报告。
+## 上线前仍需真实验收
 
-真实管理员登录、未登录 API 拒绝、服务端保存冲突、真实 Actions dispatch/产物读取、正式发布状态均留待视觉确认后的实现与测试。Cloudflare 未配置，无真实上线 URL，无生产部署。fixture 测试不作为这些项目的正式验收。
+Cloudflare 尚未配置。Access OTP 登录与非管理员拒绝、正式 Worker 的 GitHub 保存/冲突/dispatch、生产 Secrets、Pages 实际发布与线上版本探针均**未真实验收**；本地签名测试和 dry-run 不能替代这些环节。
 
-## 查看预览
+上线配置：Worker Custom Domain、Access application/policy/AUD/issuer/管理员邮箱、仅网站仓库 Contents/Actions 的 GitHub PAT Worker Secret、现有 Pages production Environment。当前按 Workers Paid 额度配置；没有购买套餐。`PUBLISH_ENABLED=false`、`AUTO_DEPLOY_ENABLED=false`，后台分支须先获准合并，再同步新处理版本产物。
 
-`pnpm admin:preview`：使用已有本地缩略图，虚构来源分组和示例 Project，仅在 `.cache/admin-fixture` 与内存；照片缩略图不提交 Git。`pnpm admin:fixture`：无需真实图库的确定性测试图。打开 `http://127.0.0.1:4325/`。`pnpm test:admin` 构建独立 fixture 并运行浏览器检查。预览代码位于 `tests/admin/`，不进入 Astro 路由或公开 dist。
+完整步骤、权限、容量上限和故障处理见 [ADMIN_SETUP.md](docs/ADMIN_SETUP.md)。架构见 [ARCHITECTURE.md](ARCHITECTURE.md)，Afilmory 实际源码与许可证核查见 [PHASE7_PLAN.md](docs/PHASE7_PLAN.md)。原生 Photo Engine、Manifest 和 HDR 算法未修改。

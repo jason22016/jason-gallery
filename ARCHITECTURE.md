@@ -266,12 +266,16 @@ Final Gate 的独立命令为 `pnpm photos:verify --run <completed-workdir> --ex
 
 验证与分支/实际 Actions 状态记录在 PHASE6_REPORT.md；配置和复现命令见 README.md。
 
-## Phase 7 — 轻量后台（2026-09-10，进行中）
+## Phase 7 — 轻量后台（2026-09-10）
 
-用户批准后台阶段，Polish、SEO 与性能优化顺延 Phase 8。本节替代早期“本阶段不开发后台/认证”的阶段限制，Photo Engine、Project schema、原生 Manifest/HDR 与公开网站的三层边界保持不变。
+视觉确认后已接入正式管理接口。Polish、SEO 与性能优化顺延 Phase 8。本节替代此前“未来后台/没有认证”的阶段限制；Photo Engine、原生 Manifest/HDR 和公开网站的三层边界保持不变。
 
-选定独立 Cloudflare Worker 承载后台及 Serverless API，Cloudflare Access 管理员邮箱 OTP 为唯一认证方案，公开网站仍使用 Pages Direct Upload。每个管理 API 都需验证 Access JWT 与管理员白名单；GitHub token 仅服务端、网站写入限定配置和 Project 路径、照片仓库只读。配置保存、照片同步、网站发布分别显示真实状态，不能把触发成功当作完成。详细设计与实际源码核查见 [PHASE7_PLAN.md](docs/PHASE7_PLAN.md)。
+- **入口与认证**：独立 Cloudflare Worker 承载管理静态资源及 Serverless API（`admin/`），Cloudflare Access 管理员邮箱 OTP 为唯一登录方式。Worker 对所有页面和 API 校验 RS256 JWT 签名、issuer、AUD、exp/nbf/iat、subject/email 与独立管理员名单；同源 JSON 才能写。静态资源走 `run_worker_first`，workers.dev 与 preview URL 关闭，无模拟登录或绕过开关。
+- **Git 内容**：网站仓库仍为配置/Project 唯一存储。服务端仅允许配置路径和 `<slug>.json`，严格复用 SourceSchema/ProjectSchema/resolver、固定 legacy alias 与 qualified identity；影响 draft/published 引用的来源变更拒绝。expected head + 单父提交 + 非强制 ref 更新处理竞争；保存不会隐式同步或部署（固定 `[skip ci]` 提交，自动部署变量 false）。
+- **照片读取**：`source-contract.ts` 为原来源身份逻辑的服务器共享入口，`sources.ts` 保留文件加载 facade；`collection-contract.ts` 在 CI 和 Worker 复用元数据/索引/摘要校验。完整文件/图像解码仍由现有 CI verifier 执行，Worker 校验受信 main workflow 产物与摘要并按需取出已验证文件。处理代码输入列表与 fingerprint 共享；Project-only 修改不使照片过期。ZIP RangeReader 限制大小，不整包缓冲；缩略图每次验证摘要，原图不代理。Cache API 是认证之后的可丢弃读取缓存，无凭据/签名 URL，无独立 metadata 数据库。
+- **任务**：复用现有 sync/publish workflow，新输入 `request_id` / `expected_website_commit` 提供关联与 dispatch 版本保护。API 返回 pending，Actions steps/summary 提供真实进度、每源计数/失败、网站构建/部署状态。只有成功 run 与成功/unchanged deployment 的 URL/version 才认定发布已确认。发布默认禁用；照片包过期/配置不符/处理器变化时提供重新同步。最终发布沿用原 HEAD 新鲜度、公开资产过滤和远端版本验证。
+- **权限与实现**：JOSE / zip.js 仅在 Worker；网站限定 PAT 放 Worker Secret，Cloudflare 发布凭据仅 Actions production。照片仓库无写权限，不实现原图上传/删除、账号/角色、独立 DB 或图片代理。共享 React/CSS 保留已确认 UI，fixture 在测试入口，正式管理 bundle 不包含 fixture 数据或服务端模块，也不会混入公开 Astro dist。
 
-当前为用户要求的视觉确认阶段：`tests/admin/` 是独立 fixture 后台预览，尚未接入正式管理 API。来源 schema 抽离到无 Node 依赖的 `src/photo-engine/source-schema.ts`，旧入口继续 re-export；校验规则与身份算法不变。预览不成为网站路由、照片 metadata 或正式 Project 数据源。视觉确认后才全面实现服务端接入，验收范围见 [PHASE7_REPORT.md](PHASE7_REPORT.md)。
+最新 main `9a41478` 的公开源修复已同步到后台分支。真实 sync [34452182457](https://github.com/jason22016/jason-gallery/actions/runs/34452182457) 成功，154 张 / 0 处理 / 154 复用，部署 not_requested；正式后台读取代码已在本地只读核对真实摘要、全量索引与抽样缩略图。Cloudflare Access 登录、正式 GitHub 保存/dispatch 和 Cloudflare 发布仍未真实验收。本阶段不合并后台到 main、不生产部署、不创建正式 Project。
 
-Phase 6 resolve 修复：公开仓库元信息可用已有只读 token 查询，仍要求 `private === false`，不向浏览器原图 URL 附加凭据；API 失败保留 HTTP 状态及额度诊断。旧匿名 API 检查将所有错误混为不可公开读取，合并后实际 automation 在此失败，根因细分无法从旧日志恢复。
+配置、接口边界和上线步骤见 [ADMIN_SETUP.md](docs/ADMIN_SETUP.md)，设计来源见 [PHASE7_PLAN.md](docs/PHASE7_PLAN.md)，验证结果见 [PHASE7_REPORT.md](PHASE7_REPORT.md)。
