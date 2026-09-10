@@ -5,7 +5,7 @@ export const sourceStatuses = (config: SourcesConfig): SourceStatus[] => config.
 export function sourceToken(sourceId: string) {
   const tokens = JSON.parse(process.env.JASON_PHOTOS_READ_TOKENS || '{}');
   if (!tokens || Array.isArray(tokens) || typeof tokens !== 'object' || Object.values(tokens).some(t => typeof t !== 'string')) throw new Error('JASON_PHOTOS_READ_TOKENS must be a JSON object of strings');
-  return tokens[sourceId] || process.env.JASON_PHOTOS_READ_TOKEN;
+  return (Object.hasOwn(tokens, sourceId) ? tokens[sourceId] : undefined) || process.env.JASON_PHOTOS_READ_TOKEN;
 }
 export function safeReason(error: unknown) {
   let reason = error instanceof Error ? error.message : String(error);

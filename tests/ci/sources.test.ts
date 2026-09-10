@@ -9,6 +9,7 @@ import { loadPhotoIndex } from '../../src/photo-engine/index.js';
 import { verifyCollection } from '../../scripts/photos/collection.js';
 import { fileHashes } from '../../scripts/photos/artifact.js';
 import { loadProjectCatalog } from '../../src/projects/loader.js';
+import { sourceToken } from '../../scripts/photos/snapshot.js';
 
 const read = async (file: string) => JSON.parse(await fs.readFile(file, 'utf8'));
 test('strict versioned source configuration, identity and immutable snapshot contract', () => {
@@ -24,6 +25,7 @@ test('strict versioned source configuration, identity and immutable snapshot con
   assert.throws(() => makeSnapshot(config, { extra: 'b'.repeat(40), 'jason-photos': 'a'.repeat(40) }));
   assert.throws(() => verifySnapshot({ ...snapshot, configDigest: 'tampered' }));
   assert.throws(() => verifySnapshot(snapshot, parseSources({ ...config, sources: [{ ...LEGACY_SOURCE, name: 'new' }] })), /configuration mismatch/);
+  assert.equal(sourceToken('constructor'), process.env.JASON_PHOTOS_READ_TOKEN, 'source token lookup must use own properties only');
 });
 
 test('two isolated repositories preserve native collisions, complete snapshots, caches and Project identity', { timeout: 240_000 }, async () => {
