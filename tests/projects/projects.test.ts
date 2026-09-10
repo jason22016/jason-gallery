@@ -150,7 +150,7 @@ test('sorting is independent of input order and locale, with slug breaking order
 test('query snapshots are deeply frozen and detached from caller-owned data/photos', () => {
   const data = project();
   const original = photo('photo-b');
-  const catalog = resolveProjects([{ source: 'memory', data }], { getPhoto: () => original });
+  const catalog = resolveProjects([{ source: 'memory', data }], { getPhoto: id => id === original.id ? original : photo(id) });
   const index = catalog.published;
   const result = index.listProjects()[0];
   assert(Object.isFrozen(catalog));

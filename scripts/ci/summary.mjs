@@ -2,8 +2,8 @@
 import fs from 'node:fs/promises';
 const file = '.cache/automation/summary.json';
 const state = await fs.readFile(file, 'utf8').then(JSON.parse).catch(() => ({
-  schemaVersion: 1, action: process.env.TASK_MODE ?? 'publish', websiteCommit: process.env.GITHUB_SHA ?? null,
-  photoCommit: null, photos: { status: 'not_started', total: null, processed: null, reused: null },
+  schemaVersion: 2, action: process.env.TASK_MODE ?? 'publish', websiteCommit: process.env.GITHUB_SHA ?? null,
+  photoSnapshot: null, sources: [], photos: { status: 'not_started', total: null, processed: null, reused: null },
   website: { status: 'not_started' }, deployment: { status: 'not_requested', url: null, version: null }, failureReason: null,
 }));
 if (state.action === 'publish' && state.website.status === 'success' && state.deployment.status === 'not_requested') state.deployment = { status: 'disabled', url: null, version: null, reason: 'Set repository variable AUTO_DEPLOY_ENABLED=true for automatic deployment, or manually dispatch mode=publish' };

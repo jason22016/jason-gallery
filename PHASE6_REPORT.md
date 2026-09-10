@@ -51,3 +51,23 @@
 - 两个 workflows 在检查步骤启用 `DEBUG=pw:browser`；`viewer-diagnostics` artifact 无论检查成功失败均尝试上传，保留 **14 天**。包含浏览器版本/启动参数、CDP GPU 状态、WebGPU 适配器及设备创建结果、逐次加载状态/控制台/请求错误、SDR 像素数据；仅为隔离 fixture 诊断，独立于照片产物和公开 dist。到期后重新运行检查生成。
 
 修复后的本地完整 `pnpm test:checks` 同样退出码 0（`.cache/phase6-paced-checks.log`），actionlint 与 `git diff --check` 通过。真实 CI 使用仓库固定的 Node 24.19.0、pnpm 11.19.0 和 frozen lockfile；没有跳过测试、重试掩盖失败、放宽像素容差或把 WebGPU 预期改为 fallback。
+
+## Phase 6 补充：多照片源（2026-09-10）
+
+独立分支 `codex/phase6-multi-source`，基于已同步的 main `f6243bb`。本补充不合并 main、不配置或执行 Cloudflare 部署，正式 Project 仍为 **0 published / 0 draft**。
+
+- 新增网站仓库的严格版本化 `config/photo-sources.json`，默认来源保持 jason22016/jason-photos/main/images。稳定 sourceId 与 repo/branch/path 身份摘要隔离引用；名称变更不改引用。每源保留原生 v10 Manifest、8 位原生 ID；网站独立 photo-index 生成 qualified reference，用于 Project、thumbnail、metadata 和 Viewer 分享链接，不改原生 schema/HDR/UI。
+- bare 原生 ID 仅兼容原默认来源的固定身份；停用/删除/替换该来源时失败，不能匹配到其他仓库。published/draft 全部校验，跨源同原生 ID 可属于同一 Project；别名和 canonical 重复引用也拒绝。新分享链接统一 qualified ID，旧 bare-ID 链接需替换。
+- 所有来源先固定 commit，再按 sourceId/identity 隔离 worker、原图/派生 cache。任何来源失败或引用悬空都保留上一完整 output，已成功来源缓存可用于重试。默认来源导入旧 Git blob cache，派生缓存按新 fingerprint 重建。无 Cloudflare 依赖的 sync 输出每源状态/数量/失败原因；invocationId 防止失败任务误读旧摘要。
+- dispatch 改为 `photo_commits`（全部启用 sourceId→commit JSON），保留 mode=sync/publish/rollback、photo_run_id、deployment_id。PhotoSnapshot 绑定完整配置、身份、全部 commit/configDigest；照片 artifact 和 release 升级 schemaVersion=2，旧产物显式拒绝。发布前核对当前网站 main、全部来源 branch、Project 和处理版本，不能混用不同来源集合。
+- 后台继续通过修改配置并触发同一脚本接入；photos artifact 的全量索引/逐源原生 Manifest/全部预览保留 14 天，网站 release 和执行摘要 30 天。过期用原配置及 photo_commits 重建。配置不含凭据；可用 JASON_PHOTOS_READ_TOKENS Secret 按 sourceId 提供只读 token。完整索引不进入公开 dist；本阶段没有后台、认证、私有图片代理、上传/删除或数据库。
+
+| 补充验证 | 实际结果 |
+| --- | --- |
+| 两源隔离 fixture | 同 key/原生 ID 冲突、跨源 Project、热缓存、名称变化、配置/旧产物不匹配、published/draft 停用拒绝、单源解析失败、处理失败、目录替换及固定默认别名测试通过 |
+| 跨源浏览器 | 通过真实 Astro 生产构建、Chromium 首页/Gallery、逐源 Artist/GPS metadata、Viewer 前后切换、刷新/分享、真实 MapLibre ready 与跨源照片选择；所有照片仓库均为隔离 fixture |
+| 完整本地 `pnpm test` | 退出码 0：Project 46/46、网络/Engine smoke、Color 5/5、Website 27/27、自动化 3/3、真实 metadata 审计 1/1、正式 Astro 构建；零失败、零跳过 |
+| 默认真实图库 | 固定 `6a7ae47d75dd71bc6874e8d3f222f25b2c05e27f`，154 张和缩略图全部通过；新处理版本首次 154 处理；同版本热缓存 0 处理/154 复用；原图仓库未修改 |
+| GitHub Actions | 本补充分支待推送并验证；不将本地通过当作 Actions 或部署成功 |
+
+本地证据：`.cache/phase6-multi-full.log`、`.cache/phase6-multi-browser.log`、`.cache/phase6-multi-automation.log`、`.cache/multi-source-test/report.json`、`.cache/phase6-multi-real.log`、`.cache/phase6-multi-real-warm.log`。多源机器产物/配置/迁移操作见 README 与架构补充。实际网站 URL 仍为 **无**；回滚方式沿用前文，需已有成功生产部署，本次未执行。

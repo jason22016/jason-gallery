@@ -249,3 +249,19 @@ Final Gate 的独立命令为 `pnpm photos:verify --run <completed-workdir> --ex
 - `execution-summary`（30 天）：`schemaVersion=1`、任务结果、网站/照片 commit、photos.status/总数/实际处理数/复用数/artifact version、website.status/version、失败原因、deployment.status/实际 URL/UUID/version。未处理的数量为 null；not_requested/disabled 不代表部署成功，unchanged 指已核实的现有版本。总结脚本不依赖已安装包，安装失败也尽量保存摘要；硬终止时以上传可用性和 Actions conclusion 为准。
 
 照片产物过期后用同一 `photo_commit` 重新 sync，缓存不存在也能重建；旧源 commit 必须可读取，处理版本变化需重新处理。Actions artifact 受仓库访问与保留策略约束，**公共网站仓库的 artifact 不是保密存储**；将来需要隐私时须引入受控私有产物存储，不能仅依赖“未部署到网站”。本阶段没有新增公开全图库接口，也没有正式摄影 Project。
+
+## Phase 6 补充 — 多照片源（2026-09-10）
+
+本节取代此前固定单仓库、单 photoCommit 和单 Manifest 网站输入的约定。原生 v10 Manifest、8 位原生 ID 算法、HDR/色彩路径、UI 设计和公开资产过滤保持不变。本阶段不开发后台、不执行 Cloudflare 部署，不合并 main。
+
+- **配置**：网站仓库 `config/photo-sources.json`，严格 schemaVersion=1、sources 列表；每项 sourceId/name/owner/repo/branch/path/enabled。凭据只能来自环境，拒绝未知字段及路径穿越。path 空字符串表示根目录，允许全部停用；所有 published/draft 引用仍需有效。默认来源 ID `jason-photos` 保留原 owner/repo/main/images。
+- **身份**：sourceId 是稳定的业务名称空间；身份摘要绑定规范化 owner/repo、branch 和 path，名称与 enabled 不影响照片引用。替换仓库/branch/目录产生新的身份，旧引用不重定向。网站 reference 为 `sourceId--identitySHA256--nativeIdSHA256`；用完整摘要保证文件路径长度可控，并校验 canonical 冲突。索引显式保留 nativeId 与 sourceId，不从文件名或 ID 猜测来源。
+- **原生边界**：每个来源分别运行未改 ID/Manifest 算法的 Builder，产出 `sources/<sourceId>/photos-manifest.json`。`photo-index.json` 是网站层只读目录，包含完整快照和 `{reference,sourceId,nativeId}` 列表。loader 校验索引等于所有原生 Manifest 的投影，然后给 UI 派生 qualified id 与 `/thumbnails/<reference>.jpg`。原生 Manifest 保留原始 ID/缩略图路径，不增加来源或 Project 字段。metadata 静态路由和 Viewer 分享参数也使用 reference；完整索引及未公开来源信息不进入公开 dist。
+- **迁移**：原有 Project schemaVersion=1 字段不变，photoId/coverPhotoId 可填新 reference。bare 原生 ID 只绑定原默认 sourceId 及固定身份；该来源不在快照中就失败，绝不搜索其他来源。同一 Project 同时通过别名及 canonical 引用同一照片失败。解析结果和新分享链接统一 canonical；旧 bare-ID 分享链接需更换。没有创建正式 Project。历史原生 Manifest 仅在单一原默认来源配置下允许直接本地读取；新 CI 只接受多源产物 schemaVersion=2。
+- **同步事务**：所有启用来源先做匿名公开可读检查，再解析/验证全部 branch 或指定 commit；全部成功后才启动第一个 Builder。每来源独立子进程，绕开上游 workdir 模块常量共享；工作目录和 cache 按 `sourceId/identity` 隔离。默认来源可导入旧原图 blob cache，字节仍逐次验证；派生缓存绑定 fingerprint 和来源身份。每个来源扫描 Contents 并交叉校验固定 Git tree。任一失败不能封存完整 collection 或切换 output；全部照片成功后也必须校验 published/draft 引用才原子切换。成功来源的原图/派生 cache 保留以供重试。
+- **快照/产物**：PhotoSnapshot schemaVersion=1 含完整规范化配置、configDigest、所有启用来源 identity/commit 和 snapshot version。PhotoCollection schemaVersion=2 绑定快照、fingerprint、网站 commit、总数/处理/复用数、逐来源状态及逐文件摘要；嵌套原生 artifact 仍单独验证。名称或 enabled 改变会使旧 collection 不匹配，但不使未变来源的内容处理失效。网站导出使用完整暂存后安装，失败恢复旧目录；不可变 collection 的 output 指针是完整性边界。同步/导出均设本地排他锁，禁止并发 writer。
+- **自动化**：保留 sync/publish/rollback。dispatch 用 `photo_commits`（全部启用 sourceId→40 位 SHA 的 JSON 对象）替换 photo_commit；配合 photo_run_id 时必须完整指定。CLI 复用相同配置/快照/同步脚本；旧 artifact 不兼容，按相同配置和 commits 重建。缓存 key 绑定 OS、fingerprint 和全部快照摘要，目录隔离后允许恢复不同来源集合的候选 cache，逐源验证后使用。execution-summary schemaVersion=2 包含 photoSnapshot 和 sources[].status/commit/total/processed/reused/failureReason，区分照片处理与网站发布。
+- **发布契约**：Release schemaVersion=2 包含完整 PhotoSnapshot；生产构建核对当前配置、代码、Project、原生 Manifest 与照片产物，公开 build-version.json 仅输出 photoSnapshotVersion。发布前同时核对网站 main 和各照片配置 branch 的最新 commit/配置，拒绝旧来源集合；run number 防止旧构建覆盖新版本。保留失败不上传、远端验证和 rollback。sync 没有 Cloudflare 依赖或凭据。
+- **后台对接**：未来后台修改网站仓库来源配置，再触发同一 workflow；下载 photos artifact（14 天）消费全量索引、逐来源原生数据及全部预览。execution-summary 和 website-release 保留 30 天；过期后使用原配置+photo_commits 重建，缓存可丢失，源 commit 须可读。不同 token 可放 `JASON_PHOTOS_READ_TOKENS` 环境/Secret 的 sourceId→token 对象，回退到 JASON_PHOTOS_READ_TOKEN；只需对应库 Contents Read，保持匿名原图约定。没有新增公开全图库 API、私有图片代理、上传/删除、数据库或后台认证。
+
+验证与分支/实际 Actions 状态记录在 PHASE6_REPORT.md；配置和复现命令见 README.md。

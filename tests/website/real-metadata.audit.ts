@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import fs from 'node:fs/promises';
+import { loadPhotoIndex } from '../../src/photo-engine/index';
+import { loadProjectCatalog } from '../../src/projects/loader';
 import { viewerPhotos } from '../../src/components/viewer/photos';
 import { resolveProjects } from '../../src/projects/resolver';
-import type { AfilmoryManifest } from '../../src/photo-engine';
 import { project } from '../projects/fixtures';
 
 test('existing real manifest projection agrees with native capture time, exposure and GPS', async () => {
-  const manifest: AfilmoryManifest = JSON.parse(await fs.readFile(new URL('../../src/data/photos-manifest.json', import.meta.url), 'utf8'));
+  const manifest = { data: loadPhotoIndex().listPhotos() };
+  if (manifest.data.length === 0) {
+    const catalog = loadProjectCatalog();
+    assert.equal(catalog.published.listProjects().length + catalog.drafts.listProjects().length, 0, 'An empty source set cannot retain Project references');
+    return;
+  }
   const snapshot = JSON.stringify(manifest);
   const resolved = resolveProjects([{ source: 'in-memory audit only', data: project({ coverPhotoId: manifest.data[0]!.id, photos: manifest.data.map(p => ({ photoId: p.id })) }) }], { getPhoto: id => structuredClone(manifest.data.find(p => p.id === id)) }).published.listProjects()[0]!;
   const photos = viewerPhotos(resolved);

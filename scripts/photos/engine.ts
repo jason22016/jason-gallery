@@ -12,8 +12,9 @@ import { extractPhotoInfo } from '@afilmory/builder/photo/info-extractor.js';
 import type { PhotoManifestItem } from '@afilmory/typing';
 import { processingFingerprint } from './fingerprint.js';
 import { createPhotoConfig } from '../../builder.config.js';
+import { LEGACY_SOURCE, sourceAPI, sourceIdentity, type PhotoSource } from '../../src/photo-engine/sources.js';
 
-export const api = 'https://api.github.com/repos/jason22016/jason-photos';
+export const api = sourceAPI(LEGACY_SOURCE);
 export const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
 // Predict ONLY the local filename for prefill; the Builder owns the actual ID.
 // Every resulting native ID is checked against this prediction before publication.
@@ -31,17 +32,18 @@ export async function decode(bytes: Buffer) {
   if (!result.info.width || !result.info.height) throw new Error('Empty thumbnail');
 }
 interface CacheEntry { original: string; remote?: string; thumbnail: string; metadata?: string; }
-interface Cache { fingerprint: string; ref: string; entries: Record<string, CacheEntry>; }
-export async function buildPhotos(options: { root: string; ref: string; keyRegex?: string }) {
+interface Cache { fingerprint: string; identity: string; ref: string; entries: Record<string, CacheEntry>; }
+export async function buildPhotos(options: { root: string; ref: string; keyRegex?: string; source?: PhotoSource }) {
   if (!/^[a-f0-9]{40}$/.test(options.ref)) throw new Error('A pinned Git commit is required');
   const workdir = process.env.JASON_GALLERY_PHOTO_WORKDIR!;
   if (!workdir || !path.isAbsolute(workdir)) throw new Error('Missing absolute workdir');
   const cacheDir = path.join(options.root, 'cache');
-  const config = createPhotoConfig(options.ref);
+  const source = options.source ?? LEGACY_SOURCE;
+  const config = createPhotoConfig(options.ref, source);
   const fingerprint = await processingFingerprint();
   let old: Cache | undefined;
   try { old = JSON.parse(await fs.readFile(path.join(cacheDir, 'state.json'), 'utf8')); } catch {}
-  const next: Cache = { fingerprint, ref: options.ref, entries: {} };
+  const next: Cache = { fingerprint, identity: sourceIdentity(source), ref: options.ref, entries: {} };
   const storage = new GitHubStorageProvider(config.user!.storage as any);
   // No write-capable provider method is available through the Builder manager.
   const deny = async () => { throw new Error('Photo repository is read-only'); };
@@ -75,10 +77,11 @@ export async function buildPhotos(options: { root: string; ref: string; keyRegex
         // Native GitHub scanner once, pinned to a commit; avoid duplicate API scans.
         all = await storage.listAllFiles();
         // Contents API can truncate large directories; independently cross-check Git's tree.
-        const tree = await jsonGet(`${api}/git/trees/${options.ref}?recursive=1`);
+        const tree = await jsonGet(`${sourceAPI(source)}/git/trees/${options.ref}?recursive=1`);
         if (tree.truncated || !Array.isArray(tree.tree)) throw new Error('Incomplete Git tree');
-        const sourceTree = tree.tree.filter((x: any) => x.path.startsWith('images/') && x.type !== 'tree');
-        if (sourceTree.some((x: any) => x.type !== 'blob' || x.mode === '120000') || sourceTree.length !== all.length || sourceTree.some((x: any) => !all.some(o => o.key === x.path.slice(7) && o.etag === x.sha && o.size === x.size))) throw new Error('Source listing differs from pinned Git tree');
+        const prefix = source.path ? `${source.path}/` : '';
+        const sourceTree = tree.tree.filter((x: any) => x.path.startsWith(prefix) && x.type !== 'tree');
+        if (sourceTree.some((x: any) => x.type !== 'blob' || x.mode === '120000') || sourceTree.length !== all.length || sourceTree.some((x: any) => !all.some(o => o.key === x.path.slice(prefix.length) && o.etag === x.sha && o.size === x.size))) throw new Error('Source listing differs from pinned Git tree');
         manager.listAllFiles = async () => all.filter(x => !x.key.split('/').includes('.afilmory'));
         const { SUPPORTED_FORMATS } = await import('@afilmory/builder/constants/index.js');
         manager.listImages = async () => (await manager.listAllFiles()).filter(x => SUPPORTED_FORMATS.has(path.extname(x.key).toLowerCase()));
@@ -93,7 +96,7 @@ export async function buildPhotos(options: { root: string; ref: string; keyRegex
       afterImagesListed: async ({ payload }) => {
         originals = [...payload.imageObjects];
         if (!originals.length) throw new Error('No photos in snapshot');
-        await fs.writeFile(path.join(workdir, 'source-snapshot.json'), JSON.stringify({ ref: options.ref, all, originals }, null, 2));
+        await fs.writeFile(path.join(workdir, 'source-snapshot.json'), JSON.stringify({ source, ref: options.ref, all, originals }, null, 2));
         uniqueIds(originals.map(x => ({ id: expectedId(x.key) })));
         const basenameCounts = new Map<string, number>();
         for (const obj of originals) {
@@ -107,7 +110,7 @@ export async function buildPhotos(options: { root: string; ref: string; keyRegex
           const id = expectedId(obj.key);
           const legacyKey = `.afilmory/thumbnails/${path.parse(obj.key).name}.jpg`;
           const remote = all.find(x => x.key === `.afilmory/thumbnails/${id}.jpg`) ?? (basenameCounts.get(path.parse(obj.key).name) === 1 ? all.find(x => x.key === legacyKey) : undefined);
-          const previous = old?.fingerprint === fingerprint ? old.entries[obj.key] : undefined;
+          const previous = old?.fingerprint === fingerprint && old.identity === next.identity ? old.entries[obj.key] : undefined;
           let thumbnail: Buffer | undefined;
           if (previous && previous.original === obj.etag && previous.remote === remote?.etag) {
             try {

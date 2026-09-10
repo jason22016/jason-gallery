@@ -3,6 +3,8 @@ node_modules/
 .astro/
 dist/
 src/data/photos-manifest.json
+src/data/photo-index.json
+src/data/sources/
 public/thumbnails/
 .env
 .env.*

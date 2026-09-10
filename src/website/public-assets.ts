@@ -2,7 +2,7 @@ import type { AstroIntegration } from 'astro';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadPhotoIndex, type PhotoManifestItem } from '../photo-engine';
+import { loadPhotoIndex, photoIndexFile, type PhotoManifestItem } from '../photo-engine';
 import { loadProjects } from '../projects';
 
 /** Astro copies public/ verbatim. Limit photo assets in the output, never edit engine inputs. */
@@ -14,7 +14,7 @@ export function publishedPhotoAssets(): AstroIntegration {
       'astro:config:done': ({ config }) => { srcDir = config.srcDir; },
       'astro:build:done': async ({ dir }) => {
         const output = fileURLToPath(dir);
-        const options = { directory: new URL('content/projects/', srcDir), manifestFile: new URL('data/photos-manifest.json', srcDir) };
+        const options = { directory: new URL('content/projects/', srcDir), manifestFile: photoIndexFile(new URL('data/', srcDir)) };
         const localFile = (url: string | null | undefined) => {
           if (!url?.startsWith('/') || url.startsWith('//')) return null;
           const file = path.resolve(output, `.${decodeURIComponent(url.split(/[?#]/)[0]!)}`);

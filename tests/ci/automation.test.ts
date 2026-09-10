@@ -6,6 +6,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { jpeg } from '../../scripts/photos/fixtures.js';
 import { verifyPhotos, fileHashes, sha256 } from '../../scripts/photos/artifact.js';
+import { sealCollection } from '../../scripts/photos/collection.js';
+import { loadSources, makeSnapshot, photoReference, LEGACY_SOURCE } from '../../src/photo-engine/sources.js';
 import { processingFingerprint } from '../../scripts/photos/fingerprint.js';
 import { buildRelease, verifyRelease, type Release } from '../../scripts/ci/release.js';
 import { deployRelease, rollbackDeployment, type DeployIO } from '../../scripts/ci/deploy.js';
@@ -13,6 +15,7 @@ import { deployRelease, rollbackDeployment, type DeployIO } from '../../scripts/
 const root = path.resolve('.cache/automation-test');
 const engine = path.join(root, 'engine');
 const photoOutput = path.join(engine, 'output');
+const collection = path.join(root, 'collection');
 const codeCommit = 'a'.repeat(40);
 const read = async (file: string) => JSON.parse(await fs.readFile(file, 'utf8'));
 
@@ -33,7 +36,13 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
     assert(!(run.stdout + run.stderr).includes('ci-secret-sentinel-do-not-emit'));
     assert.equal(run.status === 0, !failed, `${label}: ${run.stderr}`);
     assert.deepEqual(await Promise.all(Object.values(fixture.files).map(async x => sha256(await fs.readFile(path.join(root,x.file))))), before);
-    if (!failed) return verifyPhotos(photoOutput, { ref: fixture.ref });
+    if (!failed) {
+      const native = await verifyPhotos(photoOutput, { ref: fixture.ref });
+      await fs.rm(collection, { recursive:true, force:true });
+      await fs.cp(await fs.realpath(photoOutput), path.join(collection, 'sources/jason-photos'), { recursive:true });
+      await sealCollection(collection, makeSnapshot(loadSources(), { 'jason-photos':fixture.ref }), native.fingerprint, 'fixture', [{ sourceId:'jason-photos', status:'success', commit:fixture.ref, total:native.photos, processed:native.processed, reused:native.reused, failureReason:null }]);
+      return native;
+    }
   }
   const cold = (await photos('cold'))!; assert.equal(cold.processed, 2); assert.equal(cold.reused, 0);
   const coldTags = (await read(path.join(photoOutput, 'photos-manifest.json'))).data.find((x: any) => x.s3Key === 'one.jpg').tags;
@@ -74,16 +83,17 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   await fs.cp('src',path.join(site,'src'),{recursive:true,filter: name => !['content','data'].includes(path.relative('src',name).split(path.sep)[0]!)});
   await fs.mkdir(path.join(site,'src/content/projects'),{recursive:true});
   await fs.copyFile('package.json',path.join(site,'package.json'));
+  await fs.cp('config',path.join(site,'config'),{recursive:true});
   await fs.writeFile(path.join(site,'astro.config.mjs'),`export {default} from ${JSON.stringify(new URL('../../astro.config.mjs',import.meta.url).href)};`);
   const manifest = await read(path.join(photoOutput,'photos-manifest.json'));
-  const id = manifest.data.find((x:any)=>x.s3Key==='one.jpg').id;
-  const hiddenId = manifest.data.find((x:any)=>x.s3Key==='hidden.jpg').id;
+  const id = photoReference(LEGACY_SOURCE, manifest.data.find((x:any)=>x.s3Key==='one.jpg').id);
+  const hiddenId = photoReference(LEGACY_SOURCE, manifest.data.find((x:any)=>x.s3Key==='hidden.jpg').id);
   const project = {schemaVersion:1,id:'test-project',slug:'test-project',title:'CI fixture',coverPhotoId:id,photos:[{photoId:id}],order:0,status:'published'};
   const projectFile = path.join(site,'src/content/projects/test-project.json');
   await fs.writeFile(projectFile,JSON.stringify(project));
   await fs.writeFile(path.join(site,'src/content/projects/draft.json'),JSON.stringify({...project,id:'draft',slug:'draft',status:'draft',coverPhotoId:hiddenId,photos:[{photoId:hiddenId}]}));
   const destination = path.join(root,'release');
-  const build = () => buildRelease({photos:photoOutput,root:site,destination,websiteCommit:codeCommit,runId:'test',runNumber:10,production:false});
+  const build = () => buildRelease({photos:collection,root:site,destination,websiteCommit:codeCommit,runId:'test',runNumber:10,production:false});
   const release = await build(); assert.equal(release.publicPhotos,1); assert.equal(release.publishedProjects,1);
   await verifyRelease(destination,false); await assert.rejects(verifyRelease(destination,true),/provenance/);
   assert(!(await fileHashes(path.join(destination,'dist')))[`thumbnails/${hiddenId}.jpg`]);
@@ -108,15 +118,15 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   const {version: _, ...record} = original; record.source = 'github';
   const simulated: Release = {...record,version:sha256(JSON.stringify(record))};
   await fs.writeFile(path.join(destination,'release.json'),JSON.stringify(simulated));
-  await fs.writeFile(path.join(destination,'dist/build-version.json'),JSON.stringify({version:simulated.version,websiteCommit:codeCommit,photoCommit:fixture.ref,runNumber:10}));
+  await fs.writeFile(path.join(destination,'dist/build-version.json'),JSON.stringify({version:simulated.version,websiteCommit:codeCommit,photoSnapshotVersion:simulated.photoSnapshot.version,runNumber:10}));
   let uploads = 0, rollback = false, wrongVersion = false;
   const old = {id:'00000000-0000-0000-0000-000000000001',url:'https://old.example',environment:'production',latest_stage:{status:'success'}};
   const next = {...old,id:'00000000-0000-0000-0000-000000000002',url:'https://new.example',deployment_trigger:{metadata:{commit_message:`gallery:${simulated.version}`}}};
   let latest = old;
   const io: DeployIO = {
-    heads: async()=>({website:codeCommit,photos:fixture.ref}),
+    heads: async()=>({website:codeCommit,photos:simulated.photoSnapshot}),
     upload: async()=>{uploads++;latest=next;},
-    version: async url => ({version:url===old.url?'old':wrongVersion?'wrong':simulated.version,websiteCommit:url===old.url?'b'.repeat(40):codeCommit,photoCommit:fixture.ref,runNumber:url===old.url?9:10}),
+    version: async url => ({version:url===old.url?'old':wrongVersion?'wrong':simulated.version,websiteCommit:url===old.url?'b'.repeat(40):codeCommit,photoSnapshotVersion:simulated.photoSnapshot.version,runNumber:url===old.url?9:10}),
     api: async(route,method)=>{
       if (method==='POST') {rollback=true;latest=old;return old;}
       if (route.startsWith('/deployments?')) return [next,old];
@@ -124,9 +134,9 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
       return {subdomain:'fixture.example',production_branch:'main',canonical_deployment:latest};
     },
   };
-  await assert.rejects(deployRelease(destination,{...io,heads:async()=>({website:'f'.repeat(40),photos:fixture.ref})}),/Superseded/); assert.equal(uploads,0);
-  await assert.rejects(deployRelease(destination,{...io,heads:async()=>({website:codeCommit,photos:'f'.repeat(40)})}),/Superseded/); assert.equal(uploads,0);
-  await assert.rejects(deployRelease(destination,{...io,version:async()=>({version:'newer',websiteCommit:'b'.repeat(40),photoCommit:fixture.ref,runNumber:11})}),/Older workflow/); assert.equal(uploads,0);
+  await assert.rejects(deployRelease(destination,{...io,heads:async()=>({website:'f'.repeat(40),photos:simulated.photoSnapshot})}),/Superseded/); assert.equal(uploads,0);
+  await assert.rejects(deployRelease(destination,{...io,heads:async()=>({website:codeCommit,photos:makeSnapshot(loadSources(), {'jason-photos':'f'.repeat(40)})})}),/Superseded/); assert.equal(uploads,0);
+  await assert.rejects(deployRelease(destination,{...io,version:async()=>({version:'newer',websiteCommit:'b'.repeat(40),photoSnapshotVersion:simulated.photoSnapshot.version,runNumber:11})}),/Older workflow/); assert.equal(uploads,0);
   await assert.rejects(deployRelease(destination,{...io,upload:async()=>{throw new Error('upload failed');}}),/upload failed/); assert.equal(latest.id,old.id);
   const deployed = await deployRelease(destination,io); assert.equal(deployed.status,'success'); assert.equal(deployed.version,simulated.version);
   assert.equal((await deployRelease(destination,io)).status,'unchanged'); assert.equal(uploads,1);

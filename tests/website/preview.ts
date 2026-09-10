@@ -3,14 +3,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { repo, run } from './fixture';
 import { serve } from './server';
-import type { AfilmoryManifest } from '../../src/photo-engine';
+import { loadPhotoIndex } from '../../src/photo-engine';
 import type { Project } from '../../src/projects';
 
 /** Reuses existing local assets; demonstration projects are confined to this preview root. */
 export const previewRoot = path.join(repo, '.cache/ui-preview');
 export async function buildPreview() {
-  const manifest: AfilmoryManifest = JSON.parse(await fs.readFile(path.join(repo, 'src/data/photos-manifest.json'), 'utf8'));
-  if (manifest.data.length === 0) throw new Error('The preview needs existing Photo Engine output.');
+  const photos = loadPhotoIndex().listPhotos();
+  if (photos.length === 0) throw new Error('The preview needs existing Photo Engine output.');
   await fs.mkdir(previewRoot, { recursive: true });
   await fs.rm(path.join(previewRoot, 'src'), { recursive: true, force: true });
   await fs.cp(path.join(repo, 'src'), path.join(previewRoot, 'src'), {
@@ -22,11 +22,10 @@ export async function buildPreview() {
   await fs.cp(path.join(repo, 'public/thumbnails'), path.join(previewRoot, 'public/thumbnails'), { recursive: true });
   const content = path.join(previewRoot, 'src/content/projects');
   await fs.mkdir(content, { recursive: true });
-  await fs.mkdir(path.join(previewRoot, 'src/data'), { recursive: true });
-  await fs.writeFile(path.join(previewRoot, 'src/data/photos-manifest.json'), JSON.stringify(manifest));
+  await fs.cp(path.join(repo, 'src/data'), path.join(previewRoot, 'src/data'), { recursive: true });
   const names = ['光影之间', '沿途所见', '日常片刻', '远方来信'];
   for (let i = 0; i < 4; i++) {
-    const selection = manifest.data.slice(i * 24, (i + 1) * 24);
+    const selection = photos.slice(i * 24, (i + 1) * 24);
     if (!selection.length) continue;
     const cover = selection.find(p => p.height > p.width) ?? selection[0]!;
     const date = cover.dateTaken?.slice(0, 10);

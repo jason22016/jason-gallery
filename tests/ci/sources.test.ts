@@ -1,0 +1,118 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { jpeg } from '../../scripts/photos/fixtures.js';
+import { LEGACY_SOURCE, parseSources, makeSnapshot, verifySnapshot, sourceIdentity, photoReference } from '../../src/photo-engine/sources.js';
+import { loadPhotoIndex } from '../../src/photo-engine/index.js';
+import { verifyCollection } from '../../scripts/photos/collection.js';
+import { fileHashes } from '../../scripts/photos/artifact.js';
+import { loadProjectCatalog } from '../../src/projects/loader.js';
+
+const read = async (file: string) => JSON.parse(await fs.readFile(file, 'utf8'));
+test('strict versioned source configuration, identity and immutable snapshot contract', () => {
+  const config = parseSources({ schemaVersion: 1, sources: [LEGACY_SOURCE] });
+  assert.throws(() => parseSources({ ...config, token: 'forbidden' }));
+  for (const extra of [{ sourceId: '../escape' }, { path: '../images' }, { path: 'images/' }, { path: 'images%2ffake' }, { owner: 'user@host' }, { enabled: 'true' }, { branch: 'main..evil' }, { token: 'secret' }]) assert.throws(() => parseSources({ ...config, sources: [{ ...LEGACY_SOURCE, ...extra }] }));
+  assert.throws(() => parseSources({ ...config, sources: [LEGACY_SOURCE, LEGACY_SOURCE] }));
+  assert.equal(photoReference(LEGACY_SOURCE, 'same_12345678'), photoReference({ ...LEGACY_SOURCE, name: 'Renamed' }, 'same_12345678'));
+  for (const change of [{ owner: 'someone' }, { repo: 'another' }, { path: 'other' }, { branch: 'other' }]) assert.notEqual(sourceIdentity(LEGACY_SOURCE), sourceIdentity({ ...LEGACY_SOURCE, ...change }));
+  const snapshot = makeSnapshot(config, { 'jason-photos': 'a'.repeat(40) });
+  assert.deepEqual(verifySnapshot(snapshot, config), snapshot);
+  assert.throws(() => makeSnapshot(config, {}));
+  assert.throws(() => makeSnapshot(config, { extra: 'b'.repeat(40), 'jason-photos': 'a'.repeat(40) }));
+  assert.throws(() => verifySnapshot({ ...snapshot, configDigest: 'tampered' }));
+  assert.throws(() => verifySnapshot(snapshot, parseSources({ ...config, sources: [{ ...LEGACY_SOURCE, name: 'new' }] })), /configuration mismatch/);
+});
+
+test('two isolated repositories preserve native collisions, complete snapshots, caches and Project identity', { timeout: 240_000 }, async () => {
+  const root = path.resolve('.cache/multi-source-test');
+  await fs.rm(root, { recursive: true, force: true }); await fs.mkdir(root, { recursive: true });
+  const projects = path.join(root, 'projects'); await fs.mkdir(projects);
+  const config = parseSources({ schemaVersion: 1, sources: [LEGACY_SOURCE, { ...LEGACY_SOURCE, sourceId: 'second', name: 'Second source', owner: 'fixture', repo: 'second', path: 'gallery' }] });
+  const fixture = { repositories: config.sources.map((s, i) => ({ owner: s.owner, repo: s.repo, branch: s.branch, ref: String(i+1).repeat(40), files: { [`${s.path}/same.jpg`]: { file: `${s.sourceId}.jpg`, commit: String(i+1).repeat(40) } } as Record<string,{file:string;commit:string}>, fail: false })) };
+  for (const [i,s] of config.sources.entries()) await fs.writeFile(path.join(root, `${s.sourceId}.jpg`), await jpeg(i ? '#aa6622' : '#2266aa'));
+  const engine = path.join(root, 'engine'); const output = path.join(engine, 'output');
+  let serial = 0;
+  async function sync(failure = false) {
+    await fs.writeFile(path.join(root, 'config.json'), JSON.stringify(config));
+    await fs.writeFile(path.join(root, 'fixture.json'), JSON.stringify(fixture));
+    const result = spawnSync(process.execPath, ['--import','tsx','scripts/photos/sync.ts','--root',engine,'--config',path.join(root,'config.json'),'--fixture',path.join(root,'fixture.json'),'--projects',projects], { encoding: 'utf8', timeout: 90_000, env: { ...process.env, JASON_PHOTOS_READ_TOKENS: '{"second":"source-secret-sentinel"}' } });
+    const log = result.stdout + result.stderr;
+    await fs.writeFile(path.join(root, `${++serial}.log`), log);
+    assert(!log.includes('source-secret-sentinel'));
+    assert.equal(result.status, failure ? 1 : 0, log);
+    const report = await read(path.join(engine, 'last-sync-result.json'));
+    assert.equal(report.status, failure ? 'failure' : 'success');
+    return report;
+  }
+  const cold = await sync(); assert.equal(cold.processed, 2); assert.equal(cold.reused, 0);
+  const nativeA = await read(path.join(output, 'sources/jason-photos/photos-manifest.json'));
+  const nativeB = await read(path.join(output, 'sources/second/photos-manifest.json'));
+  assert.equal(nativeA.data[0].id, nativeB.data[0].id);
+  assert.deepEqual(Object.keys(nativeA).sort(), ['cameras','data','lenses','version']);
+  assert.deepEqual(Object.keys(nativeA.data[0]).sort(), Object.keys(nativeB.data[0]).sort());
+  const index = loadPhotoIndex(path.join(output, 'photo-index.json'));
+  const photos = index.listPhotos(); assert.equal(photos.length, 2); assert.notEqual(photos[0]!.id, photos[1]!.id);
+  assert.notEqual(photos[0]!.thumbnailUrl, photos[1]!.thumbnailUrl); assert.notEqual(photos[0]!.originalUrl, photos[1]!.originalUrl);
+  assert.equal(index.getPhoto(nativeA.data[0].id)!.id, photos[0]!.id, 'legacy alias resolves only to fixed default identity');
+  const project = { schemaVersion: 1, id:'cross-source', slug:'cross-source', title:'Cross-source fixture', coverPhotoId: photos[0]!.id, photos: photos.map(p => ({ photoId: p.id })), order:0, status:'published' };
+  await fs.writeFile(path.join(projects, 'cross-source.json'), JSON.stringify(project));
+  assert.equal(loadProjectCatalog({ directory: projects, manifestFile: path.join(output,'photo-index.json') }).published.listProjects()[0]!.photos.length, 2);
+  const warm = await sync(); assert.equal(warm.processed, 0); assert.equal(warm.reused, 2);
+  const oldSnapshot = warm.snapshot;
+  config.sources[0]!.name = 'New display name';
+  const renamed = await sync(); assert.equal(renamed.processed, 0);
+  assert.deepEqual(loadPhotoIndex(path.join(output,'photo-index.json')).listPhotos().map(p => p.id), photos.map(p => p.id));
+  await assert.rejects(verifyCollection(output, { snapshot: oldSnapshot }), /snapshot mismatch/);
+  const success = await fileHashes(output);
+  config.sources[1]!.enabled = false;
+  await sync(true); assert.deepEqual(await fileHashes(output), success);
+  // Draft references are equally binding; a disabled source cannot slip through.
+  project.status = 'draft'; await fs.writeFile(path.join(projects, 'cross-source.json'), JSON.stringify(project));
+  await sync(true); assert.deepEqual(await fileHashes(output), success);
+  config.sources[1]!.enabled = true;
+  fixture.repositories[1]!.fail = true;
+  const failedResolution = await sync(true); assert.equal(failedResolution.sources[1].status, 'failure'); assert.equal(failedResolution.sources[0].status, 'resolved');
+  assert.deepEqual(await fileHashes(output), success); fixture.repositories[1]!.fail = false;
+  await fs.writeFile(path.join(root,'second.jpg'), 'broken');
+  const failedProcessing = await sync(true); assert.equal(failedProcessing.sources[0].status, 'success'); assert.equal(failedProcessing.sources[1].status, 'failure');
+  assert.deepEqual(await fileHashes(output), success);
+  await fs.writeFile(path.join(root,'second.jpg'), await jpeg('#bb7733'));
+  fixture.repositories[1]!.ref = '3'.repeat(40);
+  const updated = await sync(); assert.equal(updated.processed, 1); assert.equal(updated.reused, 1);
+  const changed = loadPhotoIndex(path.join(output,'photo-index.json')).listPhotos();
+  assert.equal(changed[1]!.id, photos[1]!.id); assert(changed[1]!.originalUrl.includes('3'.repeat(40)));
+  fixture.repositories[0]!.files['images/extra.jpg'] = { file:'jason-photos.jpg', commit:fixture.repositories[0]!.ref };
+  const added = await sync(); assert.equal(added.processed,1); assert.equal(added.total,3);
+  delete fixture.repositories[0]!.files['images/extra.jpg'];
+  const deleted = await sync(); assert.equal(deleted.processed,0); assert.equal(deleted.total,2);
+  const beforeRemoval = await fileHashes(output);
+  fixture.repositories[0]!.files['images/extra.jpg'] = { file:'jason-photos.jpg', commit:fixture.repositories[0]!.ref };
+  delete fixture.repositories[0]!.files['images/same.jpg'];
+  await sync(true); assert.deepEqual(await fileHashes(output),beforeRemoval);
+  fixture.repositories[0]!.files['images/same.jpg'] = {file:'jason-photos.jpg',commit:fixture.repositories[0]!.ref};
+  delete fixture.repositories[0]!.files['images/extra.jpg'];
+  // The verified source cache now describes the removal; restoring that photo
+  // reprocesses its metadata, while the other source is still reused.
+  const restored = await sync(); assert.equal(restored.processed,1); assert.equal(restored.reused,1);
+  const removed = config.sources.pop()!;
+  const beforeSourceRemoval = await fileHashes(output);
+  await sync(true); assert.deepEqual(await fileHashes(output),beforeSourceRemoval);
+  config.sources.push(removed);
+  const pinned = await fileHashes(output);
+  config.sources[1]!.path = 'another-directory';
+  fixture.repositories[1]!.files = { 'another-directory/same.jpg': { file:'second.jpg',commit:fixture.repositories[1]!.ref } };
+  await sync(true); assert.deepEqual(await fileHashes(output), pinned);
+  // Explicitly removing the Project permits an intentional source replacement.
+  await fs.rm(path.join(projects,'cross-source.json'));
+  await sync(); assert.notEqual(loadPhotoIndex(path.join(output,'photo-index.json')).listPhotos()[1]!.id, photos[1]!.id);
+  await assert.rejects(verifyCollection(path.join(output,'sources/second')), /legacy artifacts/);
+  config.sources = [config.sources[1]!];
+  await sync(); assert.equal(loadPhotoIndex(path.join(output,'photo-index.json')).getPhoto(nativeA.data[0].id), undefined, 'never alias a native ID to another source');
+  config.sources[0]!.enabled = false;
+  const empty = await sync(); assert.equal(empty.total,0); assert.equal(empty.processed,0);
+  assert.deepEqual(loadPhotoIndex(path.join(output,'photo-index.json')).listPhotos(),[]);
+  await fs.writeFile(path.join(root,'report.json'), JSON.stringify({ status:'PASS', cases:serial, nativeCollision:nativeA.data[0].id, qualifiedReferences:photos.map(p => p.id) }, null, 2));
+});

@@ -77,10 +77,11 @@ export function resolveProjects(
       const photo = photoIndex.getPhoto(reference.photoId);
       if (!photo) throw new Error(`Invalid Project ${source}: photos.${index}.photoId: unknown photo ID "${reference.photoId}"`);
       // Own a detached snapshot; never freeze or modify values owned by the Photo Engine.
-      return { ...reference, photo: structuredClone(photo) };
+      return { ...reference, photoId: photo.id, photo: structuredClone(photo) };
     });
-    const cover = photos.find(entry => entry.photoId === project.coverPhotoId)!.photo;
-    return freezeDeep({ ...project, photos, cover });
+    if (new Set(photos.map(entry => entry.photoId)).size !== photos.length) throw new Error(`Invalid Project ${source}: duplicate canonical photo reference (legacy alias and qualified ID)`);
+    const cover = photos[project.photos.findIndex(entry => entry.photoId === project.coverPhotoId)]!.photo;
+    return freezeDeep({ ...project, coverPhotoId: cover.id, photos, cover });
   });
 
   return Object.freeze({

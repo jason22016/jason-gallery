@@ -12,8 +12,8 @@ on:
         options: [sync, publish, rollback]
         default: sync
         required: true
-      photo_commit:
-        description: 'Optional full photo commit SHA; empty resolves main once. Required with photo_run_id.'
+      photo_commits:
+        description: 'JSON map of every enabled sourceId to its full commit SHA; empty resolves configured branches. Required with photo_run_id.'
         type: string
       photo_run_id:
         description: 'Optional successful sync/publish run ID to reuse its photos artifact (14 days); fingerprint must match.'
@@ -38,7 +38,7 @@ jobs:
     env:
       TASK_MODE: ${{ inputs.mode || 'publish' }}
       AUTO_DEPLOY_ENABLED: ${{ vars.AUTO_DEPLOY_ENABLED || 'false' }}
-      PHOTO_COMMIT: ${{ inputs.photo_commit }}
+      PHOTO_COMMITS: ${{ inputs.photo_commits }}
       PHOTO_RUN_ID: ${{ inputs.photo_run_id }}
       DEPLOYMENT_ID: ${{ inputs.deployment_id }}
       ASTRO_TELEMETRY_DISABLED: '1'
@@ -73,6 +73,7 @@ jobs:
         if: env.TASK_MODE != 'rollback'
         env:
           JASON_PHOTOS_READ_TOKEN: ${{ secrets.JASON_PHOTOS_READ_TOKEN || github.token }}
+          JASON_PHOTOS_READ_TOKENS: ${{ secrets.JASON_PHOTOS_READ_TOKENS }}
           GITHUB_TOKEN: ${{ github.token }}
         run: pnpm automation resolve
       - name: Restore original blobs (independent of processor versions)
@@ -80,22 +81,22 @@ jobs:
         if: env.TASK_MODE != 'rollback' && env.PHOTO_RUN_ID == ''
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          path: .cache/photo-engine/cache/blobs
-          key: photo-blobs-v1-${{ runner.os }}-${{ steps.snapshot.outputs.photo_commit }}
-          restore-keys: photo-blobs-v1-${{ runner.os }}-
+          path: .cache/photo-engine/sources/*/*/cache/blobs
+          key: photo-blobs-multi-v1-${{ runner.os }}-${{ steps.snapshot.outputs.snapshot_version }}
+          restore-keys: photo-blobs-multi-v1-${{ runner.os }}-
       - name: Restore derived cache
         id: derived
         if: env.TASK_MODE != 'rollback' && env.PHOTO_RUN_ID == ''
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
-            .cache/photo-engine/cache/state.json
-            .cache/photo-engine/cache/metadata
-            .cache/photo-engine/cache/thumbnails
-          key: photo-derived-v2-${{ runner.os }}-${{ steps.snapshot.outputs.fingerprint }}-${{ steps.snapshot.outputs.photo_commit }}
+            .cache/photo-engine/sources/*/*/cache/state.json
+            .cache/photo-engine/sources/*/*/cache/metadata
+            .cache/photo-engine/sources/*/*/cache/thumbnails
+          key: photo-derived-multi-v1-${{ runner.os }}-${{ steps.snapshot.outputs.fingerprint }}-${{ steps.snapshot.outputs.snapshot_version }}
           restore-keys: |
-            photo-derived-v2-${{ runner.os }}-${{ steps.snapshot.outputs.fingerprint }}-
-            photo-derived-v2-${{ runner.os }}-
+            photo-derived-multi-v1-${{ runner.os }}-${{ steps.snapshot.outputs.fingerprint }}-
+            photo-derived-multi-v1-${{ runner.os }}-
       - name: Download explicitly selected complete photo artifact
         if: env.TASK_MODE != 'rollback' && env.PHOTO_RUN_ID != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -109,21 +110,22 @@ jobs:
         if: env.TASK_MODE != 'rollback'
         env:
           JASON_PHOTOS_READ_TOKEN: ${{ secrets.JASON_PHOTOS_READ_TOKEN || github.token }}
+          JASON_PHOTOS_READ_TOKENS: ${{ secrets.JASON_PHOTOS_READ_TOKENS }}
         run: pnpm automation photos
       - name: Save verified original blobs
         if: steps.photos.outcome == 'success' && env.PHOTO_RUN_ID == '' && steps.blobs.outputs.cache-hit != 'true'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          path: .cache/photo-engine/cache/blobs
+          path: .cache/photo-engine/sources/*/*/cache/blobs
           key: ${{ steps.blobs.outputs.cache-primary-key }}
       - name: Save verified derived cache
         if: steps.photos.outcome == 'success' && env.PHOTO_RUN_ID == '' && steps.derived.outputs.cache-hit != 'true'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
-            .cache/photo-engine/cache/state.json
-            .cache/photo-engine/cache/metadata
-            .cache/photo-engine/cache/thumbnails
+            .cache/photo-engine/sources/*/*/cache/state.json
+            .cache/photo-engine/sources/*/*/cache/metadata
+            .cache/photo-engine/sources/*/*/cache/thumbnails
           key: ${{ steps.derived.outputs.cache-primary-key }}
       - name: Full index and previews for future administration (never deploy this directory)
         if: steps.photos.outcome == 'success'
@@ -154,6 +156,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
           GITHUB_TOKEN: ${{ github.token }}
+          JASON_PHOTOS_READ_TOKEN: ${{ secrets.JASON_PHOTOS_READ_TOKEN || github.token }}
+          JASON_PHOTOS_READ_TOKENS: ${{ secrets.JASON_PHOTOS_READ_TOKENS }}
         run: pnpm automation deploy
       - name: Roll back successful production deployment
         if: env.TASK_MODE == 'rollback'

@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { installReadOnlyFetch, type RequestAudit } from './network.js';
+import { LEGACY_SOURCE, SourceSchema, sourceAPI } from '../../src/photo-engine/sources.js';
 const args = process.argv.slice(2);
 const value = (key: string) => args.includes(key) ? args[args.indexOf(key) + 1] : undefined;
 if (args.includes('--export') && value('--keys')) throw new Error('Cannot export a filtered manifest');
@@ -25,9 +26,10 @@ if (args.includes('--git-credential') && !process.env.JASON_PHOTOS_READ_TOKEN) {
     await installFixture(value('--fixture')!);
   }
   installReadOnlyFetch(requests);
-  const { api, jsonGet, buildPhotos } = await import('./engine.js');
-  const ref = value('--ref') ?? (await jsonGet(`${api}/commits/main`)).sha;
-  const result = await buildPhotos({ root, ref, keyRegex: value('--keys') });
+  const source = value('--source') ? SourceSchema.parse(JSON.parse(await fs.readFile(value('--source')!, 'utf8'))) : LEGACY_SOURCE;
+  const { jsonGet, buildPhotos } = await import('./engine.js');
+  const ref = value('--ref') ?? (await jsonGet(`${sourceAPI(source)}/commits/${encodeURIComponent(source.branch)}`)).sha;
+  const result = await buildPhotos({ root, ref, keyRegex: value('--keys'), source });
   const { sealPhotos, verifyPhotos } = await import('./artifact.js');
   const artifactDir = path.join(workdir, 'artifact');
   await fs.mkdir(artifactDir);

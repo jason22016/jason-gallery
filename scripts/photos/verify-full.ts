@@ -7,13 +7,14 @@ import type { AfilmoryManifest } from '@afilmory/typing';
 import { SUPPORTED_FORMATS } from '@afilmory/builder/constants/index.js';
 import type { StorageObject } from '@afilmory/builder/storage/interfaces.js';
 import type { RequestAudit } from './network.js';
+import { originalURL, LEGACY_SOURCE, type PhotoSource } from '../../src/photo-engine/sources.js';
 
 const args = process.argv.slice(2);
 const value = (flag: string) => args[args.indexOf(flag) + 1];
 assert(args.includes('--run'), 'Pass the completed Builder --run directory');
 const run = path.resolve(value('--run')!);
 const root = path.dirname(run);
-const snapshot: { ref: string; all: StorageObject[]; originals: StorageObject[] } = JSON.parse(await fs.readFile(path.join(run, 'source-snapshot.json'), 'utf8'));
+const snapshot: { source?: PhotoSource; ref: string; all: StorageObject[]; originals: StorageObject[] } = JSON.parse(await fs.readFile(path.join(run, 'source-snapshot.json'), 'utf8'));
 const manifestBytes = await fs.readFile(path.join(run, 'src/data/photos-manifest.json'));
 const manifest: AfilmoryManifest = JSON.parse(manifestBytes.toString());
 const result = JSON.parse(await fs.readFile(path.join(run, 'result.json'), 'utf8'));
@@ -49,7 +50,7 @@ for (const item of manifest.data) {
   assert.equal(original.length, object.size);
   assert.equal(item.size, original.length);
   assert.equal(state.entries[item.s3Key].original, object.etag);
-  assert.equal(item.originalUrl, `https://raw.githubusercontent.com/jason22016/jason-photos/${snapshot.ref}/images/${item.s3Key}`);
+  assert.equal(item.originalUrl, originalURL(snapshot.source ?? LEGACY_SOURCE, snapshot.ref, item.s3Key));
   assert.equal(item.thumbnailUrl, `/thumbnails/${item.id}.jpg`);
   assert(item.width > 0 && item.height > 0 && item.thumbHash && item.exif && item.toneAnalysis, `Incomplete metadata: ${item.id}`);
   const thumb = await fs.readFile(path.join(thumbnailDirs[0]!, `${item.id}.jpg`));

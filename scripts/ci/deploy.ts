@@ -1,12 +1,14 @@
 import { spawnSync } from 'node:child_process';
 import { verifyRelease, type Release } from './release.js';
+import { resolveSnapshot } from '../photos/snapshot.js';
+import { type PhotoSnapshot } from '../../src/photo-engine/sources.js';
 export interface Deployment { id: string; url: string; environment: string; latest_stage: { status: string }; deployment_trigger?: { metadata?: { commit_message?: string } } }
 export interface PagesProject { subdomain: string; production_branch: string; canonical_deployment?: Deployment }
 export interface DeployIO {
   api: (route: string, method?: string) => Promise<any>;
-  heads: () => Promise<{ website: string; photos: string }>;
+  heads: () => Promise<{ website: string; photos: PhotoSnapshot }>;
   upload: (directory: string, release: Release) => Promise<void>;
-  version: (url: string) => Promise<{ version: string; websiteCommit: string; photoCommit: string; runNumber: number }>;
+  version: (url: string) => Promise<{ version: string; websiteCommit: string; photoSnapshotVersion: string; runNumber: number }>;
 }
 export function deploymentIO(): DeployIO {
   const { CLOUDFLARE_ACCOUNT_ID: account, CLOUDFLARE_API_TOKEN: token, CLOUDFLARE_PAGES_PROJECT: project } = process.env;
@@ -19,12 +21,11 @@ export function deploymentIO(): DeployIO {
       return data.result;
     },
     heads: async () => {
-      const commits = await Promise.all(['jason-gallery', 'jason-photos'].map(async repo => {
-        const response = await fetch(`https://api.github.com/repos/jason22016/${repo}/commits/main`, { headers: { Accept: 'application/vnd.github+json', ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}) }, signal: AbortSignal.timeout(60_000) });
-        if (!response.ok) throw new Error(`Cannot verify latest ${repo} commit (${response.status})`);
-        return (await response.json() as {sha: string}).sha;
-      }));
-      return { website: commits[0]!, photos: commits[1]! };
+      const repository = process.env.GITHUB_REPOSITORY ?? 'jason22016/jason-gallery';
+      if (!/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(repository)) throw new Error('Invalid website repository');
+      const response = await fetch(`https://api.github.com/repos/${repository}/commits/main`, { headers: { Accept: 'application/vnd.github+json', ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}) }, signal: AbortSignal.timeout(60_000) });
+      if (!response.ok) throw new Error(`Cannot verify latest website commit (${response.status})`);
+      return { website: (await response.json() as {sha:string}).sha, photos: await resolveSnapshot() };
     },
     upload: async (directory, release) => {
       const result = spawnSync('pnpm', ['exec', 'wrangler', 'pages', 'deploy', `${directory}/dist`, '--project-name', project, '--branch', 'main', '--commit-hash', release.websiteCommit, '--commit-message', `gallery:${release.version}`, '--commit-dirty=false'], { stdio: 'inherit', env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } });
@@ -40,14 +41,14 @@ export function deploymentIO(): DeployIO {
 export async function deployRelease(directory: string, io: DeployIO = deploymentIO()) {
   const release = await verifyRelease(directory);
   const heads = await io.heads();
-  if (heads.website !== release.websiteCommit || heads.photos !== release.photoCommit) throw new Error('Superseded code/photo snapshot; rebuild latest before publishing');
+  if (heads.website !== release.websiteCommit || heads.photos.version !== release.photoSnapshot.version) throw new Error('Superseded code/photo snapshot; rebuild latest before publishing');
   const project: PagesProject = await io.api('');
   if (project.production_branch !== 'main') throw new Error('Pages production branch must be main');
   const previous = project.canonical_deployment;
   if (previous) {
     const current = await io.version(previous.url);
     if (current.runNumber > release.runNumber) throw new Error('Older workflow cannot overwrite a newer deployment');
-    if (current.websiteCommit === release.websiteCommit && current.photoCommit === release.photoCommit) return { status: 'unchanged', url: `https://${project.subdomain}`, deploymentUrl: previous.url, deploymentId: previous.id, version: current.version };
+    if (current.websiteCommit === release.websiteCommit && current.photoSnapshotVersion === release.photoSnapshot.version) return { status: 'unchanged', url: `https://${project.subdomain}`, deploymentUrl: previous.url, deploymentId: previous.id, version: current.version };
   }
   await verifyRelease(directory);
   await io.upload(directory, release);
