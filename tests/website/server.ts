@@ -19,7 +19,11 @@ export async function serve(directory = dist, port = 0) {
     } catch {
       response.statusCode = 404;
       response.setHeader('content-type', 'text/html; charset=utf-8');
-      response.end(await fs.readFile(path.join(directory, '404.html')));
+      // The standalone Viewer fixture has no Astro 404 page (Chromium may still
+      // request /favicon.ico). Always finish the response, without a rejected
+      // async request handler escaping into the Node test runner.
+      const notFound = await fs.readFile(path.join(directory, '404.html')).catch(() => '<h1>Not found</h1>');
+      response.end(notFound);
     }
   });
   await new Promise<void>((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
