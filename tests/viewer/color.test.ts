@@ -16,11 +16,24 @@ const dist = path.resolve('.cache/viewer-dist');
 let browser: Browser;
 let server: Awaited<ReturnType<typeof serve>>;
 let manifest: AfilmoryManifest;
+const diagnostics = path.join(root, 'diagnostics');
+const pageLogs = new WeakMap<Page, string[]>();
+let loadNumber = 0;
+async function newPage() {
+  const page = await browser.newPage();
+  const logs: string[] = [];
+  pageLogs.set(page, logs);
+  page.on('console', message => logs.push(`${message.type()}: ${message.text()}`));
+  page.on('pageerror', error => logs.push(`pageerror: ${error.stack ?? error.message}`));
+  page.on('requestfailed', request => logs.push(`requestfailed: ${request.url()} ${request.failure()?.errorText}`));
+  return page;
+}
 const names = ['ordinary.jpg', 'hdr.jpg', 'srgb-icc.jpg', 'p3-icc.jpg', 'hdr-p3.jpg', 'iso-mpf.jpg', 'broken-gain.jpg'];
 const hash = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 const extract = (b: Buffer) => extractJPEGGainMap(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer);
 before(async () => {
   await fs.rm(root, { recursive: true, force: true }); await fs.mkdir(root, { recursive: true });
+  await fs.mkdir(diagnostics, { recursive: true });
   const ref = '5'.repeat(40);
   const files = Object.fromEntries(names.map(name => [`images/${name}`, { file: path.join(dist, name), commit: ref }]));
   await fs.writeFile(path.join(root, 'fixture.json'), JSON.stringify({ ref, files }));
@@ -35,13 +48,35 @@ before(async () => {
   // Actual APIs/shaders on SwiftShader; dynamic-range simulation below tests logic only.
   browser = await chromium.launch({ executablePath: process.env.JASON_TEST_CHROMIUM || undefined, args: ['--enable-unsafe-swiftshader', '--enable-unsafe-webgpu', '--use-angle=swiftshader'] });
   console.log(`Color browser: ${browser.version()} (software GPU; no screen certification)`);
+  const session = await browser.newBrowserCDPSession();
+  const gpu = await session.send('SystemInfo.getInfo');
+  await fs.writeFile(path.join(diagnostics, 'browser.json'), JSON.stringify({ version: browser.version(), ...gpu }, null, 2));
+  console.log(`Color GPU: ${JSON.stringify(gpu.gpu)}`);
+  await session.detach();
 }, { timeout: 120_000 });
 after(async () => { await browser?.close(); await server?.close(); });
 
 async function load(page: Page, src: string, mode = 'auto') {
-  await page.goto(`${server.url}/?mode=${mode}&src=${encodeURIComponent(src)}`);
-  await page.waitForFunction(() => { const text = document.querySelector('#result')!.textContent!; if (!text.startsWith('{')) return false; const r = JSON.parse(text); return r.loaded || r.fallbackLoaded; });
-  return JSON.parse(await page.locator('#result').textContent() ?? '{}');
+  const logs = pageLogs.get(page)!;
+  logs.length = 0;
+  let state: unknown;
+  try {
+    await page.goto(`${server.url}/?mode=${mode}&src=${encodeURIComponent(src)}`);
+    await page.waitForFunction(() => { const text = document.querySelector('#result')!.textContent!; if (!text.startsWith('{')) return false; const r = JSON.parse(text); return r.loaded || r.fallbackLoaded || r.fallbackError; });
+    const result = JSON.parse(await page.locator('#result').textContent() ?? '{}');
+    state = result;
+    const detail = JSON.stringify({ src, mode, result, logs }, null, 2);
+    if (mode === 'no-gpu') assert.equal(result.fallbackLoaded, true, detail);
+    else {
+      assert.equal(result.renderer, mode === 'auto' ? 'webgpu' : 'webgl', detail);
+      assert.equal(result.loaded, true, detail);
+      assert.equal(result.fallbackLoaded, undefined, detail);
+    }
+    return result;
+  } finally {
+    state ??= await page.locator('#result').textContent().catch(() => null);
+    await fs.writeFile(path.join(diagnostics, `${++loadNumber}-${mode}.json`), JSON.stringify({ src, mode, state, logs }, null, 2));
+  }
 }
 async function pixel(page: Page, selector: string) {
   const png = await page.locator(selector).screenshot();
@@ -88,7 +123,7 @@ test('malformed or unsupported gain metadata is rejected independently of the so
 });
 
 test('ICC SDR, wide-gamut P3, HDR base and Engine thumbnails agree across SDR rendering paths', { timeout: 90_000 }, async () => {
-  const page = await browser.newPage();
+  const page = await newPage();
   const results = [];
   try {
     assert.equal(await page.evaluate(() => matchMedia('(dynamic-range: high)').matches), false);
@@ -110,7 +145,7 @@ test('ICC SDR, wide-gamut P3, HDR base and Engine thumbnails agree across SDR re
 });
 
 test('extended WebGPU requires valid gain data and high-range media; loss of capability clears HDR', { timeout: 60_000 }, async () => {
-  const page = await browser.newPage();
+  const page = await newPage();
   await page.addInitScript({ content: `
     const original = window.matchMedia.bind(window);
     const media = new EventTarget();
@@ -141,7 +176,7 @@ test('extended WebGPU requires valid gain data and high-range media; loss of cap
 });
 
 test('extended canvas rejection uses WebGPU SDR; WebGL context loss after load reaches image fallback', async () => {
-  const page = await browser.newPage();
+  const page = await newPage();
   await page.addInitScript(() => {
     const configure = GPUCanvasContext.prototype.configure;
     GPUCanvasContext.prototype.configure = function (config) {
