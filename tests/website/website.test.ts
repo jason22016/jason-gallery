@@ -414,15 +414,12 @@ test('native touch gestures switch photos, reveal the inspector, dismiss, and ig
   const touch = await ctx.newCDPSession(page);
   const frame = () => page.evaluate('new Promise(resolve => requestAnimationFrame(resolve))');
   const swipe = async (from: [number, number], to: [number, number]) => {
-    await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from[0], y: from[1] }] });
-    await frame();
-    // Preserve real gesture cadence: back-to-back CDP moves can be coalesced,
-    // leaving touchend/settling work racing the following tap on CI.
-    for (let i = 1; i <= 8; i++) {
-      await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from[0] + (to[0] - from[0]) * i / 8, y: from[1] + (to[1] - from[1]) * i / 8 }] });
-      await frame();
-    }
-    await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    // Native touch drag with a completed release, rather than a fling that can
+    // consume the following tap as a request to stop kinetic scrolling.
+    await touch.send('Input.synthesizeScrollGesture', {
+      x: from[0], y: from[1], xDistance: to[0] - from[0], yDistance: to[1] - from[1],
+      gestureSourceType: 'touch', preventFling: true,
+    });
     await frame();
   };
   await swipe([200, 520], [200, 240]);
