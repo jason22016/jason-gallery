@@ -5,7 +5,8 @@ import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { ZipWriter, Uint8ArrayWriter, Uint8ArrayReader } from '@zip.js/zip.js';
 import { parseSources, LEGACY_SOURCE, makeSnapshot, photoReference, originalURL } from '../../src/photo-engine/source-contract';
 import { createUnifiedIndex } from '../../src/photo-engine/unified-index';
-import { hashBytes } from '../../src/photo-engine/collection-contract';
+import { buildReadFiles } from '../../scripts/admin/read-artifact';
+import { readCollection, hashBytes } from '../../src/photo-engine/collection-contract';
 import type { AfilmoryManifest } from '@afilmory/typing';
 const head = 'a'.repeat(40), next = 'b'.repeat(40);
 const env = { ADMIN_ORIGIN: 'https://admin.example.com', ACCESS_ISSUER: 'https://fixture.cloudflareaccess.com', ACCESS_AUD: 'fixture-audience', ADMIN_EMAILS: 'admin@example.com', GITHUB_TOKEN: 'server-only-secret-sentinel', GITHUB_REPOSITORY: 'fixture/website', PUBLISH_ENABLED: 'false', ASSETS: { fetch: async () => new Response('protected static') } } as unknown as Env;
@@ -32,23 +33,32 @@ async function collection() {
   const artifact = {...record,version:hashBytes(JSON.stringify(record))}; put('artifact.json',artifact);
   return {files,artifact};
 }
-async function zip(files: Map<string,Uint8Array>) { const writer = new ZipWriter(new Uint8ArrayWriter(), { useWebWorkers:false }); for(const [name,data] of files) await writer.add(name,new Uint8ArrayReader(data)); return writer.close(); }
+export async function zip(files: Map<string,Uint8Array>, level = 0) { const writer = new ZipWriter(new Uint8ArrayWriter(), { useWebWorkers:false, level, zip64: false }); for(const [name,data] of files) await writer.add(name,new Uint8ArrayReader(data)); return writer.close(); }
 async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any; config: typeof config }) {
-  const c = replay ?? await collection(); let activeConfig = replay?.config ?? config; let summary: any = {schemaVersion:2,action:'sync',websiteCommit:head,photos:{status:'success',artifactVersion:c.artifact.version},sources:c.artifact.sources,website:{status:'not_started'},deployment:{status:'not_requested'}};
+  const c = replay ?? await collection(); let activeConfig = replay?.config ?? config; let summary: any = {schemaVersion:2,runId:1,runAttempt:1,action:'sync',websiteCommit:head,photos:{status:'success',artifactVersion:c.artifact.version},sources:c.artifact.sources,website:{status:'not_started'},deployment:{status:'not_requested'}};
   let currentHead = head; let race = false; let expired = false; let tamper = false; let codeStale = false;
   let projects: any[] = []; const mutations: any[] = []; const network: any[] = [];
   const photosZip = await zip(c.files);
+  const readFiles = await buildReadFiles(await readCollection(async p => c.files.get(p)!, activeConfig), { repository: env.GITHUB_REPOSITORY, runId: 1, runAttempt: 1, websiteCommit: head, photosArtifactId: 10 }, [{ path: 'pnpm-lock.yaml', type: 'blob', sha: 'd'.repeat(40) }]);
+  let adminZip: Uint8Array = await zip(new Map([['catalog.json', readFiles.catalog], ['previews.bin', readFiles.previews]]));
+  let adminDigest = 'sha256:' + hashBytes(adminZip);
+  summary.adminRead = { status: 'success', repository: env.GITHUB_REPOSITORY, runId: 1, runAttempt: 1, websiteCommit: head, photosArtifactId: 10, photosArtifactVersion: c.artifact.version, catalogHash: readFiles.catalogHash, artifactId: 12, artifactDigest: adminDigest };
+  let summaryLevel = 0;
+  let summaryBytes: Promise<Uint8Array> | undefined;
+  const summaryZip = () => summaryBytes ??= zip(new Map([['summary.json', new TextEncoder().encode(JSON.stringify(summary))]]), summaryLevel);
+  await summaryZip();
   const blob = (value: unknown) => { const text = JSON.stringify(value); const byteSize = Buffer.byteLength(text); return { text, byteSize, oid: createHash('sha1').update(`blob ${byteSize}\0`).update(text).digest('hex'), isBinary: false, isTruncated: false }; };
-  const run = {id:1,head_branch:'main',path:'.github/workflows/automation.yml',repository:{full_name:env.GITHUB_REPOSITORY},head_repository:{full_name:env.GITHUB_REPOSITORY},head_sha:head,status:'completed',event:'workflow_dispatch',conclusion:'success',display_title:'Gallery sync · fixture'};
+  const run = {id:1,run_attempt:1,head_branch:'main',path:'.github/workflows/automation.yml',repository:{full_name:env.GITHUB_REPOSITORY},head_repository:{full_name:env.GITHUB_REPOSITORY},head_sha:head,status:'completed',event:'workflow_dispatch',conclusion:'success',display_title:'Gallery sync · fixture'};
   const fetcher: typeof fetch = async (input, init) => {
     const url = new URL(String(input)); const headers = new Headers(init?.headers); const method=init?.method||'GET'; network.push({url: url.origin+url.pathname,method,auth:headers.get('authorization')});
     if (url.hostname==='fixture.cloudflareaccess.com') return Response.json({keys:[jwk]});
     if (url.hostname==='fixture.blob.core.windows.net') {
       assert.equal(headers.get('authorization'),null);
-      let data = url.pathname==='/photos' ? photosZip : await zip(new Map([['summary.json',new TextEncoder().encode(JSON.stringify(summary))]]));
-      if (tamper && url.pathname==='/photos') data = new Uint8Array(data.length);
+      let data = url.pathname==='/photos' ? photosZip : url.pathname==='/admin-read' ? adminZip : await summaryZip();
+      if (tamper && url.pathname==='/admin-read') data = new Uint8Array(data.length);
       if (method==='HEAD') return new Response(null,{headers:{'content-length':String(data.length)}});
-      const range=headers.get('range')!.match(/bytes=(\d+)-(\d+)/)!; const start=+range[1],end=+range[2];
+      if (!headers.has('range')) return new Response(new Uint8Array(data));
+      const range=headers.get('range')!.match(/^bytes=(\d+)-(\d+)$/);assert(range,'Azure transport requires an explicit byte range'); const start=+range[1],end=+range[2];
       return new Response(data.slice(start,end+1),{status:206,headers:{'content-range':`bytes ${start}-${end}/${data.length}`}});
     }
     assert.equal(url.origin,'https://api.github.com'); assert(url.pathname.startsWith('/repos/fixture/website/') || url.pathname === '/graphql'); assert.equal(headers.get('authorization'),`Bearer ${env.GITHUB_TOKEN}`);
@@ -57,7 +67,7 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
     if(p==='/graphql') { const repository: Record<string, unknown> = {}; for(const match of body.query.matchAll(/(b\d+): object\(oid: "([a-f\d]{40})"\)/g)) repository[match[1]] = [activeConfig, ...projects].map(blob).find(b => b.oid === match[2]) ?? null; return Response.json({data:{repository}}); }
     if(method!=='GET') mutations.push({p,method,body});
     if(p==='/git/ref/heads/main') return Response.json({object:{sha:currentHead}});
-    if(p.startsWith('/git/trees/') && method==='GET') return Response.json({truncated:false,tree:[{path:'config/photo-sources.json',type:'blob',mode:'100644',sha:blob(activeConfig).oid},...projects.map((p,i)=>({path:`src/content/projects/${p.slug}.json`,sha:blob(p).oid,type:'blob',mode:'100644'})),{path:'pnpm-lock.yaml',type:'blob',sha:codeStale&&p.endsWith(head)?'old':'code'}]});
+    if(p.startsWith('/git/trees/') && method==='GET') return Response.json({truncated:false,tree:[{path:'config/photo-sources.json',type:'blob',mode:'100644',sha:blob(activeConfig).oid},...projects.map((p,i)=>({path:`src/content/projects/${p.slug}.json`,sha:blob(p).oid,type:'blob',mode:'100644'})),{path:'pnpm-lock.yaml',type:'blob',sha:codeStale?'e'.repeat(40):'d'.repeat(40)}]});
     if(p.startsWith('/git/blobs/')) { const value=[activeConfig, ...projects].find(v => p.endsWith(blob(v).oid)); return Response.json({encoding:'base64',content:Buffer.from(JSON.stringify(value)).toString('base64')}); }
     if(p===`/git/commits/${head}`) return Response.json({tree:{sha:'tree'}});
     if(p==='/git/trees' || p==='/git/commits') return Response.json({sha:next});
@@ -65,12 +75,12 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
     if(p==='/actions/workflows/automation.yml/runs') return Response.json({workflow_runs:[run]});
     if(p==='/actions/runs/1') return Response.json(run);
     if(p==='/actions/runs/1/jobs') return Response.json({jobs:[{steps:[{name:'Photos',status:'completed',conclusion:'success'}]}]});
-    if(p==='/actions/runs/1/artifacts') return Response.json({artifacts:[{id:10,name:'photos',expired,expires_at:new Date(Date.now()+86400000).toISOString()},{id:11,name:'execution-summary',expires_at:new Date(Date.now()+86400000).toISOString()}]});
-    if(p.startsWith('/actions/artifacts/')) return new Response(null,{status:302,headers:{location:`https://fixture.blob.core.windows.net/${p.includes('/10/')?'photos':'summary'}?secret=signed-never-expose`}});
+    if(p==='/actions/runs/1/artifacts') return Response.json({artifacts:[{id:10,name:'photos',expired,expires_at:new Date(Date.now()+86400000).toISOString()},{id:11,name:'execution-summary',digest:'sha256:'+hashBytes(await summaryZip()),expires_at:new Date(Date.now()+86400000).toISOString()},{id:12,name:'admin-read',size_in_bytes:adminZip.length,digest:adminDigest,expires_at:new Date(Date.now()+86400000).toISOString()}]});
+    if(p.startsWith('/actions/artifacts/')) return new Response(null,{status:302,headers:{location:`https://fixture.blob.core.windows.net/${p.includes('/10/')?'photos':p.includes('/12/')?'admin-read':'summary'}?secret=signed-never-expose`}});
     if(p==='/actions/workflows/automation.yml/dispatches') return new Response(null,{status:204});
     throw new Error('Unexpected '+p);
   };
-  return { c, fetcher, mutations, network, setProjects:(v:any[])=>projects=v, setConfig:(v:typeof config)=>activeConfig=v, setHead:(v:string)=>currentHead=v, setRace:()=>race=true,setExpired:()=>expired=true,setTamper:()=>tamper=true,setStale:()=>{codeStale=true;currentHead=next;}, setSummary:(v:any)=>summary=v, summary, run };
+  return { readFiles, setSummaryLevel:(level:number)=>{summaryLevel=level;summaryBytes=undefined;}, setAdminZip:(bytes:Uint8Array)=>{adminZip=bytes;adminDigest='sha256:'+hashBytes(bytes);}, c, fetcher, mutations, network, setProjects:(v:any[])=>projects=v, setConfig:(v:typeof config)=>activeConfig=v, setHead:(v:string)=>currentHead=v, setRace:()=>race=true,setExpired:()=>expired=true,setTamper:()=>tamper=true,setStale:()=>{codeStale=true;currentHead=next;}, setSummary:(v:any)=>{summary=v;summaryBytes=undefined;}, summary, run };
 }
 
 export { head, next, env, prepareKeys, token, config, snapshot, fixture };

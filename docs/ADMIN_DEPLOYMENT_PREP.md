@@ -1,5 +1,7 @@
 # 后台 Worker 部署准备
 
+> 2026-09-11 更新：原部署已实际复现 Free CPU 超限。新版改为 CI 封存紧凑产物、Worker 无 Cache API 读取；实现与本地回归正在验证，迁移及真实 Free 验收尚未完成。当前状态和新版契约见 [ADMIN_COMPACT_READ.md](ADMIN_COMPACT_READ.md)。下文旧路径与旧测量保留为历史基线。
+
 2026-09-11：准备对象为 `jason-gallery-admin`。用户选择先使用 `https://jason-gallery-admin.<账户子域名>.workers.dev`，由用户在 Cloudflare 网页手动配置；暂不绑定自定义域名。公开网站继续使用已有 Pages Direct Upload。此文和 `admin:prepare` 均不执行上传、Secret 写入、域名变更、套餐购买或生产部署。
 
 ## 当前状态

@@ -1,11 +1,10 @@
 import { ApiError, jsonBody } from './errors';
 import { createHash } from 'node:crypto';
-import { ArtifactCache } from './cache';
-import { hashBytes } from '../../src/photo-engine/collection-contract';
 export const workflow = '.github/workflows/automation.yml';
 export type TreeEntry = { path: string; sha: string; type: string; mode: string; size?: number };
 export class GitHub {
   readonly base: string;
+  readonly fileSizes = new Map<string, number>();
   private readonly reads = new Map<string, Promise<any>>();
   constructor(readonly env: Env, readonly transport: typeof fetch = fetch) {
     // workerd fetch requires its global receiver; storing it as a method changes `this`.
@@ -31,16 +30,12 @@ export class GitHub {
   async file(entry: TreeEntry) { if (entry.type !== 'blob' || entry.mode === '120000' || (entry.size ?? 0) > 512000) throw new ApiError(422, 'file', '管理文件必须是小于 512 KB 的普通文件'); const blob = await this.read(`/git/blobs/${entry.sha}`); if (blob.encoding !== 'base64') throw new Error('Invalid blob'); return JSON.parse(Buffer.from(blob.content, 'base64').toString('utf8')); }
   async files(entries: TreeEntry[]): Promise<unknown[]> {
     for (const e of entries) if (e.type !== 'blob' || !['100644', '100755'].includes(e.mode) || (e.size ?? 0) > 512000 || !/^[a-f\d]{40}$/.test(e.sha)) throw new ApiError(422, 'file', '管理文件必须是小于 512 KB 的普通 Git blob');
-    const cache = new ArtifactCache(this.env.GITHUB_REPOSITORY);
-    const key = `content-v1/${hashBytes(JSON.stringify(entries.map(e => [e.path, e.sha])))}`;
-    const cached = await cache.derived<unknown[]>(key);
-    if (cached && cached.length === entries.length) return cached;
     const [owner, name] = this.env.GITHUB_REPOSITORY.split('/');
     const result: unknown[] = []; let total = 0;
     // Alias queries address immutable blob OIDs, never branch expressions. A missing,
     // truncated, binary, mismatched or partial GraphQL result fails the entire read.
-    for (let offset = 0; offset < entries.length; offset += 25) {
-      const batch = entries.slice(offset, offset + 25);
+    for (let offset = 0; offset < entries.length; offset += 50) {
+      const batch = entries.slice(offset, offset + 50);
       const query = `query { repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(name)}) { ${batch.map((e, i) => `b${i}: object(oid: "${e.sha}") { ... on Blob { oid byteSize isBinary isTruncated text } }`).join(' ')} } }`;
       const response = await this.transport('https://api.github.com/graphql', { method: 'POST', redirect: 'manual', headers: { Authorization: `Bearer ${this.env.GITHUB_TOKEN}`, 'Content-Type': 'application/json', 'User-Agent': 'jason-gallery-admin' }, body: JSON.stringify({ query }), signal: AbortSignal.timeout(20000) });
       if (!response.ok) { await response.body?.cancel(); throw new ApiError(502, 'github', `GitHub 批量读取失败（HTTP ${response.status}）`); }
@@ -52,15 +47,16 @@ export class GitHub {
         const size = Buffer.byteLength(blob.text);
         total += size;
         if (size !== blob.byteSize || size > 512000 || total > 4 * 1024 ** 2 + 512000 || createHash('sha1').update(`blob ${size}\0`).update(blob.text).digest('hex') !== entry.sha) throw new ApiError(422, 'file', 'Git blob 摘要或大小不匹配');
+        this.fileSizes.set(entry.sha, size);
         result.push(JSON.parse(blob.text));
       }
     }
-    await cache.putDerived(key, result, 3600);
     return result;
   }
   async runs() { return (await this.call('/actions/workflows/automation.yml/runs?branch=main&per_page=30')).workflow_runs as any[]; }
-  async run(id: number) { const run = await this.read(`/actions/runs/${id}`); if (run.head_branch !== 'main' || run.path !== workflow || run.repository.full_name.toLowerCase() !== this.env.GITHUB_REPOSITORY.toLowerCase() || run.head_repository?.full_name?.toLowerCase() !== this.env.GITHUB_REPOSITORY.toLowerCase() || !['push', 'schedule', 'workflow_dispatch'].includes(run.event)) throw new ApiError(422, 'run', '只接受本站 main 的 Gallery automation 任务'); return run; }
-  async artifacts(id: number) { return (await this.read(`/actions/runs/${id}/artifacts?per_page=100`)).artifacts as any[]; }
+  async run(id: number) { return this.verifyRun(await this.read(`/actions/runs/${id}`)); }
+  verifyRun(run: any) { if (!Number.isSafeInteger(run.id) || run.id <= 0 || !Number.isSafeInteger(run.run_attempt) || run.run_attempt <= 0 || !/^[a-f0-9]{40}$/.test(run.head_sha) || run.head_branch !== 'main' || run.path !== workflow || run.repository?.full_name?.toLowerCase() !== this.env.GITHUB_REPOSITORY.toLowerCase() || run.head_repository?.full_name?.toLowerCase() !== this.env.GITHUB_REPOSITORY.toLowerCase() || !['push', 'schedule', 'workflow_dispatch'].includes(run.event)) throw new ApiError(422, 'run', '只接受本站 main 的 Gallery automation 任务'); return run; }
+  async artifacts(id: number) { const data = await this.read(`/actions/runs/${id}/artifacts?per_page=100`); if (data.total_count > data.artifacts.length) throw new ApiError(413, 'artifact_limit', '任务产物列表不完整'); return data.artifacts as any[]; }
   async commit(expected: string, changes: { path: string; data: unknown }[]) {
     if (await this.head() !== expected) throw new ApiError(409, 'conflict', '仓库已有更新，请保留当前编辑并重新加载后合并');
     for (const change of changes) if (change.path !== 'config/photo-sources.json' && !/^src\/content\/projects\/[a-z0-9]+(?:-[a-z0-9]+)*\.json$/.test(change.path)) throw new ApiError(403, 'path', '不允许写入此路径');

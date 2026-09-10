@@ -6,6 +6,6 @@ Phase 7 adds an independent Cloudflare Worker admin with Cloudflare Access email
 - `pnpm admin:build` — build the real admin UI; `pnpm admin:dev` starts its protected local Worker.
 - `pnpm test:admin` — admin API/UI and local workerd checks; `pnpm test` runs the full regression suite.
 
-Free-first deployment remains unverified: the Paid CPU override was removed, but authenticated local workerd profiling still shows cold-request and larger-gallery costs above Free targets. See [CPU measurements and remaining work](docs/ADMIN_CPU_PROFILE.md). Unsaved Project edits now require save/discard confirmation before replacing the editor.
+The deployed Workers Free backend has reproduced 1102/exceededCpu failures. A compact CI artifact read path is being validated; migration and real Free acceptance remain pending. See [the compact-read implementation and acceptance status](docs/ADMIN_COMPACT_READ.md). See [CPU measurements and remaining work](docs/ADMIN_CPU_PROFILE.md). Unsaved Project edits now require save/discard confirmation before replacing the editor.
 
 Cloudflare is not configured yet. The real Worker fails closed without valid Access authentication; fixture preview edits stay in memory. No production deployment or real Project creation was performed. See [admin setup and deployment prerequisites](docs/ADMIN_SETUP.md), [Phase 7 report](PHASE7_REPORT.md), and [architecture](ARCHITECTURE.md).

@@ -7,9 +7,10 @@ export function assert(value: unknown, message: string): asserts value {
 export async function bytes(response: Response, limit: number) {
   const reader = response.body?.getReader();
   if (!reader) return new Uint8Array();
-  const chunks: Uint8Array[] = []; let length = 0;
-  try { for (;;) { const { done, value } = await reader.read(); if (done) break; length += value.length; if (length > limit) throw new ApiError(413, 'too_large', '内容超出后台处理上限'); chunks.push(value); } }
-  finally { await reader.cancel(); }
+  const chunks: Uint8Array[] = []; let length = 0; let complete = false;
+  try { for (;;) { const { done, value } = await reader.read(); if (done) { complete = true; break; } length += value.length; if (length > limit) throw new ApiError(413, 'too_large', '内容超出后台处理上限'); chunks.push(value); } }
+  finally { if (!complete) await reader.cancel().catch(() => {}); reader.releaseLock(); }
+  if (chunks.length === 1) return chunks[0]!;
   const result = new Uint8Array(length); let offset = 0;
   for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; }
   return result;

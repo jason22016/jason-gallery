@@ -10,7 +10,10 @@ export const LEGACY_SOURCE: PhotoSource = { sourceId: 'jason-photos', name: 'Jas
 export const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export function parseSources(value: unknown): SourcesConfig {
   const config = SourcesSchema.parse(value);
-  return { schemaVersion: 1, sources: config.sources.map(s => ({ ...s, owner: s.owner.toLowerCase(), repo: s.repo.toLowerCase() })).sort((a,b) => a.sourceId.localeCompare(b.sourceId, 'en')) };
+  // Valid IDs contain only lowercase ASCII letters, digits and hyphens. Their
+  // ordering matches the previous English collation, without initializing ICU
+  // on the first request in each Worker isolate.
+  return { schemaVersion: 1, sources: config.sources.map(s => ({ ...s, owner: s.owner.toLowerCase(), repo: s.repo.toLowerCase() })).sort((a,b) => a.sourceId < b.sourceId ? -1 : a.sourceId > b.sourceId ? 1 : 0) };
 }
 export const sourceIdentity = (s: PhotoSource) => digest({ owner: s.owner.toLowerCase(), repo: s.repo.toLowerCase(), branch: s.branch, path: s.path });
 export const sourceAPI = (s: PhotoSource) => `https://api.github.com/repos/${s.owner}/${s.repo}`;
@@ -21,12 +24,13 @@ export const photoReference = (s: PhotoSource, nativeId: string) => `${s.sourceI
 
 const PinnedSourceSchema = SourceSchema.extend({ identity: z.string().regex(/^[a-f0-9]{64}$/), commit: z.string().regex(/^[a-f0-9]{40}$/) });
 const SnapshotSchema = z.strictObject({ schemaVersion: z.literal(1), config: SourcesSchema, configDigest: z.string(), sources: z.array(PinnedSourceSchema), version: z.string() });
+const CommitSchema = z.string().regex(/^[a-f0-9]{40}$/);
 export type PhotoSnapshot = z.infer<typeof SnapshotSchema>;
 export function makeSnapshot(config: SourcesConfig, commits: Record<string, string>): PhotoSnapshot {
   config = parseSources(config);
   const enabled = config.sources.filter(s => s.enabled);
   if (Object.keys(commits).sort().join('\0') !== enabled.map(s => s.sourceId).sort().join('\0')) throw new Error('Snapshot commits must exactly match all enabled sources');
-  const record = { schemaVersion: 1 as const, config, configDigest: digest(config), sources: enabled.map(s => ({ ...s, identity: sourceIdentity(s), commit: z.string().regex(/^[a-f0-9]{40}$/).parse(commits[s.sourceId]) })) };
+  const record = { schemaVersion: 1 as const, config, configDigest: digest(config), sources: enabled.map(s => ({ ...s, identity: sourceIdentity(s), commit: CommitSchema.parse(commits[s.sourceId]) })) };
   return { ...record, version: digest(record) };
 }
 export function verifySnapshot(value: unknown, config?: SourcesConfig): PhotoSnapshot {

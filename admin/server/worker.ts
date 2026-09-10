@@ -12,7 +12,7 @@ function secure(response: Response, env: Env) {
   return result;
 }
 // Dependency injection is only for transport-level tests; no development login or auth bypass exists.
-export async function handle(request: Request, env: Env, transport: typeof fetch = fetch) {
+async function route(request: Request, env: Env, transport: typeof fetch, assetRead: () => void) {
   try {
     const email = await authenticate(request, env, transport);
     const url = new URL(request.url);
@@ -35,7 +35,7 @@ export async function handle(request: Request, env: Env, transport: typeof fetch
       } else throw new ApiError(404, 'route', '管理接口不存在');
       // Never echo token text even if a remote error/summary includes it.
       response = new Response(JSON.stringify(data).split(env.GITHUB_TOKEN).join('[redacted]'), { headers: { 'Content-Type': 'application/json' } });
-    } else if (request.method === 'GET') response = await env.ASSETS.fetch(request as any) as unknown as Response;
+    } else if (request.method === 'GET') { assetRead(); response = await env.ASSETS.fetch(request as any) as unknown as Response; }
     else throw new ApiError(404, 'route', '管理接口不存在');
     return secure(response, env);
   } catch (error) {
@@ -43,5 +43,22 @@ export async function handle(request: Request, env: Env, transport: typeof fetch
     const body = JSON.stringify({ error: api.code, message: api.message, details: api.details });
     return secure(new Response(env.GITHUB_TOKEN ? body.split(env.GITHUB_TOKEN).join('[redacted]') : body, { status: api.status, headers: { 'Content-Type': 'application/json' } }), env);
   }
+}
+export async function handle(request: Request, env: Env, transport: typeof fetch = fetch) {
+  const requestId = crypto.randomUUID(), started = Date.now();
+  let upstreamRequests = 0, assetRequests = 0;
+  const counted: typeof fetch = async (input, init) => {
+    if (upstreamRequests >= 48) throw new ApiError(413, 'request_budget', '单次操作的上游请求超过安全预算');
+    upstreamRequests++;
+    return transport.call(globalThis, input, init);
+  };
+  const response = await route(request, env, counted, () => { assetRequests++; });
+  response.headers.set('X-Admin-Request-Id', requestId);
+  const pathname = new URL(request.url).pathname;
+  const label = /^\/api\/thumbnail\//.test(pathname) ? '/api/thumbnail/*' : ['/api/state', '/api/save', '/api/impact', '/api/dispatch', '/api/tasks'].includes(pathname) ? pathname : 'asset-or-unknown';
+  // No URLs, identities, cookies, tokens, signed locations or payloads. CPU/outcome
+  // are Cloudflare invocation fields, never inferred from this wall-clock duration.
+  console.info(JSON.stringify({ event: 'admin-request', requestId, route: label, method: request.method, status: response.status, upstreamRequests, assetRequests, cacheOperations: 0, wallMs: Date.now() - started }));
+  return response;
 }
 export default { fetch: (request: Request, env: Env) => handle(request, env) };

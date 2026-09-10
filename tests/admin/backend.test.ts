@@ -53,28 +53,26 @@ test('expired, stale, corrupt and failed artifacts cannot be selected or publish
   const queued=await (await api(f,'/api/dispatch',{mode:'sync',expectedHead:head})).json();assert.equal(queued.state,'pending');assert.match(queued.requestId,/^[a-f\d-]{36}$/);assert.equal(f.mutations.at(-1).body.ref,'main');assert.equal(f.mutations.at(-1).body.inputs.expected_website_commit,head);
   const service=new AdminService(new GitHub(env,f.fetcher));assert.equal((await service.tasks(queued.requestId)).pending,true);
   assert.equal((await service.tasks()).tasks[0].published,false);
-  f.setSummary({...f.summary,action:'publish',deployment:{status:'success',version:'sealed-version',url:'https://gallery.example.com'}});assert.equal((await service.tasks()).tasks[0].published,true);
+  f.setSummary({...f.summary,action:'publish',deployment:{status:'success',version:'sealed-version',url:'https://gallery.example.com'}});assert.equal((await new AdminService(new GitHub(env,f.fetcher)).tasks()).tasks[0].published,true);
   const enabled=new AdminService(new GitHub({...env,PUBLISH_ENABLED:'true'},f.fetcher));
   const publish=await enabled.dispatch({mode:'publish',expectedHead:head,photoRunId:1});assert.equal(publish.state,'pending');assert.equal(f.mutations.at(-1).body.inputs.photo_run_id,'1');assert.deepEqual(JSON.parse(f.mutations.at(-1).body.inputs.photo_commits),Object.fromEntries(snapshot.sources.map(s=>[s.sourceId,s.commit])));
   f.run.conclusion='failure';assert.equal((await service.tasks()).tasks[0].published,false);
 });
-test('authenticated immutable thumbnail cache reduces GitHub reads, stores no credentials, and expires safely',async()=>{
-  const prior=globalThis.caches;const stored=new Map<string,Response>();
-  const storage={match:async(r:Request)=>stored.get(r.url)?.clone(),put:async(r:Request,v:Response)=>{stored.set(r.url,v.clone());}} as Cache;
-  Object.defineProperty(globalThis,'caches',{value:{default:storage},configurable:true});
-  try{
+test('authenticated thumbnails remain bounded without Cache API, never read content, and reject expiry',async()=>{
+  const prior=globalThis.caches; let operations=0;
+  Object.defineProperty(globalThis,'caches',{value:{default:{match:async()=>{operations++;throw new Error('unavailable');},put:async()=>{operations++;throw new Error('unavailable');}}},configurable:true});
+  try {
     const f=await fixture();const state=await(await api(f,'/api/state')).json();assert.equal(state.media.state,'ready');
     const path=state.media.photos[0].photo.thumbnailUrl;
-    const before=f.network.length;assert.equal((await api(f,path)).status,200);const calls=f.network.length-before;assert(calls<10,`cached thumbnail used ${calls} calls`);
-    const warmBefore=f.network.length;assert.equal((await api(f,path)).status,200);assert.equal(f.network.length-warmBefore,1,'warm thumbnail should only fetch public signing keys, without opening ZIP');
-    const fileKey=[...stored.keys()].find(k=>k.includes('/file/')&&decodeURIComponent(k).endsWith(`/public/thumbnails/${state.media.photos[0].photo.id}.jpg`));assert(fileKey);
-    const intact=stored.get(fileKey)!.clone();stored.set(fileKey,new Response('corrupted cache bytes'));
-    assert.equal((await api(f,path)).status,422,'cached bytes must still pass their sealed hash');stored.set(fileKey,intact);
+    for(let i=0;i<3;i++) {
+      const before=f.network.length; assert.equal((await api(f,path)).status,200);
+      const requests=f.network.slice(before);assert(requests.length<=12);
+      assert(!requests.some(r=>/graphql|git\/trees|git\/ref|\/photos$/.test(r.url)), 'thumbnail must never rebuild content or original photos');
+    }
+    assert.equal(operations,0);
     const deniedBefore=f.network.length;assert.equal((await api(f,path,undefined,'')).status,401);assert.equal(f.network.length,deniedBefore);
-    for(const [key,res] of stored){assert(!key.includes('signed-never-expose'));const text=await res.clone().text();assert(!text.includes(env.GITHUB_TOKEN));assert(!text.includes('signed-never-expose'));}
-    const service=new AdminService(new GitHub(env,f.fetcher));await service.tasks();const taskReads=f.network.length;await service.tasks();assert.equal(f.network.length-taskReads,1,'completed task details should use disposable cache');
-    stored.clear();f.setExpired();assert.equal((await api(f,path)).status,410);
+    f.setExpired();assert.equal((await api(f,path)).status,410);
     const legacy={schemaVersion:1,id:'legacy',slug:'legacy',title:'Legacy dash filename',coverPhotoId:'file--with-dashes_abcd',photos:[{photoId:'file--with-dashes_abcd'}],order:0,status:'draft'} as const;
     assert.equal(sourceImpacts(config,{...config,sources:config.sources.filter(s=>s.sourceId!=='jason-photos')},[legacy as any]).length,1);
-  }finally{Object.defineProperty(globalThis,'caches',{value:prior,configurable:true});}
+  } finally {Object.defineProperty(globalThis,'caches',{value:prior,configurable:true});}
 });

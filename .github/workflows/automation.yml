@@ -137,6 +137,7 @@ jobs:
             .cache/photo-engine/sources/*/*/cache/thumbnails
           key: ${{ steps.derived.outputs.cache-primary-key }}
       - name: Full index and previews for future administration (never deploy this directory)
+        id: photos-artifact
         if: steps.photos.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -144,6 +145,28 @@ jobs:
           path: .cache/automation/photos
           retention-days: 14
           if-no-files-found: error
+      - name: Generate verified compact admin catalog and previews
+        if: steps.photos-artifact.outcome == 'success'
+        env:
+          PHOTOS_ARTIFACT_ID: ${{ steps.photos-artifact.outputs.artifact-id }}
+        run: node --import tsx scripts/admin/read-artifact.ts generate
+      - name: Upload compact admin read artifact without compression
+        id: admin-read-artifact
+        if: steps.photos-artifact.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: admin-read
+          path: .cache/automation/admin-read
+          retention-days: 14
+          compression-level: 0
+          if-no-files-found: error
+      - name: Verify uploaded STORE layout and seal admin artifact identity
+        if: steps.admin-read-artifact.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ADMIN_READ_ARTIFACT_ID: ${{ steps.admin-read-artifact.outputs.artifact-id }}
+          ADMIN_READ_ARTIFACT_DIGEST: ${{ steps.admin-read-artifact.outputs.artifact-digest }}
+        run: node --import tsx scripts/admin/read-artifact.ts verify-upload
       - name: Validate Projects, build and seal public website
         if: env.TASK_MODE == 'publish'
         run: pnpm automation build
@@ -185,6 +208,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: execution-summary
+          compression-level: 0
           path: .cache/automation/summary.json
           retention-days: 30
           if-no-files-found: warn

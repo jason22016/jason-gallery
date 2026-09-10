@@ -11,5 +11,5 @@
   "secrets": { "required": ["GITHUB_TOKEN"] },
   // Free-first evaluation: use the account plan limit; no Paid CPU override.
   // Local profiling is not Free acceptance; see docs/ADMIN_CPU_PROFILE.md.
-  "observability": { "enabled": false }
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
 }

@@ -1,5 +1,7 @@
 # Phase 7 后台：配置与验收
 
+> 2026-09-11 更新：原部署已实际复现 Free CPU 超限。新版改为 CI 封存紧凑产物、Worker 无 Cache API 读取；实现与本地回归正在验证，迁移及真实 Free 验收尚未完成。当前状态和新版契约见 [ADMIN_COMPACT_READ.md](ADMIN_COMPACT_READ.md)。下文旧路径与旧测量保留为历史基线。
+
 已实现独立 Cloudflare Worker（后台静态资源 + Serverless API），唯一登录方式是 Cloudflare Access 邮箱一次性验证码。公开网站继续由现有 Actions 发布到 Cloudflare Pages Direct Upload。本地 fixture、签名 JWT 单元测试和 workerd 测试都不能替代真实 Access 登录或生产部署验收。
 
 ## 本地验证

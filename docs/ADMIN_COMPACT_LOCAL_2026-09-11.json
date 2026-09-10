@@ -1,0 +1,866 @@
+{
+  "measuredAt": "2026-09-10T18:15:38.013Z",
+  "bundle": ".cache/admin-deploy/bundle/worker.js",
+  "node": "v24.19.0",
+  "photos": 154,
+  "sources": 1,
+  "fixture": "verified-local-collection",
+  "cacheMode": "disabled",
+  "caveat": "Local sampled V8 CPU; excludes idle samples but may omit native CPU and include debugger overhead. Not billed CPU, not Free acceptance. Legacy cold/warm labels mean first/repeated samples in the shared isolate, not persistent cache. Separate fresh-isolate checks are functional assertions, not CPU measurements.",
+  "freshIsolateChecks": [
+    {
+      "name": "authenticated-assets",
+      "status": 200,
+      "upstreamAndAssetCalls": 2
+    },
+    {
+      "name": "state",
+      "status": 200,
+      "upstreamAndAssetCalls": 12
+    },
+    {
+      "name": "thumbnail",
+      "status": 200,
+      "upstreamAndAssetCalls": 11
+    },
+    {
+      "name": "source-impact",
+      "status": 200,
+      "upstreamAndAssetCalls": 4
+    },
+    {
+      "name": "source-save",
+      "status": 200,
+      "upstreamAndAssetCalls": 9
+    },
+    {
+      "name": "project-save",
+      "status": 200,
+      "upstreamAndAssetCalls": 17
+    },
+    {
+      "name": "sync-dispatch",
+      "status": 200,
+      "upstreamAndAssetCalls": 5
+    },
+    {
+      "name": "publish-dispatch",
+      "status": 200,
+      "upstreamAndAssetCalls": 13
+    },
+    {
+      "name": "tasks",
+      "status": 200,
+      "upstreamAndAssetCalls": 6
+    },
+    {
+      "name": "state-40-projects",
+      "status": 200,
+      "upstreamAndAssetCalls": 12
+    },
+    {
+      "name": "project-save-40-projects",
+      "status": 200,
+      "upstreamAndAssetCalls": 17
+    },
+    {
+      "name": "publish-40-projects",
+      "status": 200,
+      "upstreamAndAssetCalls": 13
+    }
+  ],
+  "results": [
+    {
+      "name": "authenticated-assets",
+      "cache": "cold",
+      "iteration": 0,
+      "sampledV8Ms": 4.712000000000001,
+      "wallMs": 5.167707999999948,
+      "externalRequests": 1,
+      "cacheOperations": 0,
+      "countedExternalRequests": 1,
+      "fetchPlusCacheOperations": 1
+    },
+    {
+      "name": "authenticated-assets",
+      "cache": "warm",
+      "iteration": 1,
+      "sampledV8Ms": 2.394,
+      "wallMs": 3.5563750000001164,
+      "externalRequests": 1,
+      "cacheOperations": 0,
+      "countedExternalRequests": 1,
+      "fetchPlusCacheOperations": 1
+    },
+    {
+      "name": "authenticated-assets",
+      "cache": "warm",
+      "iteration": 2,
+      "sampledV8Ms": 2.09,
+      "wallMs": 3.3904999999999745,
+      "externalRequests": 1,
+      "cacheOperations": 0,
+      "countedExternalRequests": 1,
+      "fetchPlusCacheOperations": 1
+    },
+    {
+      "name": "authenticated-assets",
+      "cache": "warm",
+      "iteration": 3,
+      "sampledV8Ms": 2.59,
+      "wallMs": 3.2980830000001333,
+      "externalRequests": 1,
+      "cacheOperations": 0,
+      "countedExternalRequests": 1,
+      "fetchPlusCacheOperations": 1
+    },
+    {
+      "name": "authenticated-assets",
+      "cache": "warm",
+      "iteration": 4,
+      "sampledV8Ms": 3.8939999999999997,
+      "wallMs": 4.46508300000005,
+      "externalRequests": 1,
+      "cacheOperations": 0,
+      "countedExternalRequests": 1,
+      "fetchPlusCacheOperations": 1
+    },
+    {
+      "name": "authenticated-assets",
+      "cache": "warm",
+      "iteration": 5,
+      "sampledV8Ms": 2.843,
+      "wallMs": 3.626457999999957,
+      "externalRequests": 1,
+      "cacheOperations": 0,
+      "countedExternalRequests": 1,
+      "fetchPlusCacheOperations": 1
+    },
+    {
+      "name": "state",
+      "cache": "cold",
+      "iteration": 0,
+      "sampledV8Ms": 24.837999999999997,
+      "wallMs": 26.186958000000004,
+      "externalRequests": 12,
+      "cacheOperations": 0,
+      "countedExternalRequests": 12,
+      "fetchPlusCacheOperations": 12
+    },
+    {
+      "name": "state",
+      "cache": "warm",
+      "iteration": 1,
+      "sampledV8Ms": 10.927000000000001,
+      "wallMs": 12.21287499999994,
+      "externalRequests": 12,
+      "cacheOperations": 0,
+      "countedExternalRequests": 12,
+      "fetchPlusCacheOperations": 12
+    },
+    {
+      "name": "state",
+      "cache": "warm",
+      "iteration": 2,
+      "sampledV8Ms": 9.08,
+      "wallMs": 10.359874999999874,
+      "externalRequests": 12,
+      "cacheOperations": 0,
+      "countedExternalRequests": 12,
+      "fetchPlusCacheOperations": 12
+    },
+    {
+      "name": "state",
+      "cache": "warm",
+      "iteration": 3,
+      "sampledV8Ms": 8.317,
+      "wallMs": 9.627459000000044,
+      "externalRequests": 12,
+      "cacheOperations": 0,
+      "countedExternalRequests": 12,
+      "fetchPlusCacheOperations": 12
+    },
+    {
+      "name": "state",
+      "cache": "warm",
+      "iteration": 4,
+      "sampledV8Ms": 8.081,
+      "wallMs": 9.2990420000001,
+      "externalRequests": 12,
+      "cacheOperations": 0,
+      "countedExternalRequests": 12,
+      "fetchPlusCacheOperations": 12
+    },
+    {
+      "name": "state",
+      "cache": "warm",
+      "iteration": 5,
+      "sampledV8Ms": 7.655999999999999,
+      "wallMs": 10.777708000000075,
+      "externalRequests": 12,
+      "cacheOperations": 0,
+      "countedExternalRequests": 12,
+      "fetchPlusCacheOperations": 12
+    },
+    {
+      "name": "thumbnail",
+      "cache": "cold",
+      "iteration": 0,
+      "sampledV8Ms": 7.317,
+      "wallMs": 10.719458000000031,
+      "externalRequests": 11,
+      "cacheOperations": 0,
+      "countedExternalRequests": 11,
+      "fetchPlusCacheOperations": 11
+    },
+    {
+      "name": "thumbnail",
+      "cache": "warm",
+      "iteration": 1,
+      "sampledV8Ms": 5.803000000000001,
+      "wallMs": 10.234791000000087,
+      "externalRequests": 11,
+      "cacheOperations": 0,
+      "countedExternalRequests": 11,
+      "fetchPlusCacheOperations": 11
+    },
+    {
+      "name": "thumbnail",
+      "cache": "warm",
+      "iteration": 2,
+      "sampledV8Ms": 6.931,
+      "wallMs": 11.001833000000033,
+      "externalRequests": 11,
+      "cacheOperations": 0,
+      "countedExternalRequests": 11,
+      "fetchPlusCacheOperations": 11
+    },
+    {
+      "name": "thumbnail",
+      "cache": "warm",
+      "iteration": 3,
+      "sampledV8Ms": 8.777,
+      "wallMs": 11.12354100000016,
+      "externalRequests": 11,
+      "cacheOperations": 0,
+      "countedExternalRequests": 11,
+      "fetchPlusCacheOperations": 11
+    },
+    {
+      "name": "thumbnail",
+      "cache": "warm",
+      "iteration": 4,
+      "sampledV8Ms": 7.819999999999999,
+      "wallMs": 10.271625000000085,
+      "externalRequests": 11,
+      "cacheOperations": 0,
+      "countedExternalRequests": 11,
+      "fetchPlusCacheOperations": 11
+    },
+    {
+      "name": "thumbnail",
+      "cache": "warm",
+      "iteration": 5,
+      "sampledV8Ms": 6.296999999999999,
+      "wallMs": 10.035333000000037,
+      "externalRequests": 11,
+      "cacheOperations": 0,
+      "countedExternalRequests": 11,
+      "fetchPlusCacheOperations": 11
+    },
+    {
+      "name": "source-impact",
+      "cache": "cold",
+      "iteration": 0,
+      "sampledV8Ms": 2.546,
+      "wallMs": 4.725541999999905,
+      "externalRequests": 4,
+      "cacheOperations": 0,
+      "countedExternalRequests": 4,
+      "fetchPlusCacheOperations": 4
+    },
+    {
+      "name": "source-impact",
+      "cache": "warm",
+      "iteration": 1,
+      "sampledV8Ms": 3.427,
+      "wallMs": 3.919665999999779,
+      "externalRequests": 4,
+      "cacheOperations": 0,
+      "countedExternalRequests": 4,
+      "fetchPlusCacheOperations": 4
+    },
+    {
+      "name": "source-impact",
+      "cache": "warm",
+      "iteration": 2,
+      "sampledV8Ms": 3.703,
+      "wallMs": 4.031833000000006,
+      "externalRequests": 4,
+      "cacheOperations": 0,
+      "countedExternalRequests": 4,
+      "fetchPlusCacheOperations": 4
+    },
+    {
+      "name": "source-impact",
+      "cache": "warm",
+      "iteration": 3,
+      "sampledV8Ms": 3.973,
+      "wallMs": 4.4347499999998945,
+      "externalRequests": 4,
+      "cacheOperations": 0,
+      "countedExternalRequests": 4,
+      "fetchPlusCacheOperations": 4
+    },
+    {
+      "name": "source-impact",
+      "cache": "warm",
+      "iteration": 4,
+      "sampledV8Ms": 3.176,
+      "wallMs": 3.984124999999949,
+      "externalRequests": 4,
+      "cacheOperations": 0,
+      "countedExternalRequests": 4,
+      "fetchPlusCacheOperations": 4
+    },
+    {
+      "name": "source-impact",
+      "cache": "warm",
+      "iteration": 5,
+      "sampledV8Ms": 3.594,
+      "wallMs": 3.9465000000000146,
+      "externalRequests": 4,
+      "cacheOperations": 0,
+      "countedExternalRequests": 4,
+      "fetchPlusCacheOperations": 4
+    },
+    {
+      "name": "source-save",
+      "cache": "cold",
+      "iteration": 0,
+      "sampledV8Ms": 6.612999999999999,
+      "wallMs": 7.305290999999897,
+      "externalRequests": 9,
+      "cacheOperations": 0,
+      "countedExternalRequests": 9,
+      "fetchPlusCacheOperations": 9
+    },
+    {
+      "name": "source-save",
+      "cache": "warm",
+      "iteration": 1,
+      "sampledV8Ms": 4.065,
+      "wallMs": 8.003958000000011,
+      "externalRequests": 9,
+      "cacheOperations": 0,
+      "countedExternalRequests": 9,
+      "fetchPlusCacheOperations": 9
+    },
+    {
+      "name": "source-save",
+      "cache": "warm",
+      "iteration": 2,
+      "sampledV8Ms": 7.492,
+      "wallMs": 7.936124999999947,
+      "externalRequests": 9,
+      "cacheOperations": 0,
+      "countedExternalRequests": 9,
+      "fetchPlusCacheOperations": 9
+    },
+    {
+      "name": "source-save",
+      "cache": "warm",
+      "iteration": 3,
+      "sampledV8Ms": 4.696,
+      "wallMs": 6.4822079999999005,
+      "externalRequests": 9,
+      "cacheOperations": 0,
+      "countedExternalRequests": 9,
+      "fetchPlusCacheOperations": 9
+    },
+    {
+      "name": "source-save",
+      "cache": "warm",
+      "iteration": 4,
+      "sampledV8Ms": 4.918,
+      "wallMs": 10.718707999999879,
+      "externalRequests": 9,
+      "cacheOperations": 0,
+      "countedExternalRequests": 9,
+      "fetchPlusCacheOperations": 9
+    },
+    {
+      "name": "source-save",
+      "cache": "warm",
+      "iteration": 5,
+      "sampledV8Ms": 3.8970000000000002,
+      "wallMs": 6.2299159999997755,
+      "externalRequests": 9,
+      "cacheOperations": 0,
+      "countedExternalRequests": 9,
+      "fetchPlusCacheOperations": 9
+    },
+    {
+      "name": "project-save",
+      "cache": "cold",
+      "iteration": 0,
+      "sampledV8Ms": 9.522999999999998,
+      "wallMs": 11.423791000000165,
+      "externalRequests": 17,
+      "cacheOperations": 0,
+      "countedExternalRequests": 17,
+      "fetchPlusCacheOperations": 17
+    },
+    {
+      "name": "project-save",
+      "cache": "warm",
+      "iteration": 1,
+      "sampledV8Ms": 9.983,
+      "wallMs": 11.297583999999915,
+      "externalRequests": 17,
+      "cacheOperations": 0,
+      "countedExternalRequests": 17,
+      "fetchPlusCacheOperations": 17
+    },
+    {
+      "name": "project-save",
+      "cache": "warm",
+      "iteration": 2,
+      "sampledV8Ms": 11.819999999999999,
+      "wallMs": 12.634000000000015,
+      "externalRequests": 17,
+      "cacheOperations": 0,
+      "countedExternalRequests": 17,
+      "fetchPlusCacheOperations": 17
+    },
+    {
+      "name": "project-save",
+      "cache": "warm",
+      "iteration": 3,
+      "sampledV8Ms": 12.913,
+      "wallMs": 14.759208999999828,
+      "externalRequests": 17,
+      "cacheOperations": 0,
+      "countedExternalRequests": 17,
+      "fetchPlusCacheOperations": 17
+    },
+    {
+      "name": "project-save",
+      "cache": "warm",
+      "iteration": 4,
+      "sampledV8Ms": 7.176999999999999,
+      "wallMs": 11.95470800000021,
+      "externalRequests": 17,
+      "cacheOperations": 0,
+      "countedExternalRequests": 17,
+      "fetchPlusCacheOperations": 17
+    },
+    {
+      "name": "project-save",
+      "cache": "warm",
+      "iteration": 5,
+      "sampledV8Ms": 6.667,
+      "wallMs": 10.950166999999965,
+      "externalRequests": 17,
+      "cacheOperations": 0,
+      "countedExternalRequests": 17,
+      "fetchPlusCacheOperations": 17
+    },
+    {
+      "name": "sync-dispatch",
+      "cache": "cold",
+      "iteration": 0,
+      "sampledV8Ms": 2.857,
+      "wallMs": 4.443667000000005,
+      "externalRequests": 5,
+      "cacheOperations": 0,
+      "countedExternalRequests": 5,
+      "fetchPlusCacheOperations": 5
+    },
+    {
+      "name": "sync-dispatch",
+      "cache": "warm",
+      "iteration": 1,
+      "sampledV8Ms": 3.0020000000000002,
+      "wallMs": 4.300583999999617,
+      "externalRequests": 5,
+      "cacheOperations": 0,
+      "countedExternalRequests": 5,
+      "fetchPlusCacheOperations": 5
+    },
+    {
+      "name": "sync-dispatch",
+      "cache": "warm",
+      "iteration": 2,
+      "sampledV8Ms": 4.442,
+      "wallMs": 4.86850000000004,
+      "externalRequests": 5,
+      "cacheOperations": 0,
+      "countedExternalRequests": 5,
+      "fetchPlusCacheOperations": 5
+    },
+    {
+      "name": "sync-dispatch",
+      "cache": "warm",
+      "iteration": 3,
+      "sampledV8Ms": 3.572,
+      "wallMs": 4.321707999999944,
+      "externalRequests": 5,
+      "cacheOperations": 0,
+      "countedExternalRequests": 5,
+      "fetchPlusCacheOperations": 5
+    },
+    {
+      "name": "sync-dispatch",
+      "cache": "warm",
+      "iteration": 4,
+      "sampledV8Ms": 2.282,
+      "wallMs": 4.508958000000348,
+      "externalRequests": 5,
+      "cacheOperations": 0,
+      "countedExternalRequests": 5,
+      "fetchPlusCacheOperations": 5
+    },
+    {
+      "name": "sync-dispatch",
+      "cache": "warm",
+      "iteration": 5,
+      "sampledV8Ms": 4.177999999999999,
+      "wallMs": 4.5835000000001855,
+      "externalRequests": 5,
+      "cacheOperations": 0,
+      "countedExternalRequests": 5,
+      "fetchPlusCacheOperations": 5
+    },
+    {
+      "name": "publish-dispatch",
+      "cache": "cold",
+      "iteration": 0,
+      "sampledV8Ms": 9.677999999999999,
+      "wallMs": 10.147208000000319,
+      "externalRequests": 13,
+      "cacheOperations": 0,
+      "countedExternalRequests": 13,
+      "fetchPlusCacheOperations": 13
+    },
+    {
+      "name": "publish-dispatch",
+      "cache": "warm",
+      "iteration": 1,
+      "sampledV8Ms": 9.57,
+      "wallMs": 10.089375000000018,
+      "externalRequests": 13,
+      "cacheOperations": 0,
+      "countedExternalRequests": 13,
+      "fetchPlusCacheOperations": 13
+    },
+    {
+      "name": "publish-dispatch",
+      "cache": "warm",
+      "iteration": 2,
+      "sampledV8Ms": 8.689,
+      "wallMs": 9.573958999999832,
+      "externalRequests": 13,
+      "cacheOperations": 0,
+      "countedExternalRequests": 13,
+      "fetchPlusCacheOperations": 13
+    },
+    {
+      "name": "publish-dispatch",
+      "cache": "warm",
+      "iteration": 3,
+      "sampledV8Ms": 9.432,
+      "wallMs": 9.099125000000186,
+      "externalRequests": 13,
+      "cacheOperations": 0,
+      "countedExternalRequests": 13,
+      "fetchPlusCacheOperations": 13
+    },
+    {
+      "name": "publish-dispatch",
+      "cache": "warm",
+      "iteration": 4,
+      "sampledV8Ms": 9.438,
+      "wallMs": 10.440583999999944,
+      "externalRequests": 13,
+      "cacheOperations": 0,
+      "countedExternalRequests": 13,
+      "fetchPlusCacheOperations": 13
+    },
+    {
+      "name": "publish-dispatch",
+      "cache": "warm",
+      "iteration": 5,
+      "sampledV8Ms": 10.368,
+      "wallMs": 11.972291999999925,
+      "externalRequests": 13,
+      "cacheOperations": 0,
+      "countedExternalRequests": 13,
+      "fetchPlusCacheOperations": 13
+    },
+    {
+      "name": "tasks",
+      "cache": "cold",
+      "iteration": 0,
+      "sampledV8Ms": 4.991,
+      "wallMs": 5.206208000000061,
+      "externalRequests": 6,
+      "cacheOperations": 0,
+      "countedExternalRequests": 6,
+      "fetchPlusCacheOperations": 6
+    },
+    {
+      "name": "tasks",
+      "cache": "warm",
+      "iteration": 1,
+      "sampledV8Ms": 9.255,
+      "wallMs": 9.88412500000004,
+      "externalRequests": 6,
+      "cacheOperations": 0,
+      "countedExternalRequests": 6,
+      "fetchPlusCacheOperations": 6
+    },
+    {
+      "name": "tasks",
+      "cache": "warm",
+      "iteration": 2,
+      "sampledV8Ms": 5.468,
+      "wallMs": 5.851666000000023,
+      "externalRequests": 6,
+      "cacheOperations": 0,
+      "countedExternalRequests": 6,
+      "fetchPlusCacheOperations": 6
+    },
+    {
+      "name": "tasks",
+      "cache": "warm",
+      "iteration": 3,
+      "sampledV8Ms": 4.5329999999999995,
+      "wallMs": 5.425790999999663,
+      "externalRequests": 6,
+      "cacheOperations": 0,
+      "countedExternalRequests": 6,
+      "fetchPlusCacheOperations": 6
+    },
+    {
+      "name": "tasks",
+      "cache": "warm",
+      "iteration": 4,
+      "sampledV8Ms": 3.0629999999999997,
+      "wallMs": 5.018625000000156,
+      "externalRequests": 6,
+      "cacheOperations": 0,
+      "countedExternalRequests": 6,
+      "fetchPlusCacheOperations": 6
+    },
+    {
+      "name": "tasks",
+      "cache": "warm",
+      "iteration": 5,
+      "sampledV8Ms": 4.657,
+      "wallMs": 5.018625000000156,
+      "externalRequests": 6,
+      "cacheOperations": 0,
+      "countedExternalRequests": 6,
+      "fetchPlusCacheOperations": 6
+    },
+    {
+      "name": "state-40-projects",
+      "cache": "cold",
+      "iteration": 0,
+      "sampledV8Ms": 9.460999999999999,
+      "wallMs": 14.911416999999801,
+      "externalRequests": 12,
+      "cacheOperations": 0,
+      "countedExternalRequests": 12,
+      "fetchPlusCacheOperations": 12
+    },
+    {
+      "name": "state-40-projects",
+      "cache": "warm",
+      "iteration": 1,
+      "sampledV8Ms": 11.594999999999997,
+      "wallMs": 15.263124999999945,
+      "externalRequests": 12,
+      "cacheOperations": 0,
+      "countedExternalRequests": 12,
+      "fetchPlusCacheOperations": 12
+    },
+    {
+      "name": "state-40-projects",
+      "cache": "warm",
+      "iteration": 2,
+      "sampledV8Ms": 9.919000000000004,
+      "wallMs": 17.589332999999897,
+      "externalRequests": 12,
+      "cacheOperations": 0,
+      "countedExternalRequests": 12,
+      "fetchPlusCacheOperations": 12
+    },
+    {
+      "name": "state-40-projects",
+      "cache": "warm",
+      "iteration": 3,
+      "sampledV8Ms": 16.987999999999992,
+      "wallMs": 19.036459000000377,
+      "externalRequests": 12,
+      "cacheOperations": 0,
+      "countedExternalRequests": 12,
+      "fetchPlusCacheOperations": 12
+    },
+    {
+      "name": "state-40-projects",
+      "cache": "warm",
+      "iteration": 4,
+      "sampledV8Ms": 12.216999999999999,
+      "wallMs": 13.947500000000218,
+      "externalRequests": 12,
+      "cacheOperations": 0,
+      "countedExternalRequests": 12,
+      "fetchPlusCacheOperations": 12
+    },
+    {
+      "name": "state-40-projects",
+      "cache": "warm",
+      "iteration": 5,
+      "sampledV8Ms": 11.986,
+      "wallMs": 13.573542000000089,
+      "externalRequests": 12,
+      "cacheOperations": 0,
+      "countedExternalRequests": 12,
+      "fetchPlusCacheOperations": 12
+    },
+    {
+      "name": "project-save-40-projects",
+      "cache": "cold",
+      "iteration": 0,
+      "sampledV8Ms": 14.375,
+      "wallMs": 15.552792000000409,
+      "externalRequests": 17,
+      "cacheOperations": 0,
+      "countedExternalRequests": 17,
+      "fetchPlusCacheOperations": 17
+    },
+    {
+      "name": "project-save-40-projects",
+      "cache": "warm",
+      "iteration": 1,
+      "sampledV8Ms": 12.929999999999998,
+      "wallMs": 15.146499999999833,
+      "externalRequests": 17,
+      "cacheOperations": 0,
+      "countedExternalRequests": 17,
+      "fetchPlusCacheOperations": 17
+    },
+    {
+      "name": "project-save-40-projects",
+      "cache": "warm",
+      "iteration": 2,
+      "sampledV8Ms": 10.886000000000001,
+      "wallMs": 14.313000000000102,
+      "externalRequests": 17,
+      "cacheOperations": 0,
+      "countedExternalRequests": 17,
+      "fetchPlusCacheOperations": 17
+    },
+    {
+      "name": "project-save-40-projects",
+      "cache": "warm",
+      "iteration": 3,
+      "sampledV8Ms": 14.498999999999999,
+      "wallMs": 15.013083000000279,
+      "externalRequests": 17,
+      "cacheOperations": 0,
+      "countedExternalRequests": 17,
+      "fetchPlusCacheOperations": 17
+    },
+    {
+      "name": "project-save-40-projects",
+      "cache": "warm",
+      "iteration": 4,
+      "sampledV8Ms": 22.367999999999995,
+      "wallMs": 26.80425000000014,
+      "externalRequests": 17,
+      "cacheOperations": 0,
+      "countedExternalRequests": 17,
+      "fetchPlusCacheOperations": 17
+    },
+    {
+      "name": "project-save-40-projects",
+      "cache": "warm",
+      "iteration": 5,
+      "sampledV8Ms": 17.391000000000002,
+      "wallMs": 17.79754200000025,
+      "externalRequests": 17,
+      "cacheOperations": 0,
+      "countedExternalRequests": 17,
+      "fetchPlusCacheOperations": 17
+    },
+    {
+      "name": "publish-40-projects",
+      "cache": "cold",
+      "iteration": 0,
+      "sampledV8Ms": 12.924,
+      "wallMs": 14.314708999999766,
+      "externalRequests": 13,
+      "cacheOperations": 0,
+      "countedExternalRequests": 13,
+      "fetchPlusCacheOperations": 13
+    },
+    {
+      "name": "publish-40-projects",
+      "cache": "warm",
+      "iteration": 1,
+      "sampledV8Ms": 12.050999999999997,
+      "wallMs": 13.661957999999686,
+      "externalRequests": 13,
+      "cacheOperations": 0,
+      "countedExternalRequests": 13,
+      "fetchPlusCacheOperations": 13
+    },
+    {
+      "name": "publish-40-projects",
+      "cache": "warm",
+      "iteration": 2,
+      "sampledV8Ms": 9.608999999999998,
+      "wallMs": 14.226583000000119,
+      "externalRequests": 13,
+      "cacheOperations": 0,
+      "countedExternalRequests": 13,
+      "fetchPlusCacheOperations": 13
+    },
+    {
+      "name": "publish-40-projects",
+      "cache": "warm",
+      "iteration": 3,
+      "sampledV8Ms": 18.19,
+      "wallMs": 20.621458000000075,
+      "externalRequests": 13,
+      "cacheOperations": 0,
+      "countedExternalRequests": 13,
+      "fetchPlusCacheOperations": 13
+    },
+    {
+      "name": "publish-40-projects",
+      "cache": "warm",
+      "iteration": 4,
+      "sampledV8Ms": 10.686,
+      "wallMs": 13.072749999999814,
+      "externalRequests": 13,
+      "cacheOperations": 0,
+      "countedExternalRequests": 13,
+      "fetchPlusCacheOperations": 13
+    },
+    {
+      "name": "publish-40-projects",
+      "cache": "warm",
+      "iteration": 5,
+      "sampledV8Ms": 11.262,
+      "wallMs": 12.18783300000041,
+      "externalRequests": 13,
+      "cacheOperations": 0,
+      "countedExternalRequests": 13,
+      "fetchPlusCacheOperations": 13
+    }
+  ]
+}

@@ -98,6 +98,7 @@ try {
   const countingPath = resolve(output, 'count-worker.js');
   const formalSource = await readFile(bundle, 'utf8');
   assert(formalSource.includes('worker_default as default'));
+  for (const forbidden of ['@zip.js', 'readCollection', 'projectUnifiedIndex', 'ZipReader']) assert(!formalSource.includes(forbidden), `Heavy photo path remains in bundle: ${forbidden}`);
   await writeFile(countingPath, formalSource.replace('worker_default as default', 'counting_worker as default') + `
 const worker = worker_default;
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -121,7 +122,7 @@ const counting_worker = { fetch(request, env, ctx) { return scope.run({ value: 0
         const response = await counting.dispatchFetch(env.ADMIN_ORIGIN + scenario.path, { method: scenario.body === undefined ? 'GET' : 'POST', headers: { 'Cf-Access-Jwt-Assertion': jwt, Origin: env.ADMIN_ORIGIN, 'Content-Type': 'application/json' }, body: scenario.body === undefined ? undefined : JSON.stringify(scenario.body) });
         await response.arrayBuffer(); assert.equal(response.status, 200);
         const cacheOperations = Number(response.headers.get('x-test-cache-operations'));
-        if (scenario.path === '/api/state') assert(cacheOperations > 0, 'Cache calls were not counted');
+        assert.equal(cacheOperations, 0, 'Production paths must not call the unavailable Access Cache API');
         if (smoke) assert(f.network.length - before + cacheOperations <= 50, `${scenario.name} exceeds the fixture fetch + cache budget`);
         for (const result of results.filter(r => r.name === scenario.name && r.cache === cache)) Object.assign(result, { cacheOperations, countedExternalRequests: f.network.length - before, fetchPlusCacheOperations: f.network.length - before + cacheOperations });
       }
@@ -129,14 +130,36 @@ const counting_worker = { fetch(request, env, ctx) { return scope.run({ value: 0
   } finally { await counting.dispose(); }
   // Reproduce actual browser fan-out, including a totally cold artifact path. The
   // inline ZIP codec must never hand a Promise to a different workerd request.
-  if (smoke) {
+  for (const concurrency of [12, 40]) {
   await mf.purgeCache();
-  const previews = await Promise.all(Array.from({ length: 12 }, async (_, i) => {
+  const previews = await Promise.all(Array.from({ length: concurrency }, async (_, i) => {
     const photo = photos.photos[i % photos.photos.length];
     const response = await mf.dispatchFetch(env.ADMIN_ORIGIN + `/api/thumbnail/1/${photo.id}`, { headers: { 'Cf-Access-Jwt-Assertion': jwt } });
     assert.equal(response.status, 200); assert.deepEqual(new Uint8Array(await response.arrayBuffer()), f.c.files.get(`public/thumbnails/${photo.id}.jpg`));
   }));
-  assert.equal(previews.length, 12);
+  assert.equal(previews.length, concurrency);
   }
-  await writeFile(resolve(output, 'results.json'), JSON.stringify({ measuredAt: new Date().toISOString(), bundle, node: process.version, photos: photos.photos.length, sources: activeConfig.sources.length, fixture: collectionDir ? 'verified-local-collection' : 'isolated-two-source', caveat: 'Local sampled V8 CPU; excludes idle samples but may omit native CPU and include debugger overhead. Not billed CPU, not Free acceptance. First case also includes isolate startup. 1 cold + 5 warm samples per route; warm means disposable Cache API retained, not cached login.', results }, null, 2) + '\n');
+  const freshIsolateChecks = [];
+  for (const scenario of cases) {
+    f.setHead(head);
+    f.setProjects(Array.from({ length: scenario.projectCount ?? 0 }, (_, i) => ({ ...project, id: `fresh-${i}`, slug: `fresh-${i}` })));
+    const fresh = new Miniflare(convertV4MiniflareOptions({ name: 'gallery-fresh', modules: true, scriptPath: bundle, compatibilityDate: '2026-09-10', compatibilityFlags: ['nodejs_compat'], bindings,
+      serviceBindings: { ASSETS: () => new Response('fixture assets') },
+      outboundService: async (request: Request) => f.fetcher(request.url, { method: request.method, headers: request.headers, body: ['GET', 'HEAD'].includes(request.method) ? undefined : await request.text() }),
+    }));
+    try {
+      const before = f.network.length;
+      // Deliberately the first invocation, with no preceding auth probe or warm-up.
+      const response = await fresh.dispatchFetch(env.ADMIN_ORIGIN + scenario.path, { method: scenario.body === undefined ? 'GET' : 'POST', headers: { 'Cf-Access-Jwt-Assertion': jwt, Origin: env.ADMIN_ORIGIN, 'Content-Type': 'application/json' }, body: scenario.body === undefined ? undefined : JSON.stringify(scenario.body) });
+      const value = new Uint8Array(await response.arrayBuffer());
+      assert.equal(response.status, 200, new TextDecoder().decode(value));
+      if (scenario.path === '/api/state') { const data = JSON.parse(new TextDecoder().decode(value)); assert.equal(data.media.state, 'ready'); assert.deepEqual(data.media.photos.map((p: any) => p.photo.id), photos.photos.map(p => p.id)); assert.equal(data.projects.length, scenario.projectCount ?? 0); }
+      if (scenario.path === '/api/save') assert.equal(JSON.parse(new TextDecoder().decode(value)).status, 'saved');
+      if (scenario.path.includes('/thumbnail/')) assert.deepEqual(value, f.c.files.get(`public/thumbnails/${ref}.jpg`));
+      const operations = f.network.length - before + (scenario.path === '/' ? 1 : 0);
+      assert(operations <= 50);
+      freshIsolateChecks.push({ name: scenario.name, status: response.status, upstreamAndAssetCalls: operations });
+    } finally { await fresh.dispose(); }
+  }
+  await writeFile(resolve(output, 'results.json'), JSON.stringify({ measuredAt: new Date().toISOString(), bundle, node: process.version, photos: photos.photos.length, sources: activeConfig.sources.length, fixture: collectionDir ? 'verified-local-collection' : 'isolated-two-source', cacheMode: 'disabled', caveat: 'Local sampled V8 CPU; excludes idle samples but may omit native CPU and include debugger overhead. Not billed CPU, not Free acceptance. Legacy cold/warm labels mean first/repeated samples in the shared isolate, not persistent cache. Separate fresh-isolate checks are functional assertions, not CPU measurements.', freshIsolateChecks, results }, null, 2) + '\n');
 } finally { ws?.close(); await mf.dispose(); }

@@ -40,7 +40,7 @@ test('40 Project batches include the last draft/published reference and reject p
   const project = { schemaVersion: 1, id: 'new', slug: 'new', title: 'New', photos: [{ photoId: p.id }], coverPhotoId: p.id, order: 0, status: 'draft' };
   f.setProjects(Array.from({ length: 40 }, (_, i) => ({ ...project, id: `p-${i}`, slug: `p-${i}` })));
   const content = await service(f).content(); assert.equal(content.projects.length, 40);
-  assert.equal(f.network.filter(n => n.url.endsWith('/graphql')).length, 2);
+  assert.equal(f.network.filter(n => n.url.endsWith('/graphql')).length, 1);
   for (const status of ['draft', 'published']) {
     f.setProjects(content.projects.map((p, i) => i === 39 ? { ...p, status, photos: [{ photoId: 'missing-last' }], coverPhotoId: 'missing-last' } : p));
     await assert.rejects(service(f).save({ kind: 'project', expectedHead: head, project }), /引用校验失败/);
