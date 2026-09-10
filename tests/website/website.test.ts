@@ -414,12 +414,20 @@ test('native touch gestures switch photos, reveal the inspector, dismiss, and ig
   const touch = await ctx.newCDPSession(page);
   const frame = () => page.evaluate('new Promise(resolve => requestAnimationFrame(resolve))');
   const swipe = async (from: [number, number], to: [number, number]) => {
-    // Native touch drag with a completed release, rather than a fling that can
-    // consume the following tap as a request to stop kinetic scrolling.
-    await touch.send('Input.synthesizeScrollGesture', {
-      x: from[0], y: from[1], xDistance: to[0] - from[0], yDistance: to[1] - from[1],
-      gestureSourceType: 'touch', preventFling: true,
-    });
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from[0], y: from[1] }] });
+    for (let step = 1; step <= 10; step++) {
+      await new Promise(resolve => setTimeout(resolve, 25));
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{
+        x: from[0] + (to[0] - from[0]) * step / 10,
+        y: from[1] + (to[1] - from[1]) * step / 10,
+      }] });
+      await frame();
+    }
+    // End a stationary drag, not a burst of CDP events with artificial velocity.
+    // Chromium's touch gesture recognizer otherwise treats the next tap as a
+    // fling cancellation. Keep the finger still before releasing it.
+    await new Promise(resolve => setTimeout(resolve, 150));
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await frame();
   };
   await swipe([200, 520], [200, 240]);
@@ -428,6 +436,12 @@ test('native touch gestures switch photos, reveal the inspector, dismiss, and ig
   await open(page); await loaded(page); await page.locator('[data-viewer-transition-variant]').waitFor({ state: 'detached' });
   await swipe([300, 340], [80, 340]); await loaded(page); await expect(page.locator('.viewer-counter')).toHaveText('2 / 3');
   await swipe([190, 470], [190, 210]); await expect(page.locator('.mobile-inspector')).toBeVisible();
+  // Visibility begins at 2% progress; wait for the reveal spring to settle
+  // before a second interaction. The rendered transform is the public result.
+  await expect.poll(() => page.locator('.viewer-drag-content').evaluate(el => {
+    const transform = new DOMMatrixReadOnly(getComputedStyle(el).transform);
+    return Math.abs(transform.m22 - 0.978) < 0.0001 && Math.abs(transform.m42 + 18) < 0.01;
+  })).toBe(true);
   await page.evaluate(`
     window.testInspectorCloseClicks = 0;
     window.testTouchEvents = [];
@@ -447,7 +461,7 @@ test('native touch gestures switch photos, reveal the inspector, dismiss, and ig
   assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), point), '收起照片信息');
   // Let Chromium schedule a complete native touch tap through its gesture
   // recognizer, including touchdown/up timing and the compatibility click.
-  await touch.send('Input.synthesizeTapGesture', { ...point, gestureSourceType: 'touch' });
+  await closeButton.tap();
   try {
     await expect.poll(() => page.evaluate('window.testInspectorCloseClicks'), { message: 'Native tap must deliver the inspector close click' }).toBe(1);
     assert(await page.evaluate("window.testTouchEvents.some(event => event.type === 'touchstart') && window.testTouchEvents.some(event => event.type === 'touchend')"), 'The tap must exercise native touch events');
