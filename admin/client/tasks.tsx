@@ -5,13 +5,15 @@ export function Tasks({ pending, refreshPhotos }: { pending?: { requestId: strin
   useEffect(() => {
     let active = true; let timer: ReturnType<typeof setTimeout>;
     async function poll() {
-      try { const result = await request('/api/tasks' + (pending ? `?requestId=${pending.requestId}` : '')); if (active) { setData(result); setError(''); } }
+      let keepPolling = true;
+      try { const result = await request('/api/tasks' + (pending ? `?requestId=${pending.requestId}` : '')); if (active) { setData(result); setError(''); } keepPolling = result.pending || result.tasks.some((task: any) => task.state !== 'completed'); }
       catch (e) { if (active) setError(e instanceof Error ? e.message : '任务读取失败'); }
-      if (active) timer = setTimeout(poll, 8000);
+      if (active && keepPolling) timer = setTimeout(poll, 8000);
     }
     void poll(); return () => { active = false; clearTimeout(timer); };
   }, [pending]);
-  return <section className="panel task-panel"><div className="panel-title"><div><h2>Actions 执行记录</h2><p>运行中每 8 秒刷新；每源结果在执行摘要生成后显示。</p></div><button className="secondary" onClick={refreshPhotos}>刷新照片产物</button></div>
+  return <section className="panel task-panel"><div className="panel-title"><div><h2>Actions 执行记录</h2><p>运行中每 8 秒刷新，完成后停止轮询；每源结果来自执行摘要。</p></div><button className="secondary" onClick={refreshPhotos}>刷新照片产物</button></div>
+    {data?.historyUrl && <p><a href={data.historyUrl} target="_blank" rel="noreferrer">在 GitHub 查看全部任务 ↗</a></p>}
     {error && <p role="alert" className="error">{error} · 任务结果尚未确认。</p>}
     {!data && !error && <p>正在读取任务…</p>}
     {data?.pending && <p role="status">请求已发送，等待 GitHub 创建任务。尚未确认排队或成功，请勿重复触发。</p>}

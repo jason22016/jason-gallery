@@ -130,12 +130,16 @@ export class AdminService {
     const selected = requestId ? runs.filter(r => r.display_title === `Gallery ${r.display_title.includes('publish') ? 'publish' : 'sync'} · ${requestId}`).slice(0, 1) : runs.slice(0, 10);
     const tasks = [];
     for (const run of selected) {
+      const cacheKey = `task/${run.id}/${run.run_attempt ?? 1}/${encodeURIComponent(run.updated_at ?? run.head_sha)}`;
+      if (run.status === 'completed') { const cached = await this.cache.get(cacheKey); if (cached) { tasks.push(await cached.json()); continue; } }
       await this.github.run(run.id);
       let summary = null; let summaryError = '';
       if (run.status === 'completed') { try { summary = await this.summary(run); } catch { summaryError = '执行摘要不可读取；请查看 Actions。部署未确认。'; } }
       const jobs = await this.github.call(`/actions/runs/${run.id}/jobs?per_page=10`);
-      tasks.push({ id: run.id, title: run.display_title, state: run.status, conclusion: run.conclusion, event: run.event, head: run.head_sha, url: `https://github.com/${this.github.env.GITHUB_REPOSITORY}/actions/runs/${run.id}`, steps: jobs.jobs.flatMap((j: any) => (j.steps ?? []).map((s: any) => ({ name: s.name, status: s.status, conclusion: s.conclusion }))), summary, summaryError, published: run.status === 'completed' && run.conclusion === 'success' && summary?.action === 'publish' && ['success', 'unchanged'].includes(summary?.deployment?.status) && !!summary?.deployment?.version && !!summary?.deployment?.url });
+      const task = { id: run.id, title: run.display_title, state: run.status, conclusion: run.conclusion, event: run.event, head: run.head_sha, url: `https://github.com/${this.github.env.GITHUB_REPOSITORY}/actions/runs/${run.id}`, steps: jobs.jobs.flatMap((j: any) => (j.steps ?? []).map((s: any) => ({ name: s.name, status: s.status, conclusion: s.conclusion }))), summary, summaryError, published: run.status === 'completed' && run.conclusion === 'success' && summary?.action === 'publish' && ['success', 'unchanged'].includes(summary?.deployment?.status) && !!summary?.deployment?.version && !!summary?.deployment?.url };
+      tasks.push(task);
+      if (run.status === 'completed' && summary) await this.cache.put(cacheKey, JSON.stringify(task).split(this.github.env.GITHUB_TOKEN).join('[redacted]'), 3600);
     }
-    return { tasks, pending: !!requestId && !tasks.length };
+    return { tasks, pending: !!requestId && !tasks.length, historyUrl: `https://github.com/${this.github.env.GITHUB_REPOSITORY}/actions/workflows/automation.yml` };
   }
 }

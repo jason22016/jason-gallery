@@ -37,9 +37,9 @@ pnpm exec wrangler deploy --config admin/wrangler.jsonc --dry-run
 - **保存**：来源配置或单个 Project JSON 写到网站 `main`；只能写 `config/photo-sources.json` / `src/content/projects/<slug>.json`。前端发送 expected head，服务端先检查，再创建以该 head 为唯一父提交的 Git commit，并非强制更新 main ref。中途出现并发提交也会拒绝，不重试覆盖。冲突保留编辑并提供检查/放弃后重新加载入口。已有 Project 的 slug 固定，其他 schema 字段原样保留。
 - **来源影响**：仓库、分支、目录变更或停用/移除来源前检查全部 draft/published 引用；存在引用则拒绝。来源 identity / canonical reference、固定默认来源 legacy alias 都沿用 Phase 6；含双连字符的原生文件名也不会被当成 canonical 引用。先调整 Project 引用，再修改来源；新增源保存后需同步才能选图。
 - **照片**：读取 main Gallery automation 的完整 `photos` 包与 `execution-summary`，核对来源配置/快照、原生和全量索引、文件摘要、生产来源、producer 处理代码及依赖。CI 仍校验全部文件和解码缩略图；Worker 复用共享 metadata 检查，每个取出的文件/缩略图再校验摘要。Worker 按字节范围读取 ZIP，不将约 70 MB 的整个包装进内存。浏览器只收到 UI 所需字段与已认证缩略图端点；不提供原图代理。
-- **缓存**：Worker Cache API 可丢弃地缓存已验证缩略图摘要和 ZIP 字节范围，最多 1 小时且不超过 artifact 保留期。每个请求先认证；缓存不保存 token、cookie 或签名下载链接，不作为配置/metadata 来源或数据库。GitHub 产物仍受原仓库可见性/保留策略约束，公共仓库 artifact 不是秘密存储。
+- **缓存**：Worker Cache API 可丢弃地缓存已验证缩略图摘要、ZIP 字节范围和已完成任务摘要，最多 1 小时且不超过 artifact 保留期。每个请求先认证；缓存不保存 token、cookie 或签名下载链接，不作为配置/metadata 来源或数据库。GitHub 产物仍受原仓库可见性/保留策略约束，公共仓库 artifact 不是秘密存储。
 - **新鲜度**：项目文字修改不使照片过期；照片配置或 processor inputs/锁文件变化、缺失/过期 artifact、最近任务没有完整照片结果时禁止选图/保存引用/发布，提供同步入口。照片库展示的是已验证的固定快照，源 branch 后续变化由下一次 sync 处理；最终发布沿用 Phase 6 的实时网站/每源 HEAD 检查。
-- **任务**：触发带唯一 request UUID 与 expected website SHA，按精确 run title 查找任务；工作流开始时拒绝竞态版本。API 返回 pending 不表示排队/成功。运行中展示 Actions steps，完成后读取每源 processed/reused/total、失败原因、构建与部署状态。网络超时/摘要丢失/取消不能认定部署成功；触发结果不确定时先查任务记录，避免重复触发。最近列表最多 30 个 run，界面展示最近 10 个或当前请求；更早任务在 Actions 查看。
+- **任务**：触发带唯一 request UUID 与 expected website SHA，按精确 run title 查找任务；工作流开始时拒绝竞态版本。API 返回 pending 不表示排队/成功。运行中展示 Actions steps，完成后停止轮询并读取每源 processed/reused/total、失败原因、构建与部署状态。网络超时/摘要丢失/取消不能认定部署成功；触发结果不确定时先查任务记录，避免重复触发。最近列表最多 30 个 run，界面展示最近 10 个或当前请求；更早任务在 Actions 查看。
 - **资源限额**：最多 50 个来源（沿用 schema）、500 个 Project、Project slug 120 字符、单次保存 512 KB、单个 metadata/缩略图文件 8 MB、ZIP 1 GB / 30,000 entries、单请求 ZIP range 总量 32 MB / 解压总量 8 MB、全部 Project 内容 4 MB。超限明确拒绝，不能丢掉部分照片继续发布。需要更大规模时另行扩展读取分页/存储；本阶段不引入数据库、原图上传/删除、账号体系或图像代理。
 
 ## 依赖与依据

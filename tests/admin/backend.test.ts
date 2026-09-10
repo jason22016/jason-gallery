@@ -133,6 +133,7 @@ test('authenticated immutable thumbnail cache reduces GitHub reads, stores no cr
     const before=f.network.length;assert.equal((await api(f,path)).status,200);const calls=f.network.length-before;assert(calls<10,`cached thumbnail used ${calls} calls`);
     const deniedBefore=f.network.length;assert.equal((await api(f,path,undefined,'')).status,401);assert.equal(f.network.length,deniedBefore);
     for(const [key,res] of stored){assert(!key.includes('signed-never-expose'));const text=await res.clone().text();assert(!text.includes(env.GITHUB_TOKEN));assert(!text.includes('signed-never-expose'));}
+    const service=new AdminService(new GitHub(env,f.fetcher));await service.tasks();const taskReads=f.network.length;await service.tasks();assert.equal(f.network.length-taskReads,1,'completed task details should use disposable cache');
     stored.clear();f.setExpired();assert.equal((await api(f,path)).status,410);
     const legacy={schemaVersion:1,id:'legacy',slug:'legacy',title:'Legacy dash filename',coverPhotoId:'file--with-dashes_abcd',photos:[{photoId:'file--with-dashes_abcd'}],order:0,status:'draft'} as const;
     assert.equal(sourceImpacts(config,{...config,sources:config.sources.filter(s=>s.sourceId!=='jason-photos')},[legacy as any]).length,1);
