@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { readCollection } from '../../src/photo-engine/collection-contract.js';
 import path from 'node:path';
 import type { AfilmoryManifest } from '@afilmory/typing';
 import { fileHashes, sha256, verifyPhotos } from './artifact.js';
@@ -31,6 +32,7 @@ export async function sealCollection(directory: string, snapshot: PhotoSnapshot,
   return artifact;
 }
 export async function verifyCollection(directory: string, options: { config?: SourcesConfig; snapshot?: PhotoSnapshot; fingerprint?: string; production?: boolean } = {}) {
+  await readCollection(name => fs.readFile(path.join(directory, name)), options.config, options.production ?? false);
   const artifact: PhotoCollection = JSON.parse(await fs.readFile(path.join(directory, 'artifact.json'), 'utf8'));
   const { version, ...record } = artifact;
   if (artifact.schemaVersion !== 2 || artifact.kind !== 'photos' || artifact.complete !== true || sha256(JSON.stringify(record)) !== version) throw new Error('Invalid multi-source photo artifact; rebuild legacy artifacts');

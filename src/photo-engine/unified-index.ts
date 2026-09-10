@@ -1,5 +1,5 @@
 import type { AfilmoryManifest, PhotoManifestItem } from '@afilmory/typing';
-import { LEGACY_SOURCE, photoReference, sourceIdentity, verifySnapshot, type PhotoSnapshot } from './sources.js';
+import { LEGACY_SOURCE, photoReference, sourceIdentity, verifySnapshot, type PhotoSnapshot } from './source-contract.js';
 
 export interface UnifiedIndex {
   schemaVersion: 1; kind: 'photo-index'; snapshot: PhotoSnapshot;

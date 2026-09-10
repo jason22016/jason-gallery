@@ -10,3 +10,5 @@ public/thumbnails/
 .env.*
 .DS_Store
 .pnpm-store/
+.dev.vars*
+.wrangler/

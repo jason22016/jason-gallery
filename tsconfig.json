@@ -14,7 +14,9 @@
     "scripts/**/*.ts",
     "builder.config.ts",
     "tests/**/*.ts",
-    "tests/**/*.tsx"
+    "tests/**/*.tsx",
+    "admin/**/*.ts",
+    "admin/**/*.tsx"
   ],
   "exclude": [
     "dist",

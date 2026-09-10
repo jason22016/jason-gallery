@@ -7,3 +7,5 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - '@astrojs/markdown-satteri@0.4.1'
   - astro@7.3.2
+  - '@zip.js/zip.js@2.14.0'
+  - '@cloudflare/workers-types@5.20260910.1'

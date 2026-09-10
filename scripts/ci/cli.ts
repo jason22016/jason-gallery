@@ -19,6 +19,7 @@ const state = ['resolve', 'rollback'].includes(command ?? '') ? initial : await 
 const output = async (name: string, value: string) => { if (process.env.GITHUB_OUTPUT) await fs.appendFile(process.env.GITHUB_OUTPUT, `${name}=${value}\n`); };
 try {
   if (command === 'resolve') {
+    if (process.env.EXPECTED_WEBSITE_COMMIT && process.env.EXPECTED_WEBSITE_COMMIT !== process.env.GITHUB_SHA) throw new Error('Website changed before dispatch; reload admin and retry');
     const requested = process.env.PHOTO_COMMITS ?? '';
     if (process.env.PHOTO_COMMIT) throw new Error('photo_commit is obsolete; use photo_commits keyed by every enabled sourceId');
     const config = loadSources();

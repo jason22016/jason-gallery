@@ -7,6 +7,7 @@ const state = await fs.readFile(file, 'utf8').then(JSON.parse).catch(() => ({
   website: { status: 'not_started' }, deployment: { status: 'not_requested', url: null, version: null }, failureReason: null,
 }));
 if (state.action === 'publish' && state.website.status === 'success' && state.deployment.status === 'not_requested') state.deployment = { status: 'disabled', url: null, version: null, reason: 'Set repository variable AUTO_DEPLOY_ENABLED=true for automatic deployment, or manually dispatch mode=publish' };
+state.requestId = process.env.ADMIN_REQUEST_ID || null;
 state.result = process.env.JOB_STATUS ?? 'failure';
 if (state.result !== 'success' && !state.failureReason) state.failureReason = `Workflow ${state.result}; inspect failed/cancelled Actions step`;
 await fs.mkdir('.cache/automation', { recursive: true });

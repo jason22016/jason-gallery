@@ -1,4 +1,5 @@
 name: Gallery automation
+run-name: "Gallery ${{ inputs.mode || 'automatic' }} · ${{ inputs.request_id || github.sha }}"
 on:
   push:
     branches: [main]
@@ -18,6 +19,12 @@ on:
       photo_run_id:
         description: 'Optional successful sync/publish run ID to reuse its photos artifact (14 days); fingerprint must match.'
         type: string
+      request_id:
+        description: 'Admin-generated correlation UUID; not a credential'
+        type: string
+      expected_website_commit:
+        description: 'Admin expected website head; abort if dispatch raced with a save'
+        type: string
       deployment_id:
         description: 'Rollback only: successful Cloudflare production deployment UUID'
         type: string
@@ -36,6 +43,8 @@ jobs:
     timeout-minutes: 45
     environment: production
     env:
+      ADMIN_REQUEST_ID: ${{ inputs.request_id }}
+      EXPECTED_WEBSITE_COMMIT: ${{ inputs.expected_website_commit }}
       TASK_MODE: ${{ inputs.mode || 'publish' }}
       AUTO_DEPLOY_ENABLED: ${{ vars.AUTO_DEPLOY_ENABLED || 'false' }}
       PHOTO_COMMITS: ${{ inputs.photo_commits }}

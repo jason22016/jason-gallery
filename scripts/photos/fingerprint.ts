@@ -1,3 +1,4 @@
+import { processingInputs } from '../../src/photo-engine/processing-inputs.js';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -13,7 +14,7 @@ export async function processingFingerprint() {
       for (const entry of (await fs.readdir(name)).sort()) if (entry !== 'node_modules') await add(path.join(name, entry));
     } else if (stat.isFile()) { digest.update(name); digest.update(await fs.readFile(name)); }
   }
-  for (const name of ['builder.config.ts', 'pnpm-lock.yaml', 'src/photo-engine/sources.ts', 'src/photo-engine/unified-index.ts', ...['engine', 'fingerprint', 'network', 'cli', 'artifact', 'snapshot', 'sync', 'collection'].map(x => `scripts/photos/${x}.ts`), ...['builder', 'typing', 'utils', 'renderer'].map(x => `packages/afilmory/${x}`)]) await add(name);
+  for (const name of processingInputs) await add(name);
   digest.update(JSON.stringify({ upstream: UPSTREAM_COMMIT, system: createPhotoConfig('0'.repeat(40)).system, node: process.version, platform: process.platform, arch: process.arch, sharp: sharp.versions }));
   return digest.digest('hex');
 }
