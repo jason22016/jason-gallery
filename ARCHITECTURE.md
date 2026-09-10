@@ -1,4 +1,4 @@
-# Architecture Lock — Phase 1 / Phase 2 / Phase 3 / UI Redesign / Phase 4 / Phase 5
+# Architecture Lock — Phase 1–6
 
 状态：Phase 1（含真实图库 Final Gate）和 Phase 2 正式通过；2026-09-09。Phase 3 实现 Website MVP，继续保持 Photo Engine、Project System 和原生 Manifest 边界不变。本文是当前唯一架构基准，改变以下决策须先更新本文。2026-09-10 用户批准 UI Redesign：新增 Map、EXIF 信息面板、搜索筛选和看图动画；不加入账号、评论、点赞、后台或部署。当前 UI 约定见下方 UI Redesign 小节，Phase 3 描述保留为历史基线。验证记录见 `PHASE1_REPORT.md`、`PHASE2_REPORT.md`、`PHASE3_REPORT.md`。
 
@@ -226,3 +226,25 @@ Phase 1 的独立 Engine smoke test 已通过：用锁定源码包处理普通 J
 - Phase 2 实现 Project schema（含可选 `location`）和引用校验后才能检查真实 Project 引用。本阶段没有 Project 数据。正式 Viewer wrapper、跨浏览器 HDR、真实相机 gain-map/ISO/MPF 多样性和屏幕视觉质量继续验证，不把本次合成 fixture 结果外推到全部设备。
 
 Final Gate 的独立命令为 `pnpm photos:verify --run <completed-workdir> --exported`；它拒绝抽样结果，并核对扫描集合、Manifest、缓存原图和各处缩略图的完整性。最终机器摘要见 `reports/phase1-final-gate.json`，错误/资源与复现详情见 `PHASE1_REPORT.md`。该 Final Gate 仅验收 Phase 1；后续 Project System 实现与测试见 `PHASE2_REPORT.md`。
+
+## Phase 6 — 自动化、增量产物与部署（2026-09-10）
+
+以下替代 Phase 1 中“每次强制重新处理所有 metadata”“不支持并发”“远端 legacy 缩略图同 commit 即可复用”和“部署后续配置”的旧约定；三层边界、Manifest v10、Project schema、UI 和 HDR/色彩算法保持不变。详细操作见 [README.md](README.md)，验证与部署实况见 [PHASE6_REPORT.md](PHASE6_REPORT.md)。
+
+- **输入与权限**：网站 main push / 手动 dispatch / 每小时 UTC 17、47 分钟 schedule。照片仓库只读，每次先解析一个 commit，所有 listing/原图 URL 均使用该 commit。保留原生 GitHub provider 扫描，再与该 commit 的 Git tree 交叉核对完整 key/blob/size；tree 截断或缺图失败。PR 和非 main 仅运行无秘密的隔离检查。短期 GITHUB_TOKEN 为网站 Contents Read、Actions Read；可选照片专用 token 仅 Contents Read。Cloudflare Secret 只在发布/回滚步骤注入。
+- **缓存**：原图按 Git blob SHA 复用并逐次校验字节。派生 fingerprint 覆盖 config、精确 lockfile、Node/OS/架构、Sharp/native versions、锁定 Builder 及本地依赖源码和运行时适配脚本；不包含页面/Project。缩略图和 metadata 还绑定原图 SHA、远端缩略图 SHA、各自 SHA-256。缺失或失效时重新进入原生处理；未版本化的远端缩略图不再复用，避免配置变化后冷缓存又引入旧派生结果。已有的 Phase 1 原图缓存可直接复用；第一次升级会重建派生缓存。
+- **metadata 新鲜度**：每次重新扫描。命中项校验原图字节与此前成功处理的相同，跳过 Sharp/ExifTool/影调处理；用原生 `extractPhotoInfo` 刷新时间 fallback（保留原生合并的 XMP tags），更新 listing 时间和固定 commit 的 `originalUrl`。EXIF/HDR/色彩 metadata 只在字节及处理版本不变时复用。通过 Builder 已有 `afterTasksPrepared` / `afterProcessTasks` 钩子移除已验证任务并回填结果，仍由上游生成相机/镜头集合、排序和保存 Manifest。未改上游源码、原生 ID 或 schema。
+- **完整性与并发**：独立 run workdir；相同根目录用 `build.lock` 拒绝第二个 writer。成功产物封存到 run/artifact，`output` 原子切换符号链接。每代只有当前照片的缩略图，删除不会留下旧文件。核对数量、ID/key、完整 Manifest、固定 URL、可解码缩略图和逐文件摘要，单张失败即终止。CI 只缓存成功处理的 blobs 与派生状态，分别使用源 SHA / fingerprint 的稳定 keys；cache 是候选，不能绕过检查，丢失可冷重建。
+- **网站发布**：`scripts/ci/release.ts` 验证照片产物与当前 fingerprint，校验全部 published/draft 引用；正式 Project 必须被 Git 跟踪，production checkout 必须干净且与代码 SHA 相符。Astro 先构建到独立 staging，保留 Phase 4 public-assets 过滤，并对路由/详情/thumbnail/静态 bundle 做输出白名单和摘要校验，拒绝预览、fixture、全量索引或临时文件。`release.json` 位于 dist 外，绑定代码 commit、照片 commit、照片 artifact version、Project digest、fingerprint、run number 及文件摘要；公开 `/build-version.json` 只有版本来源，没有图库内容。
+- **托管**：选用 Cloudflare Pages Direct Upload，原图依旧浏览器匿名直读 GitHub，不通过 Pages 转码。独立域名根路径兼容现有 UI，无需 GitHub Pages 的仓库子路径改造。锁定 Wrangler 4.130.0，部署前验证 release、两个 main HEAD 和线上 run number；所有发布/回滚共享 `gallery-production` 串行组，禁止自动取消上传。仅上传验证完的 dist。相同代码/照片 commit 已在线时返回 unchanged，不重复部署。只在匹配的 Cloudflare production deployment 成功且版本探针通过后记录新 URL/UUID/version。原子部署失败保留上次成功；发布后验证异常尝试 rollback，网络不确定如实记录，不把 CLI 返回码当作远程事实。
+- **开关与回滚**：`AUTO_DEPLOY_ENABLED` 默认为 false；push/schedule 仍完成真实照片和网站构建，配置账号后设 true 自动部署。手动 `mode=publish` 是明确发布指令。回滚前将此变量设 false 防止下次自动前滚，再 dispatch `mode=rollback` 和成功 production deployment UUID。复用 Cloudflare 已保留的完整部署，不依赖本地/Actions 缓存，不混入当前 Project 或照片快照。回滚和发布均在 main workflow 执行。
+
+### 后续轻量后台的对接契约（本阶段不开发后台）
+
+`workflow_dispatch` inputs 为 `mode: sync|publish|rollback`、`photo_commit?`、`photo_run_id?`、`deployment_id?`。`sync` 是手动默认，单独完成照片处理并上传完整照片产物，不更新线上。`publish` 可处理当前源或导入明确 run ID 的 `photos` artifact；导入要求来源为已结束的 main automation run、明确的同一 photo commit、兼容 fingerprint、完整索引及匹配的逐文件摘要。网站发布失败不否定照片处理成功；如果 `photos` 已成功上传，它仍可复用。正常 publish 拒绝旧代码/照片 main 快照；需要恢复旧版本走 rollback。后续触发服务只需网站 Actions Write，下载只需 Actions Read，不需要照片仓库写权限；本阶段没有 GitHub App、身份认证、管理页或数据库。
+
+- `photos`（14 天）：原生完整 Manifest（包含未被公开 Project 引用的照片）、全部缩略图、源快照、result、artifact descriptor；只存在 Actions artifact，不能复制到公开 dist。
+- `website-release`（30 天）：通过校验的 dist + 外置 release descriptor；只有 dist 发布到 Pages。
+- `execution-summary`（30 天）：`schemaVersion=1`、任务结果、网站/照片 commit、photos.status/总数/实际处理数/复用数/artifact version、website.status/version、失败原因、deployment.status/实际 URL/UUID/version。未处理的数量为 null；not_requested/disabled 不代表部署成功，unchanged 指已核实的现有版本。总结脚本不依赖已安装包，安装失败也尽量保存摘要；硬终止时以上传可用性和 Actions conclusion 为准。
+
+照片产物过期后用同一 `photo_commit` 重新 sync，缓存不存在也能重建；旧源 commit 必须可读取，处理版本变化需重新处理。Actions artifact 受仓库访问与保留策略约束，**公共网站仓库的 artifact 不是保密存储**；将来需要隐私时须引入受控私有产物存储，不能仅依赖“未部署到网站”。本阶段没有新增公开全图库接口，也没有正式摄影 Project。

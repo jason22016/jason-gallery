@@ -24,6 +24,7 @@ export async function installFixture(file: string) {
     const prefix = '/repos/jason22016/jason-photos';
     if (url.hostname !== 'api.github.com' || !url.pathname.startsWith(prefix)) throw new Error(`Unexpected network: ${url}`);
     const route = decodeURIComponent(url.pathname.slice(prefix.length));
+    if (route === `/git/trees/${fixture.ref}`) return response({ truncated: false, tree: [...data].map(([key, item]) => ({ path: key, type: 'blob', mode: '100644', sha: item.sha, size: item.bytes.length })) });
     if (route === '/commits/main') return response({ sha: fixture.ref });
     if (route === '/commits') {
       if (url.searchParams.get('sha') !== fixture.ref) throw new Error('Unpinned history');

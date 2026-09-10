@@ -74,13 +74,13 @@ const descriptors: number[] = [];
 function requireLog(file: string) { const fd = openSync(file, 'w'); descriptors.push(fd); return fd; }
 try {
   const first = (await run('first'))!;
-  assert.equal(first.result.decisions['existing.jpg'], 'remote');
+  assert.equal(first.result.decisions['existing.jpg'], 'generated:unversioned-remote');
   assert.match(first.result.decisions['missing.jpg'], /^generated/);
   assert.match(first.result.decisions['broken.jpg'], /^generated/);
   assert.equal(first.manifest.data.find((p: any) => p.s3Key === 'hdr.jpg').isHDR, true);
   assert.equal(first.manifest.data.find((p: any) => p.s3Key === 'ordinary.jpg').isHDR, false);
   const thumbnail = path.join(engineRoot, 'output/public/thumbnails', `${nativeId('existing.jpg')}.jpg`);
-  assert.equal(sha(await fs.readFile(thumbnail)), sha(thumbs['.afilmory/thumbnails/existing.jpg']));
+  assert.notEqual(sha(await fs.readFile(thumbnail)), sha(thumbs['.afilmory/thumbnails/existing.jpg']), 'Unversioned remote derivative cannot prove processing configuration');
   const before = sha(await fs.readFile(thumbnail));
   const warm = (await run('warm'))!;
   assert(Object.values(warm.result.decisions).every(x => x === 'local'));
@@ -114,7 +114,7 @@ try {
   await fs.writeFile(path.join(root, 'sources/ordinary.jpg'), 'broken original');
   await run('invalid-original', engineRoot, true);
   assert.equal(sha(await fs.readFile(path.join(engineRoot, 'output/photos-manifest.json'))), published);
-  const report = { status: 'PASS', cases: ['ordinary JPEG', 'existing thumbnail byte reuse', 'missing thumbnail', 'corrupt remote/local thumbnail', 'duplicate basename', 'actual 8-digit ID collision rejection', 'warm cache', 'original update + metadata invalidation', 'cold cache stale remote rejection', 'gain-map JPEG + native isHDR', 'commit URL refresh', 'read-only requests + source hashes', 'failed build preserves prior manifest'], collision };
+  const report = { status: 'PASS', cases: ['ordinary JPEG', 'unversioned remote derivative regenerated', 'missing thumbnail', 'unversioned remote and corrupt local thumbnail', 'duplicate basename', 'actual 8-digit ID collision rejection', 'warm cache', 'original update + metadata invalidation', 'cold cache stale remote rejection', 'gain-map JPEG + native isHDR', 'commit URL refresh', 'read-only requests + source hashes', 'failed build preserves prior manifest'], collision };
   await fs.writeFile(path.join(root, 'report.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally { for (const fd of descriptors) closeSync(fd); }
