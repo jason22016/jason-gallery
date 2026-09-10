@@ -438,19 +438,22 @@ test('native touch gestures switch photos, reveal the inspector, dismiss, and ig
     for (const type of ['touchstart', 'touchend', 'pointerdown', 'pointerup', 'click']) {
       document.addEventListener(type, event => window.testTouchEvents.push({ type, target: event.target.closest('button')?.getAttribute('aria-label') || event.target.tagName }), { capture: true });
     }
+    const prevent = Event.prototype.preventDefault;
+    Event.prototype.preventDefault = function () {
+      if (/^(touch|pointer)/.test(this.type)) window.testTouchEvents.push({ type: 'preventDefault:' + this.type, stack: new Error().stack });
+      return prevent.call(this);
+    };
   `);
   const closeButton = page.getByRole('button', { name: '收起照片信息' });
   const box = await closeButton.boundingBox(); assert(box);
   const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
   assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), point), '收起照片信息');
-  // Keep swipe and tap in one native CDP input stream. Switching to Playwright's
-  // touchscreen controller midway can lose the synthetic compatibility click.
-  await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
-  await frame();
-  await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await frame();
+  // Let Chromium schedule a complete native touch tap through its gesture
+  // recognizer, including touchdown/up timing and the compatibility click.
+  await touch.send('Input.synthesizeTapGesture', { ...point, gestureSourceType: 'touch' });
   try {
     await expect.poll(() => page.evaluate('window.testInspectorCloseClicks'), { message: 'Native tap must deliver the inspector close click' }).toBe(1);
+    assert(await page.evaluate("window.testTouchEvents.some(event => event.type === 'touchstart') && window.testTouchEvents.some(event => event.type === 'touchend')"), 'The tap must exercise native touch events');
   } finally {
     console.log('Native touch close events:', await page.evaluate('window.testTouchEvents'));
   }
