@@ -147,7 +147,13 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   await fs.writeFile(path.join(destination,'dist/index.html'),'tampered');
   const count=uploads;await assert.rejects(deployRelease(destination,io),/digest mismatch/);assert.equal(uploads,count);
   const summaryRoot = path.join(root, 'summary-job'); await fs.mkdir(summaryRoot);
-  const failed = spawnSync(process.execPath, ['--import', 'tsx', path.resolve('scripts/ci/cli.ts'), 'resolve'], { cwd: summaryRoot, encoding: 'utf8', env: { ...process.env, GITHUB_SHA: codeCommit, TASK_MODE: 'sync', PHOTO_COMMIT: 'invalid', PHOTO_RUN_ID: '' } });
+  // This child owns a synthetic website snapshot. Workflow-dispatch inputs from
+  // the parent job must not change which failure its summary test exercises.
+  const summaryEnv = { ...process.env, GITHUB_SHA: codeCommit, EXPECTED_WEBSITE_COMMIT: codeCommit, TASK_MODE: 'sync', PHOTO_COMMIT: 'invalid', PHOTO_COMMITS: '', PHOTO_RUN_ID: '', GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '' };
+  const raced = spawnSync(process.execPath, ['--import', 'tsx', path.resolve('scripts/ci/cli.ts'), 'resolve'], { cwd: summaryRoot, encoding: 'utf8', env: { ...summaryEnv, EXPECTED_WEBSITE_COMMIT: 'b'.repeat(40) } });
+  assert.equal(raced.status, 1);
+  assert.match((await read(path.join(summaryRoot, '.cache/automation/summary.json'))).failureReason, /Website changed before dispatch/);
+  const failed = spawnSync(process.execPath, ['--import', 'tsx', path.resolve('scripts/ci/cli.ts'), 'resolve'], { cwd: summaryRoot, encoding: 'utf8', env: summaryEnv });
   assert.equal(failed.status, 1);
   const summarized = spawnSync(process.execPath, [path.resolve('scripts/ci/summary.mjs')], { cwd: summaryRoot, encoding: 'utf8', env: { ...process.env, JOB_STATUS: 'failure', GITHUB_STEP_SUMMARY: '' } });
   assert.equal(summarized.status, 0);
