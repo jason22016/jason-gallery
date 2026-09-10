@@ -27,10 +27,13 @@ export async function resolveSnapshot(config: SourcesConfig = loadSources(), req
   for (const source of config.sources.filter(s => s.enabled)) {
     const status = statuses.find(s => s.sourceId === source.sourceId)!;
     try {
-      // Public originals are a contract, including when a build token is supplied.
-      const publicRepo = await fetch(sourceAPI(source), { headers: { Accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(60_000) });
-      if (!publicRepo.ok || (await publicRepo.json() as {private?: boolean}).private !== false) throw new Error('Photo repository must be anonymously readable');
       const token = sourceToken(source.sourceId);
+      // Visibility and API authentication are separate: shared runner IPs can
+      // exhaust the anonymous API quota even for public repositories. A token
+      // must never permit private sources or be added to public original URLs.
+      const publicRepo = await fetch(sourceAPI(source), { headers: { Accept: 'application/vnd.github+json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, signal: AbortSignal.timeout(60_000) });
+      if (!publicRepo.ok) throw new Error(`Source visibility check failed (HTTP ${publicRepo.status}; rate limit remaining ${publicRepo.headers.get('x-ratelimit-remaining') ?? 'unknown'}); cannot establish public visibility`);
+      if ((await publicRepo.json() as {private?: boolean}).private !== false) throw new Error('Photo repository must be public for anonymous original access');
       const target = requested?.[source.sourceId] ?? source.branch;
       const response = await fetch(`${sourceAPI(source)}/commits/${encodeURIComponent(target)}`, { headers: { Accept: 'application/vnd.github+json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, signal: AbortSignal.timeout(60_000) });
       if (!response.ok) throw new Error(`Source commit resolution failed (${response.status})`);

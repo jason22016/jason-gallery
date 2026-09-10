@@ -265,3 +265,13 @@ Final Gate 的独立命令为 `pnpm photos:verify --run <completed-workdir> --ex
 - **后台对接**：未来后台修改网站仓库来源配置，再触发同一 workflow；下载 photos artifact（14 天）消费全量索引、逐来源原生数据及全部预览。execution-summary 和 website-release 保留 30 天；过期后使用原配置+photo_commits 重建，缓存可丢失，源 commit 须可读。不同 token 可放 `JASON_PHOTOS_READ_TOKENS` 环境/Secret 的 sourceId→token 对象，回退到 JASON_PHOTOS_READ_TOKEN；只需对应库 Contents Read，保持匿名原图约定。没有新增公开全图库 API、私有图片代理、上传/删除、数据库或后台认证。
 
 验证与分支/实际 Actions 状态记录在 PHASE6_REPORT.md；配置和复现命令见 README.md。
+
+## Phase 7 — 轻量后台（2026-09-10，进行中）
+
+用户批准后台阶段，Polish、SEO 与性能优化顺延 Phase 8。本节替代早期“本阶段不开发后台/认证”的阶段限制，Photo Engine、Project schema、原生 Manifest/HDR 与公开网站的三层边界保持不变。
+
+选定独立 Cloudflare Worker 承载后台及 Serverless API，Cloudflare Access 管理员邮箱 OTP 为唯一认证方案，公开网站仍使用 Pages Direct Upload。每个管理 API 都需验证 Access JWT 与管理员白名单；GitHub token 仅服务端、网站写入限定配置和 Project 路径、照片仓库只读。配置保存、照片同步、网站发布分别显示真实状态，不能把触发成功当作完成。详细设计与实际源码核查见 [PHASE7_PLAN.md](docs/PHASE7_PLAN.md)。
+
+当前为用户要求的视觉确认阶段：`tests/admin/` 是独立 fixture 后台预览，尚未接入正式管理 API。来源 schema 抽离到无 Node 依赖的 `src/photo-engine/source-schema.ts`，旧入口继续 re-export；校验规则与身份算法不变。预览不成为网站路由、照片 metadata 或正式 Project 数据源。视觉确认后才全面实现服务端接入，验收范围见 [PHASE7_REPORT.md](PHASE7_REPORT.md)。
+
+Phase 6 resolve 修复：公开仓库元信息可用已有只读 token 查询，仍要求 `private === false`，不向浏览器原图 URL 附加凭据；API 失败保留 HTTP 状态及额度诊断。旧匿名 API 检查将所有错误混为不可公开读取，合并后实际 automation 在此失败，根因细分无法从旧日志恢复。

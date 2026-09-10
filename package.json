@@ -24,8 +24,11 @@
     "ui:preview": "node --import tsx tests/website/preview.ts --serve",
     "automation": "node --import tsx scripts/ci/cli.ts",
     "test:automation": "node --import tsx --test tests/ci/*.test.ts",
-    "test:checks": "pnpm check && pnpm test:projects && pnpm test:smoke && pnpm test:viewer && pnpm test:website && pnpm test:automation",
-    "test:metadata-real": "node --import tsx --test tests/website/real-metadata.audit.ts"
+    "test:checks": "pnpm check && pnpm test:projects && pnpm test:smoke && pnpm test:viewer && pnpm test:website && pnpm test:automation && pnpm test:admin",
+    "test:metadata-real": "node --import tsx --test tests/website/real-metadata.audit.ts",
+    "admin:preview": "node --import tsx tests/admin/prepare.ts --local-photos && vite --config tests/admin/vite.config.ts",
+    "admin:fixture": "node --import tsx tests/admin/prepare.ts && vite --config tests/admin/vite.config.ts",
+    "test:admin": "node --import tsx --test tests/admin/*.test.ts"
   },
   "dependencies": {
     "@afilmory/builder": "workspace:*",
