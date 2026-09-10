@@ -6,21 +6,22 @@ import type { LaunchOptions } from 'playwright';
 // https://chromium.googlesource.com/chromium/src/+/HEAD/docs/gpu/swiftshader.md
 // https://dawn.googlesource.com/dawn/+/HEAD/webgpu-cts/README.md
 // https://chromium.googlesource.com/chromium/src/+/HEAD/gpu/command_buffer/service/shared_image/wrapped_sk_image_backing_factory.cc
-export function softwareGPUOptions(): LaunchOptions {
+export function softwareGPUOptions(renderer: 'webgpu' | 'webgl' = 'webgpu'): LaunchOptions {
   return {
-    // Use Chromium's full headless browser, including its normal compositor.
-    // https://playwright.dev/docs/browsers#chromium-new-headless-mode
-    channel: 'chromium',
     executablePath: process.env.JASON_TEST_CHROMIUM || undefined,
     timeout: 20_000,
     args: [
       '--enable-unsafe-swiftshader',
-      '--enable-unsafe-webgpu',
       '--use-gl=angle',
       '--use-angle=swiftshader',
-      '--use-webgpu-adapter=swiftshader',
-      '--enable-skia-graphite',
-      '--skia-graphite-dawn-backend=swiftshader',
+      // Only WebGPU canvas tests need Graphite's CPU texture copies. Ordinary
+      // interaction/MapLibre tests retain the faster GL compositor and WebGL.
+      ...(renderer === 'webgpu' ? [
+        '--enable-unsafe-webgpu',
+        '--use-webgpu-adapter=swiftshader',
+        '--enable-skia-graphite',
+        '--skia-graphite-dawn-backend=swiftshader',
+      ] : []),
     ],
   };
 }

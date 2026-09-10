@@ -35,7 +35,7 @@ before(async () => {
   productionBefore = await productionSnapshot();
   fixture = await buildFixture();
   server = await serve();
-  browser = await chromium.launch(softwareGPUOptions());
+  browser = await chromium.launch(softwareGPUOptions('webgl'));
   console.log(`Website browser: ${browser.version()}`);
 }, { timeout: 120_000 });
 after(async () => {
@@ -488,8 +488,11 @@ test('filtered/sorted share URL restores the same sequence; Forward then Close d
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 2');
   await page.keyboard.press('ArrowRight'); await loaded(page);
   const shared = page.url();
+  // Exercise the unavailable-clipboard path explicitly, independently of the
+  // browser channel's clipboard permissions and host operating system.
+  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined }));
   await page.getByRole('button', { name: '分享照片' }).click();
-  await expect(page.locator('.viewer-message')).toHaveText(shared); // Headless clipboard denial exposes the same copyable URL.
+  await expect(page.locator('.viewer-message')).toHaveText(shared);
   await page.goBack(); await expect(page.locator('.photo-dialog')).toHaveCount(0);
   await page.goForward(); await loaded(page);
   await page.getByRole('button', { name: '关闭照片' }).click();
