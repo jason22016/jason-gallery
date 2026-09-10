@@ -124,3 +124,22 @@ export async function storedArchive(github: GitHub, info: any, names: string[], 
     close: async () => {},
   };
 }
+
+// CI seals this absolute range only after verifying the entire uploaded STORE ZIP.
+// The immutable artifact identity, exact storage range and JPEG hash are checked
+// on every read; no archive directory needs to be downloaded again.
+export async function sealedPreview(github: GitHub, info: any, offset: number, length: number) {
+  alive(info);
+  if (!Number.isSafeInteger(info.size_in_bytes) || info.size_in_bytes > 1024 ** 3 || !Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(length) || length <= 0 || length > 8 * 1024 ** 2 || offset + length > info.size_in_bytes) invalid();
+  const redirect = await github.response(`/actions/artifacts/${info.id}/zip`);
+  const location = redirect.headers.get('location'); await redirect.body?.cancel();
+  let url: URL;
+  try { url = new URL(location ?? ''); } catch { invalid(); }
+  if (url.protocol !== 'https:' || url.username || url.password || url.port || !['.blob.core.windows.net', '.actions.githubusercontent.com'].some(s => url.hostname.endsWith(s))) invalid();
+  const range = `bytes=${offset}-${offset + length - 1}`;
+  const response = await github.transport(url.href, { redirect: 'manual', headers: { Range: range }, signal: AbortSignal.timeout(15000) });
+  if (response.status !== 206) { await response.body?.cancel(); throw new ApiError(502, 'unavailable', '产物存储读取失败，请稍后重试'); }
+  if (response.headers.get('content-range') !== `bytes ${offset}-${offset + length - 1}/${info.size_in_bytes}`) { await response.body?.cancel(); invalid(); }
+  const value = await bytes(response, length); if (value.length !== length) invalid();
+  return value;
+}

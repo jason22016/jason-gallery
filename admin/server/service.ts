@@ -4,7 +4,7 @@ import { parseCatalog, processingDigest, sha256, type ReadCatalog } from './read
 import { ProjectSchema, type Project } from '../../src/projects/schema';
 import { validateProjectReferences } from '../../src/projects/resolver';
 import { GitHub } from './github';
-import { storedArchive, alive } from './stored-archive';
+import { storedArchive, sealedPreview, alive } from './stored-archive';
 import { ApiError, assert } from './errors';
 import { digest } from '../../src/photo-engine/source-contract';
 const projectPath = /^src\/content\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)\.json$/;
@@ -50,7 +50,7 @@ export class AdminService {
     } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(422, 'integrity', '执行摘要验证失败'); }
   }
   async catalog(requestedRun?: number) {
-    const runs = requestedRun ? [await this.github.run(requestedRun)] : await this.github.runs();
+    const runs = requestedRun ? [await this.github.run(requestedRun)] : await this.github.runs(true);
     const selected = runs.find(r => r.status === 'completed' && r.event !== 'pull_request');
     if (!selected) throw new ApiError(404, 'empty', '还没有完整照片产物，请先同步');
     const run = this.github.verifyRun(selected);
@@ -65,21 +65,23 @@ export class AdminService {
     if (originals.length !== 1 || reads.length !== 1) throw new ApiError(422, 'integrity', '照片产物身份不唯一');
     const original = originals[0], info = reads[0]; alive(original); alive(info);
     if (seal.repository !== this.github.env.GITHUB_REPOSITORY || seal.runId !== run.id || seal.runAttempt !== run.run_attempt || seal.websiteCommit !== run.head_sha || seal.artifactId !== info.id || seal.artifactDigest !== info.digest || seal.photosArtifactId !== original.id || seal.photosArtifactVersion !== summary.photos.artifactVersion || !/^[a-f0-9]{64}$/.test(seal.catalogHash)) throw new ApiError(422, 'integrity', '后台产物与可信任务摘要不匹配');
-    const zip = await storedArchive(this.github, info, ['catalog.json', 'previews.bin']);
+    const sealed = seal.sealedCatalogVersion === 1;
+    if (sealed && (typeof seal.catalog !== 'string' || seal.archiveBytes !== info.size_in_bytes || !Number.isSafeInteger(seal.previewOffset) || seal.previewOffset < 0)) throw new ApiError(422, 'integrity', '后台目录封存范围无效');
+    const zip = sealed ? null : await storedArchive(this.github, info, ['catalog.json', 'previews.bin']);
     let catalog: ReadCatalog;
     try {
-      const bytes = await zip.read('catalog.json');
+      const bytes = sealed ? new TextEncoder().encode(seal.catalog) : await zip!.read('catalog.json');
       if (sha256(bytes) !== seal.catalogHash) throw new Error('catalog digest');
       catalog = parseCatalog(bytes);
-      if (catalog.repository !== seal.repository || catalog.runId !== run.id || catalog.runAttempt !== run.run_attempt || catalog.websiteCommit !== run.head_sha || catalog.photosArtifactId !== original.id || catalog.artifact.version !== seal.photosArtifactVersion || catalog.previewBytes !== zip.size('previews.bin')) throw new Error('catalog identity');
+      if (catalog.repository !== seal.repository || catalog.runId !== run.id || catalog.runAttempt !== run.run_attempt || catalog.websiteCommit !== run.head_sha || catalog.photosArtifactId !== original.id || catalog.artifact.version !== seal.photosArtifactVersion || (sealed ? seal.previewOffset + catalog.previewBytes > info.size_in_bytes : catalog.previewBytes !== zip!.size('previews.bin'))) throw new Error('catalog identity');
     } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(422, 'integrity', '后台照片目录完整性验证失败'); }
     return { ...catalog, read: async (path: string) => {
       const photo = catalog.photos.find(p => `public/thumbnails/${p.id}.jpg` === path);
       if (!photo) throw new ApiError(404, 'photo', '照片不存在');
-      const value = await zip.read('previews.bin', photo.offset, photo.length);
+      const value = sealed ? await sealedPreview(this.github, info, seal.previewOffset + photo.offset, photo.length) : await zip!.read('previews.bin', photo.offset, photo.length);
       if (sha256(value) !== photo.hash) throw new ApiError(422, 'integrity', '缩略图摘要不匹配');
       return value;
-    }, close: zip.close, runId: run.id as number, expiresAt: new Date(Math.min(Date.parse(info.expires_at), Date.parse(original.expires_at))).toISOString() };
+    }, close: zip?.close ?? (async () => {}), runId: run.id as number, expiresAt: new Date(Math.min(Date.parse(info.expires_at), Date.parse(original.expires_at))).toISOString() };
   }
   async photos(content: Awaited<ReturnType<AdminService['content']>>, requestedRun?: number, _withPreviews = true) {
     const catalog = await this.catalog(requestedRun);
@@ -148,6 +150,7 @@ export class AdminService {
       this.github.verifyRun(run);
       let summary = null; let summaryError = '';
       if (run.status === 'completed') { try { summary = await this.summary(run); } catch (e) { summaryError = e instanceof ApiError ? e.message : '执行摘要暂时不可读取；请重试或查看 Actions。部署未确认。'; } }
+      if (summary?.adminRead?.catalog) summary = { ...summary, adminRead: { ...summary.adminRead, catalog: undefined } };
       const jobs = await this.github.call(`/actions/runs/${run.id}/jobs?per_page=10`);
       const task = { id: run.id, title: run.display_title, state: run.status, conclusion: run.conclusion, event: run.event, head: run.head_sha, url: `https://github.com/${this.github.env.GITHUB_REPOSITORY}/actions/runs/${run.id}`, steps: jobs.jobs.flatMap((j: any) => (j.steps ?? []).map((s: any) => ({ name: s.name, status: s.status, conclusion: s.conclusion }))), summary, summaryError, published: run.status === 'completed' && run.conclusion === 'success' && summary?.action === 'publish' && ['success', 'unchanged'].includes(summary?.deployment?.status) && !!summary?.deployment?.version && !!summary?.deployment?.url };
       tasks.push(task);

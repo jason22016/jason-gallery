@@ -43,3 +43,9 @@ Worker 从受信任的本站 main automation run 读取执行摘要，先用 Git
 真实 Free 需固定并记录 Worker version、Git HEAD、照片 artifact 和数据规模，覆盖至少 100 次 state、全部 154 张缩略图和 20 次受控成功保存，以及 12/40 并发预览。回读 GitHub 确认保存，并核对完整搜索、跨源选择、冲突和过期处理。平台 CPU 每个样本须不超过 10 ms，逐路由 P95 目标不超过 8 ms，无 exceededCpu/1102，所有业务断言通过，子请求总量不超过 50。还需记录首屏和保存延迟。
 
 新浏览器页面不证明新 isolate；本地新实例检查和真实新版本首批请求分别记录。任何门槛未通过，状态保持 Free 验收不通过，继续定位剩余开销。
+
+### CI 封存目录与预览位置
+
+真实 Free 短测中，第一版紧凑读取仍超过 CPU 门槛。因此上传验证现在把原样 `catalog.json` 字符串、实际 ZIP 大小及 `previews.bin` 的绝对字节位置一并写入执行摘要（`sealedCatalogVersion: 1`）。该位置来自完整下载、GitHub SHA-256 验证及 STORE 结构校验后的实际字节；不能由上传前猜测偏移替代。
+
+Worker 先验证执行摘要的 GitHub artifact 摘要，再核对封存记录与当前产物元数据、原照片产物及任务身份。state 无需再次下载预览包；缩略图只下载封存位置对应的一段，验证 Content-Range、长度和单图 SHA-256。来源配置、处理器摘要与 Project 引用检查不变。旧紧凑产物仍按原有有界 STORE 读取路径验证，无 ZIP 解压回退。封存后的摘要受 512 KB 上限约束；CI 超限即失败。

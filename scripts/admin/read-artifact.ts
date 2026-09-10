@@ -81,11 +81,13 @@ async function main() {
       for await (const chunk of uploaded.body!) { size += chunk.length; assert(size <= 1024 ** 3); hash.update(chunk); chunks.push(chunk); }
       assert.equal(size, info.size_in_bytes);
       assert.equal(`sha256:${hash.digest('hex')}`, info.digest);
-      const contents = storedFiles(Buffer.concat(chunks), ['catalog.json', 'previews.bin']);
+      const uploadedBytes = Buffer.concat(chunks);
+      const contents = storedFiles(uploadedBytes, ['catalog.json', 'previews.bin']);
       assert.deepEqual(Buffer.from(contents.get('catalog.json')!), await fs.readFile(path.join(root, 'admin-read/catalog.json')));
       assert.deepEqual(Buffer.from(contents.get('previews.bin')!), await fs.readFile(path.join(root, 'admin-read/previews.bin')));
       for (const p of parsed.photos) assert.equal(sha256(contents.get('previews.bin')!.subarray(p.offset, p.offset + p.length)), p.hash);
-      state.adminRead = { ...state.adminRead, status: 'success', artifactId, artifactDigest: info.digest };
+      state.adminRead = { ...state.adminRead, status: 'success', artifactId, artifactDigest: info.digest, sealedCatalogVersion: 1, catalog: Buffer.from(catalog).toString('utf8'), previewOffset: contents.get('previews.bin')!.byteOffset - uploadedBytes.byteOffset, archiveBytes: size };
+      assert(Buffer.byteLength(JSON.stringify(state)) <= 512000, 'Sealed summary exceeds the bounded Worker summary size');
     } else throw new Error('Expected generate or verify-upload');
   } catch (error) {
     state.adminRead = { ...state.adminRead, status: 'failure' };

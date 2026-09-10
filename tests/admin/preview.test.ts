@@ -11,7 +11,10 @@ import { softwareGPUOptions } from '../browser';
 let browser: Browser;
 let host: Awaited<ReturnType<typeof serve>>;
 const errors: string[] = [];
+const projectSnapshot = async () => Object.fromEntries(await Promise.all((await fs.readdir('src/content/projects')).filter(f => f.endsWith('.json')).sort().map(async f => [f, await fs.readFile(path.join('src/content/projects', f), 'utf8')])));
+let originalProjects: Awaited<ReturnType<typeof projectSnapshot>>;
 test.before(async () => {
+  originalProjects = await projectSnapshot();
   await preparePreview();
   run(['node_modules/vite/bin/vite.js', 'build', '--config', 'tests/admin/vite.config.ts'], repo);
   host = await serve(path.resolve('.cache/admin-dist'));
@@ -123,7 +126,7 @@ test('responsive navigation, dialog keyboard handling and fixture bundle isolati
   assert.equal(await page.locator('.admin.light').count(), 1);
   await page.close();
   assert.deepEqual(errors, []);
-  assert.deepEqual((await fs.readdir('src/content/projects')).filter(f => f.endsWith('.json')), []);
+  assert.deepEqual(await projectSnapshot(), originalProjects, 'Preview must not change any existing Project file');
   const files = await fs.readdir('.cache/admin-dist/assets');
   const bundle = (await Promise.all(files.filter(f => f.endsWith('.js')).map(f => fs.readFile(path.join('.cache/admin-dist/assets', f), 'utf8')))).join('');
   for (const forbidden of ['JASON_PHOTOS_READ_TOKEN', 'node:fs', 'node:crypto', 'CLOUDFLARE_API_TOKEN']) assert(!bundle.includes(forbidden), forbidden);

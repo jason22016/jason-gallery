@@ -26,7 +26,7 @@ if (collectionDir) {
   await readCollection(async name => files.get(name)!, config);
   replay = { files, artifact, config };
 }
-const f = await fixture(replay);
+const f = await fixture(replay); f.enableSealed();
 const bindings = { ...env, PUBLISH_ENABLED: 'true' }; delete (bindings as any).ASSETS;
 const mf = new Miniflare(convertV4MiniflareOptions({ name: 'gallery-profile', modules: true, scriptPath: bundle, compatibilityDate: '2026-09-10', compatibilityFlags: ['nodejs_compat'], bindings, inspectorPort: 0,
   serviceBindings: { ASSETS: () => new Response('fixture assets') },

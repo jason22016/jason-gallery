@@ -101,3 +101,36 @@ test('upstream failure is unavailable, not evidence of stale photos',async()=>{
   }));
   const state=await s.bootstrap();assert.equal(state.media.state,'unavailable');assert(!state.media.reason.includes('请重新同步'));
 });
+
+
+test('CI-sealed catalog avoids archive reads for state and reads only the requested verified JPEG', async () => {
+  const f = await fixture(); f.enableSealed();
+  const service = new AdminService(new GitHub(env, f.fetcher));
+  const state = await service.bootstrap(); assert.equal(state.media.state, 'ready');
+  assert.equal(state.media.photos.length, 2);
+  assert(!f.network.some(r => r.url.includes('/12/zip') || r.url.endsWith('/admin-read')));
+  const catalog = parseCatalog(f.readFiles.catalog), photo = catalog.photos[0]!;
+  assert.deepEqual(Buffer.from(await service.thumbnail(1, photo.id)), f.readFiles.previews.subarray(photo.offset, photo.offset + photo.length));
+  assert.equal(f.network.filter(r => r.url.endsWith('/admin-read')).length, 1);
+});
+
+test('sealed catalogs reject altered bytes, range proofs, removed artifacts and damaged JPEGs', async () => {
+  for (const mode of ['catalog', 'offset', 'size', 'version', 'range', 'preview', 'expired']) {
+    const f = await fixture(); f.enableSealed();
+    if (mode === 'catalog') f.summary.adminRead.catalog += ' ';
+    if (mode === 'offset') f.summary.adminRead.previewOffset = Number.MAX_SAFE_INTEGER;
+    if (mode === 'size') f.summary.adminRead.archiveBytes++;
+    if (mode === 'version') f.summary.adminRead.photosArtifactVersion = 'f'.repeat(64);
+    if (mode === 'preview') f.setTamper();
+    if (mode === 'expired') f.setExpired();
+    f.setSummary(f.summary);
+    const transport: typeof fetch = async (input, init) => {
+      const response = await f.fetcher(input, init);
+      if (mode === 'range' && String(input).includes('/admin-read')) response.headers.set('content-range', 'bytes 0-0/1');
+      return response;
+    };
+    const service = new AdminService(new GitHub(env, transport));
+    await assert.rejects(service.thumbnail(1, parseCatalog(f.readFiles.catalog).photos[0]!.id), Error, mode);
+    assert.equal(f.mutations.length, 0);
+  }
+});

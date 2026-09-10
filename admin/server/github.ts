@@ -53,7 +53,7 @@ export class GitHub {
     }
     return result;
   }
-  async runs() { return (await this.call('/actions/workflows/automation.yml/runs?branch=main&per_page=30')).workflow_runs as any[]; }
+  async runs(completed = false) { return (await this.call(`/actions/workflows/automation.yml/runs?branch=main&per_page=${completed ? 1 : 30}${completed ? '&status=completed' : ''}`)).workflow_runs as any[]; }
   async run(id: number) { return this.verifyRun(await this.read(`/actions/runs/${id}`)); }
   verifyRun(run: any) { if (!Number.isSafeInteger(run.id) || run.id <= 0 || !Number.isSafeInteger(run.run_attempt) || run.run_attempt <= 0 || !/^[a-f0-9]{40}$/.test(run.head_sha) || run.head_branch !== 'main' || run.path !== workflow || run.repository?.full_name?.toLowerCase() !== this.env.GITHUB_REPOSITORY.toLowerCase() || run.head_repository?.full_name?.toLowerCase() !== this.env.GITHUB_REPOSITORY.toLowerCase() || !['push', 'schedule', 'workflow_dispatch'].includes(run.event)) throw new ApiError(422, 'run', '只接受本站 main 的 Gallery automation 任务'); return run; }
   async artifacts(id: number) { const data = await this.read(`/actions/runs/${id}/artifacts?per_page=100`); if (data.total_count > data.artifacts.length) throw new ApiError(413, 'artifact_limit', '任务产物列表不完整'); return data.artifacts as any[]; }

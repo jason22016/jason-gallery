@@ -5,6 +5,7 @@ import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { ZipWriter, Uint8ArrayWriter, Uint8ArrayReader } from '@zip.js/zip.js';
 import { parseSources, LEGACY_SOURCE, makeSnapshot, photoReference, originalURL } from '../../src/photo-engine/source-contract';
 import { createUnifiedIndex } from '../../src/photo-engine/unified-index';
+import { storedFiles } from '../../admin/server/stored-archive';
 import { buildReadFiles } from '../../scripts/admin/read-artifact';
 import { readCollection, hashBytes } from '../../src/photo-engine/collection-contract';
 import type { AfilmoryManifest } from '@afilmory/typing';
@@ -80,7 +81,7 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
     if(p==='/actions/workflows/automation.yml/dispatches') return new Response(null,{status:204});
     throw new Error('Unexpected '+p);
   };
-  return { readFiles, setSummaryLevel:(level:number)=>{summaryLevel=level;summaryBytes=undefined;}, setAdminZip:(bytes:Uint8Array)=>{adminZip=bytes;adminDigest='sha256:'+hashBytes(bytes);}, c, fetcher, mutations, network, setProjects:(v:any[])=>projects=v, setConfig:(v:typeof config)=>activeConfig=v, setHead:(v:string)=>currentHead=v, setRace:()=>race=true,setExpired:()=>expired=true,setTamper:()=>tamper=true,setStale:()=>{codeStale=true;currentHead=next;}, setSummary:(v:any)=>{summary=v;summaryBytes=undefined;}, summary, run };
+  return { enableSealed: () => { summary.adminRead = { ...summary.adminRead, sealedCatalogVersion: 1, catalog: readFiles.catalog.toString('utf8'), previewOffset: storedFiles(adminZip, ['catalog.json', 'previews.bin']).get('previews.bin')!.byteOffset - adminZip.byteOffset, archiveBytes: adminZip.length }; summaryBytes = undefined; }, readFiles, setSummaryLevel:(level:number)=>{summaryLevel=level;summaryBytes=undefined;}, setAdminZip:(bytes:Uint8Array)=>{adminZip=bytes;adminDigest='sha256:'+hashBytes(bytes);}, c, fetcher, mutations, network, setProjects:(v:any[])=>projects=v, setConfig:(v:typeof config)=>activeConfig=v, setHead:(v:string)=>currentHead=v, setRace:()=>race=true,setExpired:()=>expired=true,setTamper:()=>tamper=true,setStale:()=>{codeStale=true;currentHead=next;}, setSummary:(v:any)=>{summary=v;summaryBytes=undefined;}, summary, run };
 }
 
 export { head, next, env, prepareKeys, token, config, snapshot, fixture };
