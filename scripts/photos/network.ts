@@ -9,13 +9,16 @@ export interface RequestAudit {
   rateLimitReset?: string;
 }
 
-/** Applies to the complete Builder process, including upstream providers/plugins. */
-export function installReadOnlyFetch(
+const wrapped = new WeakSet<typeof fetch>();
+
+/** Shared bounded read transport, usable without mutating global fetch. */
+export function createReadOnlyFetch(
   audit: RequestAudit[],
   transport: typeof fetch = globalThis.fetch,
   delay: (ms: number) => Promise<void> = ms => new Promise(resolve => setTimeout(resolve, ms)),
 ) {
-  globalThis.fetch = async (input, init) => {
+  if (wrapped.has(transport)) return transport;
+  const request: typeof fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
     if (!['GET', 'HEAD'].includes(method)) {
@@ -39,7 +42,7 @@ export function installReadOnlyFetch(
         await response.body?.cancel();
         console.warn(`Retrying read (${response.status}, attempt ${attempt}): ${url}`);
       } catch (error) {
-        record.error = error instanceof Error ? error.message : String(error);
+        record.error = 'Network/timeout error';
         if (attempt === 3 || init?.signal?.aborted || (input instanceof Request && input.signal.aborted)) throw error;
         console.warn(`Retrying read (network error, attempt ${attempt}): ${url}`);
       } finally { record.elapsedMs = Date.now() - start; }
@@ -47,4 +50,11 @@ export function installReadOnlyFetch(
     }
     throw new Error('Read retries exhausted');
   };
+  wrapped.add(request);
+  return request;
+}
+
+/** Applies to the complete Builder process, including upstream providers/plugins. */
+export function installReadOnlyFetch(...args: Parameters<typeof createReadOnlyFetch>) {
+  globalThis.fetch = createReadOnlyFetch(...args);
 }

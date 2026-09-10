@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { LEGACY_SOURCE } from '../../src/photo-engine/sources.js';
-interface RepositoryFixture { owner?: string; repo?: string; branch?: string; ref: string; private?: boolean; fail?: boolean; files: Record<string, { file: string; commit: string }> }
+interface RepositoryFixture { owner?: string; repo?: string; branch?: string; ref: string; private?: boolean; fail?: boolean; rawStatus?: number; files: Record<string, { file: string; commit: string }> }
 export async function installFixture(file: string) {
   const fixture = JSON.parse(await fs.readFile(file, 'utf8'));
   const repositories: RepositoryFixture[] = fixture.repositories ?? [fixture];
@@ -28,6 +28,8 @@ export async function installFixture(file: string) {
     const { repository: r, data } = found;
     if (r.fail) return response({}, 403);
     if (url.hostname === 'raw.githubusercontent.com') {
+      if (new Headers(init?.headers).has('authorization')) throw new Error('Credentials on public original request');
+      if (r.rawStatus && r.rawStatus !== 200) return response({}, r.rawStatus);
       const prefix = `/${r.owner}/${r.repo}/${r.ref}/`;
       if (!url.pathname.startsWith(prefix)) throw new Error('Unpinned raw URL');
       const item = data.get(decodeURIComponent(url.pathname.slice(prefix.length)));

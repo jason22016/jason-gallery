@@ -33,7 +33,7 @@ test('two isolated repositories preserve native collisions, complete snapshots, 
   await fs.rm(root, { recursive: true, force: true }); await fs.mkdir(root, { recursive: true });
   const projects = path.join(root, 'projects'); await fs.mkdir(projects);
   const config = parseSources({ schemaVersion: 1, sources: [LEGACY_SOURCE, { ...LEGACY_SOURCE, sourceId: 'second', name: 'Second source', owner: 'fixture', repo: 'second', path: 'gallery' }] });
-  const fixture = { repositories: config.sources.map((s, i) => ({ owner: s.owner, repo: s.repo, branch: s.branch, ref: String(i+1).repeat(40), files: { [`${s.path}/same.jpg`]: { file: `${s.sourceId}.jpg`, commit: String(i+1).repeat(40) } } as Record<string,{file:string;commit:string}>, fail: false })) };
+  const fixture = { repositories: config.sources.map((s, i) => ({ owner: s.owner, repo: s.repo, branch: s.branch, ref: String(i+1).repeat(40), files: { [`${s.path}/same.jpg`]: { file: `${s.sourceId}.jpg`, commit: String(i+1).repeat(40) } } as Record<string,{file:string;commit:string}>, fail: false, rawStatus: 200 })) };
   for (const [i,s] of config.sources.entries()) await fs.writeFile(path.join(root, `${s.sourceId}.jpg`), await jpeg(i ? '#aa6622' : '#2266aa'));
   const engine = path.join(root, 'engine'); const output = path.join(engine, 'output');
   let serial = 0;
@@ -78,6 +78,11 @@ test('two isolated repositories preserve native collisions, complete snapshots, 
   fixture.repositories[1]!.fail = true;
   const failedResolution = await sync(true); assert.equal(failedResolution.sources[1].status, 'failure'); assert.equal(failedResolution.sources[0].status, 'resolved');
   assert.deepEqual(await fileHashes(output), success); fixture.repositories[1]!.fail = false;
+  fixture.repositories[1]!.rawStatus = 404;
+  const unreadable = await sync(true);
+  assert.match(unreadable.sources[1].failureReason, /anonymous original.*HTTP 404/);
+  assert.deepEqual(await fileHashes(output), success, 'raw visibility failure preserves the previous complete library');
+  fixture.repositories[1]!.rawStatus = 200;
   await fs.writeFile(path.join(root,'second.jpg'), 'broken');
   const failedProcessing = await sync(true); assert.equal(failedProcessing.sources[0].status, 'success'); assert.equal(failedProcessing.sources[1].status, 'failure');
   assert.deepEqual(await fileHashes(output), success);
