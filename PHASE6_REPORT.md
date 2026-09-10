@@ -75,3 +75,12 @@
 最终真实兼容性审计：网站代码 `b480394`，快照 `b92dcd3e72712d83032ce0a4e85159ca60f056087b3db6dc4581b62b2d14914c`；154 个原生 ID 与迁移前完全一致，154 个固定默认来源旧别名逐一核对，热缓存 0 处理/154 复用，公开产物 0 照片缩略图。证据：`.cache/phase6-multi-real-verified.log`、`.cache/phase6-multi-real-verified-warm.log`、`.cache/phase6-multi-real-compatibility.json`。
 
 多源首次完整 CI run `34447331610` 的新增地图测试停在 loading，原有测试通过；Website 浏览器套件改为串行运行后，上述完整 run 通过。保持地图 ready 断言与 5 秒超时、全部 GPU/色彩断言，无跳过或放宽。双源发布测试还验证：仅第二源 commit 改变或来源集合变化，在调用托管 API 前拒绝发布。代码已推送到独立分支，main 仍为 `f6243bb`，本补充未合并、未部署。
+
+## 公开照片源解析修复（2026-09-10）
+
+- **已确认原因与证据边界**：Gallery automation #2 [run 34449154936](https://github.com/jason22016/jason-gallery/actions/runs/34449154936) 的检查步骤成功，`Resolve immutable photo snapshot` 在仓库 API 请求后报 `Photo repository must be anonymously readable`。旧代码把所有非 2xx 响应及非明确公开结果合并成此错误，并对仓库信息强制匿名查询，忽略本步骤已有来源 Token。历史日志/摘要没有 HTTP 状态、响应头或正文，因此**无法确定该次底层 API 拒绝的具体原因，不能声称已证实限流或私有仓库**。
+- **修复**：仓库信息、commit、Git tree 使用该来源的 `JASON_PHOTOS_READ_TOKENS[sourceId]`，回退 `JASON_PHOTOS_READ_TOKEN`；无 Token 仍可匿名查询。必须明确 `private:false`；`private:true` 拒绝，缺字段/错误响应不能放行。401、404（不存在或不可访问，GitHub 无法区分）、无明确限流证据的 403、有证据的限流、临时服务/网络错误分别诊断，保留 HTTP、quota/reset/retry-after/request-id。响应正文、认证头、原始网络异常不写日志。
+- **独立原图检查**：从固定 SHA 的完整 tree 筛选所有实际照片（排除 `.afilmory`），通过现有原图 URL 规则逐张匿名 GET Range；不携带 Authorization/Cookie，禁止重定向，要求 200/206 且确有可读取字节，再取消剩余响应。缓存命中也不绕过公开可读检查。API 公开状态与真实原图可读性必须同时通过，任何失败均不进入照片处理/封存/发布；来源隔离和上一完整输出保留不变。
+- **超时/重试**：抽取现有只读 fetch 包装器为可局部调用的工厂；沿用每请求 60 秒、最多 3 次、有界退避/Retry-After。已包装请求不再嵌套重试；独立调用 resolve（含发布新鲜度检查）也有相同保护。403 保持原有不自动重试策略，仅在证据支持时标为限流。
+- **验证与 CI**：本地完整 `pnpm test` 通过：TypeScript、Project 46/46、Engine/网络 smoke、Viewer 5/5、Website 27/27、automation 21/21（含新增可见性/匿名原图测试）、真实 metadata 1/1、Astro 生产构建；最终网络/事务修改再次通过 TypeScript 与 automation 21/21。Gallery checks 结果待推送后记录。所有照片变更/故障测试使用隔离 fixture；没有修改真实照片仓库、正式 Project、UI、HDR 路径或 Cloudflare 配置。
+- **合并后真实图库验收（尚待执行）**：GitHub → Actions → Gallery automation → Run workflow，branch=`main`、mode=`sync`，首次 `photo_commits` 与 `photo_run_id` 留空。亦可运行 `gh workflow run automation.yml --repo jason22016/jason-gallery --ref main -f mode=sync`。使用 production 环境既有只读 Secret（多来源按 ID 映射；默认来源回退单 Token 或 workflow 的 github.token）。确认 resolve 输出 private=false/固定 SHA/匿名原图数量，处理成功后下载 `photos`（14 天）和 `execution-summary`（30 天），核对同一网站 commit、所有来源 commit、照片数量/状态及 `photos.status=success`，部署仍为 `not_requested`。可用摘要中的完整 `photo_commits` 再次 sync 检查缓存复用。若失败按新诊断排查并重试，上一完整产物不被替换。**分支 fixture CI 和本地真实网络读取不能替代 main + production Secrets 的这一步。** 本次仅推送修复分支并创建 PR，不合并、不部署；无新增线上网址。
