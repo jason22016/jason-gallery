@@ -5,8 +5,12 @@ import type { LaunchOptions } from 'playwright';
 // requestDevice succeeds. Graphite/Dawn supports that software presentation path.
 // https://chromium.googlesource.com/chromium/src/+/HEAD/docs/gpu/swiftshader.md
 // https://dawn.googlesource.com/dawn/+/HEAD/webgpu-cts/README.md
+// https://chromium.googlesource.com/chromium/src/+/HEAD/gpu/command_buffer/service/shared_image/wrapped_sk_image_backing_factory.cc
 export function softwareGPUOptions(): LaunchOptions {
   return {
+    // Use Chromium's full headless browser, including its normal compositor.
+    // https://playwright.dev/docs/browsers#chromium-new-headless-mode
+    channel: 'chromium',
     executablePath: process.env.JASON_TEST_CHROMIUM || undefined,
     timeout: 20_000,
     args: [

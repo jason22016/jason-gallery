@@ -82,6 +82,7 @@ async function load(page: Page, src: string, mode = 'auto') {
     const result = JSON.parse(await page.locator('#result').textContent() ?? '{}');
     state = result;
     const detail = JSON.stringify({ src, mode, result, logs }, null, 2);
+    assert.deepEqual(logs.filter(line => line.startsWith('pageerror:')), [], detail);
     if (mode === 'no-gpu') assert.equal(result.fallbackLoaded, true, detail);
     else {
       assert.equal(result.renderer, mode === 'auto' ? 'webgpu' : 'webgl', detail);
@@ -202,6 +203,9 @@ test('extended canvas rejection uses WebGPU SDR; WebGL context loss after load r
   });
   try {
     const result = await load(page, '/hdr.jpg'); assert.equal(result.renderer, 'webgpu'); assert.equal(result.hdr, false);
+    const config = await page.evaluate(() => document.querySelector('canvas')!.getContext('webgpu')!.getConfiguration());
+    assert.equal(config?.toneMapping?.mode, 'standard', 'Injected extended rejection must select an SDR canvas');
+    assert.notEqual(config?.format, 'rgba16float');
     await load(page, '/hdr.jpg', 'webgl');
     await page.evaluate(() => document.querySelector('canvas')!.getContext('webgl')!.getExtension('WEBGL_lose_context')!.loseContext());
     await page.waitForFunction(() => JSON.parse(document.querySelector('#result')!.textContent!).fallbackLoaded === true);
