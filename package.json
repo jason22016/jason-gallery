@@ -16,7 +16,7 @@
     "test:viewer": "node --import tsx tests/viewer/prepare.ts && vite build --config tests/viewer/vite.config.ts && node --import tsx tests/viewer/check-bundle.ts && node --import tsx --test tests/viewer/color.test.ts",
     "viewer:dev": "node --import tsx tests/viewer/prepare.ts && vite --config tests/viewer/vite.config.ts",
     "test:projects": "node --import tsx --test tests/projects/*.test.ts",
-    "test:website": "node --import tsx --test tests/website/*.test.ts",
+    "test:website": "node --import tsx --test --test-concurrency=1 tests/website/*.test.ts",
     "website:fixture": "node --import tsx tests/website/fixture.ts",
     "website:preview": "node --import tsx tests/website/server.ts",
     "test": "pnpm test:checks && pnpm test:metadata-real && pnpm build",

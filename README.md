@@ -17,7 +17,7 @@ pnpm dev
 
 `pnpm test:metadata-real` 单独审计已导出的真实 Manifest（自动化在正式网站构建后执行）；`pnpm test:checks` 不需要真实图库，使用隔离 fixture 检查类型、Project、Engine、Viewer、Website、自动化；`pnpm test:automation` 单独验证 Phase 6。`pnpm ui:preview` 只在 `.cache/ui-preview` 生成真实图片的临时选集，不能部署。运行浏览器测试需要允许回环 HTTP 服务和 Chromium；当前自动回归为 Chromium，不能代替实体 HDR 屏幕验收。
 
-浏览器测试共用 `tests/browser.ts`：固定同版 Playwright Chromium，显式使用 SwiftShader；WebGPU/色彩测试使用 headless shell + Skia Graphite/Dawn，普通交互和 MapLibre 使用 headless shell + WebGL/GL 合成，不依赖 runner 的实体 GPU。`DEBUG=pw:browser pnpm test:viewer` 可输出浏览器进程错误，结构化诊断位于 `.cache/color-test/diagnostics/`；Actions 的 `viewer-diagnostics` artifact 保留 14 天，过期后重跑检查。GPU 适配器存在不代表画布可呈现，测试仍严格核对渲染器、HDR 状态与截图像素。
+浏览器测试共用 `tests/browser.ts`：固定同版 Playwright Chromium，显式使用 SwiftShader；WebGPU/色彩测试使用 headless shell + Skia Graphite/Dawn，普通交互和 MapLibre 使用 headless shell + WebGL/GL 合成，不依赖 runner 的实体 GPU。Website 浏览器测试文件串行执行，避免多个独立浏览器在 CI 上争用同一个软件 GPU。`DEBUG=pw:browser pnpm test:viewer` 可输出浏览器进程错误，结构化诊断位于 `.cache/color-test/diagnostics/`；Actions 的 `viewer-diagnostics` artifact 保留 14 天，过期后重跑检查。GPU 适配器存在不代表画布可呈现，测试仍严格核对渲染器、HDR 状态与截图像素。
 
 ## 照片源与引用迁移
 

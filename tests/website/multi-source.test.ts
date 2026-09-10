@@ -8,11 +8,12 @@ import { chromium } from 'playwright';
 import { expect } from 'playwright/test';
 import { softwareGPUOptions } from '../browser.js';
 import { serve } from './server.js';
-import { LEGACY_SOURCE, parseSources } from '../../src/photo-engine/sources.js';
+import { LEGACY_SOURCE, parseSources, makeSnapshot } from '../../src/photo-engine/sources.js';
 import { loadPhotoIndex } from '../../src/photo-engine/index.js';
 import { buildRelease } from '../../scripts/ci/release.js';
+import { deployRelease } from '../../scripts/ci/deploy.js';
 import { jpeg } from '../../scripts/photos/fixtures.js';
-import { fileHashes } from '../../scripts/photos/artifact.js';
+import { fileHashes, sha256 } from '../../scripts/photos/artifact.js';
 
 test('cross-source Gallery, metadata, Viewer sharing and map use the same qualified photo identity', { timeout: 120_000 }, async t => {
   const root = path.resolve('.cache/multi-source-website');
@@ -85,4 +86,21 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
   await expect(page.locator('.viewer-fallback')).toHaveAttribute('src',photos[1]!.originalUrl);
   assert.equal(new URL(page.url()).searchParams.get('photo'),photos[1]!.id);
   assert.deepEqual(errors,[]);
+  // Isolated deployment gate only: no hosting account, API or uploader is used.
+  const { version: _, ...record } = release;
+  const simulated = { ...record, source:'github' as const };
+  const version = sha256(JSON.stringify(simulated));
+  await fs.writeFile(path.join(releaseRoot,'release.json'),JSON.stringify({...simulated,version}));
+  await fs.writeFile(path.join(releaseRoot,'dist/build-version.json'),JSON.stringify({version,websiteCommit:release.websiteCommit,photoSnapshotVersion:release.photoSnapshot.version,runNumber:1}));
+  let uploads = 0;
+  const commits = Object.fromEntries(release.photoSnapshot.sources.map(s=>[s.sourceId,s.commit]));
+  for (const snapshot of [makeSnapshot(config,{...commits,travel:'f'.repeat(40)}),makeSnapshot(parseSources({...config,sources:config.sources.slice(0,1)}),{'jason-photos':commits['jason-photos']!})]) {
+    await assert.rejects(deployRelease(releaseRoot,{
+      heads:async()=>({website:release.websiteCommit,photos:snapshot}),
+      api:async()=>{throw new Error('Must reject before provider access');},
+      upload:async()=>{uploads++;},
+      version:async()=>{throw new Error('Must reject before version lookup');},
+    }),/Superseded/);
+  }
+  assert.equal(uploads,0,'Changed second source or source set must never upload');
 });
