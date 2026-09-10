@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import sharp from 'sharp';
 import { chromium, type Browser, type Page } from 'playwright';
+import { softwareGPUOptions } from '../browser';
 import { serve } from '../website/server';
 import { extractJPEGGainMap, parseISOGainMap, parseXMPGainMap } from '../../packages/afilmory/webgl-viewer/src/jpeg-gainmap';
 import { isoMetadata } from './color-fixtures';
@@ -46,12 +47,27 @@ before(async () => {
   await fs.cp(path.join(root, 'engine/output/public/thumbnails'), path.join(dist, 'thumbnails'), { recursive: true });
   server = await serve(dist);
   // Actual APIs/shaders on SwiftShader; dynamic-range simulation below tests logic only.
-  browser = await chromium.launch({ executablePath: process.env.JASON_TEST_CHROMIUM || undefined, args: ['--enable-unsafe-swiftshader', '--enable-unsafe-webgpu', '--use-angle=swiftshader'] });
+  browser = await chromium.launch(softwareGPUOptions());
   console.log(`Color browser: ${browser.version()} (software GPU; no screen certification)`);
   const session = await browser.newBrowserCDPSession();
   const gpu = await session.send('SystemInfo.getInfo');
-  await fs.writeFile(path.join(diagnostics, 'browser.json'), JSON.stringify({ version: browser.version(), ...gpu }, null, 2));
-  console.log(`Color GPU: ${JSON.stringify(gpu.gpu)}`);
+  const probe = await browser.newPage();
+  let adapter;
+  try {
+    // Same secure loopback origin, without mounting a Viewer or test overrides.
+    await probe.goto(`${server.url}/ordinary.jpg`);
+    adapter = await probe.evaluate(async () => {
+      const adapter = await navigator.gpu?.requestAdapter();
+      if (!adapter) return { error: 'No WebGPU adapter' };
+      const { vendor, architecture, device, description, isFallbackAdapter } = adapter.info;
+      const gpuDevice = await adapter.requestDevice();
+      gpuDevice.destroy();
+      return { vendor, architecture, device, description, isFallbackAdapter, deviceCreated: true };
+    });
+  } catch (error) { adapter = { error: String(error) }; }
+  finally { await probe.close(); }
+  await fs.writeFile(path.join(diagnostics, 'browser.json'), JSON.stringify({ version: browser.version(), options: softwareGPUOptions(), adapter, ...gpu }, null, 2));
+  console.log(`Color GPU: ${JSON.stringify({ devices: gpu.gpu.devices, featureStatus: gpu.gpu.featureStatus, adapter })}`);
   await session.detach();
 }, { timeout: 120_000 });
 after(async () => { await browser?.close(); await server?.close(); });
@@ -140,7 +156,7 @@ test('ICC SDR, wide-gamut P3, HDR base and Engine thumbnails agree across SDR re
       await load(page, photo.thumbnailUrl!, 'no-gpu'); const thumbnail = await pixel(page, '#root img'); near(thumbnail, reference);
       results.push({ name, reference, ...colors, thumbnail });
     }
-    await fs.writeFile(path.join(root, 'sdr-pixels.json'), JSON.stringify(results, null, 2));
+    await fs.writeFile(path.join(diagnostics, 'sdr-pixels.json'), JSON.stringify(results, null, 2));
   } finally { await page.close(); }
 });
 

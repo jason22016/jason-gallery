@@ -8,6 +8,7 @@ import { expect } from 'playwright/test';
 import { buildFixture, dist, repo, root, run } from './fixture';
 import { serve } from './server';
 import { colorFixtures } from '../viewer/color-fixtures';
+import { softwareGPUOptions } from '../browser';
 
 let fixture: Awaited<ReturnType<typeof buildFixture>>;
 let browser: Browser;
@@ -34,11 +35,7 @@ before(async () => {
   productionBefore = await productionSnapshot();
   fixture = await buildFixture();
   server = await serve();
-  browser = await chromium.launch({
-    executablePath: process.env.JASON_TEST_CHROMIUM || undefined,
-    timeout: 20_000,
-    args: ['--enable-unsafe-swiftshader'],
-  });
+  browser = await chromium.launch(softwareGPUOptions());
   console.log(`Website browser: ${browser.version()}`);
 }, { timeout: 120_000 });
 after(async () => {
@@ -594,7 +591,7 @@ test('WebGL context loss after a loaded HDR source reaches the normal image fall
 });
 
 test('HDR active requires successful reconstruction; capability changes, malformed gain and next photo clear it', async t => {
-  const gpuBrowser = await chromium.launch({ executablePath: process.env.JASON_TEST_CHROMIUM || undefined, args: ['--enable-unsafe-swiftshader', '--enable-unsafe-webgpu', '--use-angle=swiftshader'] });
+  const gpuBrowser = await chromium.launch(softwareGPUOptions());
   t.after(() => gpuBrowser.close());
   const ctx = await gpuBrowser.newContext();
   // This only simulates the media capability. The worker, WebGPU device and shader are real.
