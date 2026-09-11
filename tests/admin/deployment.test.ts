@@ -28,6 +28,13 @@ test('deployment preparation keeps whole-host authentication, repository isolati
   assert.equal(config.vars.GITHUB_TOKEN, undefined);
 });
 
+test('manual publishing is an explicit deployment setting and defaults off', () => {
+  assert.equal(deploymentConfig(base, { ...settings, publishEnabled: true }).config.vars.PUBLISH_ENABLED, 'true');
+  assert.deepEqual(deploymentConfig(base, { ...settings, publishEnabled: true }).missing, []);
+  assert.equal(deploymentConfig(base, { ...settings, publishEnabled: false }).config.vars.PUBLISH_ENABLED, 'false');
+  for (const publishEnabled of ['true', 'false', 1, null]) assert.throws(() => deploymentConfig(base, { ...settings, publishEnabled }));
+});
+
 test('blank configuration remains incomplete; malformed origins, secrets and unsafe base changes are rejected', () => {
   assert.deepEqual(deploymentConfig(base, { accountId: '', adminOrigin: '', accessIssuer: '', accessAud: '', adminEmails: [] }).missing, ['accountId', 'adminOrigin', 'accessIssuer', 'accessAud', 'adminEmails']);
   for (const adminOrigin of ['http://admin.gallery-owner.net', 'https://admin.gallery-owner.net/', 'https://admin.gallery-owner.net/api', 'https://user:password@admin.gallery-owner.net', 'https://admin.gallery-owner.net:8443', 'https://worker.workers.dev', 'https://admin.example.com', 'https://127.0.0.1']) {

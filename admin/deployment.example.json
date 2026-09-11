@@ -3,5 +3,6 @@
   "adminOrigin": "",
   "accessIssuer": "",
   "accessAud": "",
-  "adminEmails": []
+  "adminEmails": [],
+  "publishEnabled": false
 }

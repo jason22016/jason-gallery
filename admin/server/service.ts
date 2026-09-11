@@ -230,7 +230,7 @@ export class AdminService {
     const body = DispatchSchema.parse(input);
     const content = await this.content();
     if (content.head !== body.expectedHead) throw new ApiError(409, 'conflict', '网站仓库已更新，请重新加载后触发');
-    if (body.mode === 'publish' && this.github.env.PUBLISH_ENABLED !== 'true') throw new ApiError(503, 'publish_disabled', 'Cloudflare 发布尚未启用，请先完成上线配置与验收');
+    if (body.mode === 'publish' && this.github.env.PUBLISH_ENABLED !== 'true') throw new ApiError(503, 'publish_disabled', '后台发布入口未启用；这不代表主站尚未部署，请检查后台发布开关');
     const requestId = crypto.randomUUID();
     const inputs: Record<string, string> = { mode: body.mode, request_id: requestId, expected_website_commit: content.head };
     if (body.mode === 'publish') {

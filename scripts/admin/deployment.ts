@@ -9,6 +9,7 @@ import { z } from 'zod';
 const Settings = z.strictObject({
   accountId: z.string(), adminOrigin: z.string(), accessIssuer: z.string(),
   accessAud: z.string(), adminEmails: z.array(z.string()),
+  publishEnabled: z.boolean().default(false),
 });
 export function deploymentConfig(text: string, settings: unknown) {
   const parsed = ts.parseConfigFileTextToJson('admin/wrangler.jsonc', text);
@@ -26,7 +27,7 @@ export function deploymentConfig(text: string, settings: unknown) {
   const supported = new Set(['$schema', 'name', 'main', 'compatibility_date', 'compatibility_flags', 'workers_dev', 'preview_urls', 'assets', 'vars', 'secrets', 'observability']);
   assert(Object.keys(base).every(key => supported.has(key)), 'Review new Wrangler configuration fields before preparing deployment');
   const s = Settings.parse(settings);
-  const missing = Object.entries(s).filter(([, value]) => value.length === 0).map(([key]) => key);
+  const missing = Object.entries(s).filter(([, value]) => typeof value !== 'boolean' && value.length === 0).map(([key]) => key);
   if (s.accountId) assert(/^[a-f0-9]{32}$/.test(s.accountId), 'accountId must be a Cloudflare account ID');
   let workersDev = false;
   if (s.adminOrigin) {
@@ -46,7 +47,7 @@ export function deploymentConfig(text: string, settings: unknown) {
     workers_dev: workersDev,
     main: 'bundle/worker.js', no_bundle: true,
     assets: { ...base.assets, directory: 'assets' },
-    vars: { ...base.vars, ADMIN_ORIGIN: s.adminOrigin, ACCESS_ISSUER: s.accessIssuer, ACCESS_AUD: s.accessAud, ADMIN_EMAILS: s.adminEmails.join(',') },
+    vars: { ...base.vars, ADMIN_ORIGIN: s.adminOrigin, ACCESS_ISSUER: s.accessIssuer, ACCESS_AUD: s.accessAud, ADMIN_EMAILS: s.adminEmails.join(','), PUBLISH_ENABLED: String(s.publishEnabled) },
     ...(s.accountId ? { account_id: s.accountId } : {}),
     ...(s.adminOrigin && !workersDev ? { routes: [{ pattern: new URL(s.adminOrigin).hostname, custom_domain: true }] } : {}),
   };

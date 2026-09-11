@@ -53,3 +53,11 @@ pnpm exec wrangler deploy --config admin/wrangler.jsonc --dry-run
 独立实现后台 UI，参考 Afilmory 实际后台导航/网格/表单/任务布局，未复制其 AGPL/ANL 应用代码、字体或品牌资产。具体源码版本与许可证判断见 [PHASE7_PLAN.md](PHASE7_PLAN.md)。JOSE 6.2.12 为 MIT（Filip Skokan），zip.js 2.14.0 为 BSD-3-Clause（Gildas Lormeau），保留依赖自身 LICENSE；新增库仅进入 Worker bundle，不进入浏览器。完整声明见 [ADMIN_THIRD_PARTY_NOTICES.txt](ADMIN_THIRD_PARTY_NOTICES.txt)。
 
 官方依据：[Access JWT 校验](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/)、[Worker 静态资源路由](https://developers.cloudflare.com/workers/static-assets/routing/)、[Git ref 非强制更新](https://docs.github.com/en/rest/git/refs#update-a-reference)、[跳过 push CI](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/skipping-workflow-runs)、[workflow dispatch](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)。
+
+### 已上线主站与后台发布入口
+
+主站的部署状态与后台 `PUBLISH_ENABLED` 是两个独立状态。后台关闭发布入口时显示“后台发布入口未启用”，不能据此判断 Cloudflare 未配置或主站未部署。
+
+确认主站已通过 GitHub Actions 成功发布后，在 `admin/deployment.local.json` 设置 `"publishEnabled": true`，重新准备并部署后台。该设置默认 false；准备脚本将其显式写入 Worker 的 `PUBLISH_ENABLED`，避免后续部署意外关闭入口。它不会修改 Actions 的 `AUTO_DEPLOY_ENABLED`。
+
+后台操作顺序：保存内容 → 如照片源变化则同步照片并刷新产物 → 同步与发布 → 查看发布步骤 → 确认发布已保存版本。仅公开 `published` Project；保存、删除和同步本身不会自动发布。已成功部署的结果仍以 Actions 执行记录里的验证摘要为准，开启入口不是部署成功证明。

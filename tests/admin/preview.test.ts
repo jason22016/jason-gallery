@@ -104,7 +104,7 @@ test('missing, expired and failed artifacts offer resync; queued never means pub
   await page.getByLabel('预览任务状态').selectOption('success');
   await textVisible(page, '同步完成不代表网站已发布');
   await page.getByRole('button', { name: '查看发布步骤' }).click();
-  await page.getByRole('heading', { name: 'Cloudflare 尚未配置', exact: true }).waitFor();
+  await page.getByRole('heading', { name: '仅界面预览', exact: true }).waitFor();
   await page.getByRole('button', { name: '知道了' }).click();
   await page.close();
 });
