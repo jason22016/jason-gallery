@@ -203,5 +203,27 @@ const counting_worker = { fetch(request, env, ctx) { return scope.run({ value: 0
       freshIsolateChecks.push({ name: scenario.name, status: response.status, upstreamAndAssetCalls: operations });
     } finally { await fresh.dispose(); }
   }
-  await writeFile(resolve(output, 'results.json'), JSON.stringify({ measuredAt: new Date().toISOString(), bundle, node: process.version, photos: photos.photos.length, sources: activeConfig.sources.length, fixture: collectionDir ? 'verified-local-collection' : 'isolated-two-source', cacheMode: 'disabled', caveat: 'Local sampled V8 CPU; excludes idle samples but may omit native CPU and include debugger overhead. Not billed CPU, not Free acceptance. Legacy cold/warm labels mean first/repeated samples in the shared isolate, not persistent cache. Separate fresh-isolate checks are functional assertions, not CPU measurements.', freshIsolateChecks, previewChecks, signedSaveChecks, results }, null, 2) + '\n');
+  // Exercise deletion through the actual authenticated Worker bundle. Upstreams
+  // remain fixtures; neither GitHub content nor the deployed Worker is modified.
+  f.setHead(head); f.setProjects([project]);
+  let deleteHead = head;
+  const deleteSource = activeConfig.sources.find((s: { sourceId: string }) => ref.startsWith(s.sourceId + '--'))?.sourceId;
+  assert(deleteSource, 'The deletion fixture must reference a configured source');
+  const deletionChecks = [];
+  for (const scenario of [
+    { target: { kind: 'source', sourceId: deleteSource }, status: 422 },
+    { target: { kind: 'project', projectId: project.id }, status: 200 },
+    { target: { kind: 'source', sourceId: deleteSource }, status: 200 },
+  ]) {
+    const response = await mf.dispatchFetch(env.ADMIN_ORIGIN + '/api/delete', { method: 'POST', headers: { 'Cf-Access-Jwt-Assertion': jwt, Origin: env.ADMIN_ORIGIN, 'Content-Type': 'application/json' }, body: JSON.stringify({ ...scenario.target, expectedHead: deleteHead }) });
+    const result = await response.json() as { head?: string; status?: string; error?: string };
+    assert.equal(response.status, scenario.status, JSON.stringify(result));
+    if (scenario.status === 200) { assert.equal(result.status, 'deleted'); assert(result.head); assert.notEqual(result.head, deleteHead); deleteHead = result.head; }
+    else assert.equal(result.error, 'source_impact');
+    deletionChecks.push({ kind: scenario.target.kind, status: response.status });
+  }
+  const deletedContent = await new AdminService(new GitHub(env, f.fetcher)).content();
+  assert.deepEqual(deletedContent.projects, []);
+  assert(!deletedContent.config.sources.some(s => s.sourceId === deleteSource));
+  await writeFile(resolve(output, 'results.json'), JSON.stringify({ measuredAt: new Date().toISOString(), bundle, node: process.version, photos: photos.photos.length, sources: activeConfig.sources.length, fixture: collectionDir ? 'verified-local-collection' : 'isolated-two-source', cacheMode: 'disabled', caveat: 'Local sampled V8 CPU; excludes idle samples but may omit native CPU and include debugger overhead. Not billed CPU, not Free acceptance. Legacy cold/warm labels mean first/repeated samples in the shared isolate, not persistent cache. Separate fresh-isolate checks are functional assertions, not CPU measurements.', freshIsolateChecks, previewChecks, signedSaveChecks, deletionChecks, results }, null, 2) + '\n');
 } finally { ws?.close(); await mf.dispose(); }

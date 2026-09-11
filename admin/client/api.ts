@@ -19,5 +19,8 @@ export async function request(path: string, body?: unknown) {
   if (write && path === '/api/save' && (data.status !== 'saved' || typeof data.head !== 'string' || !/^[a-f0-9]{40}$/.test(data.head) || data.head === (body as any)?.expectedHead || data.saveProof !== undefined && (typeof data.saveProof !== 'string' || !data.saveProof.length || data.saveProof.length > 256000))) {
     throw new RequestError(response.status, '后台未返回有效的新保存版本' + unconfirmed, undefined, 'invalid_save_response', true);
   }
+  if (write && path === '/api/delete' && (data.status !== 'deleted' || typeof data.head !== 'string' || !/^[a-f0-9]{40}$/.test(data.head) || data.head === (body as any)?.expectedHead || data.kind !== (body as any)?.kind || data.id !== ((body as any)?.kind === 'project' ? (body as any)?.projectId : (body as any)?.sourceId))) {
+    throw new RequestError(response.status, '后台未返回有效的删除结果' + unconfirmed, undefined, 'invalid_delete_response', true);
+  }
   return data;
 }

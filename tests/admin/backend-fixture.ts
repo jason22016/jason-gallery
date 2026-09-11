@@ -83,6 +83,7 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
         if (change.path === 'config/photo-sources.json') activeConfig = value;
         else projects = [...projects.filter(p => `src/content/projects/${p.slug}.json` !== change.path), value];
       }
+      for (const change of input.fileChanges.deletions ?? []) projects = projects.filter(p => `src/content/projects/${p.slug}.json` !== change.path);
       currentHead = ++commitCount === 1 ? next : createHash('sha1').update(currentHead + JSON.stringify(input)).digest('hex');
       return Response.json({data:{createCommitOnBranch:{commit:{oid:currentHead}}}});
     }

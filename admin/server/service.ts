@@ -14,6 +14,10 @@ const headSchema = z.string().regex(/^[a-f\d]{40}$/);
 const idSchema = z.number().int().positive();
 const SaveSchema = z.discriminatedUnion('kind', [z.strictObject({ kind: z.literal('sources'), expectedHead: headSchema, config: z.unknown() }), z.strictObject({ kind: z.literal('project'), expectedHead: headSchema, project: ProjectSchema, saveProof: z.string().max(256000).optional() })]);
 const DispatchSchema = z.strictObject({ mode: z.enum(['sync', 'publish']), expectedHead: headSchema, photoRunId: idSchema.optional() });
+const DeleteSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('project'), expectedHead: headSchema, projectId: ProjectSchema.shape.id }),
+  z.strictObject({ kind: z.literal('source'), expectedHead: headSchema, sourceId: z.string().max(48).regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/) }),
+]);
 export function sourceImpacts(before: SourcesConfig, after: SourcesConfig, projects: Project[]) {
   const changed = before.sources.filter(s => { const next = after.sources.find(n => n.sourceId === s.sourceId); return !next || !next.enabled || sourceIdentity(s) !== sourceIdentity(next); });
   return changed.flatMap(s => projects.flatMap(p => {
@@ -195,6 +199,31 @@ export class AdminService {
       changes = [{ path: `src/content/projects/${p.slug}.json`, data: p }];
     }
     return { head: await this.github.commit(content.head, changes), status: 'saved' };
+  }
+  async delete(input: unknown) {
+    const body = DeleteSchema.parse(input);
+    const content = await this.content();
+    if (body.expectedHead !== content.head) throw new ApiError(409, 'conflict', '仓库已有更新，未执行删除；请保留编辑并检查最新版本');
+    let head: string;
+    try {
+      if (body.kind === 'project') {
+        const project = content.projects.find(p => p.id === body.projectId);
+        if (!project) throw new ApiError(404, 'not_found', '此 Project 已不存在，请刷新仓库');
+        // Removing a reference does not require a current photo artifact.
+        // Resolve the path from trusted content, never from a client-supplied path.
+        head = await this.github.commit(content.head, [], [`src/content/projects/${project.slug}.json`]);
+      } else {
+        if (!content.config.sources.some(s => s.sourceId === body.sourceId)) throw new ApiError(404, 'not_found', '此照片源已不存在，请刷新仓库');
+        const config = parseSources({ ...content.config, sources: content.config.sources.filter(s => s.sourceId !== body.sourceId) });
+        const impacts = sourceImpacts(content.config, config, content.projects).filter(p => p.sourceId === body.sourceId);
+        if (impacts.length) throw new ApiError(422, 'source_impact', '此照片源仍被 Project 引用；请先删除这些 Project 或移除、迁移照片引用', impacts);
+        head = await this.github.commit(content.head, [{ path: 'config/photo-sources.json', data: config }]);
+      }
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'save_unconfirmed') throw new ApiError(e.status, 'delete_unconfirmed', 'GitHub 删除结果尚未确认；请先核对仓库，避免重复删除', undefined, e.diagnostic);
+      throw e;
+    }
+    return { head, status: 'deleted', kind: body.kind, id: body.kind === 'project' ? body.projectId : body.sourceId };
   }
   async impact(input: unknown) { const config = parseSources(input); const content = await this.content(); return { head: content.head, impacts: sourceImpacts(content.config, config, content.projects) }; }
   async dispatch(input: unknown) {

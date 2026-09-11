@@ -101,13 +101,14 @@ export class GitHub {
   async run(id: number) { return this.verifyRun(await this.read(`/actions/runs/${id}`)); }
   verifyRun(run: any) { if (!Number.isSafeInteger(run.id) || run.id <= 0 || !Number.isSafeInteger(run.run_attempt) || run.run_attempt <= 0 || !/^[a-f0-9]{40}$/.test(run.head_sha) || run.head_branch !== 'main' || run.path !== workflow || run.repository?.full_name?.toLowerCase() !== this.env.GITHUB_REPOSITORY.toLowerCase() || run.head_repository?.full_name?.toLowerCase() !== this.env.GITHUB_REPOSITORY.toLowerCase() || !['push', 'schedule', 'workflow_dispatch'].includes(run.event)) throw new ApiError(422, 'run', '只接受本站 main 的 Gallery automation 任务'); return run; }
   async artifacts(id: number) { const data = await this.read(`/actions/runs/${id}/artifacts?per_page=100`); if (data.total_count > data.artifacts.length) throw new ApiError(413, 'artifact_limit', '任务产物列表不完整'); return data.artifacts as any[]; }
-  async commit(expected: string, changes: { path: string; data: unknown }[]) {
+  async commit(expected: string, changes: { path: string; data: unknown }[], deletions: string[] = []) {
     for (const change of changes) if (change.path !== 'config/photo-sources.json' && !/^src\/content\/projects\/[a-z0-9]+(?:-[a-z0-9]+)*\.json$/.test(change.path)) throw new ApiError(403, 'path', '不允许写入此路径');
+    for (const path of deletions) if (!/^src\/content\/projects\/[a-z0-9]+(?:-[a-z0-9]+)*\.json$/.test(path)) throw new ApiError(403, 'path', '不允许删除此路径');
     if (!/^[a-f0-9]{40}$/.test(expected)) throw new ApiError(422, 'head', '提交版本无效');
     // GitHub checks expectedHeadOid and creates/advances the commit atomically.
     // A sibling update cannot be overwritten; no multi-request tree/commit/ref chain.
     const input = { branch: { repositoryNameWithOwner: this.env.GITHUB_REPOSITORY, branchName: 'main' }, expectedHeadOid: expected,
-      message: { headline: 'Save gallery admin content [skip ci]' }, fileChanges: { additions: changes.map(c => ({ path: c.path, contents: Buffer.from(JSON.stringify(c.data, null, 2) + '\n').toString('base64') })) } };
+      message: { headline: 'Save gallery admin content [skip ci]' }, fileChanges: { additions: changes.map(c => ({ path: c.path, contents: Buffer.from(JSON.stringify(c.data, null, 2) + '\n').toString('base64') })), ...(deletions.length ? { deletions: deletions.map(path => ({ path })) } : {}) } };
     const query = 'mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }';
     let result: any;
     let upstreamStatus: number | undefined;

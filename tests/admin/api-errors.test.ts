@@ -35,3 +35,20 @@ test('HTTP 200 is not save success without a confirmed new HEAD', async () => {
     assert.equal((await request('/api/save', { expectedHead: 'a'.repeat(40) })).head, 'b'.repeat(40));
   } finally { globalThis.fetch = original; }
 });
+
+test('delete success requires the expected target and a confirmed new HEAD; failures are never retried', async () => {
+  const original = globalThis.fetch;
+  const body = { kind: 'project', projectId: 'target', expectedHead: 'a'.repeat(40) };
+  const valid = { status: 'deleted', kind: 'project', id: 'target', head: 'b'.repeat(40) };
+  try {
+    for (const response of [{}, { ...valid, status: 'saved' }, { ...valid, kind: 'source' }, { ...valid, id: 'different' }, { ...valid, head: body.expectedHead }]) {
+      let calls = 0; globalThis.fetch = async () => { calls++; return Response.json(response); };
+      await assert.rejects(request('/api/delete', body), (e: unknown) => e instanceof RequestError && e.code === 'invalid_delete_response' && e.outcomeUnknown);
+      assert.equal(calls, 1);
+    }
+    globalThis.fetch = async () => Response.json(valid);
+    assert.deepEqual(await request('/api/delete', body), valid);
+    globalThis.fetch = async () => { throw new Error('lost response'); };
+    await assert.rejects(request('/api/delete', body), (e: unknown) => e instanceof RequestError && e.outcomeUnknown);
+  } finally { globalThis.fetch = original; }
+});

@@ -13,7 +13,7 @@ test('actual local workerd protects static assets and every write without a sign
     let ready=false;
     for(let i=0;i<120;i++){try{if((await fetch(`http://127.0.0.1:${port}/api/state`)).status===401){ready=true;break;}}catch{}if(child.exitCode!==null)break;await new Promise(r=>setTimeout(r,250));}
     assert(ready,log);
-    for(const [p,method] of [['/','GET'],['/api/save','POST'],['/api/impact','POST'],['/api/dispatch','POST'],['/api/tasks','GET'],['/api/thumbnail/1/test','GET']]){const r=await fetch(`http://127.0.0.1:${port}${p}`,{method});assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');assert(!(await r.text()).includes('runtime-test-only-sentinel'));}
+    for(const [p,method] of [['/','GET'],['/api/save','POST'],['/api/delete','POST'],['/api/impact','POST'],['/api/dispatch','POST'],['/api/tasks','GET'],['/api/thumbnail/1/test','GET']]){const r=await fetch(`http://127.0.0.1:${port}${p}`,{method});assert.equal(r.status,401);assert.equal(r.headers.get('cache-control'),'no-store');assert(!(await r.text()).includes('runtime-test-only-sentinel'));}
   }finally{child.kill('SIGTERM');await new Promise<void>(resolve=>{if(child.exitCode!==null)return resolve();child.once('exit',()=>resolve());setTimeout(()=>{child.kill('SIGKILL');resolve();},5000).unref();});}
 });
 

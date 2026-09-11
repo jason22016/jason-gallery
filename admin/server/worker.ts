@@ -25,9 +25,9 @@ async function route(request: Request, env: Env, transport: typeof fetch, assetR
       let data: unknown;
       if (request.method === 'GET' && url.pathname === '/api/state') data = { ...await service.bootstrap(), email };
       else if (request.method === 'GET' && url.pathname === '/api/tasks') data = await service.tasks(url.searchParams.get('requestId') ?? undefined);
-      else if (request.method === 'POST' && ['/api/save', '/api/impact', '/api/dispatch'].includes(url.pathname)) {
+      else if (request.method === 'POST' && ['/api/save', '/api/delete', '/api/impact', '/api/dispatch'].includes(url.pathname)) {
         const body = await jsonBody(request as unknown as Response, 512000);
-        data = await (url.pathname === '/api/save' ? service.save(body) : url.pathname === '/api/impact' ? service.impact(body) : service.dispatch(body));
+        data = await (url.pathname === '/api/save' ? service.save(body) : url.pathname === '/api/delete' ? service.delete(body) : url.pathname === '/api/impact' ? service.impact(body) : service.dispatch(body));
       } else if (request.method === 'GET' && /^\/api\/thumbnail\/\d+\/[a-z\d-]+$/.test(url.pathname)) {
         const [, , , run, reference] = url.pathname.split('/');
         response = new Response(await service.thumbnail(Number(run), reference, url.searchParams.has('proof') ? url.searchParams.get('proof')! : undefined) as BodyInit, { headers: { 'Content-Type': 'image/jpeg' } });
@@ -58,7 +58,7 @@ export async function handle(request: Request, env: Env, transport: typeof fetch
   const response = await route(request, env, counted, () => { assetRequests++; });
   response.headers.set('X-Admin-Request-Id', requestId);
   const pathname = new URL(request.url).pathname;
-  const label = /^\/api\/thumbnail\//.test(pathname) ? '/api/thumbnail/*' : ['/api/state', '/api/save', '/api/impact', '/api/dispatch', '/api/tasks'].includes(pathname) ? pathname : 'asset-or-unknown';
+  const label = /^\/api\/thumbnail\//.test(pathname) ? '/api/thumbnail/*' : ['/api/state', '/api/save', '/api/delete', '/api/impact', '/api/dispatch', '/api/tasks'].includes(pathname) ? pathname : 'asset-or-unknown';
   // No URLs, identities, cookies, tokens, signed locations or payloads. CPU/outcome
   // are Cloudflare invocation fields, never inferred from this wall-clock duration.
   console.info(JSON.stringify({ event: 'admin-request', requestId, route: label, method: request.method, status: response.status, upstreamRequests, assetRequests, cacheOperations: 0, wallMs: Date.now() - started, ...(response.status >= 400 ? { errorCode: response.headers.get('X-Admin-Error-Code'), errorStage: response.headers.get('X-Admin-Error-Stage') ?? 'unclassified', upstreamStatus: Number(response.headers.get('X-Admin-Upstream-Status')) || undefined } : {}) }));
