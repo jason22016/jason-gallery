@@ -14,12 +14,12 @@ export function Tasks({ pending, refreshPhotos, completed }: { pending?: { reque
     }
     void poll(); return () => { active = false; clearTimeout(timer); };
   }, [pending]);
-  return <section className="panel task-panel"><div className="panel-title"><div><h2>Actions 执行记录</h2><p>运行中每 8 秒刷新，完成后停止轮询；每源结果来自执行摘要。</p></div><button className="secondary" onClick={refreshPhotos}>刷新照片产物</button></div>
+  return <section className="panel task-panel"><div className="panel-title"><div><h2>Actions 执行记录</h2><p>运行中每 8 秒刷新，完成后停止轮询；每源结果来自执行摘要。</p></div><button className="secondary" onClick={refreshPhotos}>刷新后台数据</button></div>
     {data?.historyUrl && <p><a href={data.historyUrl} target="_blank" rel="noreferrer">在 GitHub 查看全部任务 ↗</a></p>}
     {error && <p role="alert" className="error">{error} · 任务结果尚未确认。</p>}
     {!data && !error && <p>正在读取任务…</p>}
     {data?.pending && <p role="status">请求已发送，等待 GitHub 创建任务。尚未确认排队或成功，请勿重复触发。</p>}
-    {data && !data.pending && !data.tasks.length && <p>暂无任务，请先同步照片。</p>}
+    {data && !data.pending && !data.tasks.length && <p>暂无执行记录。需要导入照片时，请前往“照片 → 同步照片”。</p>}
     {data?.tasks.map((task: any) => <article className="task-record" key={task.id}>
       <div className="panel-title"><h3>{task.title}</h3><a href={task.url} target="_blank" rel="noreferrer">查看 Actions ↗</a></div>
       <p>{task.state === 'completed' ? `执行结束：${task.conclusion}` : task.state === 'in_progress' ? '执行中' : '排队中'} · {task.event} · {task.head.slice(0, 7)}</p>

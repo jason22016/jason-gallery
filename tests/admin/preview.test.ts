@@ -95,10 +95,12 @@ test('missing, expired and failed artifacts offer resync; queued never means pub
     await nav(page, '照片');
     await page.getByLabel('预览产物状态').selectOption(state);
     assert.equal(await page.locator('.photo-card').count(), 0);
-    await page.getByRole('button', { name: '重新同步', exact: true }).click();
-    await textVisible(page, '任务已排队，等待开始');
-    await textVisible(page, '未调用 GitHub Actions');
+    await page.getByRole('button', { name: '前往同步照片', exact: true }).click();
+    await page.getByRole('region', { name: '照片同步面板' }).waitFor();
+    await page.getByRole('button', { name: '同步照片', exact: true }).click();
+    await textVisible(page, '界面预览不能执行同步');
   }
+  await nav(page, '发布与记录');
   await page.getByLabel('预览任务状态').selectOption('failure');
   await textVisible(page, 'Source visibility check failed (HTTP 403)');
   await page.getByLabel('预览任务状态').selectOption('success');
@@ -111,7 +113,7 @@ test('missing, expired and failed artifacts offer resync; queued never means pub
 
 test('responsive navigation, dialog keyboard handling and fixture bundle isolation', async () => {
   const page = await open(390);
-  for (const name of ['照片', 'Project', '照片源', '同步与发布']) {
+  for (const name of ['照片', 'Project', '照片源', '发布与记录']) {
     await nav(page, name);
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name} must not overflow mobile viewport`);
   }

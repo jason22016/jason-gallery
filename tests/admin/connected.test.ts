@@ -46,10 +46,14 @@ test('connected UI sends versioned saves, preserves conflicts, checks impact and
     const second=writes.filter(v=>v.p==='/api/save').at(-1);assert.equal(second.body.saveProof,'next-signed-context');assert.equal(second.body.expectedHead,'b'.repeat(40));
     await page.getByRole('navigation').getByRole('button',{name:'照片源',exact:true}).click();await page.getByRole('button',{name:`编辑来源 ${data.sources[0].name}`,exact:true}).click();
     impact=true;await page.getByLabel('仓库名称',{exact:true}).fill('replacement');await page.getByText(/受影响的草稿/).waitFor();assert(await page.getByRole('button',{name:'保存配置到 GitHub',exact:true}).isDisabled());await page.getByRole('button',{name:'取消',exact:true}).click();
-    await page.getByRole('navigation').getByRole('button',{name:'同步与发布',exact:true}).click();await page.getByRole('button',{name:'同步照片',exact:true}).click();await page.getByText('请求已发送，等待 GitHub 创建任务。尚未确认排队或成功，请勿重复触发。',{exact:true}).waitFor();assert(!await page.getByText('网站发布已确认',{exact:true}).count());
+    await page.getByRole('navigation').getByRole('button',{name:'发布与记录',exact:true}).click();
+    assert.equal(await page.getByRole('button',{name:'同步照片',exact:true}).count(),0);
+    await page.getByRole('button',{name:'前往照片库',exact:true}).click();
+    await page.getByRole('region',{name:'照片同步面板'}).waitFor();
+    assert.equal(writes.filter(v=>v.p==='/api/dispatch').length,0,'Navigation must not dispatch a sync');
     taskData={pending:false,tasks:[{id:1,title:'Gallery sync',state:'completed',conclusion:'failure',event:'workflow_dispatch',head:state.head,url:host.url,steps:[],published:false,summary:{photos:{status:'failure'},website:{status:'not_started'},deployment:{status:'not_requested'},failureReason:'第二个来源读取失败 HTTP 403',sources:[{sourceId:'second',status:'failure',failureReason:'HTTP 403'}]}}]};
-    await page.getByRole('navigation').getByRole('button',{name:'照片源',exact:true}).click();await page.getByRole('navigation').getByRole('button',{name:'同步与发布',exact:true}).click();await page.getByText('第二个来源读取失败 HTTP 403',{exact:true}).waitFor();await page.getByText('网站发布未确认',{exact:true}).waitFor();
-    assert.equal(writes.find(v=>v.p==='/api/dispatch').body.expectedHead,'c'.repeat(40));assert.deepEqual(errors,[]);
+    await page.getByRole('navigation').getByRole('button',{name:'照片源',exact:true}).click();await page.getByRole('navigation').getByRole('button',{name:'发布与记录',exact:true}).click();await page.getByText('第二个来源读取失败 HTTP 403',{exact:true}).waitFor();await page.getByText('网站发布未确认',{exact:true}).waitFor();
+    assert.deepEqual(errors,[]);
     // A deployed site and a disabled admin publish switch are separate facts.
     await page.getByRole('button',{name:'查看发布步骤',exact:true}).click();
     await page.getByRole('heading',{name:'后台发布入口未启用',exact:true}).waitFor();
@@ -73,7 +77,7 @@ test('connected UI sends versioned saves, preserves conflicts, checks impact and
     await page.waitForFunction(() => !document.querySelector('main[aria-busy="true"]'));
     await page.getByRole('button',{name:'查看发布步骤',exact:true}).click();
     assert(await page.getByRole('button',{name:'确认发布已保存版本',exact:true}).isDisabled());
-    await page.getByText('照片产物尚未就绪，请先同步照片，完成后刷新照片产物再发布。',{exact:true}).waitFor();
+    await page.getByText('照片产物尚未就绪，请前往“照片 → 同步照片”，完成同步后再发布。',{exact:true}).waitFor();
     await page.getByRole('button',{name:'知道了',exact:true}).click();
     await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
     const bundle=(await fs.readdir('.cache/admin-release/assets')).find(p=>p.endsWith('.js'))!;const js=await fs.readFile(path.join('.cache/admin-release/assets',bundle),'utf8');for(const sentinel of ['server-only-secret-sentinel','BEGIN PRIVATE KEY','fixture-travel','node:crypto','GITHUB_TOKEN'])assert(!js.includes(sentinel),sentinel);

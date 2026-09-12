@@ -60,4 +60,6 @@ pnpm exec wrangler deploy --config admin/wrangler.jsonc --dry-run
 
 确认主站已通过 GitHub Actions 成功发布后，在 `admin/deployment.local.json` 设置 `"publishEnabled": true`，重新准备并部署后台。该设置默认 false；准备脚本将其显式写入 Worker 的 `PUBLISH_ENABLED`，避免后续部署意外关闭入口。它不会修改 Actions 的 `AUTO_DEPLOY_ENABLED`。
 
-后台操作顺序：保存内容 → 如照片源变化则同步照片并刷新产物 → 同步与发布 → 查看发布步骤 → 确认发布已保存版本。仅公开 `published` Project；保存、删除和同步本身不会自动发布。已成功部署的结果仍以 Actions 执行记录里的验证摘要为准，开启入口不是部署成功证明。
+后台操作顺序：保存内容 → 如照片源变化则同步照片并刷新产物 → 发布与记录 → 查看发布步骤 → 确认发布已保存版本。仅公开 `published` Project；保存、删除和同步本身不会自动发布。已成功部署的结果仍以 Actions 执行记录里的验证摘要为准，开启入口不是部署成功证明。
+
+同步操作统一在“照片 → 同步照片”：选择来源、预览变化后执行同步。照片不可用或发布前缺少产物时，快捷入口仅导航到同一面板，不直接触发任务。“发布与记录”负责确认主站发布和查看记录；“刷新后台数据”只重新读取已保存内容和产物，不启动同步或发布。
