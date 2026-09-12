@@ -1,5 +1,9 @@
 import type { LaunchOptions } from 'playwright';
 
+// Shared Linux runners rasterize blur, maps and GPU canvases in software.
+// Scale readiness/action deadlines only; gesture and animation timings stay real.
+export const browserReadyTimeout = (milliseconds: number) => process.env.CI ? milliseconds * 3 : milliseconds;
+
 // ANGLE (WebGL), Dawn (WebGPU), and Skia (compositor) select backends separately.
 // Linux's GaneshGL + SwANGLE cannot back the WebGPU canvas SharedImage even if
 // requestDevice succeeds. Graphite/Dawn supports that software presentation path.

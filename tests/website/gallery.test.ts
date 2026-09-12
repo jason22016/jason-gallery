@@ -3,14 +3,16 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { before, after, test } from 'node:test';
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
-import { expect } from 'playwright/test';
+import { expect as baseExpect } from 'playwright/test';
 import { serve } from './server';
 import { repo, run } from './fixture';
-import { softwareGPUOptions } from '../browser';
+import { browserReadyTimeout, softwareGPUOptions } from '../browser';
 import { jpeg } from '../../scripts/photos/fixtures';
 import type { GalleryPhoto } from '../../src/components/gallery/photos';
 import { rgbaToThumbHash } from 'thumbhash';
 import sharp from 'sharp';
+
+const expect = baseExpect.configure({ timeout: browserReadyTimeout(5_000) });
 
 let browser: Browser;
 let server: Awaited<ReturnType<typeof serve>>;
@@ -53,7 +55,7 @@ before(async () => {
 after(async () => { await browser?.close(); await server?.close(); });
 async function pageFor(options: Parameters<Browser['newContext']>[0] = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, ...options });
-  ctx.setDefaultTimeout(10000);
+  ctx.setDefaultTimeout(browserReadyTimeout(10_000));
   const page = await ctx.newPage();
   return { ctx, page };
 }

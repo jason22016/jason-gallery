@@ -6,11 +6,13 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { test, before, after } from 'node:test';
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
-import { expect } from 'playwright/test';
+import { expect as baseExpect } from 'playwright/test';
 import { buildFixture, dist, repo, root, run } from './fixture';
 import { serve } from './server';
 import { colorFixtures } from '../viewer/color-fixtures';
-import { softwareGPUOptions } from '../browser';
+import { browserReadyTimeout, softwareGPUOptions } from '../browser';
+
+const expect = baseExpect.configure({ timeout: browserReadyTimeout(5_000) });
 
 let fixture: Awaited<ReturnType<typeof buildFixture>>;
 let browser: Browser;
@@ -47,7 +49,7 @@ after(async () => {
 
 async function context(options: Parameters<Browser['newContext']>[0] = {}, gpu: 'none' | 'webgpu-failure' | 'native' = 'none') {
   const result = await browser.newContext(options);
-  result.setDefaultTimeout(10_000);
+  result.setDefaultTimeout(browserReadyTimeout(10_000));
   // Raw browser code avoids tsx/esbuild's __name helper on nested functions;
   // that helper does not exist in the browser's init-script realm.
   if (gpu !== 'native') await result.addInitScript({ content: `
@@ -77,7 +79,7 @@ async function open(page: Page, index = 0) {
   await page.locator(`.gallery-live [data-gallery-index="${index}"]`).click();
   await expect(page.getByRole('dialog')).toBeVisible();
 }
-async function loaded(page: Page) { await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loaded', { timeout: 15_000 }); }
+async function loaded(page: Page) { await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loaded', { timeout: browserReadyTimeout(15_000) }); }
 async function assertGPUFailureInjected(page: Page) {
   assert(await page.evaluate(() => (window as unknown as { testGPUAdapterRequests: number }).testGPUAdapterRequests > 0), 'Viewer must actually call the injected failing WebGPU adapter');
 }
