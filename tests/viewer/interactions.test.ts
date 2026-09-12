@@ -99,7 +99,7 @@ test('Inspector Sheet y/opacity/scale follow partial gesture and remain inert wh
   const sheet = page.locator('.mobile-inspector-sheet');
   await expect(sheet).toHaveAttribute('inert', '');
   const cdp = await context.newCDPSession(page);
-  const inputTrace: Array<{ name: string; args?: unknown }> = [];
+  const inputTrace: Array<Record<string, unknown>> = [];
   cdp.on('Tracing.dataCollected', ({ value }) => inputTrace.push(...value));
   await cdp.send('Tracing.start', { categories: 'input,benchmark', transferMode: 'ReportEvents' });
   const frame = () => page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
@@ -148,7 +148,7 @@ test('Inspector Sheet y/opacity/scale follow partial gesture and remain inert wh
     console.log('Inspector native touch trace:', await page.evaluate('window.inspectorTouchTrace'));
     const ended = new Promise<void>(resolve => cdp.once('Tracing.tracingComplete', () => resolve()));
     await cdp.send('Tracing.end'); await ended;
-    console.log('Chromium gesture trace:', JSON.stringify(inputTrace.filter(event => /Gesture|Touch|Suppress|Fling/i.test(event.name))));
+    console.log('Chromium gesture trace:', JSON.stringify(inputTrace.filter(event => /Gesture|Touch|Suppress|Fling/i.test(String(event.name)))));
     throw error;
   }
   await cdp.send('Tracing.end');
