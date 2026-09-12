@@ -11,7 +11,8 @@ export const SourceIdsSchema = z.array(SourceSchema.shape.sourceId).min(1).max(5
 export async function sourceRead(service: AdminService, source: PhotoSource, suffix: string) {
   const response = await service.github.transport(`https://api.github.com/repos/${source.owner}/${source.repo}${suffix}`, {
     headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${service.github.env.GITHUB_TOKEN}`, 'User-Agent': 'jason-gallery-admin' },
-    redirect: 'error', signal: AbortSignal.timeout(20000),
+    // Workers supports manual redirects; reject the non-OK response below without following it.
+    redirect: 'manual', signal: AbortSignal.timeout(20000),
   });
   if (!response.ok) { await response.body?.cancel(); throw new ApiError(502, 'source_read', `来源 ${source.name} 读取失败（HTTP ${response.status}），无法确定差异`); }
   return jsonBody(response, 8 * 1024 ** 2);

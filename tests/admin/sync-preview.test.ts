@@ -4,10 +4,22 @@ import { photoInventory, diffPhotos } from '../../src/photo-engine/sync-diff';
 import { LEGACY_SOURCE, makeSnapshot } from '../../src/photo-engine/source-contract';
 import { AdminService } from '../../admin/server/service';
 import { GitHub } from '../../admin/server/github';
-import { previewSync } from '../../admin/server/sync-preview';
+import { previewSync, sourceRead } from '../../admin/server/sync-preview';
 import { processingDigest } from '../../admin/server/read-contract';
 const source = { ...LEGACY_SOURCE, sourceId: 'travel', name: '旅行' };
 const tree = (files: Record<string,string>) => ({ truncated:false, tree:Object.entries(files).map(([key,sha]) => ({ path:'images/'+key, sha:sha.repeat(40), type:'blob', mode:'100644' })) });
+test('source reads reject redirects without forwarding credentials and use Workers-compatible fetch options', async () => {
+  let calls = 0;
+  let cancelled = false;
+  const github = new GitHub({GITHUB_REPOSITORY:'owner/site',GITHUB_TOKEN:'site-secret'} as Env, async (_input, init) => {
+    calls++;
+    assert.equal(init?.redirect, 'manual');
+    return new Response(new ReadableStream({ cancel() { cancelled = true; } }), {status:302,headers:{Location:'https://another-host.example/photos'}});
+  });
+  await assert.rejects(() => sourceRead(new AdminService(github), source, ''), /HTTP 302/);
+  assert.equal(calls, 1);
+  assert.equal(cancelled, true);
+});
 test('inventory diff covers extensions, excludes, content, rename, companion and source identity', () => {
   const a = photoInventory(source,tree({'keep.JPG':'a','old.jpg':'b','live.heic':'c','live.MOV':'d','edit.png':'e','.afilmory/skip.jpg':'f','readme.md':'1'}));
   const b = photoInventory(source,tree({'keep.JPG':'a','new.jpg':'b','live.heic':'c','live.MOV':'e','edit.png':'f'}));
