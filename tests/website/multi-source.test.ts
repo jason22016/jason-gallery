@@ -1,3 +1,4 @@
+import { expectFallbackSource } from './viewer-assertions';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -69,13 +70,13 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
   await expect(page.locator('.gallery-live [data-gallery-index]')).toHaveCount(2);
   await page.locator('.gallery-live [data-gallery-index="0"]').click();
   for (const [i,p] of photos.entries()) {
-    await expect(page.locator('.viewer-fallback')).toHaveAttribute('src',p.originalUrl);
+    await expectFallbackSource(page, p.originalUrl);
     await expect(page.locator('.metadata-content')).toContainText(`Artist ${i}`);
     assert.equal(new URL(page.url()).searchParams.get('photo'),p.id);
     const details = await context.request.get(`${server.url}/projects/mixed/photos/${p.id}.json`);
     assert.equal(details.status(),200); assert.equal((await details.json()).exif.Artist,`Artist ${i}`);
     await page.getByRole('button',{name:'分享照片'}).click(); await expect(page.locator('.viewer-message')).toContainText(p.id);
-    await page.reload(); await expect(page.locator('.viewer-fallback')).toHaveAttribute('src',p.originalUrl);
+    await page.reload(); await expectFallbackSource(page, p.originalUrl);
     if (i===0) await page.keyboard.press('ArrowRight');
   }
   await page.getByRole('button',{name:'关闭照片'}).click();
@@ -83,7 +84,7 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state','ready');
   await expect(page.locator('.map-photo-list button')).toHaveCount(2);
   await page.locator('.map-photo-list button').nth(1).click();
-  await expect(page.locator('.viewer-fallback')).toHaveAttribute('src',photos[1]!.originalUrl);
+  await expectFallbackSource(page, photos[1]!.originalUrl);
   assert.equal(new URL(page.url()).searchParams.get('photo'),photos[1]!.id);
   assert.deepEqual(errors,[]);
   // Isolated deployment gate only: no hosting account, API or uploader is used.

@@ -17,6 +17,7 @@ import { WebGPUImageViewerEngine } from './WebGPUImageViewerEngine'
 export interface ImageViewerProps extends ImageViewerOptions {
   alt?: string
   onLoad?: () => void
+  onLoadStart?: () => void
   onError?: (error: Error) => void
   onHDRChange?: (hdr: boolean) => void
   onRendererChange?: (renderer: 'webgpu' | 'webgl') => void
@@ -28,6 +29,7 @@ export const ImageViewer = ({
   className = '',
   alt = '',
   onLoad,
+  onLoadStart,
   onError,
   onHDRChange,
   onRendererChange,
@@ -61,8 +63,8 @@ export const ImageViewer = ({
   const [renderer, setRenderer] = useState<'webgpu' | 'webgl'>(() =>
     typeof navigator !== 'undefined' && navigator.gpu ? 'webgpu' : 'webgl')
   const savedViewportRef = useRef<{ src: string, viewport: ImageViewportState } | null>(null)
-  const lifecycleRef = useRef({ onLoad, onError, onHDRChange, onRendererChange })
-  lifecycleRef.current = { onLoad, onError, onHDRChange, onRendererChange }
+  const lifecycleRef = useRef({ onLoad, onLoadStart, onError, onHDRChange, onRendererChange })
+  lifecycleRef.current = { onLoad, onLoadStart, onError, onHDRChange, onRendererChange }
 
   const setDebugInfoRef = useRef<(debugInfo: DebugInfo) => void>(() => {})
   const debugEnabled = Boolean(debug)
@@ -160,6 +162,8 @@ export const ImageViewer = ({
     }
 
     let disposed = false
+    let frame = 0
+    lifecycleRef.current.onLoadStart?.()
     let failed = false
     let engine: WebGLImageViewerEngine | WebGPUImageViewerEngine | null = null
     const fail = (reason: unknown) => {
@@ -167,6 +171,8 @@ export const ImageViewer = ({
         return
       }
       failed = true
+      cancelAnimationFrame(frame)
+      lifecycleRef.current.onLoadStart?.()
       const error = reason instanceof Error ? reason : new Error(String(reason))
       const viewport = engine?.getViewport()
       if (viewport && Number.isFinite(viewport.relativeScale) && viewport.imageWidth > 0) {
@@ -245,7 +251,20 @@ export const ImageViewer = ({
           lifecycleRef.current.onHDRChange?.(
             renderer === 'webgpu' && engine instanceof WebGPUImageViewerEngine && engine.isHDR,
           )
-          lifecycleRef.current.onLoad?.()
+          // WebGPU loadImage already awaits queue.onSubmittedWorkDone(). WebGL
+          // resolves after draw submission, so fence its first frame here without
+          // changing upstream engines/shaders. Then allow a compositor paint before
+          // handing off the thumbnail. A disposed/failed renderer must never win.
+          if (renderer === 'webgl') {
+            const gl = canvas.getContext('webgl')
+            if (!gl || gl.isContextLost()) throw new Error('WebGL context lost')
+            gl.finish()
+          }
+          frame = requestAnimationFrame(() => {
+            frame = requestAnimationFrame(() => {
+              if (!disposed && !failed) lifecycleRef.current.onLoad?.()
+            })
+          })
         })
         .catch(fail)
     }
@@ -254,6 +273,7 @@ export const ImageViewer = ({
     }
     return () => {
       disposed = true
+      cancelAnimationFrame(frame)
       canvas.removeEventListener('webglcontextlost', contextLost)
       engine?.destroy()
       if (viewerRef.current === engine) {

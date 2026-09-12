@@ -7,6 +7,9 @@ import type { ViewerPhoto } from './photos';
 import PhotoThumbnail from '../gallery/PhotoThumbnail';
 import { lockPageScroll } from '../gallery/modal';
 import MetadataPanel from './MetadataPanel';
+import { useImageLoader } from './useImageLoader';
+import { removeImageCacheByUrl } from '../../lib/image-loader-manager';
+import { imageViewerConfig } from './image-viewer-config';
 
 export interface ViewerProps {
   photos: readonly ViewerPhoto[]; projectTitle: string; index: number; trigger: HTMLElement | null;
@@ -141,11 +144,12 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
     {transitions.exitTransition && !reduced && <SharedElementTransitionPreview transition={transitions.exitTransition} onComplete={transitions.handleExitAnimationComplete}/>}
   </dialog>;
 }
-function PhotoMedia({ photo, ...props }: { photo: ViewerPhoto; engineRef: React.RefObject<Controls | null>; onZoom: (zoomed: boolean) => void; onReady: (ready: boolean) => void; smooth: boolean }) {
+export function PhotoMedia({ photo, ...props }: { photo: ViewerPhoto; engineRef: React.RefObject<Controls | null>; onZoom: (zoomed: boolean) => void; onReady: (ready: boolean) => void; smooth: boolean }) {
   const [attempt, setAttempt] = useState(0);
-  return <MediaAttempt key={attempt} photo={photo} {...props} onRetry={() => setAttempt(value => value + 1)} />;
+  return <MediaAttempt key={`${photo.src}:${attempt}`} photo={photo} {...props} onRetry={() => { removeImageCacheByUrl(new URL(photo.src, document.baseURI).href); setAttempt(value => value + 1); }} />;
 }
 function MediaAttempt({ photo, onRetry, engineRef, onZoom, onReady, smooth }: { photo: ViewerPhoto; onRetry: () => void; engineRef: React.RefObject<Controls | null>; onZoom: (zoomed: boolean) => void; onReady: (ready: boolean) => void; smooth: boolean }) {
+  const { blobSrc, highResLoaded, error: loadError, loading } = useImageLoader(photo.src);
   const [Engine, setEngine] = useState<typeof ImageViewer | null>(null);
   const [mode, setMode] = useState<'gpu' | 'image'>('gpu');
   const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading');
@@ -157,19 +161,21 @@ function MediaAttempt({ photo, onRetry, engineRef, onZoom, onReady, smooth }: { 
     void import('../../photo-engine/browser').then(module => { if (active.current) setEngine(() => module.ImageViewer); }).catch(() => { if (active.current) setMode('image'); });
     return () => { active.current = false; engineRef.current = null; };
   }, [engineRef]);
-  const failed = () => { if (active.current) { setHDR(false); setState('loading'); setMode('image'); onZoom(false); } };
-  return <div className="viewer-media" aria-busy={state === 'loading'} data-media-state={state} data-renderer={mode === 'image' ? 'image' : renderer}>
-    {state === 'loading' && <img className="viewer-preview" src={photo.thumbnail} alt=""/>}
-    {mode === 'gpu' && Engine && <Engine ref={engineRef} src={photo.src} alt={photo.alt} width={photo.width} height={photo.height} smooth={smooth}
+  useEffect(() => { if (loadError) setMode('image'); }, [loadError]);
+  const failed = () => { if (active.current) { setHDR(false); setState('loading'); setMode('image'); onZoom(false); onReady(false); } };
+  return <div className="viewer-media" aria-busy={state === 'loading'} data-media-state={state} data-renderer={mode === 'image' ? 'image' : renderer} data-load-progress={loading.loadingProgress} data-converting={loading.isConverting || undefined} data-queue-waiting={loading.isQueueWaiting || undefined}>
+    {state !== 'loaded' && <img className="viewer-preview" src={photo.thumbnail} alt=""/>}
+    {mode === 'gpu' && Engine && highResLoaded && blobSrc && <Engine {...imageViewerConfig} style={{ opacity: state === 'loaded' ? 1 : 0 }} ref={engineRef} src={blobSrc} alt={photo.alt} width={photo.width} height={photo.height} smooth={smooth}
+      onLoadStart={() => { if (active.current) { setState('loading'); setHDR(false); onReady(false); } }}
       onLoad={() => { if (active.current) { setState('loaded'); onReady(true); } }} onZoomChange={(_original, relative) => onZoom(relative > 1.02)}
       onHDRChange={value => { if (active.current) setHDR(value); }} onRendererChange={value => { if (active.current) setRenderer(value); }} onError={failed} />}
-    {mode === 'image' && state !== 'error' && <FallbackImage photo={photo} engineRef={engineRef} onZoom={onZoom} onLoad={() => { setState('loaded'); onReady(true); }} onError={() => { setState('error'); onReady(false); }}/ >}
+    {mode === 'image' && (blobSrc || loadError) && state !== 'error' && <FallbackImage src={blobSrc ?? photo.src} photo={photo} engineRef={engineRef} onZoom={onZoom} onLoad={() => { setState('loaded'); onReady(true); }} onError={() => { setState('error'); onReady(false); }}/ >}
     {state === 'loading' && <p className="viewer-status" role="status"><span className="loading-dot"/>正在加载照片…</p>}
     {state === 'error' && <div className="viewer-error"><p role="alert">照片加载失败</p><button type="button" onClick={event => { event.currentTarget.closest('dialog')?.querySelector<HTMLButtonElement>('.viewer-close')?.focus(); onRetry(); }}>重新加载</button><a href={photo.src} target="_blank" rel="noreferrer">打开原图 ↗</a></div>}
     {photo.isHDR && <span className="hdr-status">{hdr && state === 'loaded' ? 'HDR active' : 'HDR source'}</span>}
   </div>;
 }
-function FallbackImage({ photo, engineRef, onZoom, onLoad, onError }: { photo: ViewerPhoto; engineRef: React.RefObject<Controls | null>; onZoom: (zoomed: boolean) => void; onLoad: () => void; onError: () => void }) {
+function FallbackImage({ src, photo, engineRef, onZoom, onLoad, onError }: { src: string; photo: ViewerPhoto; engineRef: React.RefObject<Controls | null>; onZoom: (zoomed: boolean) => void; onLoad: () => void; onError: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const transform = useRef({ scale: 1, x: 0, y: 0 });
   const points = useRef(new Map<number, { x: number; y: number }>());
@@ -206,6 +212,6 @@ function FallbackImage({ photo, engineRef, onZoom, onLoad, onError }: { photo: V
       if (e.pointerType === 'touch' && tapStart.current && !tapStart.current.moved) { const now = performance.now(); if (now - lastTap.current < 300) { update(transform.current.scale > 1 ? 1 : 2); lastTap.current = 0; } else lastTap.current = now; }
       tapStart.current = null;
     }} onPointerCancel={e => { points.current.delete(e.pointerId); pinch.current = 0; tapStart.current = null; }}>
-    <img className="viewer-fallback" src={photo.src} alt={photo.alt} draggable={false} style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${position.scale})` }} onLoad={onLoad} onError={onError}/>
+    <img className="viewer-fallback" src={src} alt={photo.alt} draggable={false} style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${position.scale})` }} onLoad={onLoad} onError={onError}/>
   </div>;
 }

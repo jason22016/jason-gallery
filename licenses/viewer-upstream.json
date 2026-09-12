@@ -1,0 +1,133 @@
+{
+  "repository": "https://github.com/Afilmory/Afilmory",
+  "commit": "1f65cde6672e5231599182620116ac904e39f548",
+  "files": [
+    {
+      "path": "packages/afilmory/webgl-viewer/src/DebugInfo.tsx",
+      "upstream": "packages/webgl-viewer/src/DebugInfo.tsx",
+      "upstreamSha256": "c440e3fc6ae9525b9310f0742d294f86e145f10dcf5693996f63210a5ed4edfc",
+      "sha256": "c440e3fc6ae9525b9310f0742d294f86e145f10dcf5693996f63210a5ed4edfc"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/ImageViewer.tsx",
+      "upstream": "packages/webgl-viewer/src/ImageViewer.tsx",
+      "upstreamSha256": "e1a063ec8a2f0fe269c1593bf08a02edbcb1438d71ea148b8894c25ff5d00451",
+      "sha256": "a59e7c5b5cec3d5a142455d1ca9365e194cc11c76ff82e99917177fd7a2556d2",
+      "adaptation": "Preserve WebGL context-loss fallback; signal renderer restarts; wait for completed first GPU frame and compositor handoff."
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/ImageViewerEngineBase.ts",
+      "upstream": "packages/webgl-viewer/src/ImageViewerEngineBase.ts",
+      "upstreamSha256": "063c5c5f38aeab3cc70c80a234401914c776e0a596b83baba3a8d8aba70a7cf1",
+      "sha256": "063c5c5f38aeab3cc70c80a234401914c776e0a596b83baba3a8d8aba70a7cf1"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/WebGLImageViewerEngine.ts",
+      "upstream": "packages/webgl-viewer/src/WebGLImageViewerEngine.ts",
+      "upstreamSha256": "d9bd6b692387bc4111c73e115790b9c2468b2ab5e995406d950ee65e532575ae",
+      "sha256": "d9bd6b692387bc4111c73e115790b9c2468b2ab5e995406d950ee65e532575ae"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/WebGPUImageViewerEngine.ts",
+      "upstream": "packages/webgl-viewer/src/WebGPUImageViewerEngine.ts",
+      "upstreamSha256": "ba767f28f4046e3aed35efd10d210e4960f9a7795966c3d44fe424882f87d56e",
+      "sha256": "ba767f28f4046e3aed35efd10d210e4960f9a7795966c3d44fe424882f87d56e"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/constants.ts",
+      "upstream": "packages/webgl-viewer/src/constants.ts",
+      "upstreamSha256": "9028e442c01e5608ecb4c82104c57631a2336b9a9a66f8e19f52d4f7f1961660",
+      "sha256": "9028e442c01e5608ecb4c82104c57631a2336b9a9a66f8e19f52d4f7f1961660"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/double-click-zoom.ts",
+      "upstream": "packages/webgl-viewer/src/double-click-zoom.ts",
+      "upstreamSha256": "d158881d552c20a7f2ea2d3ee0e0efd7f8b7b3b8b33d26449e058c933f15e6c0",
+      "sha256": "d158881d552c20a7f2ea2d3ee0e0efd7f8b7b3b8b33d26449e058c933f15e6c0"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/enum.ts",
+      "upstream": "packages/webgl-viewer/src/enum.ts",
+      "upstreamSha256": "a1f29d00d23d922f3f69a674bd3809324993e029395678a8b718ba50fc290d02",
+      "sha256": "a1f29d00d23d922f3f69a674bd3809324993e029395678a8b718ba50fc290d02"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/index.ts",
+      "upstream": "packages/webgl-viewer/src/index.ts",
+      "upstreamSha256": "78995a8b0d9681b315c5236d8ec280ea171c1662ac9bf191775ed4ce38cdb131",
+      "sha256": "78995a8b0d9681b315c5236d8ec280ea171c1662ac9bf191775ed4ce38cdb131"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/interface.ts",
+      "upstream": "packages/webgl-viewer/src/interface.ts",
+      "upstreamSha256": "2736a6f77a3763ea090c70b6cc18272a55d69aa4b23dfcda0fd9928ea6448ef0",
+      "sha256": "2736a6f77a3763ea090c70b6cc18272a55d69aa4b23dfcda0fd9928ea6448ef0"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/jpeg-gainmap.ts",
+      "upstream": "packages/webgl-viewer/src/jpeg-gainmap.ts",
+      "upstreamSha256": "1fc56fd15a686818da48ae469fb558834c1f2ca2ac74d02816fe7dffe96d5b82",
+      "sha256": "1fc56fd15a686818da48ae469fb558834c1f2ca2ac74d02816fe7dffe96d5b82"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/shaders.ts",
+      "upstream": "packages/webgl-viewer/src/shaders.ts",
+      "upstreamSha256": "5870f5e01c5c2682e7a61caddb50e8f49cd406f261fc01ffb410aadeef754198",
+      "sha256": "5870f5e01c5c2682e7a61caddb50e8f49cd406f261fc01ffb410aadeef754198"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/texture.worker.js",
+      "upstream": "packages/webgl-viewer/src/texture.worker.js",
+      "upstreamSha256": "463daa038a56d42164174f6bb8f67bd13a69e7061d58623c429f67de943adacb",
+      "sha256": "463daa038a56d42164174f6bb8f67bd13a69e7061d58623c429f67de943adacb"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/webgpu-shaders.ts",
+      "upstream": "packages/webgl-viewer/src/webgpu-shaders.ts",
+      "upstreamSha256": "bbe3533646ef126d4286146c1c3a38ab2de926c719742849ae22ebe8074aedff",
+      "sha256": "bbe3533646ef126d4286146c1c3a38ab2de926c719742849ae22ebe8074aedff"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/webgpu-texture.worker.ts",
+      "upstream": "packages/webgl-viewer/src/webgpu-texture.worker.ts",
+      "upstreamSha256": "687a8b66dc5961d53baebe2e22e513caed08734723f85a21d021fa7ca0e1ec47",
+      "sha256": "687a8b66dc5961d53baebe2e22e513caed08734723f85a21d021fa7ca0e1ec47"
+    },
+    {
+      "path": "packages/afilmory/webgl-viewer/src/webgpu-tiles.ts",
+      "upstream": "packages/webgl-viewer/src/webgpu-tiles.ts",
+      "upstreamSha256": "95eb45e604dcfdd1827e9e176beae1ed768aeb6067e7ce8c403c224601326a6e",
+      "sha256": "95eb45e604dcfdd1827e9e176beae1ed768aeb6067e7ce8c403c224601326a6e"
+    }
+  ],
+  "references": [
+    {
+      "path": "apps/web/src/modules/viewer/ProgressiveImage.tsx",
+      "sha256": "e7fda86787d9855967a71d09b55cf7824479cd2ed0d709b4fe515f4639c16830"
+    },
+    {
+      "path": "apps/web/src/modules/viewer/hooks.ts",
+      "sha256": "40ced7aa602592ea13fef96190365943a0a35c4749637463e914562a6f827ffd"
+    },
+    {
+      "path": "apps/web/src/lib/image-loader-manager.ts",
+      "sha256": "0fa0cce797ee6802e02c21f830da6b9655cc0c13940babbbcc167052e1ff527b"
+    },
+    {
+      "path": "apps/web/src/lib/image-convert/index.ts",
+      "sha256": "983b9f8926c99beaedbd292fe8c0879b52f7dddafd04aa480369e8b446db66bc"
+    },
+    {
+      "path": "apps/web/src/lib/image-convert/pipeline.ts",
+      "sha256": "526ce22eafd097a77019d5451b89719fcce2499ec171ec92faeade6728672c24"
+    },
+    {
+      "path": "apps/web/src/lib/image-convert/strategies/heic.ts",
+      "sha256": "2b613fb4e00d2c7f361bdacb60fa55e80a5d08aa8375b3b0112e8dac5fd141de"
+    },
+    {
+      "path": "apps/web/src/lib/image-convert/strategies/tiff.ts",
+      "sha256": "6c11e312529c487bb65a90afa1a958fe20ec7a6958122c006ff5fe4cedd3b9f9"
+    }
+  ]
+}

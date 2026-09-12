@@ -1,3 +1,5 @@
+import { expectFallbackSource } from './viewer-assertions';
+import { browserBundleForAudit } from '../viewer/bundle-audit';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -118,7 +120,7 @@ test('draft/unknown routes return custom 404 and draft data never enters HTML or
   assert(files.some(file => /webgpu-texture.worker-.*\.js$/.test(file)), 'production Astro emits the real WebGPU worker');
   for (const file of files.filter(file => /\.(html|js|json)$/.test(file))) {
     const text = await fs.readFile(path.join(dist, file), 'utf8');
-    for (const value of ['DRAFT WEBSITE SECRET', 'PRIVATE PROJECT SUMMARY', 'PRIVATE PROJECT CAPTION', 'secret-draft', 'exiftool-vendored', 'node:fs', '@afilmory/builder', 'JASON_PHOTOS_READ_TOKEN', 'JASON_GALLERY_PHOTO_WORKDIR']) assert(!text.includes(value), `${file} leaked ${value}`);
+    for (const value of ['DRAFT WEBSITE SECRET', 'PRIVATE PROJECT SUMMARY', 'PRIVATE PROJECT CAPTION', 'secret-draft', 'exiftool-vendored', 'node:fs', '@afilmory/builder', 'JASON_PHOTOS_READ_TOKEN', 'JASON_GALLERY_PHOTO_WORKDIR']) assert(!browserBundleForAudit(text).includes(value), `${file} leaked ${value}`);
   }
 });
 
@@ -138,7 +140,7 @@ test('lazy Viewer, selection, buttons, keyboard limits, focus trap/restoration a
   assert.equal(await page.evaluate(() => 'fixtureInjection' in window), false);
   await open(page, 1); await loaded(page);
   await expect(page.locator('.viewer-counter')).toHaveText('2 / 3');
-  await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/hdr.jpg');
+  await expectFallbackSource(page, '/originals/hdr.jpg');
   await expect(page.locator('.hdr-status')).toHaveText('HDR source');
   assert.equal(await page.evaluate(() => document.body.style.overflow), 'hidden');
   await expect(page.getByRole('button', { name: '关闭照片' })).toBeFocused();
@@ -184,7 +186,7 @@ test('loading is visible; switching/closing while requests are pending cannot re
   await expect(page.locator('.viewer-status')).toContainText('正在加载照片…');
   await page.keyboard.press('ArrowRight'); await loaded(page);
   release();
-  await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/hdr.jpg');
+  await expectFallbackSource(page, '/originals/hdr.jpg');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   let releaseClosed!: () => void;
@@ -198,7 +200,7 @@ test('loading is visible; switching/closing while requests are pending cannot re
   releaseClosed();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await open(page, 2); await loaded(page);
-  await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/ordinary.jpg');
+  await expectFallbackSource(page, '/originals/ordinary.jpg');
 });
 
 test('failed GPU module download still opens the unmodified original image', async t => {
@@ -207,7 +209,7 @@ test('failed GPU module download still opens the unmodified original image', asy
   await page.route(/\/_astro\/browser\.[^/]+\.js/, route => route.abort());
   await open(page); await loaded(page);
   await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'image');
-  await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/portrait.jpg');
+  await expectFallbackSource(page, '/originals/portrait.jpg');
 });
 
 test('thumbnail error, original error and successful retry remain usable', async t => {
@@ -223,7 +225,7 @@ test('thumbnail error, original error and successful retry remain usable', async
   await expect(page.locator('.viewer-actions a[aria-label="打开原图"]')).toHaveAttribute('href', '/originals/portrait.jpg');
   await page.unroute('**/originals/portrait.jpg');
   await page.getByRole('button', { name: '重新加载' }).click(); await loaded(page);
-  await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/portrait.jpg');
+  await expectFallbackSource(page, '/originals/portrait.jpg');
   await page.keyboard.press('ArrowRight'); await loaded(page);
   await expect(page.locator('.viewer-counter')).toHaveText('2 / 3');
   await page.getByRole('button', { name: '关闭照片' }).click();
@@ -347,8 +349,8 @@ test('project information, filters, chronological sort, list persistence, and sh
   await page.getByRole('button', { name: '显示设置' }).click();
   await page.getByLabel('照片排序').selectOption('asc'); await page.getByLabel('瀑布流列数').selectOption('2');
   await page.getByRole('button', { name: '关闭面板' }).click();
-  await open(page); await loaded(page); await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/ordinary.jpg');
-  await page.getByRole('button', { name: '下一张照片' }).click(); await loaded(page); await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/hdr.jpg');
+  await open(page); await loaded(page); await expectFallbackSource(page, '/originals/ordinary.jpg');
+  await page.getByRole('button', { name: '下一张照片' }).click(); await loaded(page); await expectFallbackSource(page, '/originals/hdr.jpg');
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: '列表视图' }).click(); await expect(page.locator('.photo-list > li')).toHaveCount(3);
   await page.reload(); await expect(page.locator('.photo-list > li')).toHaveCount(3);
@@ -384,7 +386,7 @@ test('map has an accessible fallback and obeys current filters; missing GPS prod
   await page.getByRole('button', { name: '地图探索' }).click();
   await expect(page.locator('.map-photo-list button')).toHaveCount(1);
   await page.locator('.map-photo-list button').click(); await loaded(page);
-  await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/portrait.jpg');
+  await expectFallbackSource(page, '/originals/portrait.jpg');
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '关闭面板' }).click();
   await page.getByRole('button', { name: '搜索和筛选' }).click(); await page.getByLabel('标签', { exact: true }).selectOption('风景');
@@ -649,7 +651,7 @@ test('WebGL context loss after a loaded HDR source reaches the normal image fall
   });
   await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'image'); await loaded(page);
   await expect(page.locator('.hdr-status')).toHaveText('HDR source');
-  await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', '/originals/hdr.jpg');
+  await expectFallbackSource(page, '/originals/hdr.jpg');
   await page.keyboard.press('ArrowRight'); await loaded(page);
   await expect(page.locator('.hdr-status')).toHaveCount(0);
 });
@@ -678,6 +680,8 @@ test('HDR active requires successful reconstruction; capability changes, malform
   // Manifest still marks a source; the worker must independently validate the fetched bytes.
   const brokenGain = (await colorFixtures())['broken-gain.jpg'];
   await page.route('**/originals/hdr.jpg', route => route.fulfill({ contentType: 'image/jpeg', body: brokenGain }));
+  // A fresh page clears the immutable-original Blob cache before substituting bytes.
+  await page.reload(); await loaded(page);
   await page.keyboard.press('ArrowLeft'); await loaded(page);
   await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'webgpu');
   await expect(page.locator('.hdr-status')).toHaveText('HDR source');

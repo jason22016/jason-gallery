@@ -13,7 +13,7 @@
     "check": "tsc --noEmit",
     "photos": "node --import tsx scripts/photos/sync.ts",
     "test:smoke": "node --import tsx scripts/photos/network-smoke.ts && node --import tsx scripts/photos/smoke.ts",
-    "test:viewer": "node --import tsx tests/viewer/prepare.ts && vite build --config tests/viewer/vite.config.ts && node --import tsx tests/viewer/check-bundle.ts && node --import tsx --test tests/viewer/color.test.ts",
+    "test:viewer": "node --import tsx tests/viewer/prepare.ts && vite build --config tests/viewer/vite.config.ts && node --import tsx tests/viewer/check-bundle.ts && node --import tsx --test tests/viewer/*.test.ts",
     "viewer:dev": "node --import tsx tests/viewer/prepare.ts && vite --config tests/viewer/vite.config.ts",
     "test:projects": "node --import tsx --test tests/projects/*.test.ts",
     "test:website": "node --import tsx --test --test-concurrency=1 tests/website/*.test.ts",
@@ -24,7 +24,7 @@
     "ui:preview": "node --import tsx tests/website/preview.ts --serve",
     "automation": "node --import tsx scripts/ci/cli.ts",
     "test:automation": "node --import tsx --test tests/ci/*.test.ts",
-    "test:checks": "pnpm check && pnpm test:projects && pnpm test:smoke && pnpm test:viewer && pnpm test:website && pnpm test:automation && pnpm test:admin",
+    "test:checks": "pnpm check:upstream && pnpm check && pnpm test:projects && pnpm test:smoke && pnpm test:viewer && pnpm test:website && pnpm test:automation && pnpm test:admin",
     "test:metadata-real": "node --import tsx --test tests/website/real-metadata.audit.ts",
     "admin:preview": "node --import tsx tests/admin/prepare.ts --local-photos && vite --config tests/admin/vite.config.ts",
     "admin:fixture": "node --import tsx tests/admin/prepare.ts && vite --config tests/admin/vite.config.ts",
@@ -34,7 +34,8 @@
     "admin:verify-package": "node --import tsx scripts/admin/prepare.ts --verify",
     "admin:dev": "pnpm admin:build && wrangler dev --config admin/wrangler.jsonc",
     "admin:profile": "pnpm admin:build && wrangler deploy --dry-run --config admin/wrangler.jsonc --outdir .cache/admin-profile-worker && node --import tsx tests/admin/profile.ts",
-    "admin:types": "wrangler types admin/worker-configuration.d.ts --config admin/wrangler.jsonc --include-runtime false --strict-vars false"
+    "admin:types": "wrangler types admin/worker-configuration.d.ts --config admin/wrangler.jsonc --include-runtime false --strict-vars false",
+    "check:upstream": "node --import tsx scripts/upstream/check-viewer.ts"
   },
   "dependencies": {
     "@afilmory/builder": "workspace:*",
@@ -45,6 +46,8 @@
     "@astrojs/react": "6.0.5",
     "@zip.js/zip.js": "2.14.0",
     "astro": "7.3.2",
+    "file-type": "22.0.1",
+    "heic-to": "1.5.2",
     "jose": "6.2.12",
     "lucide-react": "1.18.0",
     "maplibre-gl": "5.24.0",
@@ -53,6 +56,7 @@
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "thumbhash": "0.1.1",
+    "tiff": "7.1.3",
     "zod": "4.5.4"
   },
   "devDependencies": {
