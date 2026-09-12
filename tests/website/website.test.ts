@@ -466,9 +466,10 @@ test('native touch gestures switch photos, reveal the inspector, dismiss, and ig
   const box = await closeButton.boundingBox(); assert(box);
   const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
   assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), point), '收起照片信息');
-  // Let Chromium schedule a complete native touch tap through its gesture
-  // recognizer, including touchdown/up timing and the compatibility click.
-  await closeButton.tap();
+  // Use the same injection path as swipe, with sequential down/up delivery.
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+  await page.waitForTimeout(50);
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   try {
     await expect.poll(() => page.evaluate('window.testInspectorCloseClicks'), { message: 'Native tap must deliver the inspector close click' }).toBe(1);
     assert(await page.evaluate("window.testTouchEvents.some(event => event.type === 'touchstart') && window.testTouchEvents.some(event => event.type === 'touchend')"), 'The tap must exercise native touch events');

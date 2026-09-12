@@ -99,9 +99,6 @@ test('Inspector Sheet y/opacity/scale follow partial gesture and remain inert wh
   const sheet = page.locator('.mobile-inspector-sheet');
   await expect(sheet).toHaveAttribute('inert', '');
   const cdp = await context.newCDPSession(page);
-  const inputTrace: Array<Record<string, unknown>> = [];
-  cdp.on('Tracing.dataCollected', ({ value }) => inputTrace.push(...value));
-  await cdp.send('Tracing.start', { categories: 'input,benchmark', transferMode: 'ReportEvents' });
   const frame = () => page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
   const closed = await transform(page, '.mobile-inspector-sheet');
   await drag(cdp, [190, 460], [190, 400], false);
@@ -119,19 +116,6 @@ test('Inspector Sheet y/opacity/scale follow partial gesture and remain inert wh
   await expect(page.locator('.viewer-thumbnails-motion')).toHaveAttribute('inert', '');
   await page.evaluate(`
     window.inspectorTouchEvents = [];
-    window.inspectorTouchTrace = [];
-    for (const type of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup', 'click', 'contextmenu']) {
-      document.addEventListener(type, event => window.inspectorTouchTrace.push({
-        type, time: performance.now(), timestamp: event.timeStamp, prevented: event.defaultPrevented,
-        target: event.target.closest('button')?.getAttribute('aria-label') || event.target.tagName,
-        bounds: document.querySelector('.mobile-inspector-sheet button').getBoundingClientRect().toJSON(),
-      }), true);
-    }
-    const prevent = Event.prototype.preventDefault;
-    Event.prototype.preventDefault = function () {
-      if (/^(touch|pointer|click)/.test(this.type)) window.inspectorTouchTrace.push({type: 'prevent:' + this.type, stack: new Error().stack});
-      return prevent.call(this);
-    };
     const button = document.querySelector('.mobile-inspector-sheet button');
     for (const type of ['touchstart', 'touchend', 'click']) {
       button.addEventListener(type, event => window.inspectorTouchEvents.push(type + ':' + event.isTrusted));
@@ -140,18 +124,13 @@ test('Inspector Sheet y/opacity/scale follow partial gesture and remain inert wh
   const close = await page.getByRole('button', { name: '收起照片信息' }).boundingBox(); assert(close);
   const point = { x: close.x + close.width / 2, y: close.y + close.height / 2 };
   assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), point), '收起照片信息');
-  // Chromium schedules the full native gesture; locator.tap sends down/up concurrently.
-  await cdp.send('Input.synthesizeTapGesture', { ...point, gestureSourceType: 'touch' });
-  try {
-    await expect.poll(() => page.evaluate('window.inspectorTouchEvents')).toEqual(['touchstart:true', 'touchend:true', 'click:true']);
-  } catch (error) {
-    console.log('Inspector native touch trace:', await page.evaluate('window.inspectorTouchTrace'));
-    const ended = new Promise<void>(resolve => cdp.once('Tracing.tracingComplete', () => resolve()));
-    await cdp.send('Tracing.end'); await ended;
-    console.log('Chromium gesture trace:', JSON.stringify(inputTrace.filter(event => /Gesture|Touch|Suppress|Fling/i.test(String(event.name)))));
-    throw error;
-  }
-  await cdp.send('Tracing.end');
+  // Keep the same touch-injection path as the preceding drag. A synthesized
+  // gesture uses a separate native gesture controller; locator.tap also sends
+  // down/up concurrently. Deliver one complete, sequential 50ms touch instead.
+  await touch(cdp, 'touchStart', point.x, point.y);
+  await page.waitForTimeout(50);
+  await touch(cdp, 'touchEnd');
+  await expect.poll(() => page.evaluate('window.inspectorTouchEvents')).toEqual(['touchstart:true', 'touchend:true', 'click:true']);
   await expect(sheet).toHaveAttribute('inert', '');
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 180');
 });
