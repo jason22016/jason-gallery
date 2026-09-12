@@ -99,13 +99,21 @@ test('Inspector Sheet y/opacity/scale follow partial gesture and remain inert wh
   const sheet = page.locator('.mobile-inspector-sheet');
   await expect(sheet).toHaveAttribute('inert', '');
   const cdp = await context.newCDPSession(page);
+  const inputTrace: Array<{ name: string; args?: unknown }> = [];
+  cdp.on('Tracing.dataCollected', ({ value }) => inputTrace.push(...value));
+  await cdp.send('Tracing.start', { categories: 'input,benchmark', transferMode: 'ReportEvents' });
+  const frame = () => page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
   const closed = await transform(page, '.mobile-inspector-sheet');
   await drag(cdp, [190, 460], [190, 400], false);
   const partial = await transform(page, '.mobile-inspector-sheet');
   const surface = await transform(page, '.inspector-sheet-surface');
   assert(partial.y > 0 && partial.y < closed.y && partial.opacity > 0 && partial.opacity < 1);
   assert(surface.scale > .965 && surface.scale < 1);
-  await touch(cdp, 'touchMove', 190, 210); await touch(cdp, 'touchEnd');
+  // Continue the same touch over rendered frames instead of teleporting it
+  // 190px in one packet, which gives the native recognizer an extreme velocity.
+  for (let y = 380; y >= 220; y -= 20) { await touch(cdp, 'touchMove', 190, y); await frame(); }
+  await touch(cdp, 'touchMove', 190, 210); await frame();
+  await touch(cdp, 'touchEnd'); await frame();
   await expect.poll(async () => (await transform(page, '.mobile-inspector-sheet')).y).toBe(0);
   await expect.poll(async () => (await transform(page, '.inspector-sheet-surface')).scale).toBe(1);
   await expect(page.locator('.viewer-thumbnails-motion')).toHaveAttribute('inert', '');
@@ -138,8 +146,12 @@ test('Inspector Sheet y/opacity/scale follow partial gesture and remain inert wh
     await expect.poll(() => page.evaluate('window.inspectorTouchEvents')).toEqual(['touchstart:true', 'touchend:true', 'click:true']);
   } catch (error) {
     console.log('Inspector native touch trace:', await page.evaluate('window.inspectorTouchTrace'));
+    const ended = new Promise<void>(resolve => cdp.once('Tracing.tracingComplete', () => resolve()));
+    await cdp.send('Tracing.end'); await ended;
+    console.log('Chromium gesture trace:', JSON.stringify(inputTrace.filter(event => /Gesture|Touch|Suppress|Fling/i.test(event.name))));
     throw error;
   }
+  await cdp.send('Tracing.end');
   await expect(sheet).toHaveAttribute('inert', '');
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 180');
 });
