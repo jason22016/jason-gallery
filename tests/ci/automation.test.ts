@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { jpeg } from '../../scripts/photos/fixtures.js';
 import { verifyPhotos, fileHashes, sha256 } from '../../scripts/photos/artifact.js';
 import { sealCollection } from '../../scripts/photos/collection.js';
-import { loadSources, makeSnapshot, photoReference, LEGACY_SOURCE } from '../../src/photo-engine/sources.js';
+import { parseSources, makeSnapshot, photoReference, LEGACY_SOURCE } from '../../src/photo-engine/sources.js';
 import { processingFingerprint } from '../../scripts/photos/fingerprint.js';
 import { buildRelease, verifyRelease, type Release } from '../../scripts/ci/release.js';
 import { deployRelease, rollbackDeployment, type DeployIO } from '../../scripts/ci/deploy.js';
@@ -17,6 +17,9 @@ const engine = path.join(root, 'engine');
 const photoOutput = path.join(engine, 'output');
 const collection = path.join(root, 'collection');
 const codeCommit = 'a'.repeat(40);
+// The fixture CLI uses LEGACY_SOURCE. Keep its snapshots and test site on the
+// same configuration, independent of sources saved through the real admin.
+const fixtureConfig = parseSources({ schemaVersion: 1, sources: [LEGACY_SOURCE] });
 const read = async (file: string) => JSON.parse(await fs.readFile(file, 'utf8'));
 
 test('Phase 6 immutable snapshots, incremental processing, release gates and deployment transaction', { timeout: 240_000 }, async () => {
@@ -40,7 +43,7 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
       const native = await verifyPhotos(photoOutput, { ref: fixture.ref });
       await fs.rm(collection, { recursive:true, force:true });
       await fs.cp(await fs.realpath(photoOutput), path.join(collection, 'sources/jason-photos'), { recursive:true });
-      await sealCollection(collection, makeSnapshot(loadSources(), { 'jason-photos':fixture.ref }), native.fingerprint, 'fixture', [{ sourceId:'jason-photos', status:'success', commit:fixture.ref, total:native.photos, processed:native.processed, reused:native.reused, failureReason:null }]);
+      await sealCollection(collection, makeSnapshot(fixtureConfig, { 'jason-photos':fixture.ref }), native.fingerprint, 'fixture', [{ sourceId:'jason-photos', status:'success', commit:fixture.ref, total:native.photos, processed:native.processed, reused:native.reused, failureReason:null }]);
       return native;
     }
   }
@@ -83,7 +86,8 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   await fs.cp('src',path.join(site,'src'),{recursive:true,filter: name => !['content','data'].includes(path.relative('src',name).split(path.sep)[0]!)});
   await fs.mkdir(path.join(site,'src/content/projects'),{recursive:true});
   await fs.copyFile('package.json',path.join(site,'package.json'));
-  await fs.cp('config',path.join(site,'config'),{recursive:true});
+  await fs.mkdir(path.join(site,'config'),{recursive:true});
+  await fs.writeFile(path.join(site,'config/photo-sources.json'),JSON.stringify(fixtureConfig));
   await fs.writeFile(path.join(site,'astro.config.mjs'),`export {default} from ${JSON.stringify(new URL('../../astro.config.mjs',import.meta.url).href)};`);
   const manifest = await read(path.join(photoOutput,'photos-manifest.json'));
   const id = photoReference(LEGACY_SOURCE, manifest.data.find((x:any)=>x.s3Key==='one.jpg').id);
@@ -135,7 +139,7 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
     },
   };
   await assert.rejects(deployRelease(destination,{...io,heads:async()=>({website:'f'.repeat(40),photos:simulated.photoSnapshot})}),/Superseded/); assert.equal(uploads,0);
-  await assert.rejects(deployRelease(destination,{...io,heads:async()=>({website:codeCommit,photos:makeSnapshot(loadSources(), {'jason-photos':'f'.repeat(40)})})}),/Superseded/); assert.equal(uploads,0);
+  await assert.rejects(deployRelease(destination,{...io,heads:async()=>({website:codeCommit,photos:makeSnapshot(fixtureConfig, {'jason-photos':'f'.repeat(40)})})}),/Superseded/); assert.equal(uploads,0);
   await assert.rejects(deployRelease(destination,{...io,version:async()=>({version:'newer',websiteCommit:'b'.repeat(40),photoSnapshotVersion:simulated.photoSnapshot.version,runNumber:11})}),/Older workflow/); assert.equal(uploads,0);
   await assert.rejects(deployRelease(destination,{...io,upload:async()=>{throw new Error('upload failed');}}),/upload failed/); assert.equal(latest.id,old.id);
   const deployed = await deployRelease(destination,io); assert.equal(deployed.status,'success'); assert.equal(deployed.version,simulated.version);
