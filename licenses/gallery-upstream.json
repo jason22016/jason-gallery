@@ -1,0 +1,162 @@
+{
+  "repository": "https://github.com/Afilmory/Afilmory",
+  "commit": "1f65cde6672e5231599182620116ac904e39f548",
+  "verifiedHeadAt": "2026-09-12",
+  "license": "AGPL-3.0-or-later + ANL §4 (application); MIT (packages/ui)",
+  "design": {
+    "path": "docs/viewer/AFILMORY_DESIGN.md",
+    "sha256": "12643e2c980ac021da63ffafaf76c6f2d06d8c479c7da25832da7bbb68b265ab",
+    "license": "CC BY 4.0"
+  },
+  "files": [
+    {
+      "local": "src/components/gallery/MasonryView.tsx",
+      "localSha256": "2e7e09b60e066c1ebd29d4b49b7fdc8549f94d84a09b36bfd89885dba8be85e8",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/gallery/MasonryView.tsx",
+          "sha256": "7e6f7045c75e039d504078d1bc3e9a232e6ae9c2293097d45f31dd75a4b21ce6"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/Masonic.tsx",
+      "localSha256": "b424ff313ce7a3406f4b97a5781ec719efc8afaff53459fc7703972525111211",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/gallery/Masonic.tsx",
+          "sha256": "f645d773f39ffda2a63786b6fbbe8bde2053341cc9c346aca0a1e3c0341f562e"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/MasonryPhotoItem.tsx",
+      "localSha256": "02ff18e829450ec9a672362fcf323d2624f1d15b8760f6598c66df13c9ee3aa6",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/gallery/MasonryPhotoItem.tsx",
+          "sha256": "53e2288e727f96fae837231cc00f8ce6f840ab002de15aa23c66c813c4085aab"
+        },
+        {
+          "path": "apps/web/src/modules/media/HDRBadge.tsx",
+          "sha256": "3f9b188bc28472d23cee59b2ce84cb187e62c39732acbc755a1c7b78b1eda7bd"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/media/useLivePhoto.ts",
+      "localSha256": "4b3b2fbdf4b67daa1ac1d5b7de78f94e2e2585fafe39fe8696865d200499d8d9",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/gallery/MasonryPhotoItem.tsx",
+          "sha256": "53e2288e727f96fae837231cc00f8ce6f840ab002de15aa23c66c813c4085aab"
+        },
+        {
+          "path": "apps/web/src/lib/image-loader-manager.ts",
+          "sha256": "0fa0cce797ee6802e02c21f830da6b9655cc0c13940babbbcc167052e1ff527b"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/media/motion-photo-extractor.ts",
+      "localSha256": "a1bc5189c02374034e7e17b0c062cdae770f2de0a7b9c0590cef1039dd7cbfa5",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "upstream": [
+        {
+          "path": "apps/web/src/lib/motion-photo-extractor.ts",
+          "sha256": "0ca5b338dfb392a9f8d99f8032f7a16d30257813f75a1d9589ee4a4de423937e"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/media/mp4-utils.ts",
+      "localSha256": "7d383d22f35dab7eff089b6b2a276f53000147a66ea3bdebc034d30c9987c02d",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "upstream": [
+        {
+          "path": "apps/web/src/lib/mp4-utils.ts",
+          "sha256": "76a5257debdd539452945f95166d94d9b765590bbb8229da32353ce5bb7f6c2f"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/PageHeader.tsx",
+      "localSha256": "3bb5274935c9275ec958b8250ea513fcb4ec08596c5361a35e90452966ebdb99",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/gallery/PageHeader/index.tsx",
+          "sha256": "da5cfd1c047e229b79a0adb3b4cde2e4aa92527f92f6639d5411cbaa1af24473"
+        },
+        {
+          "path": "apps/web/src/modules/gallery/PageHeader/PageHeaderLeft.tsx",
+          "sha256": "8f71d39327443b508f1eccc1f782122f4074d87771dddf78fbb445f8a562bbf5"
+        },
+        {
+          "path": "apps/web/src/modules/gallery/PageHeader/PageHeaderRight.tsx",
+          "sha256": "02ee3cd41659c52b19c28fdeb418a8c94e8af51e03834db413b18669e8ae2557"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/ViewModeSegment.tsx",
+      "localSha256": "bb60859de2bef11e1f8a4a13e7a1fffa642f14ad49c26f0a78bab2e050d1b272",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/gallery/PageHeader/ViewModeSegment.tsx",
+          "sha256": "dfc3a8d21b893560e638ed1abd1fc50629eb97eafc6429e0143893b52628d3c3"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/FloatingActionButton.tsx",
+      "localSha256": "92c9fc882a6eaf6e42b738842683264bd85d35b2276925d196a7204c63dea688",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/gallery/FloatingActionButton.tsx",
+          "sha256": "c0a622ae70b5b4718c8240cc9f65fca503ad247e4417dbd528672b5b28de3895"
+        },
+        {
+          "path": "apps/web/src/modules/gallery/PageHeader/utils.tsx",
+          "sha256": "51ac59d5c8cff150289d86e127356a4b0a427f246460434f9cbed3ec9d54ac7d"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/ui/LinearBlur.tsx",
+      "localSha256": "5d3f4f63e30d5354076be540a9a4309e461d0829f4eb86d421d49e9ead36038d",
+      "license": "MIT",
+      "upstream": [
+        {
+          "path": "packages/ui/src/progressive-blur/index.tsx",
+          "sha256": "a66afa85abdb4eadc3bd6bb00fd2ac796f172723a55db1c143761b0ef59e03fc"
+        }
+      ]
+    },
+    {
+      "local": "src/styles/gallery.css",
+      "localSha256": "9fee2156a594d464672efae9af51ba152b18346772794683e8f2149a53c5077b",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/gallery/MasonryPhotoItem.tsx",
+          "sha256": "53e2288e727f96fae837231cc00f8ce6f840ab002de15aa23c66c813c4085aab"
+        },
+        {
+          "path": "apps/web/src/modules/gallery/PageHeader/index.tsx",
+          "sha256": "da5cfd1c047e229b79a0adb3b4cde2e4aa92527f92f6639d5411cbaa1af24473"
+        },
+        {
+          "path": "apps/web/src/modules/gallery/PageHeader/ViewModeSegment.tsx",
+          "sha256": "dfc3a8d21b893560e638ed1abd1fc50629eb97eafc6429e0143893b52628d3c3"
+        }
+      ]
+    }
+  ]
+}

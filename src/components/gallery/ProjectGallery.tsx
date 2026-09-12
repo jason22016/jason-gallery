@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type MouseEvent } from 'react';
-import { Masonry, type RenderComponentProps } from 'masonic';
-import { ArrowLeft, Grid2X2, List, Search, MapPin, SlidersHorizontal, Info, X, Camera } from 'lucide-react';
+import { type RenderComponentProps } from 'masonic';
+import { LazyMotion, domMax } from 'motion/react';
+import { MasonryView } from './MasonryView';
+import { PageHeader } from './PageHeader';
+import type { GalleryPhoto } from './photos';
+import { Search, X, Camera } from 'lucide-react';
 import type { MapViewport } from './PhotoMap';
 import type { ViewerProps } from '../viewer/PhotoViewer';
 import { emptyFilters, formatBytes, selectPhotos, type Filters, type GalleryProject, type Sort, type ViewerPhoto } from '../viewer/photos';
 import PhotoThumbnail from './PhotoThumbnail';
 import Panel from './Panel';
+import { ViewerAttribution } from '../viewer/ViewerAttribution';
 
 type MapComponent = typeof import('./PhotoMap').default;
 type Item = { photo: ViewerPhoto; index: number; onOpen: (photo: ViewerPhoto, element: HTMLElement | null) => void };
@@ -21,7 +26,7 @@ function PhotoItem({ data: { photo, index, onOpen } }: RenderComponentProps<Item
   </a>;
 }
 const settingsKey = 'jason-gallery:view:v1';
-export default function ProjectGallery({ photos, project }: { photos: readonly ViewerPhoto[]; project: GalleryProject }) {
+export default function ProjectGallery({ photos, project }: { photos: readonly GalleryPhoto[]; project: GalleryProject }) {
   const root = useRef<HTMLDivElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   const scrollPosition = useRef(0);
@@ -32,7 +37,6 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
   const [sort, setSort] = useState<Sort>('project');
   const [view, setView] = useState<'masonry' | 'list'>('masonry');
   const [columns, setColumns] = useState(0);
-  const [width, setWidth] = useState(0);
   const [panel, setPanel] = useState<'info' | 'search' | 'settings' | 'map' | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [Viewer, setViewer] = useState<ComponentType<ViewerProps> | null>(null);
@@ -51,8 +55,6 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
   }, []);
   useEffect(() => {
     root.current?.closest('[data-project-gallery]')?.setAttribute('data-enhanced', 'true');
-    const resize = () => setWidth(window.innerWidth);
-    resize(); window.addEventListener('resize', resize);
     try {
       const settings = JSON.parse(localStorage.getItem(settingsKey) || '{}');
       if (settings.view === 'list' || settings.view === 'masonry') setView(settings.view);
@@ -60,6 +62,10 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
     } catch { /* Storage can be disabled; defaults remain usable. */ }
     const sync = () => {
       const params = new URL(location.href).searchParams;
+      const nextView = params.get('view');
+      if (nextView === 'list' || nextView === 'masonry') setView(nextView);
+      const nextColumns = params.get('columns');
+      if (nextColumns !== null && /^[0-8]$/.test(nextColumns)) setColumns(Number(nextColumns));
       const nextFilters = { ...emptyFilters };
       for (const key of Object.keys(nextFilters) as (keyof Filters)[]) nextFilters[key] = params.get(key) || '';
       setFilters(nextFilters);
@@ -85,7 +91,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
       setSelected(id);
     };
     sync(); window.addEventListener('popstate', sync);
-    return () => { window.removeEventListener('resize', resize); window.removeEventListener('popstate', sync); };
+    return () => { window.removeEventListener('popstate', sync); };
   }, [photos, setPhotoURL]);
   useEffect(() => {
     if (!selected || Viewer) return;
@@ -108,9 +114,13 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
     else { setSelected(null); setPhotoURL(null); }
     requestAnimationFrame(() => { window.scrollTo(0, scrollPosition.current); opener.current?.isConnected && opener.current.focus({ preventScroll: true }); });
   }, [setPhotoURL]);
-  const items = useMemo(() => visible.map((photo, index) => ({ photo, index, onOpen: open })), [visible, open]);
+  const items = useMemo(() => visible.map((photo, index) => ({ photo: photo as GalleryPhoto, index, onOpen: open })), [visible, open]);
   const saveView = (nextView: typeof view, nextColumns = columns) => {
     setView(nextView); setColumns(nextColumns);
+    const url = new URL(location.href);
+    url.searchParams.set('view', nextView);
+    url.searchParams.set('columns', String(nextColumns));
+    history.replaceState(history.state, '', url);
     try { localStorage.setItem(settingsKey, JSON.stringify({ view: nextView, columns: nextColumns })); } catch { /* Optional preference. */ }
   };
   const replaceContext = (nextFilters: Filters, nextSort: Sort, map = false) => {
@@ -126,27 +136,18 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
   const updateFilter = (key: keyof Filters, value: string) => changeFilters({ ...filters, [key]: value });
   const closePanel = () => { setPanel(null); replaceContext(filters, sort); };
   const options = (key: 'camera' | 'lens' | 'tags') => [...new Set(photos.flatMap(p => p[key]).filter(Boolean))].sort();
-  const count = columns ? Math.min(columns, Math.max(1, Math.floor(width / (width < 768 ? 120 : 200)))) : Math.min(8, Math.max(1, Math.floor((width + 4) / (width < 768 ? 154 : 254))));
   const hasFilters = Object.values(filters).some(Boolean);
-  return <div ref={root} className="gallery-live" data-viewer-ready="true">
-    <header className="gallery-header">
-      <a className="icon-button" href="/" aria-label="返回首页" title="返回首页"><ArrowLeft size={19} /></a>
-      <h1 title={project.title}>{project.title}</h1><span className="gallery-count" aria-label="照片数量">{visible.length}</span>
-      <div className="header-actions">
-        <div className="view-segment"><button className="icon-button" aria-label="瀑布流" aria-pressed={view === 'masonry'} onClick={() => saveView('masonry')}><Grid2X2 size={17} /></button><button className="icon-button" aria-label="列表视图" aria-pressed={view === 'list'} onClick={() => saveView('list')}><List size={18} /></button></div>
-        <button className="icon-button" aria-label="搜索和筛选" title="搜索和筛选" data-active={hasFilters || undefined} onClick={() => setPanel('search')}><Search size={18} /></button>
-        <button className="icon-button" aria-label="地图探索" title="地图探索" onClick={() => { setPanel('map'); replaceContext(filters, sort, true); }}><MapPin size={18} /></button>
-        <button className="icon-button" aria-label="显示设置" title="显示设置" onClick={() => setPanel('settings')}><SlidersHorizontal size={18} /></button>
-        <button className="icon-button" aria-label="项目信息" title="项目信息" onClick={() => setPanel('info')}><Info size={18} /></button>
-      </div>
-    </header>
+  return <LazyMotion features={domMax}><div ref={root} className="gallery-live" data-viewer-ready="true">
+    <PageHeader title={project.title} count={visible.length} view={view} onView={saveView} panel={panel}
+      onPanel={next => { setPanel(next); if (next === 'map') replaceContext(filters, sort, true); }}
+      hasFilters={hasFilters} customized={columns !== 0 || sort !== 'project'} />
     {notice && <p className="gallery-notice" role="status">{notice}<button className="icon-button" onClick={() => setNotice('')} aria-label="关闭提示"><X size={16}/></button></p>}
     {hasFilters && <div className="filter-summary"><span>找到 {visible.length} / {photos.length} 张照片</span><button onClick={() => changeFilters(emptyFilters)}>清除筛选 <X size={13}/></button></div>}
     {visible.length === 0 ? <div className="gallery-empty"><Search size={28} /><h2>没有符合条件的照片</h2><p>试试其他关键词，或清除筛选。</p><button onClick={() => changeFilters(emptyFilters)}>清除筛选</button></div> : view === 'masonry' ? (
-      <div className="masonry-grid">{width > 0 && <Masonry key={`${count}:${visible.map(p => p.id).join(',')}`} items={items} render={PhotoItem} columnCount={count} columnGutter={4} rowGutter={4} itemKey={item => item.photo.id} overscanBy={2} />}</div>
+      <MasonryView items={items} columns={columns} />
     ) : <ol className="photo-list">{items.map(item => <li key={item.photo.id}><PhotoItem data={item} index={item.index} width={200}/><div className="list-info"><h2>{item.photo.title}</h2><p>{item.photo.date?.slice(0, 10)}　{item.photo.tags.join(' · ')}</p><p>{item.photo.caption || item.photo.description}</p><span><Camera size={14}/> {item.photo.camera || '未记录相机'}　{item.photo.exposure.join('　')}</span></div><span className="list-size">{formatBytes(item.photo.size)}</span></li>)}</ol>}
     {panel && !selected && <Panel title={{ info: '项目信息', search: '搜索和筛选', settings: '显示设置', map: '地图探索' }[panel]} onClose={closePanel} wide={panel === 'map'}>
-      {panel === 'info' && <><h3 className="project-panel-title">{project.title}</h3>{project.summary && <p>{project.summary}</p>}<dl className="metadata-rows project-details">{project.location && <><dt>地点</dt><dd>{project.location}</dd></>}{project.period && <><dt>日期</dt><dd>{project.period.start}{project.period.end && project.period.end !== project.period.start && ` — ${project.period.end}`}</dd></>}<dt>照片</dt><dd>{photos.length}</dd></dl>{project.description && <p className="project-description">{project.description}</p>}<ul className="tags">{project.tags?.map(tag => <li key={tag}>{tag}</li>)}</ul></>}
+      {panel === 'info' && <><h3 className="project-panel-title">{project.title}</h3>{project.summary && <p>{project.summary}</p>}<dl className="metadata-rows project-details">{project.location && <><dt>地点</dt><dd>{project.location}</dd></>}{project.period && <><dt>日期</dt><dd>{project.period.start}{project.period.end && project.period.end !== project.period.start && ` — ${project.period.end}`}</dd></>}<dt>照片</dt><dd>{photos.length}</dd></dl>{project.description && <p className="project-description">{project.description}</p>}<ul className="tags">{project.tags?.map(tag => <li key={tag}>{tag}</li>)}</ul><ViewerAttribution /></>}
       {panel === 'search' && <form onSubmit={e => { e.preventDefault(); setPanel(null); }} className="filter-form">
         <label>搜索<input type="search" placeholder="标题、文件名、说明、标签…" value={filters.query} onChange={e => updateFilter('query', e.target.value)} autoFocus /></label>
         <div className="date-fields"><label>开始日期<input type="date" value={filters.start} max={filters.end || undefined} onChange={e => updateFilter('start', e.target.value)} /></label><label>结束日期<input type="date" value={filters.end} min={filters.start || undefined} onChange={e => updateFilter('end', e.target.value)} /></label></div>
@@ -157,5 +158,5 @@ export default function ProjectGallery({ photos, project }: { photos: readonly V
       {panel === 'map' && (PhotoMap ? <PhotoMap photos={visible} initialViewport={mapViewport.current?.key === mapKey ? mapViewport.current.viewport : undefined} onViewport={viewport => { mapViewport.current = { key: mapKey, viewport }; }} onOpen={photo => open(photo, root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null)} /> : mapError ? <div><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><ul className="map-photo-list">{visible.filter(photo => photo.location).map(photo => <li key={photo.id}><button onClick={() => open(photo, null)}>{photo.title}</button></li>)}</ul></div> : <p role="status">正在加载地图…</p>)}
     </Panel>}
     {selectedPhoto && (Viewer ? <Viewer photos={sequence} projectTitle={project.title} index={sequence.findIndex(p => p.id === selected)} trigger={opener.current} onIndex={index => { const photo = sequence[index]; if (photo) { setSelected(photo.id); setPhotoURL(photo.id); } }} onClose={close} /> : <Panel title="打开照片" onClose={close}><p role={loadError ? 'alert' : 'status'}>{loadError || '正在加载看图组件…'}</p>{loadError && <button onClick={() => setLoadError('')}>重试</button>}<a className="text-link" href={selectedPhoto.src} target="_blank" rel="noreferrer">打开原图 ↗</a></Panel>)}
-  </div>;
+  </div></LazyMotion>;
 }

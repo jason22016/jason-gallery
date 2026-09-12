@@ -691,7 +691,7 @@ test('HDR active requires successful reconstruction; capability changes, malform
   await expect(page.locator('.hdr-status')).toHaveText('HDR source');
 });
 
-test('device appearance updates the gallery while Viewer remains dark-only', async t => {
+test('home follows the device while Project Gallery and Viewer keep DESIGN.md dark materials', async t => {
   const ctx = await context({ colorScheme: 'light' }); t.after(() => ctx.close());
   const page = await ctx.newPage();
   await page.goto(server.url);
@@ -701,7 +701,7 @@ test('device appearance updates the gallery while Viewer remains dark-only', asy
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto(`${server.url}/projects/fixture-beta/`);
   await page.locator('[data-viewer-ready="true"]').waitFor({ state: 'attached' });
-  assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
+  assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(28, 28, 30)');
   await open(page); await loaded(page);
   assert.equal(await page.locator('.viewer-backdrop-base').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(40, 40, 40)');
   assert.equal(await page.locator('.viewer-inspector .photo-caption').evaluate(el => getComputedStyle(el).color), 'rgba(255, 255, 255, 0.5)');
@@ -715,7 +715,7 @@ test('device appearance updates the gallery while Viewer remains dark-only', asy
   t.after(() => staticCtx.close());
   const staticPage = await staticCtx.newPage();
   await staticPage.goto(`${server.url}/projects/fixture-beta/`);
-  assert.equal(await staticPage.locator('body').evaluate(el => getComputedStyle(el).colorScheme), 'light');
+  assert.equal(await staticPage.locator('body').evaluate(el => getComputedStyle(el).colorScheme), 'dark');
 });
 
 test('Swiper thumbnail and keyboard navigation preserve the Project history entry, scroll offset and opener focus', async t => {

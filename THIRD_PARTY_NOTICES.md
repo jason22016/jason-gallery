@@ -95,3 +95,58 @@ Updated local hashes and separate Phase 2 provenance are recorded in
   variable fonts, copied from `@fontsource-variable/geist@5.3.0`.
   SIL Open Font License 1.1 retained in `licenses/GEIST-OFL.txt`.
   Loaded locally and applied only to Viewer/Inspector.
+
+## Phase 3 — Project Gallery / Masonry Parity
+
+Source repository: **https://github.com/Afilmory/Afilmory**.
+HEAD checked with `git ls-remote` on 2026-09-12:
+**`1f65cde6672e5231599182620116ac904e39f548`**.
+Copyright (c) 2025 Afilmory Team. The existing complete license is
+[licenses/AFILMORY-LICENSE](licenses/AFILMORY-LICENSE).
+Application source below is **AGPL-3.0-or-later + ANL §4**; the LinearBlur
+primitive is **MIT**. The authoritative DESIGN.md was read in full and is
+preserved unchanged at `docs/viewer/AFILMORY_DESIGN.md` (CC BY 4.0).
+The Project information panel and its no-JavaScript equivalent now reuse the
+existing legal notice, source links and public license. Changes made 2026-09-12.
+
+| Local file | Upstream path | Adaptation |
+| --- | --- | --- |
+| `src/components/gallery/MasonryView.tsx` | `apps/web/src/modules/gallery/MasonryView.tsx` | Migrates 150/250px automatic target widths, 120–250 / 200–500px manual target bounds, max 8 columns, 4px gutters, 400px estimate. Uses the existing 1024px `useMobile`, Project settings and measured inner container width including safe areas. |
+| `src/components/gallery/Masonic.tsx` | `apps/web/src/modules/gallery/Masonic.tsx` | Local `usePositioner` / `useMasonry` composition. Uses masonic's 12fps window `useScroller`, preserving Jason's window-scroll Viewer restoration. Seeds all heights from aspect ratios; removes per-image measurement; creates a fresh native positioner on resize so zero/old-width cached heights cannot preserve incorrect column assignments. A stable outer ResizeObserver avoids masonic's first-mount keyed-node replacement. Resets on filters/reordering; sorts rendered DOM by Project index and adds virtual-list position semantics. Overscan remains 2 (one viewport behind, two ahead). |
+| `src/components/gallery/MasonryPhotoItem.tsx` | `apps/web/src/modules/gallery/MasonryPhotoItem.tsx`, `apps/web/src/modules/media/HDRBadge.tsx` | Migrates card structure, full-image gradient, title/description/file details, tag pills, four capture chips and >=200px EXIF rule. Tailwind group hover becomes equivalent scoped CSS, with 1.05 scale / 300ms image transition as explicitly requested. Adds bounded description/tag overflow for small cards, keyboard focus reveal, reduced motion, link semantics and both upstream/Jason shared-trigger attributes. Reuses unchanged local CaptureIcons. HDR badge uses a pill, hairline and 12px backdrop blur per DESIGN.md. |
+| `src/components/gallery/media/useLivePhoto.ts` | `apps/web/src/modules/gallery/MasonryPhotoItem.tsx`, `apps/web/src/lib/image-loader-manager.ts` (`processVideo`, `loadDirectVideo`, `convertVideo`) | Extracts gallery video lifecycle into a hook with a 200ms desktop hover delay, ready/playing/loading/error states, end/leave reset, and lazy local extraction/MOV modules. Adds request aborts, timeout, event/timer/Blob cleanup, rejected-play handling, late-load guards, tab visibility handling and reduced-motion/mobile autoplay suppression. Uses the shared mobile breakpoint. |
+| `src/components/gallery/media/motion-photo-extractor.ts` | `apps/web/src/lib/motion-photo-extractor.ts` | Direct migration of Range extraction, full-file fallback, ftyp validation and Blob ownership. Adds AbortSignal and HTTP failure checking. Source offsets and sizes are unchanged. |
+| `src/components/gallery/media/mp4-utils.ts` | `apps/web/src/lib/mp4-utils.ts` | Copies upstream's lossless MP4-MIME Blob adaptation for MOV. Replaces i18n calls with Chinese status and adds AbortSignal. As in upstream, this changes the MIME/container handoff, **does not transcode unsupported video codecs or rebuild MOV boxes**. |
+| `src/components/gallery/PageHeader.tsx` | `apps/web/src/modules/gallery/PageHeader/{index,PageHeaderLeft,PageHeaderRight}.tsx` | 48px header and 60px progressive fade; Project home/title/count replace avatar/site/social/auth data. 12/16px responsive padding, semantic materials, dense type, MingCute icons, accessible dialog triggers. Mobile controls float at the bottom to retain every Jason action and the segment without compressing the title. |
+| `src/components/gallery/ViewModeSegment.tsx` | `apps/web/src/modules/gallery/PageHeader/ViewModeSegment.tsx` | Migrates shared `segment-indicator` layoutId and `Spring.presets.snappy`; scoped `LayoutGroup`, `LazyMotion/domMax`, local settings callbacks, Chinese accessible labels, pressed state and reduced motion. Normalizes container/item radii and material/blur. |
+| `src/components/gallery/FloatingActionButton.tsx` | `apps/web/src/modules/gallery/FloatingActionButton.tsx` (`GlassButton`), `PageHeader/utils.tsx` (`ActionIconButton`) | Combines the button presentation with Jason's existing actions. Uses normative 32px controls, 40px panel blur, semantic text/fill/accent, faint layered shadows and low-opacity edges. The old 56px radial/goo animation, z-50, solid black and hard shadow are not migrated. |
+| `src/components/gallery/ui/LinearBlur.tsx` | `packages/ui/src/progressive-blur/index.tsx` (MIT) | Copies masks, geometric blur progression, tint glow and directional positioning to local CSS. Adds the missing first strength layer so the normative default has 8 layers including 128px; preserves DOM stacking without unassigned z-index values. Handles the one-step divisor. |
+| `src/styles/gallery.css` | Gallery card, PageHeader, ViewModeSegment and FloatingActionButton utility styles above; `DESIGN.md` | Scoped plain CSS translation. Project chrome is dark-only; edge padding, material, hierarchy, reduced motion and safe-area treatment follow DESIGN.md. Existing List content and panel/map business logic are retained. |
+
+`PhotoThumbnail.tsx` retains Jason's validated native hexadecimal ThumbHash
+and original thumbnail URLs/dimensions; it now reports visual readiness to the
+card and uses a 300ms reveal with a fixed layout and a localized image error icon.
+`gallery/photos.ts` is the small Project display-data adapter: adds native video,
+aspect ratio and preformatted capture values without exposing full EXIF or
+changing the Viewer data contract, renderer, sync or build pipeline.
+
+`GalleryTokens.css` duplicates only the already-localized MIT macOS semantic
+palette and Geist font declarations under `.gallery-page`; the Viewer is untouched.
+`GalleryIcons.css` bakes selected original SVG bodies from
+`@iconify-json/mingcute@1.2.8` (MingCute Design, Apache-2.0), with the existing
+`licenses/MINGCUTE-LICENSE`. Upstream's obsolete `image-line` is mapped to the
+current `pic-line` asset. Geist files and OFL notice remain unchanged.
+
+Exact upstream/local source hashes are recorded in
+[licenses/gallery-upstream.json](licenses/gallery-upstream.json).
+All executing source lives in this repository. The upstream checkout was used
+only for comparison; no submodule, GitHub source import, external checkout path,
+runtime source download or new production package dependency was added.
+
+`tests/gallery/live.mp4` and the real QuickTime-container `live.mov` are synthetic 1.5-second test patterns generated locally
+with FFmpeg's `testsrc2` and H.264 encoder, not a third-party photograph/video.
+
+`ui/useReducedMotion.ts` is a Gallery-only reactive media-query adapter. It uses
+React's external-store subscription because the installed Motion hook captures
+only its mount-time preference. The native indicator branch avoids residual layout
+projection when reduced motion changes during a session; live playback stops too.

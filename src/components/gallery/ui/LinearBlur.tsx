@@ -1,0 +1,81 @@
+import * as React from 'react'
+
+interface LinearBlurProps extends React.HTMLAttributes<HTMLDivElement> {
+  strength?: number
+  steps?: number
+  falloffPercentage?: number
+  tint?: string
+  side?: 'left' | 'right' | 'top' | 'bottom'
+}
+
+const oppositeSide = {
+  left: 'right',
+  right: 'left',
+  top: 'bottom',
+  bottom: 'top',
+}
+
+export function LinearBlur({
+  strength = 64,
+  steps = 8,
+  falloffPercentage = 100,
+  tint = 'transparent',
+  side = 'top',
+  ...props
+}: LinearBlurProps) {
+  const actualSteps = Math.max(1, steps)
+  const step = falloffPercentage / actualSteps
+
+  const factor = 0.5
+
+  const base = Math.pow(strength / factor, 1 / Math.max(1, actualSteps - 1))
+
+  const mainPercentage = 100 - falloffPercentage
+
+  const getBackdropFilter = (i: number) => `blur(${factor * base ** (actualSteps - i - 1)}px)`
+
+  return (
+    <div
+      {...props}
+      style={{
+        // This has to be set on the top level element to prevent pointer events
+        pointerEvents: 'none',
+        transformOrigin: side,
+        ...props.style,
+      }}
+    >
+      <div style={{ position: 'absolute', width: '100%', height: '100%' }}>
+        <div className="linear-blur-layer" style={{
+          mask: `linear-gradient(to ${oppositeSide[side]}, black ${mainPercentage}%, transparent ${mainPercentage + step}%)`,
+          backdropFilter: getBackdropFilter(0), WebkitBackdropFilter: getBackdropFilter(0),
+        }} />
+        {/* Full blur at 100-falloffPercentage% */}
+        {actualSteps > 1 && (
+          <div
+            className="linear-blur-layer"
+            style={{
+              mask: `linear-gradient(to ${oppositeSide[side]}, rgba(0, 0, 0, 1) ${mainPercentage}%, rgba(0, 0, 0, 1) ${mainPercentage + step}%, rgba(0, 0, 0, 0) ${mainPercentage + step * 2}%)`,
+              backdropFilter: getBackdropFilter(1),
+              WebkitBackdropFilter: getBackdropFilter(1),
+            }}
+          />
+        )}
+        {actualSteps > 2 &&
+          Array.from({ length: actualSteps - 2 }).map((_, i) => (
+            <div
+              key={i}
+              className="linear-blur-layer"
+              style={{
+                mask: `linear-gradient(to ${oppositeSide[side]},rgba(0, 0, 0, 0) ${mainPercentage + i * step}%,rgba(0, 0, 0, 1) ${mainPercentage + (i + 1) * step}%,rgba(0, 0, 0, 1) ${mainPercentage + (i + 2) * step}%,rgba(0, 0, 0, 0) ${mainPercentage + (i + 3) * step}%)`,
+                backdropFilter: getBackdropFilter(i + 2),
+                WebkitBackdropFilter: getBackdropFilter(i + 2),
+              }}
+            />
+          ))}
+        <div
+          style={{ position: 'absolute', width: '100%', height: '100%', [side]: '-100%', boxShadow: `0 0 60px ${tint}, 0 0 100px ${tint}` }}
+        />
+      </div>
+    </div>
+  )
+}

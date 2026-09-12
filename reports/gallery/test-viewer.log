@@ -1,0 +1,98 @@
+$ node --import tsx tests/viewer/prepare.ts && vite build --config tests/viewer/vite.config.ts && node --import tsx tests/viewer/check-bundle.ts && node --import tsx --test --test-concurrency=1 tests/viewer/*.test.ts
+vite v8.0.16 building client environment for production...
+[2K
+transforming...✓ 616 modules transformed.
+rendering chunks...
+computing gzip size...
+.cache/viewer-dist/index.html                                             0.55 kB │ gzip:   0.31 kB
+.cache/viewer-dist/loader.html                                            0.65 kB │ gzip:   0.32 kB
+.cache/viewer-dist/interactions.html                                      0.72 kB │ gzip:   0.34 kB
+.cache/viewer-dist/visuals.html                                           0.80 kB │ gzip:   0.39 kB
+.cache/viewer-dist/assets/geist-latin-ext-wght-normal-DC-KSUi6.woff2     16.51 kB
+.cache/viewer-dist/assets/geist-latin-wght-normal-BgDaEnEv.woff2         29.40 kB
+.cache/viewer-dist/assets/webgpu-texture.worker-BpfWOgrA.js              82.46 kB
+.cache/viewer-dist/assets/global-B5hMuZpk.css                             3.29 kB │ gzip:   1.35 kB
+.cache/viewer-dist/assets/gallery-cHEcjCPM.css                          114.77 kB │ gzip:  19.05 kB
+.cache/viewer-dist/assets/chunk-Cyuzqnbw.js                               0.82 kB │ gzip:   0.47 kB
+.cache/viewer-dist/assets/loader-Bb3wmRJT.js                              0.95 kB │ gzip:   0.60 kB
+.cache/viewer-dist/assets/interactions-BYnfToxG.js                        1.37 kB │ gzip:   0.83 kB
+.cache/viewer-dist/assets/visuals-9-VYPCGr.js                             1.60 kB │ gzip:   1.10 kB
+.cache/viewer-dist/assets/index-Dy6aOzKC.js                               2.27 kB │ gzip:   1.16 kB
+.cache/viewer-dist/assets/jsx-runtime-ByebIJFG.js                         7.88 kB │ gzip:   2.98 kB
+.cache/viewer-dist/assets/lib-C5iBBCCv.js                                29.08 kB │ gzip:  10.31 kB
+.cache/viewer-dist/assets/browser-S_aaRcVa.js                            59.87 kB │ gzip:  16.67 kB
+.cache/viewer-dist/assets/preload-helper-D8RW2nDn.js                    183.66 kB │ gzip:  57.92 kB
+.cache/viewer-dist/assets/gallery-Bh_CtoD4.js                           465.59 kB │ gzip: 143.50 kB
+.cache/viewer-dist/assets/maplibre-gl-CYu3L_MT.js                     1,027.60 kB │ gzip: 272.94 kB
+.cache/viewer-dist/assets/heic-to-DkbHXtkO.js                         2,996.51 kB │ gzip: 751.52 kB
+
+[plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 313ms
+PASS: isolated browser bundle and emitted worker
+Color browser: 151.0.7922.34 (software GPU; no screen certification)
+Color GPU: {"devices":[{"vendorId":65535,"deviceId":65535,"vendorString":"Google Inc. (Google)","deviceString":"ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver-5.0.0)","driverVendor":"SwANGLE","driverVersion":"5.0.0"}],"featureStatus":{"2d_canvas":"enabled","direct_rendering_display_compositor":"disabled_off_ok","gpu_compositing":"enabled","multiple_raster_threads":"enabled_on","opengl":"enabled_on","rasterization":"enabled","raw_draw":"disabled_off_ok","skia_graphite":"enabled_on","trees_in_viz":"disabled_off","video_decode":"enabled","video_encode":"enabled","webgl":"enabled","webgpu":"unavailable_software","webnn":"disabled_off"},"adapter":{"vendor":"google","architecture":"swiftshader","device":"","description":"","isFallbackAdapter":true,"deviceCreated":true}}
+✔ native Engine HDR flags, original byte preservation, ICC retention and SDR thumbnail color (1567.810709ms)
+✔ malformed or unsupported gain metadata is rejected independently of the source flag (0.833875ms)
+✔ ICC SDR, wide-gamut P3, HDR base and Engine thumbnails agree across SDR rendering paths (4589.902333ms)
+✔ extended WebGPU requires valid gain data and high-range media; loss of capability clears HDR (2551.274916ms)
+✔ extended canvas rejection uses WebGPU SDR; WebGL context loss after load reaches image fallback (524.467667ms)
+✔ computeViewerMediaFrame fits landscape media inside the full viewport by default (107.388708ms)
+✔ computeViewerMediaFrame fits portrait media inside the available height (0.182542ms)
+✔ computeViewerMediaFrame accepts explicit host chrome layout when the viewer does not occupy the full viewport (0.098708ms)
+✔ computeViewerMediaFrame keeps the mobile viewer transform origin aligned with the dismiss gesture anchor (0.074125ms)
+✔ projectViewerMediaFrame applies scale, translation, radius, and rotation around the mobile origin (0.301583ms)
+✔ projectDismissedViewerMediaFrame combines the default viewer frame calculation with the dismiss snapshot projection (0.121708ms)
+✔ resolveViewerTransitionTriggerElement prefers the explicit trigger when it still matches the current item (0.36075ms)
+✔ resolveViewerTransitionTriggerElement recovers a live DOM trigger when the explicit trigger is missing (0.244833ms)
+✔ resolveViewerTransitionTriggerElement falls back to the cached trigger when the DOM no longer exposes a live match (0.146375ms)
+✔ resolveViewerTransitionTriggerElement ignores disconnected or mismatched triggers (0.146125ms)
+✔ createDismissPresentationSnapshot matches the mobile dismiss projection used by the viewer shell (0.119875ms)
+✔ resolveInspectorSheetHeight clamps the mobile sheet to a reusable viewport-aware height (0.077209ms)
+✔ createInspectorSheetPresentation derives y opacity and scale from progress (0.095833ms)
+✔ entry catch-up remains until the slide is visually ready; only current slide is hidden (0.132083ms)
+✔ Swiper Virtual slides follow the finger continuously with the adjacent photo before release (4404.361417ms)
+✔ drag dismissal links photo, backdrop, chrome, thumbnails, radius and hint; short drag springs back (3832.495041ms)
+✔ Inspector Sheet y/opacity/scale follow partial gesture and remain inert when closed (3747.182416ms)
+✔ pinch and zoom block slide/dismiss gestures, reset on navigation, and canceled touches recover (2561.307375ms)
+✔ thumbnail aspect ratios, virtualization, centering, wheel, hover preview and responsive resize (7131.191459ms)
+✔ reduced motion uses Swiper at zero duration and usable immediate Sheet/dismiss gestures (1153.395458ms)
+✔ shared-element entry hands off a decoded thumbnail while high-res is held, then exits to trigger (2021.271333ms)
+✔ real WebGL double-tap zoom blocks swipe and dismiss, then zoom reset restores Swiper (2860.006958ms)
+✔ Blob leases survive LRU eviction/clear and revoke once the last consumer releases (1.1285ms)
+✔ manager delay/XHR/decoder cancellation settles, suppresses stale callbacks and avoids Blob allocation (4.348167ms)
+✔ magic detection preserves ordinary bytes, reports progress, caches before network and rejects invalid payloads (12.3405ms)
+✔ converter failures retain original Blob fallback and requests can retry after network errors (0.937209ms)
+✔ conversion queue limits concurrency and native-format policy/config match upstream (0.21625ms)
+✔ production PhotoMedia keeps thumbnail until real WebGPU queue completion and first frame handoff (879.953459ms)
+✔ WebGL completion is fenced before handoff; post-load context loss still reaches Blob native fallback (658.603625ms)
+✔ normal flow uses one network original, reuses cached Blob, and falls WebGPU → WebGL → native (5500.028042ms)
+✔ real HEIC and TIFF decode to full-size JPEG Blob; native fallback consumes converted Blob too (6120.527834ms)
+✔ CORS/download failure retains direct native fallback; complete failure shows retry and can recover (2587.86375ms)
+✔ navigation/unmount cancels delayed and in-flight originals, and stale results cannot replace current photo (2517.999ms)
+✔ production Blob pipeline preserves JPEG ICC/HDR/gain-map bytes and SDR rendered colors (3950.399375ms)
+✔ actual post-load WebGPU device loss returns to preview, then WebGL, then native on context loss (1031.244834ms)
+✔ retry invalidates an undecodable cached original before downloading corrected bytes (1272.000333ms)
+✔ upstream verifier detects edits, missing/extra core files and unexplained adaptations (23.612ms)
+✔ bundle audit exception only accepts file-type dormant Node method, retaining other leak markers (2.696333ms)
+✔ all localized interaction files match their reviewed upstream/adaptation records (6.123583ms)
+✔ localized Phase 2 components and assets match the recorded source provenance (5.006667ms)
+✔ upstream histogram keeps 128 bins, RGB and Rec.709 luminance (122.226875ms)
+✔ photo accents stay in the upstream contrast band and malformed hashes are harmless (0.493791ms)
+✔ dark-only materials, local icons/font, quiet desktop controls and spring Inspector stay usable (8210.858125ms)
+✔ background crossfades, holds the prior layer until fallback decodes, and ignores stale loads (2793.111541ms)
+✔ metadata sections preserve recipe extras and zero GPS; histogram resizes and errors remain honest (1769.010334ms)
+✔ MiniMap renders its local style with real WebGL and retains provider attribution (1785.220625ms)
+✔ mobile Sheet keeps opaque backing, safe-area geometry and 32px controls with 44px hit targets (1705.623459ms)
+✔ shared-element handoff includes the mobile thumbnail safe area without a final frame jump (983.969875ms)
+ℹ tests 53
+ℹ suites 0
+ℹ pass 53
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 81597.075333

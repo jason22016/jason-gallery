@@ -1,0 +1,83 @@
+$ node --import tsx --test --test-concurrency=1 tests/website/*.test.ts
+✔ 480-photo masonry virtualizes, keeps ratio/gutters and stable total height through load, resize and scrolling (6221.296792ms)
+✔ manual widths, filter/sort, segment URL persistence and Viewer shared-element entry stay project-scoped (7162.337458ms)
+✔ hover metadata, full-card gradient, 1.05 reveal, compact rules, keyboard and reduced motion (2613.56825ms)
+✔ 48px progressive header and safe-area mobile actions remain usable at narrow widths (1254.523167ms)
+✔ Live/Motion/MOV play after 200ms hover, reset on leave/end and preserve card geometry (10482.142542ms)
+✔ video failure settles, while mobile/reduced motion never autoplay (2659.249ms)
+✔ leaving masonry during video loading cancels requests and releases video/Blob resources (976.747959ms)
+✔ segmented indicator actually travels between controls and reduced motion places it immediately (2119.180167ms)
+✔ capture time preserves EXIF wall clock and offsets; build clock and malformed dates are not capture evidence (1.7235ms)
+✔ native EXIF GPS works without reverse geocoding; zero, signed hemispheres, invalid/missing pairs and units stay honest (0.67075ms)
+✔ projection and date filters/sort use recorded dates, actual focal length and native coordinates without mutating the engine (2.4915ms)
+23:17:06 [types] Generated 82ms
+23:17:06 [jason-gallery-projects] Validated Projects: 1 published, 0 draft
+23:17:06 [build] output: "static"
+23:17:06 [build] mode: "static"
+23:17:06 [build] directory: /Users/lijiasheng/Documents/ChatGPT/jason-gallery/.cache/multi-source-website/release-nrBbJx/dist/
+23:17:06 [build] Collecting build info...
+23:17:06 [build] ✓ Completed in 100ms.
+23:17:06 [build] Building static entrypoints...
+23:17:07 [vite] ✓ built in 117ms
+23:17:07 [WARN] [vite] [plugin builtin:vite-reporter]
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+23:17:07 [vite] ✓ built in 358ms
+23:17:07 [build] Rearranging server assets...
+
+ generating static routes
+23:17:07   ├─ /404.html (+6ms)
+23:17:07   ├─ /health.txt (+1ms)
+23:17:07   ├─ /projects/mixed/photos/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f58aaa6f80fae8822ed3bfa6c10df8ff98dcfbdfd22145089988015746c21d92.json (+1ms)
+23:17:07   ├─ /projects/mixed/photos/travel--396af30e5daf04dcfc901fd3ea217a0b809b8f85220223e5e9a56b690f23fb90--f58aaa6f80fae8822ed3bfa6c10df8ff98dcfbdfd22145089988015746c21d92.json (+1ms)
+23:17:07   ├─ /projects/mixed/index.html (+7ms)
+23:17:07   ├─ /index.html (+2ms)
+23:17:07 ✓ Completed in 39ms.
+
+23:17:07 [build] ✓ Completed in 538ms.
+23:17:07 [build] 3 page(s) built in 640ms
+23:17:07 [build] Complete!
+✔ cross-source Gallery, metadata, Viewer sharing and map use the same qualified photo identity (15464.295583ms)
+Website browser: 151.0.7922.34
+✔ production routes, published order, cover, project fields and Gallery order work without JavaScript (5765.106625ms)
+✔ draft/unknown routes return custom 404 and draft data never enters HTML or JavaScript; worker is isolated (194.031375ms)
+✔ lazy Viewer, selection, buttons, keyboard limits, focus trap/restoration and GPU-to-img fallback (7650.115792ms)
+✔ loading is visible; switching/closing while requests are pending cannot revive an old photo (4976.57275ms)
+✔ failed GPU module download still opens the unmodified original image (1462.116208ms)
+✔ thumbnail error, original error and successful retry remain usable (3942.1185ms)
+✔ real Afilmory WebGPU initialization failure falls back to WebGL in the Astro production bundle (3354.948292ms)
+✔ mobile masonry layout, touch controls, single-photo boundaries and viewport resizing (1827.704542ms)
+✔ desktop fixture screenshots and ordinary browsing have no uncaught runtime errors (2255.278792ms)
+✔ empty public catalog builds a useful home page, even when draft content exists (1114.682791ms)
+✔ Light home: responsive cover geometry, hover/focus overlay, and two deliberate touch taps (713.755708ms)
+✔ project information, filters, chronological sort, list persistence, and shared viewer sequence (6133.936458ms)
+✔ photo URLs support direct entry, refresh, Back/Forward, invalid IDs and project-scoped metadata (2632.487958ms)
+✔ map has an accessible fallback and obeys current filters; missing GPS produces an empty state (2768.355417ms)
+✔ fallback zoom disables swipe navigation, resets, and the mobile inspector remains operable (2767.123542ms)
+Native touch close events: [
+  { type: 'pointerdown', target: '收起照片信息' },
+  { type: 'touchstart', target: '收起照片信息' },
+  { type: 'pointerup', target: '收起照片信息' },
+  { type: 'touchend', target: '收起照片信息' },
+  { type: 'click', target: '收起照片信息' }
+]
+✔ native touch gestures switch photos, reveal the inspector, dismiss, and ignore homepage scrolls (7687.315917ms)
+✔ native hexadecimal ThumbHash produces the correct preview colours before the JPEG loads (1041.788875ms)
+✔ metadata stays lazy, preserves units/offsets and zero values, retries, and clears stale details on navigation (2767.040041ms)
+✔ filtered/sorted share URL restores the same sequence; Forward then Close does not add duplicate history (6021.856375ms)
+✔ real MapLibre renders fixture points, expands a cluster, opens a point, and restores the filtered map (11499.079292ms)
+✔ map network failure with WebGL available and lazy module failure retain selectable photos (3343.450583ms)
+✔ WebGL context loss after a loaded HDR source reaches the normal image fallback (3526.433333ms)
+✔ HDR active requires successful reconstruction; capability changes, malformed gain and next photo clear it (11464.720541ms)
+✔ home follows the device while Project Gallery and Viewer keep DESIGN.md dark materials (2155.855917ms)
+✔ Swiper thumbnail and keyboard navigation preserve the Project history entry, scroll offset and opener focus (1507.074167ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 149302.043125
