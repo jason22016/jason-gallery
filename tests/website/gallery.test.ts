@@ -18,7 +18,8 @@ let browser: Browser;
 let server: Awaited<ReturnType<typeof serve>>;
 let photos: GalleryPhoto[];
 const root = path.join(repo, '.cache/gallery-fixture');
-const screenshots = path.join(repo, 'reports/gallery/phase4');
+// Test artifacts must not overwrite tracked audit reports before release validation.
+const screenshots = path.join(repo, '.cache/gallery-screenshots');
 let motion: Buffer;
 let video: Buffer;
 
