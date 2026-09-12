@@ -21,6 +21,7 @@ interface GestureMemoState {
 
 export const useViewerMobileInteractions = ({
   enabled,
+  reducedMotion = false,
   isImageZoomed,
   onDismiss,
   viewport,
@@ -53,6 +54,8 @@ export const useViewerMobileInteractions = ({
     animationControlsRef.current = []
   }, [])
 
+  useEffect(() => stopAnimations, [stopAnimations])
+
   const reset = useCallback(() => {
     stopAnimations()
     isClosingRef.current = false
@@ -81,6 +84,7 @@ export const useViewerMobileInteractions = ({
 
   const springValue = useCallback(
     (value: typeof inspectorProgress | typeof dismissX | typeof dismissY, to: number, velocity = 0) => {
+      if (reducedMotion) { value.set(to); return }
       return registerAnimation(
         animate(value, to, {
           ...ViewerSpring.presets.smooth,
@@ -88,7 +92,7 @@ export const useViewerMobileInteractions = ({
         }),
       )
     },
-    [registerAnimation],
+    [registerAnimation, reducedMotion],
   )
 
   const getDismissPresentationSnapshot = useCallback(
@@ -106,6 +110,7 @@ export const useViewerMobileInteractions = ({
     (open: boolean, velocity = 0) => {
       stopAnimations()
       if (isClosingRef.current) return
+      if (reducedMotion) { inspectorProgress.set(open ? 1 : 0); dismissX.set(0); dismissY.set(0); return }
       const clampedVelocity = clamp(velocity, -2.2, 2.2)
       const settleVelocity = open ? Math.max(clampedVelocity, 0) : Math.min(clampedVelocity, 0)
 
@@ -118,7 +123,7 @@ export const useViewerMobileInteractions = ({
       registerAnimation(animate(dismissX, 0, ViewerSpring.smooth(0.26)))
       registerAnimation(animate(dismissY, 0, ViewerSpring.smooth(open ? 0.28 : 0.24)))
     },
-    [dismissX, dismissY, inspectorProgress, registerAnimation, stopAnimations],
+    [dismissX, dismissY, inspectorProgress, registerAnimation, stopAnimations, reducedMotion],
   )
 
   const dismissWithThrow = useCallback(
@@ -131,6 +136,7 @@ export const useViewerMobileInteractions = ({
       stopAnimations()
       inspectorProgress.set(0)
 
+      if (reducedMotion) { onDismiss(getDismissPresentationSnapshot()); return }
       const clampedVelocityX = clamp(velocityX, -2.2, 2.2)
       const clampedVelocityY = clamp(velocityY, 0.72, 2.8)
       const currentX = dismissX.get()
@@ -167,6 +173,7 @@ export const useViewerMobileInteractions = ({
       stopAnimations,
       viewportHeight,
       viewportWidth,
+      reducedMotion,
     ],
   )
 

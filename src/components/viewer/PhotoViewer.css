@@ -1,0 +1,153 @@
+/* Afilmory/Afilmory apps/web/src/modules/viewer/PhotoViewer.css
+ * 1f65cde6672e5231599182620116ac904e39f548, AGPL-3.0-or-later + ANL §4. Copyright (c) 2025 Afilmory Team. Scoped to Viewer; see THIRD_PARTY_NOTICES.md. */
+.photo-dialog .contain-intrinsic-size {
+  contain-intrinsic-size: 64px;
+  content-visibility: auto;
+}
+
+/* PhotoViewer custom styles */
+
+/* Hide default Swiper navigation buttons since we use custom ones */
+.photo-dialog .swiper-button-next,
+.photo-dialog .swiper-button-prev {
+  display: none !important;
+}
+
+/* Ensure Swiper slides don't interfere with zoom/pan gestures */
+.photo-dialog .swiper-slide {
+  overflow: visible;
+}
+
+/* Custom navigation button hover effects */
+.photo-dialog .swiper-button-prev-custom,
+.photo-dialog .swiper-button-next-custom {
+  transition: all 0.2s ease;
+}
+
+/* Ensure proper touch handling */
+.photo-dialog .swiper {
+  touch-action: pan-x;
+}
+
+.photo-dialog .swiper-slide {
+  touch-action: manipulation;
+}
+
+/* Mobile optimizations */
+@media (max-width: 1023px) {
+  /* Improve touch targets on mobile */
+  .photo-dialog .swiper-button-prev-custom,
+  .photo-dialog .swiper-button-next-custom {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Enable horizontal swiping on mobile */
+  .photo-dialog .swiper {
+    touch-action: pan-x;
+  }
+
+  .photo-dialog .swiper-slide {
+    touch-action: pan-x;
+  }
+
+  /* Ensure double-tap zoom works on mobile */
+  .react-transform-wrapper {
+    touch-action: manipulation;
+  }
+
+  .react-transform-component {
+    touch-action: manipulation;
+  }
+
+  /* Optimize ExifPanel for mobile */
+  .exif-panel-mobile {
+    /* Add safe area padding for devices with notches */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Improve thumbnail scrolling on mobile */
+  .gallery-thumbnail-container {
+    /* Add momentum scrolling for iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Hide scrollbar on mobile */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .gallery-thumbnail-container::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Improve accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .photo-dialog .swiper-button-prev-custom,
+  .photo-dialog .swiper-button-next-custom {
+    transition: none;
+  }
+}
+
+/* Jason layout adapter for the upstream flex stage. Sizes also drive shared-element frames. */
+.photo-dialog { --color-accent: #e4c496; background: transparent; }
+.photo-dialog::backdrop { background: transparent; }
+.viewer-backdrop-presence { position: absolute; inset: 0; pointer-events: none; }
+.viewer-backdrop-base { position: absolute; inset: 0; background: #181818; }
+.photo-dialog .viewer-stage { touch-action: none; }
+.photo-dialog .viewer-drag-content { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
+.photo-dialog[data-mobile='true'] .viewer-drag-content { overflow: hidden; }
+.viewer-image-stage { position: relative; flex: 1; min-height: 0; min-width: 0; }
+.photo-dialog .viewer-gesture-stage { position: absolute; inset: 0; touch-action: none; }
+.photo-dialog .viewer-swiper { width: 100%; height: 100%; }
+.viewer-slide-content, .viewer-slide-visibility, .viewer-progressive-image { width: 100%; height: 100%; position: relative; }
+.viewer-slide-preview, .viewer-entry-catchup { position: absolute; inset: 0; pointer-events: none; }
+.viewer-entry-catchup { z-index: 10; }
+.viewer-thumbhash { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.viewer-chrome-presence { position: absolute; inset: 0; z-index: 12; pointer-events: none; }
+.photo-dialog .viewer-previous, .photo-dialog .viewer-next { top: 50%; }
+.photo-dialog .viewer-toolbar[inert] > * { pointer-events: none; }
+.viewer-thumbnails-motion { flex: 0 0 auto; min-width: 0; }
+.viewer-thumbnail-bar { position: relative; flex-shrink: 0; background: #15151525; z-index: 10; }
+.viewer-thumbnail-glow { position: absolute; inset: 0; pointer-events: none; }
+.photo-dialog .viewer-filmstrip { position: relative; z-index: 1; overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain; touch-action: pan-x; scrollbar-width: none; }
+.viewer-filmstrip::-webkit-scrollbar { display: none; }
+.viewer-thumbnail-item { position: absolute; top: 0; }
+.photo-dialog .viewer-thumbnail-button { position: relative; display: block; height: 100%; width: 100%; overflow: hidden; border: 0; border-radius: 0; padding: 0; background: transparent; opacity: .52; filter: grayscale(1); transition: transform .2s, opacity .2s, filter .2s; }
+.photo-dialog .viewer-thumbnail-button.selected { opacity: 1; filter: none; transform: scale(1.1); z-index: 2; box-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 20%, transparent); }
+.photo-dialog .viewer-thumbnail-button:hover, .photo-dialog .viewer-thumbnail-button:focus-visible { opacity: 1; filter: none; z-index: 3; }
+.viewer-thumbnail-image { position: absolute; inset: 0; height: 100%; width: 100%; object-fit: cover; }
+.viewer-thumbnail-hover { z-index: 50; width: 320px; overflow: hidden; background: #181818; box-shadow: 0 -8px 32px color-mix(in srgb, var(--color-accent) 35%, transparent); pointer-events: none; }
+.viewer-thumbnail-hover-inner, .viewer-thumbnail-hover-image { position: relative; width: 100%; overflow: hidden; }
+.viewer-thumbnail-hover-caption { position: absolute; inset: auto 0 0; padding: 12px; color: #fff; background: linear-gradient(transparent, #0009); }
+.viewer-thumbnail-hover-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.viewer-thumbnail-hover-date { margin-top: 4px; font-size: 12px; color: #fffc; }
+.viewer-gesture-hint { position: absolute; bottom: 16px; left: 50%; translate: -50% 0; display: flex; align-items: center; gap: 6px; white-space: nowrap; padding: 5px 12px; border-radius: 20px; background: #202020cc; color: #fff; backdrop-filter: blur(24px); pointer-events: none; font-size: 12px; z-index: 15; }
+.hint-divider { width: 1px; height: 12px; background: #fff3; margin-inline: 3px; }
+.mobile-inspector-sheet { position: fixed; inset: auto 0 0; display: flex; justify-content: center; pointer-events: none; z-index: 30; }
+.photo-dialog .inspector-sheet-surface { position: relative; display: flex; flex-direction: column; width: 100%; max-width: 1024px; padding: 0; overflow: hidden; border-radius: 28px 28px 0 0; background: #242424f0; border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent); backdrop-filter: blur(60px); box-shadow: 0 -20px 64px color-mix(in srgb, var(--color-accent) 16%, transparent), 0 -8px 28px #0005; }
+.inspector-sheet-glow { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, #ffffff14, transparent 16%, color-mix(in srgb, var(--color-accent) 7%, transparent)); }
+.photo-dialog .inspector-sheet-surface > header { position: relative; height: 88px; flex-shrink: 0; margin: 0; padding: 24px 16px 0; background: transparent; }
+.inspector-sheet-handle { position: absolute; top: 12px; left: calc(50% - 22px); width: 44px; height: 6px; background: #fff3; border-radius: 8px; }
+.inspector-sheet-content { position: relative; min-height: 0; flex: 1; overflow-y: auto; overflow-anchor: none; overscroll-behavior: contain; touch-action: pan-y; padding: 8px 16px calc(env(safe-area-inset-bottom) + 20px); }
+.inspector-sheet-content * { user-select: text; }
+.photo-dialog[data-mobile='true'] .viewer-toolbar { left: 8px; right: 8px; height: 52px; }
+.photo-dialog[data-mobile='true'] .icon-button { width: 44px; height: 44px; }
+.photo-dialog[data-mobile='true'] .viewer-actions { gap: 0; }
+.photo-dialog[data-mobile='true'] .viewer-actions button:is([aria-label='放大'],[aria-label='缩小'],[aria-label='适应屏幕']) { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .photo-dialog .viewer-thumbnail-button, .photo-dialog .swiper-wrapper { transition-duration: 0s !important; }
+  .photo-dialog .loading-dot { animation: none; }
+}
+@media (prefers-color-scheme: light) {
+  .viewer-backdrop-base { background: #f5f5f5; }
+  .viewer-thumbnail-bar { background: #ffffff70; }
+  .photo-dialog .inspector-sheet-surface { background: #fffffff0; }
+  .inspector-sheet-handle { background: #0003; }
+}
+
+.viewer-attribution { margin-top: 24px; padding-top: 14px; border-top: 1px solid #8884; font-size: 11px; line-height: 1.8; opacity: .8; overflow-wrap: anywhere; }
+.viewer-attribution a { text-decoration: underline; }
+
+/* Keep the material in a separate layer: blur on the animated thumbnail parent
+   can stall Chromium Graphite/SwiftShader adapter initialization. */
+.viewer-thumbnail-bar::before { content: ''; position: absolute; inset: 0; backdrop-filter: blur(40px); pointer-events: none; }

@@ -14,3 +14,6 @@ await fs.copyFile('tests/viewer/fixtures/ordinary.heic', '.cache/viewer-fixtures
 const { default: sharp } = await import('sharp');
 await fs.writeFile('.cache/viewer-fixtures/ordinary.tiff', await sharp(await jpeg()).tiff({ compression: 'lzw' }).toBuffer());
 await fs.writeFile('.cache/viewer-fixtures/gray.tiff', await sharp(await jpeg()).greyscale().tiff({ compression: 'none' }).toBuffer());
+// Full-size interaction fixtures exercise upstream fit/fill/native-pixel zoom stages.
+await fs.writeFile('.cache/viewer-fixtures/viewer-portrait.jpg', await jpeg('#9d7155', 640, 960));
+await fs.writeFile('.cache/viewer-fixtures/viewer-landscape.jpg', await jpeg('#597c8b', 960, 640));

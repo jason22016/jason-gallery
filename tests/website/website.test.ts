@@ -252,7 +252,9 @@ test('mobile masonry layout, touch controls, single-photo boundaries and viewpor
   const page = await projectPage(ctx, 'fixture-zeta');
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.locator('.gallery-live [data-gallery-index]').tap(); await loaded(page);
-  for (const label of ['上一张照片', '下一张照片']) await expect(page.getByRole('button', { name: label })).toBeDisabled();
+  for (const label of ['上一张照片', '下一张照片']) await expect(page.getByRole('button', { name: label })).toHaveCount(0);
+  await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowRight');
+  await expect(page.locator('.viewer-counter')).toHaveText('1 / 1');
   for (const size of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 320, height: 568 }]) {
     await page.setViewportSize(size);
     const box = await page.getByRole('dialog').boundingBox();
@@ -398,10 +400,10 @@ test('fallback zoom disables swipe navigation, resets, and the mobile inspector 
   const ctx = await context({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }); t.after(() => ctx.close());
   const page = await projectPage(ctx); await open(page); await loaded(page);
   await page.getByRole('button', { name: '照片信息', exact: true }).tap();
-  await expect(page.locator('.mobile-inspector')).toBeVisible();
-  await expect(page.locator('.mobile-inspector')).toContainText('Fixture artist');
-  assert.equal(await page.locator('.mobile-inspector').evaluate(el => el.scrollTop), 0);
-  await page.getByRole('button', { name: '收起照片信息' }).tap(); await expect(page.locator('.mobile-inspector')).toHaveCount(0);
+  await expect(page.locator('.mobile-inspector-sheet:not([inert])')).toBeVisible();
+  await expect(page.locator('.mobile-inspector-sheet:not([inert])')).toContainText('Fixture artist');
+  assert.equal(await page.locator('.mobile-inspector-sheet:not([inert])').evaluate(el => el.scrollTop), 0);
+  await page.getByRole('button', { name: '收起照片信息' }).tap(); await expect(page.locator('.mobile-inspector-sheet:not([inert])')).toHaveCount(0);
   await page.locator('.fallback-stage').dblclick({ position: { x: 150, y: 250 } });
   await expect(page.locator('.viewer-fallback')).toHaveAttribute('style', /scale\(2\)/);
   await page.keyboard.press('ArrowRight'); await expect(page.locator('.viewer-counter')).toHaveText('1 / 3');
@@ -437,7 +439,7 @@ test('native touch gestures switch photos, reveal the inspector, dismiss, and ig
   await page.goto(`${server.url}/projects/fixture-beta/`); await page.locator('.gallery-live [data-gallery-index]').first().waitFor();
   await open(page); await loaded(page); await page.locator('[data-viewer-transition-variant]').waitFor({ state: 'detached' });
   await swipe([300, 340], [80, 340]); await loaded(page); await expect(page.locator('.viewer-counter')).toHaveText('2 / 3');
-  await swipe([190, 470], [190, 210]); await expect(page.locator('.mobile-inspector')).toBeVisible();
+  await swipe([190, 470], [190, 210]); await expect(page.locator('.mobile-inspector-sheet:not([inert])')).toBeVisible();
   // Visibility begins at 2% progress; wait for the reveal spring to settle
   // before a second interaction. The rendered transform is the public result.
   await expect.poll(() => page.locator('.viewer-drag-content').evaluate(el => {
@@ -447,7 +449,7 @@ test('native touch gestures switch photos, reveal the inspector, dismiss, and ig
   await page.evaluate(`
     window.testInspectorCloseClicks = 0;
     window.testTouchEvents = [];
-    document.querySelector('.mobile-inspector button').addEventListener('click', () => window.testInspectorCloseClicks++);
+    document.querySelector('.mobile-inspector-sheet:not([inert]) button').addEventListener('click', () => window.testInspectorCloseClicks++);
     for (const type of ['touchstart', 'touchend', 'pointerdown', 'pointerup', 'click']) {
       document.addEventListener(type, event => window.testTouchEvents.push({ type, target: event.target.closest('button')?.getAttribute('aria-label') || event.target.tagName }), { capture: true });
     }
@@ -470,7 +472,7 @@ test('native touch gestures switch photos, reveal the inspector, dismiss, and ig
   } finally {
     console.log('Native touch close events:', await page.evaluate('window.testTouchEvents'));
   }
-  await expect(page.locator('.mobile-inspector')).toHaveCount(0);
+  await expect(page.locator('.mobile-inspector-sheet:not([inert])')).toHaveCount(0);
   await swipe([190, 250], [190, 540]); await expect(page.getByRole('dialog')).toHaveCount(0);
   assert.equal(await page.evaluate(() => document.body.style.overflow), '');
 });
@@ -699,16 +701,48 @@ test('device appearance applies to home, static gallery, panels and viewer and u
   await page.locator('[data-viewer-ready="true"]').waitFor({ state: 'attached' });
   assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
   await open(page); await loaded(page);
-  assert.equal(await page.locator('.photo-dialog').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(245, 245, 245)');
+  assert.equal(await page.locator('.viewer-backdrop-base').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(245, 245, 245)');
   assert.equal(await page.locator('.viewer-inspector .photo-caption').evaluate(el => getComputedStyle(el).color), 'rgb(102, 102, 102)');
   assert.equal(await page.locator('.viewer-inspector').evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(255, 255, 255, 0.69)');
   await page.screenshot({ path: '.cache/website-viewer-light.png' });
   await page.emulateMedia({ colorScheme: 'dark' });
-  assert.equal(await page.locator('.photo-dialog').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(24, 24, 24)');
+  assert.equal(await page.locator('.viewer-backdrop-base').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(24, 24, 24)');
   assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).colorScheme), 'dark');
   const staticCtx = await browser.newContext({ javaScriptEnabled: false, colorScheme: 'light' });
   t.after(() => staticCtx.close());
   const staticPage = await staticCtx.newPage();
   await staticPage.goto(`${server.url}/projects/fixture-beta/`);
   assert.equal(await staticPage.locator('body').evaluate(el => getComputedStyle(el).colorScheme), 'light');
+});
+
+test('Swiper thumbnail and keyboard navigation preserve the Project history entry, scroll offset and opener focus', async t => {
+  const ctx = await context({ viewport: { width: 1100, height: 320 }, reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  const page = await projectPage(ctx);
+  await page.evaluate(() => window.scrollTo(0, 80));
+  const historyLength = await page.evaluate(() => history.length);
+  // Measure at the actual click: Playwright may scroll the oversized portrait
+  // into view first. This is the position the Project must restore on close.
+  await page.locator('.gallery-live [data-gallery-index="0"]').evaluate(element => {
+    element.addEventListener('click', () => {
+      (window as unknown as { viewerOpeningScroll: number }).viewerOpeningScroll = window.scrollY;
+    }, { capture: true, once: true });
+  });
+  await open(page);
+  const before = await page.evaluate(() => (window as unknown as { viewerOpeningScroll: number }).viewerOpeningScroll);
+  assert(before > 0);
+  await loaded(page);
+  await page.locator('[data-filmstrip-id]').last().click();
+  await expect(page.locator('.swiper-slide-active')).toHaveAttribute('data-photo-id', fixture.photos[2]!.photoId);
+  await expect(page.locator('.viewer-counter')).toHaveText('3 / 3');
+  assert.equal(await page.evaluate(() => history.length), historyLength + 1);
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('.swiper-slide-active')).toHaveAttribute('data-photo-id', fixture.photos[1]!.photoId);
+  assert.equal(new URL(page.url()).searchParams.get('photo'), fixture.photos[1]!.photoId);
+  await page.goBack(); await expect(page.locator('.photo-dialog')).toHaveCount(0);
+  assert.equal(await page.evaluate(() => window.scrollY), before);
+  await expect(page.locator('.gallery-live [data-gallery-index="0"]')).toBeFocused();
+  await page.goForward(); await loaded(page);
+  await expect(page.locator('.swiper-slide-active')).toHaveAttribute('data-photo-id', fixture.photos[1]!.photoId);
+  await page.keyboard.press('Escape'); await expect(page.locator('.photo-dialog')).toHaveCount(0);
+  assert.equal(await page.evaluate(() => window.scrollY), before);
 });

@@ -83,9 +83,6 @@
 .viewer-actions { display: flex; align-items: center; gap: 7px; }
 .photo-dialog .icon-button { width: 34px; height: 34px; border-radius: 50%; background: #15151560; color: #ddd; }
 .photo-dialog .icon-button:hover { background: #151515b0; color: #fff; }
-.viewer-gesture-stage { position: absolute; inset: 0 0 76px; touch-action: none; }
-.viewer-drag-content { width: 100%; height: 100%; }
-@media (max-width: 767px), (pointer: coarse) { .viewer-drag-content { transform-origin: 50% 18%; } }
 .viewer-media { position: relative; height: 100%; width: 100%; overflow: hidden; }
 .viewer-preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 .viewer-fallback { width: 100%; height: 100%; object-fit: contain; display: block; user-select: none; }
@@ -93,13 +90,6 @@
 .photo-dialog .viewer-previous, .photo-dialog .viewer-next { position: absolute; top: calc(50% - 38px); z-index: 10; transform: translateY(-50%); }
 .viewer-previous { left: 16px; }
 .viewer-next { right: 16px; }
-.viewer-filmstrip { position: absolute; inset: auto 0 0; height: 76px; display: flex; align-items: center; overflow-x: auto; overscroll-behavior: contain; gap: 4px; padding: 7px 6px max(7px, env(safe-area-inset-bottom)); background: #15151525; scrollbar-width: none; }
-.viewer-filmstrip::-webkit-scrollbar { display: none; }
-.viewer-filmstrip button { flex: 0 0 auto; width: 68px; height: 60px; padding: 0; border: 2px solid transparent; border-radius: 0; opacity: .42; background: transparent; }
-.viewer-filmstrip .gallery-thumbnail { height: 100%; aspect-ratio: auto !important; }
-.viewer-filmstrip img { object-fit: cover; }
-.viewer-filmstrip button.selected { opacity: 1; border-color: #fff; }
-.viewer-filmstrip button:hover { opacity: .9; }
 .viewer-inspector { position: relative; overflow-y: auto; overflow-anchor: none; background: #24242455; backdrop-filter: blur(24px); padding: env(safe-area-inset-top) 16px 24px; scrollbar-width: thin; scrollbar-color: #ffffff22 transparent; }
 .viewer-inspector > header { display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 1; background: #333333b0; backdrop-filter: blur(12px); margin-inline: -16px; padding-inline: 16px; }
 .viewer-inspector > header span { display: flex; align-items: center; gap: 8px; font-size: 12px; }
@@ -137,14 +127,6 @@
   .static-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gallery-panel { max-height: calc(100dvh - 36px); border-radius: 14px; }
   .panel-body { padding: 20px; }
-  .viewer-toolbar { left: 8px; right: 8px; height: 52px; }
-  .photo-dialog .icon-button { width: 44px; height: 44px; }
-  .viewer-actions { gap: 0; }
-  .viewer-actions button[aria-label='放大'], .viewer-actions button[aria-label='缩小'], .viewer-actions button[aria-label='适应屏幕'] { display: none; }
-  .photo-dialog .viewer-previous { left: 4px; }
-  .photo-dialog .viewer-next { right: 4px; }
-  .mobile-inspector { position: absolute; inset: auto 0 0; max-height: 70dvh; z-index: 30; background: #242424f0; border-radius: 20px 20px 0 0; padding-bottom: max(24px, env(safe-area-inset-bottom)); box-shadow: 0 -15px 80px #0005; }
-  .mobile-inspector > header { background: #242424; }
   .photo-list { padding-inline: 12px; }
   .photo-list > li { gap: 14px; }
   .photo-list .photo-link { width: 100px; }
@@ -182,9 +164,6 @@
   .viewer-counter { color: #333; background: #ffffffc0; }
   .photo-dialog .icon-button { color: #333; background: #ffffffc0; }
   .photo-dialog .icon-button:hover { color: #111; background: #fffffff0; }
-  .viewer-filmstrip { background: #ffffff70; }
-  .viewer-filmstrip button { background: transparent; border-color: transparent; }
-  .viewer-filmstrip button.selected { border-color: #333; }
   .viewer-inspector { background: #ffffffb0; scrollbar-color: #00000022 transparent; }
   .viewer-inspector > header { background: #ffffffe0; }
   .metadata-rows dt, .exposure-grid svg, .histogram-note, .metadata-map-link, .photo-caption { color: #666; }
@@ -193,6 +172,4 @@
   .viewer-error { background: #fffffff0; border-color: #00000015; }
   .viewer-error a { color: #666; }
   .hdr-status { background: #ffffffd0; color: #333; }
-  .mobile-inspector { background: #fffffff0; }
-  .mobile-inspector > header { background: #fff; }
 }

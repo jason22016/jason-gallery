@@ -85,6 +85,8 @@ export interface UseViewerTransitionsResult {
 }
 
 export interface UseViewerMobileInteractionsOptions {
+  /** Jason accessibility adapter: gestures stay usable without settle/throw animations. */
+  reducedMotion?: boolean
   enabled: boolean
   isImageZoomed: boolean
   onDismiss: (snapshot: MobileViewerDismissSnapshot) => void

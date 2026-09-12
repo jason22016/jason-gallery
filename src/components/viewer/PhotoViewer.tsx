@@ -1,78 +1,104 @@
+// Adapted from Afilmory/Afilmory, apps/web/src/modules/viewer/PhotoViewer.tsx
+// Upstream 1f65cde6672e5231599182620116ac904e39f548; AGPL-3.0-or-later + ANL §4, Copyright (c) 2025 Afilmory Team.
+// Jason adapter: project/history owner, native dialog, existing media renderer and metadata.
+import 'swiper/css';
+import './PhotoViewer.css';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { LazyMotion, domAnimation, motion, useReducedMotion } from 'motion/react';
-import { SharedElementTransitionPreview, useViewerTransitions, useViewerMobileInteractions, computeViewerMediaFrame, projectDismissedViewerMediaFrame, type AnimationFrameRect } from '@afilmory/viewer-motion';
-import { X, ChevronLeft, ChevronRight, Share2, PanelRightClose, PanelRightOpen, Info, ExternalLink, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
-import type { ImageViewer } from '../../photo-engine/browser';
+import { LazyMotion, domAnimation, m, useReducedMotion, AnimatePresence } from 'motion/react';
+import { Spring } from '@afilmory/utils';
+import { SharedElementTransitionPreview, useViewerTransitions, useViewerMobileInteractions, computeViewerMediaFrame,
+  projectDismissedViewerMediaFrame, DEFAULT_MOBILE_VIEWER_MEDIA_TRANSFORM_ORIGIN, type AnimationFrameRect } from '@afilmory/viewer-motion';
+import { X, ChevronLeft, ChevronRight, Share2, PanelRightClose, PanelRightOpen, Info, ExternalLink, ZoomIn, ZoomOut, RotateCcw, ArrowUp, ArrowDown } from 'lucide-react';
+import type { Swiper as SwiperType } from 'swiper';
+import { Navigation, Virtual } from 'swiper/modules';
+import { Swiper, SwiperSlide } from 'swiper/react';
 import type { ViewerPhoto } from './photos';
-import PhotoThumbnail from '../gallery/PhotoThumbnail';
+import type { Controls } from './PhotoMedia';
+import { ProgressiveImage } from './ProgressiveImage';
+import { GalleryThumbnail } from './GalleryThumbnail';
+import { MobilePhotoInspectorSheet } from './MobilePhotoInspectorSheet';
+import { resolvePhotoViewerEntryState, shouldHideCurrentViewerImage } from './entry-animation-state';
+import { Thumbhash } from './Thumbhash';
+import { useMobile } from '../../hooks/useMobile';
 import { lockPageScroll } from '../gallery/modal';
 import MetadataPanel from './MetadataPanel';
-import { useImageLoader } from './useImageLoader';
-import { removeImageCacheByUrl } from '../../lib/image-loader-manager';
-import { imageViewerConfig } from './image-viewer-config';
+import { ViewerAttribution } from './ViewerAttribution';
+export { PhotoMedia } from './PhotoMedia';
 
 export interface ViewerProps {
   photos: readonly ViewerPhoto[]; projectTitle: string; index: number; trigger: HTMLElement | null;
   onIndex: (index: number) => void; onClose: () => void;
 }
-type Controls = { zoomIn: (animated?: boolean) => void; zoomOut: (animated?: boolean) => void; resetView: () => void; getScale: () => number };
 export default function PhotoViewer(props: ViewerProps) {
   return <LazyMotion features={domAnimation}><PhotoDialog {...props} /></LazyMotion>;
 }
 function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }: ViewerProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const engine = useRef<Controls | null>(null);
-  const navigationFrame = useRef<number | null>(null);
-  const titleId = useId();
-  const helpId = useId();
+  const swiperRef = useRef<SwiperType | null>(null);
+  const titleId = useId(), helpId = useId();
   const reduced = !!useReducedMotion();
-  const [mobile, setMobile] = useState(() => window.matchMedia('(max-width: 767px), (pointer: coarse)').matches);
-  const [inspector, setInspector] = useState(true);
+  const mobile = useMobile();
+  const [inspector, setInspector] = useState(!mobile);
   const [closing, setClosing] = useState(false);
   const [exitFrame, setExitFrame] = useState<AnimationFrameRect | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [multiplePointers, setMultiplePointers] = useState(false);
+  const pointers = useRef(new Set<number>());
+  const pendingSlide = useRef<number | null>(null);
+  const navigationFrame = useRef<number | null>(null);
+  const indexOwner = useRef({ index, onIndex });
+  indexOwner.current = { index, onIndex };
   const [message, setMessage] = useState('');
   const [controlsReady, setControlsReady] = useState(false);
-  const pointerStart = useRef<{ x: number; y: number; blocked: boolean } | null>(null);
-  const pointers = useRef(new Set<number>());
+  const [visualReady, setVisualReady] = useState(false);
+  const [currentBlobSrc, setCurrentBlobSrc] = useState<string | null>(null);
   const photo = photos[index]!;
-  const frameLayout = useMemo(() => ({ desktopSidebarWidthRem: inspector ? 20 : 0, desktopThumbnailStripHeight: 76, mobileThumbnailStripHeight: 76 }), [inspector]);
+  const frameLayout = useMemo(() => ({ desktopSidebarWidthRem: inspector ? 20 : 0, desktopThumbnailStripHeight: 64, mobileThumbnailStripHeight: 48 }), [inspector]);
   useLayoutEffect(() => {
     const element = dialog.current!;
     const unlock = lockPageScroll(); element.showModal();
     element.querySelector<HTMLButtonElement>('.viewer-close')?.focus();
-    const resize = () => setMobile(window.matchMedia('(max-width: 767px), (pointer: coarse)').matches);
-    window.addEventListener('resize', resize);
-    return () => { if (navigationFrame.current !== null) cancelAnimationFrame(navigationFrame.current); element.close(); unlock(); window.removeEventListener('resize', resize); };
+    return () => { if (navigationFrame.current !== null) cancelAnimationFrame(navigationFrame.current); element.close(); unlock(); };
   }, []);
   const requestClose = useCallback(() => {
     if (closing) return;
-    if (navigationFrame.current !== null) cancelAnimationFrame(navigationFrame.current);
     if (reduced) { onClose(); return; }
     setExitFrame(computeViewerMediaFrame(photo, dialog.current?.getBoundingClientRect() ?? null, mobile, frameLayout));
     setClosing(true);
   }, [closing, reduced, onClose, photo, mobile, frameLayout]);
-  const transitions = useViewerTransitions({ currentItem: { ...photo, previewSrc: photo.thumbnail, fullSrc: photo.src }, isMobile: mobile, isOpen: !closing, triggerElement: trigger, triggerAttribute: 'data-viewer-trigger', disableEntryTransition: reduced, exitOverrideFrame: exitFrame, layout: frameLayout, onExitComplete: onClose });
-  const gestures = useViewerMobileInteractions({ enabled: mobile && !closing && !multiplePointers && !reduced, isImageZoomed: zoomed, onDismiss: snapshot => {
-    if (navigationFrame.current !== null) cancelAnimationFrame(navigationFrame.current);
-    setExitFrame(projectDismissedViewerMediaFrame({ item: photo, isMobile: mobile, layout: frameLayout, snapshot, viewportRect: dialog.current?.getBoundingClientRect() ?? null }));
-    setClosing(true);
-  } });
-  const detailsVisible = mobile ? gestures.isInspectorVisible || (reduced && inspector) : inspector;
+  const transitions = useViewerTransitions({ currentItem: { ...photo, previewSrc: photo.thumbnail, fullSrc: photo.src },
+    currentDisplaySrc: currentBlobSrc, isMobile: mobile, isOpen: !closing, triggerElement: trigger,
+    triggerAttribute: 'data-viewer-trigger', disableEntryTransition: reduced, exitOverrideFrame: exitFrame,
+    layout: frameLayout, onExitComplete: onClose });
+  const gestures = useViewerMobileInteractions({ enabled: mobile && !closing && !multiplePointers, reducedMotion: reduced,
+    isImageZoomed: zoomed, onDismiss: snapshot => {
+      if (reduced) { onClose(); return; }
+      setExitFrame(projectDismissedViewerMediaFrame({ item: photo, isMobile: mobile, layout: frameLayout, snapshot,
+        viewportRect: dialog.current?.getBoundingClientRect() ?? null }));
+      setClosing(true);
+    } });
+  const detailsVisible = mobile ? gestures.isInspectorVisible : inspector;
+  const canSwipe = !zoomed && !multiplePointers && !closing && !(mobile && (gestures.isVerticalGestureActive || detailsVisible));
+  useEffect(() => { setInspector(!mobile); }, [mobile]);
   useLayoutEffect(() => { dialog.current?.querySelector<HTMLElement>('.viewer-inspector')?.scrollTo(0, 0); }, [photo.id, detailsVisible]);
-  // In reduced motion mode the mobile inspector is controlled without spring animation.
-  useEffect(() => { if (mobile) setInspector(false); else setInspector(true); }, [mobile]);
   useEffect(() => {
-    setZoomed(false); setControlsReady(false); setMessage('');
+    if (swiperRef.current && swiperRef.current.activeIndex !== index) swiperRef.current.slideTo(index, reduced ? 0 : 300);
+    setZoomed(false); setControlsReady(false); setCurrentBlobSrc(null); setMessage(''); setExitFrame(null);
+    if (mobile) gestures.reset();
     const focused = document.activeElement;
     if (!dialog.current?.contains(focused) || (focused instanceof HTMLButtonElement && focused.disabled)) dialog.current?.querySelector<HTMLButtonElement>('.viewer-close')?.focus();
-    dialog.current?.querySelector<HTMLElement>(`[data-filmstrip-id="${CSS.escape(photo.id)}"]`)?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduced ? 'instant' : 'smooth' });
-  }, [photo.id, reduced]);
-  const navigate = useCallback((next: number) => { if (!closing && next >= 0 && next < photos.length) onIndex(next); }, [closing, photos.length, onIndex]);
-  const toggleInspector = () => {
-    if (mobile && !reduced) { if (gestures.isInspectorVisible) gestures.reset(); else gestures.openInspector(); } else setInspector(value => !value);
-  };
+  }, [photo.id, index, mobile, reduced, gestures.reset]);
+  useEffect(() => { if (swiperRef.current) swiperRef.current.allowTouchMove = canSwipe; }, [canSwipe]);
+  useEffect(() => { if (mobile && zoomed && detailsVisible) gestures.closeInspector(); }, [mobile, zoomed, detailsVisible, gestures.closeInspector]);
+  const navigate = useCallback((next: number) => {
+    if (closing || next < 0 || next >= photos.length) return;
+    swiperRef.current?.slideTo(next, reduced ? 0 : 300);
+  }, [closing, photos.length, reduced]);
+  const previous = () => { if (!closing && index > 0) swiperRef.current?.slidePrev(reduced ? 0 : 300); };
+  const next = () => { if (!closing && index < photos.length - 1) swiperRef.current?.slideNext(reduced ? 0 : 300); };
+  const toggleInspector = () => { if (mobile) gestures.toggleInspector(); else setInspector(value => !value); };
+  const closeInspector = () => { gestures.closeInspector(); dialog.current?.querySelector<HTMLButtonElement>('.viewer-close')?.focus(); };
   const share = async () => {
     const url = location.href;
     try {
@@ -81,137 +107,132 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
       else setMessage(url);
     } catch (error) { if ((error as Error).name !== 'AbortError') setMessage(url); }
   };
-  return <dialog ref={dialog} className="photo-dialog" aria-labelledby={titleId} aria-describedby={helpId} onCancel={event => { event.preventDefault(); if (detailsVisible && mobile) toggleInspector(); else requestClose(); }} onKeyDown={event => {
-    if (event.altKey || event.ctrlKey || event.metaKey) return;
-    if (event.key === 'Tab') {
-      const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input, select, [tabindex="0"]')].filter(element => element.getClientRects().length && !element.closest('[inert]') && element.tabIndex >= 0);
-      const first = controls[0], last = controls.at(-1);
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-      return;
+  const { shouldMountImageStage, shouldShowEntryImageCatchup } = resolvePhotoViewerEntryState({
+    hasTransitionTrigger: transitions.hasTransitionTrigger, isCurrentImageVisualReady: visualReady,
+    isEntryTransitionActive: !!transitions.entryTransition, isOpen: !closing, isViewerContentVisible: transitions.isViewerContentVisible,
+  });
+  const chromeVisible = transitions.isViewerContentVisible && !closing;
+  const blocked = closing || !transitions.isViewerContentVisible || transitions.isEntryAnimating;
+  const releasePointer = (pointerId: number) => {
+    pointers.current.delete(pointerId);
+    if (!pointers.current.size) {
+      setMultiplePointers(false);
+      if (pendingSlide.current !== null) {
+        // Virtual emits slideChange during setTranslate. Keep the native touch target
+        // alive until touchend reaches Swiper, then publish its final active index.
+        navigationFrame.current = requestAnimationFrame(() => {
+          pendingSlide.current = null;
+          const activeIndex = swiperRef.current?.activeIndex;
+          if (activeIndex !== undefined && activeIndex !== indexOwner.current.index) indexOwner.current.onIndex(activeIndex);
+        });
+      }
     }
-    if (event.shiftKey || (event.target instanceof Element && event.target.matches('input, textarea, select'))) return;
-    if (event.key === 'ArrowLeft' && !zoomed) { event.preventDefault(); navigate(index - 1); }
-    if (event.key === 'ArrowRight' && !zoomed) { event.preventDefault(); navigate(index + 1); }
-    if (event.key === 'Home') { event.preventDefault(); navigate(0); }
-    if (event.key === 'End') { event.preventDefault(); navigate(photos.length - 1); }
-    if (event.key.toLowerCase() === 'i') toggleInspector();
-  }}>
-    <motion.div className="viewer-backdrop" style={{ backgroundImage: `url("${photo.thumbnail}")`, opacity: mobile ? gestures.backdropOpacity : 1 }} />
-    <div ref={transitions.containerRef} className={`viewer-shell ${!mobile && detailsVisible ? 'with-inspector' : ''}`}>
-      <div className="viewer-stage">
-        <div className="viewer-toolbar"><h2 id={titleId} className="sr-only">{projectTitle} — {photo.title}</h2>
-          <span className="viewer-counter" aria-live="polite">{index + 1} / {photos.length}</span>
-          <div className="viewer-actions">
-            <button className="icon-button" aria-label="放大" title="放大" disabled={!controlsReady} onClick={() => engine.current?.zoomIn(!reduced)}><ZoomIn size={18}/></button>
-            <button className="icon-button" aria-label="缩小" title="缩小" disabled={!controlsReady} onClick={() => engine.current?.zoomOut(!reduced)}><ZoomOut size={18}/></button>
-            <button className="icon-button" aria-label="适应屏幕" title="适应屏幕" disabled={!controlsReady} onClick={() => engine.current?.resetView()}><RotateCcw size={17}/></button>
-            <a className="icon-button" href={photo.src} target="_blank" rel="noreferrer" aria-label="打开原图" title="打开原图"><ExternalLink size={17}/></a>
-            <button className="icon-button" aria-label="分享照片" title="分享照片" onClick={share}><Share2 size={17}/></button>
-            <button className="icon-button" aria-label="照片信息" title="照片信息 (I)" aria-expanded={detailsVisible} onClick={toggleInspector}>{mobile ? <Info size={18}/> : <PanelRightOpen size={18}/>}</button>
-            <button type="button" className="icon-button viewer-close" onClick={requestClose} autoFocus aria-label="关闭照片" title="关闭 (Esc)"><X size={20}/></button>
+  };
+  const handleKeyDown = (event: KeyboardEvent) => {
+      if (!dialog.current?.open) return;
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key === 'Escape') { event.preventDefault(); if (detailsVisible && mobile) closeInspector(); else requestClose(); return; }
+      if (event.key === 'Tab') {
+        const controls = [...dialog.current.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input, select, [tabindex="0"]')].filter(element => element.getClientRects().length && !element.closest('[inert]') && element.tabIndex >= 0);
+        const first = controls[0], last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+        return;
+      }
+      if (event.shiftKey || (event.target instanceof Element && event.target.matches('input, textarea, select'))) return;
+      if (event.key === 'ArrowLeft' && !zoomed) { event.preventDefault(); previous(); }
+      if (event.key === 'ArrowRight' && !zoomed) { event.preventDefault(); next(); }
+      if (event.key === 'Home') { event.preventDefault(); navigate(0); }
+      if (event.key === 'End') { event.preventDefault(); navigate(photos.length - 1); }
+      if (event.key.toLowerCase() === 'i') toggleInspector();
+  };
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  });
+  useEffect(() => {
+    const release = (event: PointerEvent) => releasePointer(event.pointerId);
+    document.addEventListener('pointerup', release, true);
+    document.addEventListener('pointercancel', release, true);
+    return () => { document.removeEventListener('pointerup', release, true); document.removeEventListener('pointercancel', release, true); };
+  }, []);
+  return <dialog ref={dialog} className="photo-dialog" data-mobile={mobile} data-closing={closing || undefined}
+    aria-labelledby={titleId} aria-describedby={helpId}
+    onCancel={event => { event.preventDefault(); if (detailsVisible && mobile) closeInspector(); else requestClose(); }}
+>
+    <m.div className="viewer-backdrop-presence" initial={reduced ? false : { opacity: 0 }} animate={{ opacity: closing ? 0 : 1 }} transition={reduced ? { duration: 0 } : Spring.presets.snappy}>
+      <m.div className="viewer-backdrop-base" style={{ opacity: mobile ? gestures.backdropOpacity : 1 }}/>
+      <m.div className="viewer-backdrop" style={{ backgroundImage: `url("${photo.thumbnail}")`, opacity: mobile ? gestures.backdropOpacity : 1 }}/>
+    </m.div>
+    <div ref={transitions.containerRef} className={`viewer-shell ${!mobile && detailsVisible ? 'with-inspector' : ''}`} style={{ pointerEvents: blocked ? 'none' : 'auto' }}>
+      <div className="viewer-stage" {...(mobile ? gestures.bindStage() : {})}
+        onPointerDownCapture={event => { pointers.current.add(event.pointerId); if (pointers.current.size > 1) { setMultiplePointers(true); if (swiperRef.current) swiperRef.current.allowTouchMove = false; } }}>
+        <m.div className="viewer-drag-content" style={mobile ? { x: gestures.dismissX, y: gestures.viewerLiftY, scale: gestures.viewerScale,
+          rotate: gestures.viewerRotate, borderRadius: gestures.viewerBorderRadius, transformOrigin: DEFAULT_MOBILE_VIEWER_MEDIA_TRANSFORM_ORIGIN } : undefined}>
+          <div className="viewer-image-stage">
+            <div className="viewer-chrome-presence" style={{ opacity: chromeVisible ? 1 : 0 }}>
+              <m.div className="viewer-toolbar" inert={mobile && detailsVisible} style={mobile ? { opacity: gestures.chromeOpacity, y: gestures.chromeY } : undefined}>
+                <h2 id={titleId} className="sr-only">{projectTitle} — {photo.title}</h2>
+                <span className="viewer-counter" aria-live="polite">{index + 1} / {photos.length}</span>
+                <div className="viewer-actions">
+                  <button className="icon-button" aria-label="放大" title="放大" disabled={!controlsReady} onClick={() => engine.current?.zoomIn(!reduced)}><ZoomIn size={18}/></button>
+                  <button className="icon-button" aria-label="缩小" title="缩小" disabled={!controlsReady} onClick={() => engine.current?.zoomOut(!reduced)}><ZoomOut size={18}/></button>
+                  <button className="icon-button" aria-label="适应屏幕" title="适应屏幕" disabled={!controlsReady} onClick={() => engine.current?.resetView()}><RotateCcw size={17}/></button>
+                  <a className="icon-button" href={photo.src} target="_blank" rel="noreferrer" aria-label="打开原图" title="打开原图"><ExternalLink size={17}/></a>
+                  <button className="icon-button" aria-label="分享照片" title="分享照片" onClick={share}><Share2 size={17}/></button>
+                  <button className="icon-button" aria-label="照片信息" title="照片信息 (I)" aria-expanded={detailsVisible} onClick={toggleInspector}>{mobile ? <Info size={18}/> : <PanelRightOpen size={18}/>}</button>
+                  <button type="button" className="icon-button viewer-close" onClick={requestClose} autoFocus aria-label="关闭照片" title="关闭 (Esc)"><X size={20}/></button>
+                </div>
+              </m.div>
+            </div>
+            <div className="viewer-gesture-stage" data-photo-viewer-stage="true" style={{ opacity: chromeVisible ? 1 : 0 }}>
+              {shouldShowEntryImageCatchup && <div className="viewer-entry-catchup" data-photo-viewer-entry-catchup="true">
+                {photo.thumbHash && <Thumbhash thumbHash={photo.thumbHash}/>}
+                <img className="viewer-preview" src={photo.thumbnail || photo.src} alt="" draggable={false}/>
+              </div>}
+              {shouldMountImageStage && <Swiper modules={[Navigation, Virtual]} spaceBetween={0} slidesPerView={1} initialSlide={index} virtual
+                speed={reduced ? 0 : 300} allowTouchMove={canSwipe} className="viewer-swiper"
+                onSwiper={swiper => { swiperRef.current = swiper; swiper.allowTouchMove = canSwipe; }}
+                onBeforeDestroy={() => { swiperRef.current = null; }}
+                onSlideChange={swiper => {
+                  if (closing) return;
+                  if (pointers.current.size) pendingSlide.current = swiper.activeIndex;
+                  else if (swiper.activeIndex !== index) onIndex(swiper.activeIndex);
+                }}>
+                {photos.map((item, slideIndex) => {
+                  const isCurrentImage = slideIndex === index;
+                  const hidden = shouldHideCurrentViewerImage({ isCurrentImage, isEntryImageCatchupVisible: shouldShowEntryImageCatchup });
+                  const suppressEntry = reduced || (isCurrentImage && !!transitions.entryTransition);
+                  return <SwiperSlide key={item.id} virtualIndex={slideIndex} data-photo-id={item.id} inert={!isCurrentImage} aria-hidden={!isCurrentImage}>
+                    <m.div className="viewer-slide-content" initial={suppressEntry ? false : { opacity: .5, scale: .95 }}
+                      animate={suppressEntry ? undefined : { opacity: 1, scale: 1 }} transition={suppressEntry ? undefined : Spring.presets.smooth}>
+                      <div className="viewer-slide-visibility" style={{ opacity: hidden ? 0 : 1, pointerEvents: hidden ? 'none' : undefined }}>
+                        <ProgressiveImage photo={item} isCurrentImage={isCurrentImage} shouldRenderHighRes={isCurrentImage && chromeVisible}
+                          engineRef={engine} smooth={!reduced} enablePan={!mobile || zoomed} onZoomChange={setZoomed}
+                          onReady={setControlsReady} onBlobSrcChange={setCurrentBlobSrc} onVisualReadyChange={setVisualReady}/>
+                      </div>
+                    </m.div>
+                  </SwiperSlide>;
+                })}
+              </Swiper>}
+              {mobile && <m.div className="viewer-gesture-hint" aria-hidden="true" style={{ opacity: gestures.stageHintOpacity, y: gestures.stageHintY }}>
+                <ArrowUp size={14}/><span>信息</span><Info size={14}/><span className="hint-divider"/><ArrowDown size={14}/><span>关闭</span><X size={14}/>
+              </m.div>}
+            </div>
+            {!mobile && <><button className="icon-button viewer-previous" onClick={previous} disabled={index === 0 || closing} aria-label="上一张照片"><ChevronLeft size={22}/></button>
+              <button className="icon-button viewer-next" onClick={next} disabled={index === photos.length - 1 || closing} aria-label="下一张照片"><ChevronRight size={22}/></button></>}
+            {message && <p className="viewer-message" role="status">{message}</p>}
           </div>
-        </div>
-        <div className="viewer-gesture-stage" {...gestures.bindStage()} style={{ opacity: transitions.isViewerContentVisible && !closing ? 1 : 0 }}
-          onPointerDownCapture={event => {
-            pointers.current.add(event.pointerId);
-            if (pointers.current.size > 1) { setMultiplePointers(true); if (pointerStart.current) pointerStart.current.blocked = true; }
-            else pointerStart.current = { x: event.clientX, y: event.clientY, blocked: zoomed || !!(event.target as Element).closest('button, a') };
-          }}
-          onPointerCancelCapture={event => { pointers.current.delete(event.pointerId); pointerStart.current = null; if (!pointers.current.size) setMultiplePointers(false); }}
-          onPointerUpCapture={event => {
-            pointers.current.delete(event.pointerId);
-            const start = pointerStart.current;
-            if (!pointers.current.size) { setMultiplePointers(false); pointerStart.current = null; }
-            if (!start || start.blocked || zoomed || detailsVisible && mobile) return;
-            const dx = event.clientX - start.x, dy = event.clientY - start.y;
-            // Let touchend reach the gesture recognizer before replacing its image target.
-            if (Math.abs(dx) > 65 && Math.abs(dx) > Math.abs(dy) * 1.5) navigationFrame.current = requestAnimationFrame(() => navigate(index + (dx < 0 ? 1 : -1)));
-            else if (mobile && reduced && dy < -100 && Math.abs(dy) > Math.abs(dx) * 1.5) setInspector(true);
-            else if ((!mobile || reduced) && dy > 120 && Math.abs(dy) > Math.abs(dx) * 1.5) requestClose();
-          }}>
-          <motion.div className="viewer-drag-content" style={{ x: mobile ? gestures.dismissX : 0, y: mobile ? gestures.viewerLiftY : 0, scale: mobile ? gestures.viewerScale : 1, rotate: mobile ? gestures.viewerRotate : 0 }}><PhotoMedia key={photo.id} photo={photo} engineRef={engine} smooth={!reduced} onZoom={setZoomed} onReady={setControlsReady}/></motion.div>
-        </div>
-        <button className="icon-button viewer-previous" onClick={() => navigate(index - 1)} disabled={index === 0 || closing} aria-label="上一张照片"><ChevronLeft size={22}/></button>
-        <button className="icon-button viewer-next" onClick={() => navigate(index + 1)} disabled={index === photos.length - 1 || closing} aria-label="下一张照片"><ChevronRight size={22}/></button>
-        {message && <p className="viewer-message" role="status">{message}</p>}
-        <div className="viewer-filmstrip" aria-label="照片缩略图导航">{photos.map((item, i) => <button key={item.id} data-filmstrip-id={item.id} tabIndex={i === index ? 0 : -1} className={i === index ? 'selected' : ''} aria-label={`跳至照片：${item.title}`} aria-current={i === index ? 'true' : undefined} onClick={() => navigate(i)}><PhotoThumbnail photo={item}/></button>)}</div>
+          <m.div className="viewer-thumbnails-motion" data-viewer-interactive inert={mobile && detailsVisible} style={mobile ? { opacity: gestures.thumbnailsOpacity, y: gestures.thumbnailsY } : undefined}>
+            <AnimatePresence><GalleryThumbnail key="thumbnails" currentIndex={index} photos={photos} onIndexChange={navigate} visible={chromeVisible} disableEntryTransition={reduced}/></AnimatePresence>
+          </m.div>
+        </m.div>
       </div>
-      {detailsVisible && <aside className={`viewer-inspector ${mobile ? 'mobile-inspector' : ''}`} aria-label="照片信息"><header><span><Info size={14}/> 照片信息</span><button className="icon-button" onClick={toggleInspector} aria-label="收起照片信息">{mobile ? <X size={18}/> : <PanelRightClose size={18}/>}</button></header><MetadataPanel key={photo.id} photo={photo}/></aside>}
+      {mobile ? <MobilePhotoInspectorSheet currentPhoto={photo} isInteractive={detailsVisible && !closing} progress={gestures.inspectorProgress} onClose={closeInspector}/>
+        : detailsVisible && <aside className="viewer-inspector" aria-label="照片信息" style={{ opacity: chromeVisible ? 1 : 0 }}><header><span><Info size={14}/> 照片信息</span><button className="icon-button" onClick={toggleInspector} aria-label="收起照片信息"><PanelRightClose size={18}/></button></header><MetadataPanel key={photo.id} photo={photo}/><ViewerAttribution/></aside>}
       <p id={helpId} className="sr-only">左右方向键切换，Home 和 End 跳至首尾，Escape 关闭。I 显示信息。双击或双指缩放，放大后拖动平移。</p>
     </div>
-    {transitions.entryTransition && !reduced && <SharedElementTransitionPreview transition={transitions.entryTransition} onReady={transitions.handleEntryTransitionReady} onComplete={transitions.handleEntryTransitionComplete}/>}
-    {transitions.exitTransition && !reduced && <SharedElementTransitionPreview transition={transitions.exitTransition} onComplete={transitions.handleExitAnimationComplete}/>}
+    {transitions.entryTransition && !reduced && <SharedElementTransitionPreview key={`entry-${transitions.entryTransition.itemId}`} transition={transitions.entryTransition} onReady={transitions.handleEntryTransitionReady} onComplete={transitions.handleEntryTransitionComplete} renderPlaceholder={hash => <Thumbhash thumbHash={hash}/>}/>}
+    {transitions.exitTransition && !reduced && <SharedElementTransitionPreview key={`exit-${transitions.exitTransition.itemId}`} transition={transitions.exitTransition} onComplete={transitions.handleExitAnimationComplete} renderPlaceholder={hash => <Thumbhash thumbHash={hash}/>}/>}
   </dialog>;
-}
-export function PhotoMedia({ photo, ...props }: { photo: ViewerPhoto; engineRef: React.RefObject<Controls | null>; onZoom: (zoomed: boolean) => void; onReady: (ready: boolean) => void; smooth: boolean }) {
-  const [attempt, setAttempt] = useState(0);
-  return <MediaAttempt key={`${photo.src}:${attempt}`} photo={photo} {...props} onRetry={() => { removeImageCacheByUrl(new URL(photo.src, document.baseURI).href); setAttempt(value => value + 1); }} />;
-}
-function MediaAttempt({ photo, onRetry, engineRef, onZoom, onReady, smooth }: { photo: ViewerPhoto; onRetry: () => void; engineRef: React.RefObject<Controls | null>; onZoom: (zoomed: boolean) => void; onReady: (ready: boolean) => void; smooth: boolean }) {
-  const { blobSrc, highResLoaded, error: loadError, loading } = useImageLoader(photo.src);
-  const [Engine, setEngine] = useState<typeof ImageViewer | null>(null);
-  const [mode, setMode] = useState<'gpu' | 'image'>('gpu');
-  const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading');
-  const [hdr, setHDR] = useState(false);
-  const [renderer, setRenderer] = useState('pending');
-  const active = useRef(true);
-  useEffect(() => {
-    active.current = true;
-    void import('../../photo-engine/browser').then(module => { if (active.current) setEngine(() => module.ImageViewer); }).catch(() => { if (active.current) setMode('image'); });
-    return () => { active.current = false; engineRef.current = null; };
-  }, [engineRef]);
-  useEffect(() => { if (loadError) setMode('image'); }, [loadError]);
-  const failed = () => { if (active.current) { setHDR(false); setState('loading'); setMode('image'); onZoom(false); onReady(false); } };
-  return <div className="viewer-media" aria-busy={state === 'loading'} data-media-state={state} data-renderer={mode === 'image' ? 'image' : renderer} data-load-progress={loading.loadingProgress} data-converting={loading.isConverting || undefined} data-queue-waiting={loading.isQueueWaiting || undefined}>
-    {state !== 'loaded' && <img className="viewer-preview" src={photo.thumbnail} alt=""/>}
-    {mode === 'gpu' && Engine && highResLoaded && blobSrc && <Engine {...imageViewerConfig} style={{ opacity: state === 'loaded' ? 1 : 0 }} ref={engineRef} src={blobSrc} alt={photo.alt} width={photo.width} height={photo.height} smooth={smooth}
-      onLoadStart={() => { if (active.current) { setState('loading'); setHDR(false); onReady(false); } }}
-      onLoad={() => { if (active.current) { setState('loaded'); onReady(true); } }} onZoomChange={(_original, relative) => onZoom(relative > 1.02)}
-      onHDRChange={value => { if (active.current) setHDR(value); }} onRendererChange={value => { if (active.current) setRenderer(value); }} onError={failed} />}
-    {mode === 'image' && (blobSrc || loadError) && state !== 'error' && <FallbackImage src={blobSrc ?? photo.src} photo={photo} engineRef={engineRef} onZoom={onZoom} onLoad={() => { setState('loaded'); onReady(true); }} onError={() => { setState('error'); onReady(false); }}/ >}
-    {state === 'loading' && <p className="viewer-status" role="status"><span className="loading-dot"/>正在加载照片…</p>}
-    {state === 'error' && <div className="viewer-error"><p role="alert">照片加载失败</p><button type="button" onClick={event => { event.currentTarget.closest('dialog')?.querySelector<HTMLButtonElement>('.viewer-close')?.focus(); onRetry(); }}>重新加载</button><a href={photo.src} target="_blank" rel="noreferrer">打开原图 ↗</a></div>}
-    {photo.isHDR && <span className="hdr-status">{hdr && state === 'loaded' ? 'HDR active' : 'HDR source'}</span>}
-  </div>;
-}
-function FallbackImage({ src, photo, engineRef, onZoom, onLoad, onError }: { src: string; photo: ViewerPhoto; engineRef: React.RefObject<Controls | null>; onZoom: (zoomed: boolean) => void; onLoad: () => void; onError: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const transform = useRef({ scale: 1, x: 0, y: 0 });
-  const points = useRef(new Map<number, { x: number; y: number }>());
-  const pinch = useRef(0);
-  const lastTap = useRef(0);
-  const tapStart = useRef<{ x: number; y: number; moved: boolean } | null>(null);
-  const [position, setPosition] = useState(transform.current);
-  const update = useCallback((scale: number, x = transform.current.x, y = transform.current.y) => {
-    const box = ref.current?.getBoundingClientRect();
-    scale = Math.max(1, Math.min(10, scale));
-    const maxX = (box?.width ?? 0) * (scale - 1) / 2, maxY = (box?.height ?? 0) * (scale - 1) / 2;
-    transform.current = { scale, x: Math.max(-maxX, Math.min(maxX, x)), y: Math.max(-maxY, Math.min(maxY, y)) };
-    setPosition(transform.current); onZoom(scale > 1.02);
-  }, [onZoom]);
-  useEffect(() => {
-    engineRef.current = { zoomIn: () => update(transform.current.scale * 1.5), zoomOut: () => update(transform.current.scale / 1.5), resetView: () => update(1, 0, 0), getScale: () => transform.current.scale };
-    const element = ref.current!;
-    const wheel = (event: WheelEvent) => { event.preventDefault(); update(transform.current.scale * Math.exp(-event.deltaY * 0.002)); };
-    element.addEventListener('wheel', wheel, { passive: false });
-    return () => { element.removeEventListener('wheel', wheel); engineRef.current = null; };
-  }, [engineRef, update]);
-  return <div ref={ref} className="fallback-stage" onDoubleClick={() => update(transform.current.scale > 1 ? 1 : 2)}
-    onPointerDown={e => { points.current.set(e.pointerId, { x: e.clientX, y: e.clientY }); ref.current?.setPointerCapture(e.pointerId); tapStart.current = { x: e.clientX, y: e.clientY, moved: points.current.size > 1 }; pinch.current = 0; }}
-    onPointerMove={e => {
-      const previous = points.current.get(e.pointerId); if (!previous) return;
-      if (tapStart.current && Math.hypot(e.clientX - tapStart.current.x, e.clientY - tapStart.current.y) > 8) tapStart.current.moved = true;
-      points.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      const fingers = [...points.current.values()];
-      if (fingers.length === 2) { const distance = Math.hypot(fingers[0]!.x - fingers[1]!.x, fingers[0]!.y - fingers[1]!.y); if (pinch.current) update(transform.current.scale * distance / pinch.current); pinch.current = distance; }
-      else if (transform.current.scale > 1) update(transform.current.scale, transform.current.x + e.clientX - previous.x, transform.current.y + e.clientY - previous.y);
-    }}
-    onPointerUp={e => {
-      points.current.delete(e.pointerId); pinch.current = 0;
-      if (e.pointerType === 'touch' && tapStart.current && !tapStart.current.moved) { const now = performance.now(); if (now - lastTap.current < 300) { update(transform.current.scale > 1 ? 1 : 2); lastTap.current = 0; } else lastTap.current = now; }
-      tapStart.current = null;
-    }} onPointerCancel={e => { points.current.delete(e.pointerId); pinch.current = 0; tapStart.current = null; }}>
-    <img className="viewer-fallback" src={src} alt={photo.alt} draggable={false} style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${position.scale})` }} onLoad={onLoad} onError={onError}/>
-  </div>;
 }

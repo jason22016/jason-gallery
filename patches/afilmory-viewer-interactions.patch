@@ -1,0 +1,2383 @@
+--- a/packages/afilmory/viewer-motion/src/trigger-utils.test.ts
++++ b/packages/afilmory/viewer-motion/src/trigger-utils.test.ts
+@@ -61,7 +61,7 @@
+ 
+   await withMockDocument(
+     {
+-      querySelector: (selector) => {
++      querySelector: (selector: string) => {
+         queriedSelector = selector
+         return liveTrigger
+       },
+--- a/packages/afilmory/viewer-motion/src/types.ts
++++ b/packages/afilmory/viewer-motion/src/types.ts
+@@ -85,6 +85,8 @@
+ }
+ 
+ export interface UseViewerMobileInteractionsOptions {
++  /** Jason accessibility adapter: gestures stay usable without settle/throw animations. */
++  reducedMotion?: boolean
+   enabled: boolean
+   isImageZoomed: boolean
+   onDismiss: (snapshot: MobileViewerDismissSnapshot) => void
+--- a/packages/afilmory/viewer-motion/src/useViewerMobileInteractions.ts
++++ b/packages/afilmory/viewer-motion/src/useViewerMobileInteractions.ts
+@@ -21,6 +21,7 @@
+ 
+ export const useViewerMobileInteractions = ({
+   enabled,
++  reducedMotion = false,
+   isImageZoomed,
+   onDismiss,
+   viewport,
+@@ -52,6 +53,8 @@
+     animationControlsRef.current.forEach((animation) => animation.stop())
+     animationControlsRef.current = []
+   }, [])
++
++  useEffect(() => stopAnimations, [stopAnimations])
+ 
+   const reset = useCallback(() => {
+     stopAnimations()
+@@ -81,6 +84,7 @@
+ 
+   const springValue = useCallback(
+     (value: typeof inspectorProgress | typeof dismissX | typeof dismissY, to: number, velocity = 0) => {
++      if (reducedMotion) { value.set(to); return }
+       return registerAnimation(
+         animate(value, to, {
+           ...ViewerSpring.presets.smooth,
+@@ -88,7 +92,7 @@
+         }),
+       )
+     },
+-    [registerAnimation],
++    [registerAnimation, reducedMotion],
+   )
+ 
+   const getDismissPresentationSnapshot = useCallback(
+@@ -106,6 +110,7 @@
+     (open: boolean, velocity = 0) => {
+       stopAnimations()
+       if (isClosingRef.current) return
++      if (reducedMotion) { inspectorProgress.set(open ? 1 : 0); dismissX.set(0); dismissY.set(0); return }
+       const clampedVelocity = clamp(velocity, -2.2, 2.2)
+       const settleVelocity = open ? Math.max(clampedVelocity, 0) : Math.min(clampedVelocity, 0)
+ 
+@@ -118,7 +123,7 @@
+       registerAnimation(animate(dismissX, 0, ViewerSpring.smooth(0.26)))
+       registerAnimation(animate(dismissY, 0, ViewerSpring.smooth(open ? 0.28 : 0.24)))
+     },
+-    [dismissX, dismissY, inspectorProgress, registerAnimation, stopAnimations],
++    [dismissX, dismissY, inspectorProgress, registerAnimation, stopAnimations, reducedMotion],
+   )
+ 
+   const dismissWithThrow = useCallback(
+@@ -131,6 +136,7 @@
+       stopAnimations()
+       inspectorProgress.set(0)
+ 
++      if (reducedMotion) { onDismiss(getDismissPresentationSnapshot()); return }
+       const clampedVelocityX = clamp(velocityX, -2.2, 2.2)
+       const clampedVelocityY = clamp(velocityY, 0.72, 2.8)
+       const currentX = dismissX.get()
+@@ -167,6 +173,7 @@
+       stopAnimations,
+       viewportHeight,
+       viewportWidth,
++      reducedMotion,
+     ],
+   )
+ 
+--- a/src/components/viewer/PhotoViewer.tsx
++++ b/src/components/viewer/PhotoViewer.tsx
+@@ -1,784 +1,238 @@
+-import './PhotoViewer.css'
+-// Import Swiper styles
+-import 'swiper/css'
+-import 'swiper/css/navigation'
++// Adapted from Afilmory/Afilmory, apps/web/src/modules/viewer/PhotoViewer.tsx
++// Upstream 1f65cde6672e5231599182620116ac904e39f548; AGPL-3.0-or-later + ANL §4, Copyright (c) 2025 Afilmory Team.
++// Jason adapter: project/history owner, native dialog, existing media renderer and metadata.
++import 'swiper/css';
++import './PhotoViewer.css';
++import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
++import { LazyMotion, domAnimation, m, useReducedMotion, AnimatePresence } from 'motion/react';
++import { Spring } from '@afilmory/utils';
++import { SharedElementTransitionPreview, useViewerTransitions, useViewerMobileInteractions, computeViewerMediaFrame,
++  projectDismissedViewerMediaFrame, DEFAULT_MOBILE_VIEWER_MEDIA_TRANSFORM_ORIGIN, type AnimationFrameRect } from '@afilmory/viewer-motion';
++import { X, ChevronLeft, ChevronRight, Share2, PanelRightClose, PanelRightOpen, Info, ExternalLink, ZoomIn, ZoomOut, RotateCcw, ArrowUp, ArrowDown } from 'lucide-react';
++import type { Swiper as SwiperType } from 'swiper';
++import { Navigation, Virtual } from 'swiper/modules';
++import { Swiper, SwiperSlide } from 'swiper/react';
++import type { ViewerPhoto } from './photos';
++import type { Controls } from './PhotoMedia';
++import { ProgressiveImage } from './ProgressiveImage';
++import { GalleryThumbnail } from './GalleryThumbnail';
++import { MobilePhotoInspectorSheet } from './MobilePhotoInspectorSheet';
++import { resolvePhotoViewerEntryState, shouldHideCurrentViewerImage } from './entry-animation-state';
++import { Thumbhash } from './Thumbhash';
++import { useMobile } from '../../hooks/useMobile';
++import { lockPageScroll } from '../gallery/modal';
++import MetadataPanel from './MetadataPanel';
++import { ViewerAttribution } from './ViewerAttribution';
++export { PhotoMedia } from './PhotoMedia';
+ 
+-import { ActionButton, Thumbhash } from '@afilmory/ui'
+-import { Spring } from '@afilmory/utils'
+-import type { AnimationFrameRect, MobileViewerDismissSnapshot } from '@afilmory/viewer-motion'
+-import {
+-  createInspectorSheetPresentation,
+-  DEFAULT_MOBILE_VIEWER_MEDIA_TRANSFORM_ORIGIN,
+-  projectDismissedViewerMediaFrame,
+-  resolveInspectorSheetHeight,
+-  SharedElementTransitionPreview,
+-  useViewerMobileInteractions,
+-  useViewerTransitions,
+-} from '@afilmory/viewer-motion'
+-import { PanelRightOpen } from 'lucide-react'
+-import { AnimatePresence, m } from 'motion/react'
+-import { Fragment, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+-import { useTranslation } from 'react-i18next'
+-import type { Swiper as SwiperType } from 'swiper'
+-import { Navigation, Virtual } from 'swiper/modules'
+-import { Swiper, SwiperSlide } from 'swiper/react'
+-import { useMediaQuery } from 'usehooks-ts'
+-
+-import { injectConfig, siteConfig } from '~/config'
+-import { useMobile } from '~/hooks/useMobile'
+-import { deriveAccentFromSources } from '~/lib/color'
+-import type { LoadingIndicatorRef } from '~/modules/inspector/LoadingIndicator'
+-import { LoadingIndicator } from '~/modules/inspector/LoadingIndicator'
+-import { PhotoInspector } from '~/modules/inspector/PhotoInspector'
+-import { ShareModal } from '~/modules/social/ShareModal'
+-import type { PhotoManifest } from '~/types/photo'
+-
+-import { ReactionRail } from '../social'
+-import { canUsePhotoReactions } from '../social/reaction-availability'
+-import { resolvePhotoViewerEntryState, shouldHideCurrentViewerImage } from './entry-animation-state'
+-import { GalleryThumbnail } from './GalleryThumbnail'
+-import { MobilePhotoInspectorSheet } from './MobilePhotoInspectorSheet'
+-import { getRenderablePhotoRegions } from './photo-region-bounds'
+-import { ProgressiveImage } from './ProgressiveImage'
+-
+-interface PhotoViewerProps {
+-  photos: PhotoManifest[]
+-  currentIndex: number
+-  isOpen: boolean
+-  onClose: () => void
+-  onDragDismiss?: (frame: AnimationFrameRect) => void
+-  onIndexChange: (index: number) => void
+-  triggerElement: HTMLElement | null
+-  disableEntryTransition?: boolean
+-  onExitComplete?: () => void
++export interface ViewerProps {
++  photos: readonly ViewerPhoto[]; projectTitle: string; index: number; trigger: HTMLElement | null;
++  onIndex: (index: number) => void; onClose: () => void;
+ }
+-
+-const AFILMORY_VIEWER_FRAME_LAYOUT = {
+-  desktopSidebarWidthRem: 20,
+-  desktopThumbnailStripHeight: 64,
+-  mobileThumbnailStripHeight: 48,
+-} as const
+-
+-export const PhotoViewer = ({
+-  photos,
+-  currentIndex,
+-  isOpen,
+-  onClose,
+-  onDragDismiss,
+-  onIndexChange,
+-  triggerElement,
+-  disableEntryTransition = false,
+-  onExitComplete,
+-}: PhotoViewerProps) => {
+-  const { t } = useTranslation()
+-  const isMobile = useMobile()
+-  const canHoverRegions = useMediaQuery('(hover: hover) and (pointer: fine)')
+-  const showPhotoReactions = canUsePhotoReactions(injectConfig)
+-  const swiperRef = useRef<SwiperType | null>(null)
+-  const [isImageZoomed, setIsImageZoomed] = useState(false)
+-  const [isCurrentImageVisualReady, setIsCurrentImageVisualReady] = useState(false)
+-  const [isDesktopInspectorVisible, setIsDesktopInspectorVisible] = useState(!isMobile)
+-  const [currentBlobSrc, setCurrentBlobSrc] = useState<string | null>(null)
+-  const [dragDismissExitFrame, setDragDismissExitFrame] = useState<AnimationFrameRect | null>(null)
+-  const [entrySuppressedPhotoId] = useState(() => (disableEntryTransition ? (photos[currentIndex]?.id ?? null) : null))
+-  const [regionAccentColor, setRegionAccentColor] = useState(siteConfig.accentColor)
+-
+-  const currentPhoto = photos[currentIndex]
+-  const [showAllRegions, setShowAllRegions] = useState(false)
+-  const [activeRegionId, setActiveRegionId] = useState<string | null>(null)
+-  const currentRegions = useMemo(
+-    () =>
+-      currentPhoto
+-        ? getRenderablePhotoRegions(
+-            currentPhoto.regions ?? [],
+-            currentPhoto.width,
+-            currentPhoto.height,
+-            currentPhoto.exif?.Orientation,
+-            currentPhoto.exif?.RegionInfo,
+-          )
+-        : [],
+-    [currentPhoto],
+-  )
+-  const hasRegions = currentRegions.length > 0
+-  const regionAccentSource = siteConfig.viewer?.regions?.accentSource ?? 'system'
+-  const regionLabelPlacement = siteConfig.viewer?.regions?.labelPlacement ?? 'edge'
+-
++export default function PhotoViewer(props: ViewerProps) {
++  return <LazyMotion features={domAnimation}><PhotoDialog {...props} /></LazyMotion>;
++}
++function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }: ViewerProps) {
++  const dialog = useRef<HTMLDialogElement>(null);
++  const engine = useRef<Controls | null>(null);
++  const swiperRef = useRef<SwiperType | null>(null);
++  const titleId = useId(), helpId = useId();
++  const reduced = !!useReducedMotion();
++  const mobile = useMobile();
++  const [inspector, setInspector] = useState(!mobile);
++  const [closing, setClosing] = useState(false);
++  const [exitFrame, setExitFrame] = useState<AnimationFrameRect | null>(null);
++  const [zoomed, setZoomed] = useState(false);
++  const [multiplePointers, setMultiplePointers] = useState(false);
++  const pointers = useRef(new Set<number>());
++  const pendingSlide = useRef<number | null>(null);
++  const navigationFrame = useRef<number | null>(null);
++  const indexOwner = useRef({ index, onIndex });
++  indexOwner.current = { index, onIndex };
++  const [message, setMessage] = useState('');
++  const [controlsReady, setControlsReady] = useState(false);
++  const [visualReady, setVisualReady] = useState(false);
++  const [currentBlobSrc, setCurrentBlobSrc] = useState<string | null>(null);
++  const photo = photos[index]!;
++  const frameLayout = useMemo(() => ({ desktopSidebarWidthRem: inspector ? 20 : 0, desktopThumbnailStripHeight: 64, mobileThumbnailStripHeight: 48 }), [inspector]);
++  useLayoutEffect(() => {
++    const element = dialog.current!;
++    const unlock = lockPageScroll(); element.showModal();
++    element.querySelector<HTMLButtonElement>('.viewer-close')?.focus();
++    return () => { if (navigationFrame.current !== null) cancelAnimationFrame(navigationFrame.current); element.close(); unlock(); };
++  }, []);
++  const requestClose = useCallback(() => {
++    if (closing) return;
++    if (reduced) { onClose(); return; }
++    setExitFrame(computeViewerMediaFrame(photo, dialog.current?.getBoundingClientRect() ?? null, mobile, frameLayout));
++    setClosing(true);
++  }, [closing, reduced, onClose, photo, mobile, frameLayout]);
++  const transitions = useViewerTransitions({ currentItem: { ...photo, previewSrc: photo.thumbnail, fullSrc: photo.src },
++    currentDisplaySrc: currentBlobSrc, isMobile: mobile, isOpen: !closing, triggerElement: trigger,
++    triggerAttribute: 'data-viewer-trigger', disableEntryTransition: reduced, exitOverrideFrame: exitFrame,
++    layout: frameLayout, onExitComplete: onClose });
++  const gestures = useViewerMobileInteractions({ enabled: mobile && !closing && !multiplePointers, reducedMotion: reduced,
++    isImageZoomed: zoomed, onDismiss: snapshot => {
++      if (reduced) { onClose(); return; }
++      setExitFrame(projectDismissedViewerMediaFrame({ item: photo, isMobile: mobile, layout: frameLayout, snapshot,
++        viewportRect: dialog.current?.getBoundingClientRect() ?? null }));
++      setClosing(true);
++    } });
++  const detailsVisible = mobile ? gestures.isInspectorVisible : inspector;
++  const canSwipe = !zoomed && !multiplePointers && !closing && !(mobile && (gestures.isVerticalGestureActive || detailsVisible));
++  useEffect(() => { setInspector(!mobile); }, [mobile]);
++  useLayoutEffect(() => { dialog.current?.querySelector<HTMLElement>('.viewer-inspector')?.scrollTo(0, 0); }, [photo.id, detailsVisible]);
+   useEffect(() => {
+-    setActiveRegionId(null)
+-  }, [currentPhoto?.id])
+-  const {
+-    containerRef,
+-    entryTransition,
+-    exitTransition,
+-    hasTransitionTrigger,
+-    isViewerContentVisible,
+-    isEntryAnimating,
+-    shouldRenderBackdrop,
+-    thumbHash: transitionThumbHash,
+-    shouldRenderThumbhash,
+-    handleEntryTransitionReady,
+-    handleEntryTransitionComplete,
+-    handleExitAnimationComplete,
+-  } = useViewerTransitions({
+-    disableEntryTransition,
+-    exitOverrideFrame: dragDismissExitFrame,
+-    isOpen,
+-    layout: AFILMORY_VIEWER_FRAME_LAYOUT,
+-    triggerElement,
+-    currentItem: currentPhoto
+-      ? {
+-          id: currentPhoto.id,
+-          width: currentPhoto.width,
+-          height: currentPhoto.height,
+-          previewSrc: currentPhoto.thumbnailUrl,
+-          fullSrc: currentPhoto.originalUrl,
+-          thumbHash: currentPhoto.thumbHash,
+-        }
+-      : undefined,
+-    currentDisplaySrc: currentBlobSrc,
+-    isMobile,
+-    onExitComplete,
+-  })
+-
+-  const handleCloseRequest = useCallback(() => {
+-    setDragDismissExitFrame(null)
+-    onClose()
+-  }, [onClose])
+-
+-  const handleDragDismiss = useCallback(
+-    (snapshot: MobileViewerDismissSnapshot) => {
+-      if (!currentPhoto) {
+-        handleCloseRequest()
+-        return
+-      }
+-
+-      const viewportRect
+-        = containerRef.current?.getBoundingClientRect() ?? new DOMRect(0, 0, window.innerWidth, window.innerHeight)
+-      const projectedFrame = projectDismissedViewerMediaFrame({
+-        item: {
+-          width: currentPhoto.width,
+-          height: currentPhoto.height,
+-        },
+-        layout: AFILMORY_VIEWER_FRAME_LAYOUT,
+-        viewportRect,
+-        snapshot,
+-        isMobile: true,
+-      })
+-
+-      setDragDismissExitFrame(projectedFrame)
+-      onDragDismiss?.(projectedFrame)
+-      onClose()
+-    },
+-    [containerRef, currentPhoto, handleCloseRequest, onClose, onDragDismiss],
+-  )
+-
+-  const {
+-    bindStage,
+-    closeInspector,
+-    dismissX,
+-    inspectorProgress,
+-    isInspectorVisible: isMobileInspectorVisible,
+-    isVerticalGestureActive,
+-    reset: resetMobileInteractions,
+-    stageHintOpacity,
+-    stageHintY,
+-    thumbnailsOpacity,
+-    thumbnailsY,
+-    toggleInspector,
+-    viewerBorderRadius,
+-    viewerLiftY,
+-    viewerRotate,
+-    viewerScale,
+-    backdropOpacity,
+-    chromeOpacity,
+-    chromeY,
+-  } = useViewerMobileInteractions({
+-    enabled: isMobile && isOpen,
+-    isImageZoomed,
+-    onDismiss: handleDragDismiss,
+-  })
+-  const isInspectorVisible = isMobile ? isMobileInspectorVisible : isDesktopInspectorVisible
+-  const isMobileChromeInteractive = !isMobile || !isMobileInspectorVisible
+-  const mobileChromeButtonClassName = isMobileChromeInteractive ? 'pointer-events-auto' : 'pointer-events-none'
+-
+-  useEffect(() => {
+-    if (isOpen) {
+-      setDragDismissExitFrame(null)
+-    }
+-  }, [isOpen])
+-
+-  useEffect(() => {
+-    if (regionAccentSource !== 'photo' || !currentPhoto) {
+-      setRegionAccentColor(siteConfig.accentColor)
+-      return
+-    }
+-
+-    let isCancelled = false
+-
+-    ;(async () => {
+-      try {
+-        const color = await deriveAccentFromSources({
+-          thumbHash: currentPhoto.thumbHash,
+-          thumbnailUrl: currentPhoto.thumbnailUrl,
+-        })
+-
+-        if (!isCancelled) {
+-          setRegionAccentColor(color ?? siteConfig.accentColor)
+-        }
+-      }
+-      catch {
+-        if (!isCancelled) {
+-          setRegionAccentColor(siteConfig.accentColor)
+-        }
+-      }
+-    })()
+-
+-    return () => {
+-      isCancelled = true
+-    }
+-  }, [currentPhoto, regionAccentSource])
+-
+-  useEffect(() => {
+-    if (!isOpen) {
+-      setIsCurrentImageVisualReady(false)
+-      return
+-    }
+-
+-    if (!hasTransitionTrigger) {
+-      setIsCurrentImageVisualReady(true)
+-    }
+-  }, [hasTransitionTrigger, isOpen])
+-
+-  useEffect(() => {
+-    if (entryTransition?.variant === 'entry') {
+-      setIsCurrentImageVisualReady(false)
+-    }
+-  }, [entryTransition])
+-
+-  useEffect(() => {
+-    if (!isOpen) {
+-      setIsImageZoomed(false)
+-      setIsDesktopInspectorVisible(!isMobile)
+-      setCurrentBlobSrc(null)
+-      if (!dragDismissExitFrame) {
+-        resetMobileInteractions()
+-      }
+-      setShowAllRegions(false)
+-    }
+-  }, [dragDismissExitFrame, isMobile, isOpen, resetMobileInteractions])
+-
+-  useEffect(() => {
+-    setShowAllRegions(false)
+-  }, [currentPhoto?.id])
+-
+-  const handlePrevious = useCallback(() => {
+-    if (currentIndex > 0) {
+-      // Only trigger swiper movement - onSlideChange will call onIndexChange
+-      swiperRef.current?.slidePrev()
+-    }
+-  }, [currentIndex])
+-
+-  const handleNext = useCallback(() => {
+-    if (currentIndex < photos.length - 1) {
+-      // Only trigger swiper movement - onSlideChange will call onIndexChange
+-      swiperRef.current?.slideNext()
+-    }
+-  }, [currentIndex, photos.length])
+-
+-  // 同步 Swiper 的索引
+-  useEffect(() => {
+-    if (swiperRef.current && swiperRef.current.activeIndex !== currentIndex) {
+-      swiperRef.current.slideTo(currentIndex, 300)
+-    }
+-    // 切换图片时重置缩放状态
+-    setDragDismissExitFrame(null)
+-    setIsImageZoomed(false)
+-    if (isMobile) {
+-      resetMobileInteractions()
+-    }
+-  }, [currentIndex, isMobile, resetMobileInteractions])
+-
+-  // 当图片缩放状态改变时，控制 Swiper 的触摸行为
+-  useEffect(() => {
+-    if (swiperRef.current) {
+-      if (isImageZoomed || (isMobile && (isVerticalGestureActive || isInspectorVisible))) {
+-        // 图片被缩放时，禁用 Swiper 的触摸滑动
+-        swiperRef.current.allowTouchMove = false
+-      }
+-      else {
+-        // 图片未缩放时，启用 Swiper 的触摸滑动
+-        swiperRef.current.allowTouchMove = true
++    if (swiperRef.current && swiperRef.current.activeIndex !== index) swiperRef.current.slideTo(index, reduced ? 0 : 300);
++    setZoomed(false); setControlsReady(false); setCurrentBlobSrc(null); setMessage(''); setExitFrame(null);
++    if (mobile) gestures.reset();
++    const focused = document.activeElement;
++    if (!dialog.current?.contains(focused) || (focused instanceof HTMLButtonElement && focused.disabled)) dialog.current?.querySelector<HTMLButtonElement>('.viewer-close')?.focus();
++  }, [photo.id, index, mobile, reduced, gestures.reset]);
++  useEffect(() => { if (swiperRef.current) swiperRef.current.allowTouchMove = canSwipe; }, [canSwipe]);
++  useEffect(() => { if (mobile && zoomed && detailsVisible) gestures.closeInspector(); }, [mobile, zoomed, detailsVisible, gestures.closeInspector]);
++  const navigate = useCallback((next: number) => {
++    if (closing || next < 0 || next >= photos.length) return;
++    swiperRef.current?.slideTo(next, reduced ? 0 : 300);
++  }, [closing, photos.length, reduced]);
++  const previous = () => { if (!closing && index > 0) swiperRef.current?.slidePrev(reduced ? 0 : 300); };
++  const next = () => { if (!closing && index < photos.length - 1) swiperRef.current?.slideNext(reduced ? 0 : 300); };
++  const toggleInspector = () => { if (mobile) gestures.toggleInspector(); else setInspector(value => !value); };
++  const closeInspector = () => { gestures.closeInspector(); dialog.current?.querySelector<HTMLButtonElement>('.viewer-close')?.focus(); };
++  const share = async () => {
++    const url = location.href;
++    try {
++      if (navigator.share && mobile) await navigator.share({ title: `${photo.title} — ${projectTitle}`, url });
++      else if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(url); setMessage('照片链接已复制'); }
++      else setMessage(url);
++    } catch (error) { if ((error as Error).name !== 'AbortError') setMessage(url); }
++  };
++  const { shouldMountImageStage, shouldShowEntryImageCatchup } = resolvePhotoViewerEntryState({
++    hasTransitionTrigger: transitions.hasTransitionTrigger, isCurrentImageVisualReady: visualReady,
++    isEntryTransitionActive: !!transitions.entryTransition, isOpen: !closing, isViewerContentVisible: transitions.isViewerContentVisible,
++  });
++  const chromeVisible = transitions.isViewerContentVisible && !closing;
++  const blocked = closing || !transitions.isViewerContentVisible || transitions.isEntryAnimating;
++  const releasePointer = (pointerId: number) => {
++    pointers.current.delete(pointerId);
++    if (!pointers.current.size) {
++      setMultiplePointers(false);
++      if (pendingSlide.current !== null) {
++        // Virtual emits slideChange during setTranslate. Keep the native touch target
++        // alive until touchend reaches Swiper, then publish its final active index.
++        navigationFrame.current = requestAnimationFrame(() => {
++          pendingSlide.current = null;
++          const activeIndex = swiperRef.current?.activeIndex;
++          if (activeIndex !== undefined && activeIndex !== indexOwner.current.index) indexOwner.current.onIndex(activeIndex);
++        });
+       }
+     }
+-  }, [isImageZoomed, isInspectorVisible, isMobile, isVerticalGestureActive])
+-
+-  const loadingIndicatorRef = useRef<LoadingIndicatorRef>(null)
+-  // 处理图片缩放状态变化
+-  const handleZoomChange = useCallback((isZoomed: boolean) => {
+-    setIsImageZoomed(isZoomed)
+-  }, [])
+-
+-  // 处理 blobSrc 变化
+-  const handleBlobSrcChange = useCallback((blobSrc: string | null) => {
+-    setCurrentBlobSrc(blobSrc)
+-  }, [])
+-
++  };
++  const handleKeyDown = (event: KeyboardEvent) => {
++      if (!dialog.current?.open) return;
++      if (event.altKey || event.ctrlKey || event.metaKey) return;
++      if (event.key === 'Escape') { event.preventDefault(); if (detailsVisible && mobile) closeInspector(); else requestClose(); return; }
++      if (event.key === 'Tab') {
++        const controls = [...dialog.current.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input, select, [tabindex="0"]')].filter(element => element.getClientRects().length && !element.closest('[inert]') && element.tabIndex >= 0);
++        const first = controls[0], last = controls.at(-1);
++        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
++        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
++        return;
++      }
++      if (event.shiftKey || (event.target instanceof Element && event.target.matches('input, textarea, select'))) return;
++      if (event.key === 'ArrowLeft' && !zoomed) { event.preventDefault(); previous(); }
++      if (event.key === 'ArrowRight' && !zoomed) { event.preventDefault(); next(); }
++      if (event.key === 'Home') { event.preventDefault(); navigate(0); }
++      if (event.key === 'End') { event.preventDefault(); navigate(photos.length - 1); }
++      if (event.key.toLowerCase() === 'i') toggleInspector();
++  };
+   useEffect(() => {
+-    if (isMobile && isImageZoomed && isInspectorVisible) {
+-      closeInspector()
+-    }
+-  }, [closeInspector, isImageZoomed, isInspectorVisible, isMobile])
+-
+-  const currentThumbHash = transitionThumbHash
+-  const { shouldMountImageStage, shouldShowEntryImageCatchup } = resolvePhotoViewerEntryState({
+-    hasTransitionTrigger,
+-    isCurrentImageVisualReady,
+-    isEntryTransitionActive: entryTransition?.variant === 'entry',
+-    isOpen,
+-    isViewerContentVisible,
+-  })
+-
+-  // 键盘导航
++    document.addEventListener('keydown', handleKeyDown);
++    return () => document.removeEventListener('keydown', handleKeyDown);
++  });
+   useEffect(() => {
+-    if (!isOpen) {
+-      return
+-    }
+-
+-    const handleKeyDown = (event: KeyboardEvent) => {
+-      switch (event.key) {
+-        case 'ArrowLeft': {
+-          event.preventDefault()
+-          handlePrevious()
+-          break
+-        }
+-        case 'ArrowRight': {
+-          event.preventDefault()
+-          handleNext()
+-          break
+-        }
+-        case 'Escape': {
+-          event.preventDefault()
+-          handleCloseRequest()
+-          break
+-        }
+-      }
+-    }
+-
+-    document.addEventListener('keydown', handleKeyDown)
+-    return () => {
+-      document.removeEventListener('keydown', handleKeyDown)
+-    }
+-  }, [isOpen, handleCloseRequest, handlePrevious, handleNext])
+-
+-  useEffect(() => {
+-    if (!shouldMountImageStage) {
+-      swiperRef.current = null
+-    }
+-  }, [shouldMountImageStage])
+-
+-  if (!currentPhoto) {
+-    return null
+-  }
+-
+-  return (
+-    <>
+-      <AnimatePresence>
+-        {shouldRenderBackdrop && (
+-          <m.div
+-            key="photo-viewer-backdrop"
+-            initial={disableEntryTransition ? false : { opacity: 0 }}
+-            animate={{ opacity: isOpen ? 1 : 0 }}
+-            exit={{ opacity: 0 }}
+-            transition={Spring.presets.snappy}
+-            className="fixed inset-0"
+-          >
+-            <m.div
+-              className="bg-material-opaque absolute inset-0"
+-              style={isMobile ? { opacity: backdropOpacity } : undefined}
+-            />
+-          </m.div>
+-        )}
+-      </AnimatePresence>
+-      {/* 固定背景层防止透出 */}
+-      {/* 交叉溶解的 Blurhash 背景 */}
+-      <AnimatePresence mode="sync">
+-        {shouldRenderThumbhash && (
+-          <m.div
+-            key={`${currentPhoto.id}-thumbhash`}
+-            initial={disableEntryTransition ? false : { opacity: 0 }}
+-            animate={{ opacity: isOpen ? 1 : 0 }}
+-            exit={{ opacity: 0 }}
+-            transition={Spring.presets.snappy}
+-            className="fixed inset-0"
+-          >
+-            {currentThumbHash && <Thumbhash thumbHash={currentThumbHash} className="size-fill scale-110" />}
+-          </m.div>
+-        )}
+-      </AnimatePresence>
+-
+-      <AnimatePresence>
+-        {isOpen && (
+-          <m.div
+-            ref={containerRef}
+-            className="fixed inset-0 z-50 flex items-center justify-center"
+-            style={{
+-              touchAction: isMobile ? 'manipulation' : 'none',
+-              pointerEvents: !isViewerContentVisible || isEntryAnimating ? 'none' : 'auto',
+-            }}
+-            initial={false}
+-            animate={{ opacity: 1 }}
+-            exit={{ opacity: 0 }}
+-            transition={Spring.presets.snappy}
+-          >
+-            <div className={`flex size-full ${isMobile ? 'flex-col' : 'flex-row'}`}>
+-              <div className="z-1 flex min-h-0 min-w-0 flex-1 flex-col" {...(isMobile ? bindStage() : {})}>
+-                <m.div
+-                  className={`flex min-h-0 min-w-0 flex-1 flex-col ${isMobile ? 'overflow-hidden' : ''}`}
+-                  style={
+-                    isMobile
+-                      ? {
+-                          x: dismissX,
+-                          y: viewerLiftY,
+-                          scale: viewerScale,
+-                          rotate: viewerRotate,
+-                          borderRadius: viewerBorderRadius,
+-                          transformOrigin: DEFAULT_MOBILE_VIEWER_MEDIA_TRANSFORM_ORIGIN,
+-                          touchAction: 'none',
+-                        }
+-                      : undefined
+-                  }
+-                >
+-                  <m.div
+-                    className="group/photo-viewer relative flex min-h-0 min-w-0 flex-1"
+-                    initial={false}
+-                    animate={{ opacity: 1 }}
+-                  >
+-                    {/* 顶部工具栏 */}
+-                    <m.div
+-                      initial={disableEntryTransition ? false : { opacity: 0 }}
+-                      animate={{ opacity: isViewerContentVisible ? 1 : 0 }}
+-                      exit={{ opacity: 0 }}
+-                      transition={Spring.presets.snappy}
+-                      className={`pointer-events-none absolute ${isMobile ? 'top-2 right-2 left-2' : 'top-4 right-4 left-4'} z-30 flex items-center justify-between`}
+-                      style={isMobile ? { opacity: chromeOpacity, y: chromeY } : undefined}
+-                    >
+-                      {/* 左侧工具按钮 */}
+-                      <div className="flex items-center gap-2">
+-                        {/* 信息按钮 - 在移动设备上显示 */}
+-                        {isMobile && (
+-                          <ActionButton
+-                            disabled={!isMobileChromeInteractive}
+-                            className={mobileChromeButtonClassName}
+-                            active={isInspectorVisible}
+-                            onClick={toggleInspector}
+-                          >
+-                            <i className="i-mingcute-information-line" />
+-                          </ActionButton>
+-                        )}
+-                      </div>
+-
+-                      {/* 右侧按钮组 */}
+-                      <div className="flex items-center gap-2">
+-                        {hasRegions && (
+-                          <ActionButton
+-                            disabled={!isMobileChromeInteractive}
+-                            style={{ '--color-accent': regionAccentColor } as React.CSSProperties}
+-                            className={mobileChromeButtonClassName}
+-                            pill={!isMobile}
+-                            active={showAllRegions}
+-                            onClick={() => setShowAllRegions(visible => !visible)}
+-                            title={showAllRegions ? t('photo.regions.hide') : t('photo.regions.show')}
+-                            aria-label={showAllRegions ? t('photo.regions.hide') : t('photo.regions.show')}
+-                            aria-pressed={showAllRegions}
+-                          >
+-                            <i className="i-mingcute-frame-line text-base" aria-hidden="true" />
+-                            {!isMobile && (
+-                              <span className="text-[11px] font-medium tabular-nums text-white/82">
+-                                {currentRegions.length}
+-                              </span>
+-                            )}
+-                          </ActionButton>
+-                        )}
+-
+-                        {/* 分享按钮 */}
+-                        <ShareModal
+-                          photo={currentPhoto}
+-                          blobSrc={currentBlobSrc || undefined}
+-                          trigger={(
+-                            <ActionButton
+-                              disabled={!isMobileChromeInteractive}
+-                              className={mobileChromeButtonClassName}
+-                              title={t('photo.share.title')}
+-                            >
+-                              <i className="i-mingcute-share-2-line" />
+-                            </ActionButton>
+-                          )}
+-                        />
+-
+-                        {/* 展开信息面板（桌面端在折叠时显示） */}
+-                        {!isMobile && !isInspectorVisible && (
+-                          <ActionButton
+-                            disabled={!isMobileChromeInteractive}
+-                            className={mobileChromeButtonClassName}
+-                            onClick={() => setIsDesktopInspectorVisible(true)}
+-                            title={t('inspector.tab.info')}
+-                          >
+-                            <PanelRightOpen className="size-4" />
+-                          </ActionButton>
+-                        )}
+-
+-                        {/* 关闭按钮 */}
+-                        <ActionButton
+-                          disabled={!isMobileChromeInteractive}
+-                          className={mobileChromeButtonClassName}
+-                          onClick={handleCloseRequest}
+-                        >
+-                          <i className="i-mingcute-close-line" />
+-                        </ActionButton>
++    const release = (event: PointerEvent) => releasePointer(event.pointerId);
++    document.addEventListener('pointerup', release, true);
++    document.addEventListener('pointercancel', release, true);
++    return () => { document.removeEventListener('pointerup', release, true); document.removeEventListener('pointercancel', release, true); };
++  }, []);
++  return <dialog ref={dialog} className="photo-dialog" data-mobile={mobile} data-closing={closing || undefined}
++    aria-labelledby={titleId} aria-describedby={helpId}
++    onCancel={event => { event.preventDefault(); if (detailsVisible && mobile) closeInspector(); else requestClose(); }}
++>
++    <m.div className="viewer-backdrop-presence" initial={reduced ? false : { opacity: 0 }} animate={{ opacity: closing ? 0 : 1 }} transition={reduced ? { duration: 0 } : Spring.presets.snappy}>
++      <m.div className="viewer-backdrop-base" style={{ opacity: mobile ? gestures.backdropOpacity : 1 }}/>
++      <m.div className="viewer-backdrop" style={{ backgroundImage: `url("${photo.thumbnail}")`, opacity: mobile ? gestures.backdropOpacity : 1 }}/>
++    </m.div>
++    <div ref={transitions.containerRef} className={`viewer-shell ${!mobile && detailsVisible ? 'with-inspector' : ''}`} style={{ pointerEvents: blocked ? 'none' : 'auto' }}>
++      <div className="viewer-stage" {...(mobile ? gestures.bindStage() : {})}
++        onPointerDownCapture={event => { pointers.current.add(event.pointerId); if (pointers.current.size > 1) { setMultiplePointers(true); if (swiperRef.current) swiperRef.current.allowTouchMove = false; } }}>
++        <m.div className="viewer-drag-content" style={mobile ? { x: gestures.dismissX, y: gestures.viewerLiftY, scale: gestures.viewerScale,
++          rotate: gestures.viewerRotate, borderRadius: gestures.viewerBorderRadius, transformOrigin: DEFAULT_MOBILE_VIEWER_MEDIA_TRANSFORM_ORIGIN } : undefined}>
++          <div className="viewer-image-stage">
++            <div className="viewer-chrome-presence" style={{ opacity: chromeVisible ? 1 : 0 }}>
++              <m.div className="viewer-toolbar" inert={mobile && detailsVisible} style={mobile ? { opacity: gestures.chromeOpacity, y: gestures.chromeY } : undefined}>
++                <h2 id={titleId} className="sr-only">{projectTitle} — {photo.title}</h2>
++                <span className="viewer-counter" aria-live="polite">{index + 1} / {photos.length}</span>
++                <div className="viewer-actions">
++                  <button className="icon-button" aria-label="放大" title="放大" disabled={!controlsReady} onClick={() => engine.current?.zoomIn(!reduced)}><ZoomIn size={18}/></button>
++                  <button className="icon-button" aria-label="缩小" title="缩小" disabled={!controlsReady} onClick={() => engine.current?.zoomOut(!reduced)}><ZoomOut size={18}/></button>
++                  <button className="icon-button" aria-label="适应屏幕" title="适应屏幕" disabled={!controlsReady} onClick={() => engine.current?.resetView()}><RotateCcw size={17}/></button>
++                  <a className="icon-button" href={photo.src} target="_blank" rel="noreferrer" aria-label="打开原图" title="打开原图"><ExternalLink size={17}/></a>
++                  <button className="icon-button" aria-label="分享照片" title="分享照片" onClick={share}><Share2 size={17}/></button>
++                  <button className="icon-button" aria-label="照片信息" title="照片信息 (I)" aria-expanded={detailsVisible} onClick={toggleInspector}>{mobile ? <Info size={18}/> : <PanelRightOpen size={18}/>}</button>
++                  <button type="button" className="icon-button viewer-close" onClick={requestClose} autoFocus aria-label="关闭照片" title="关闭 (Esc)"><X size={20}/></button>
++                </div>
++              </m.div>
++            </div>
++            <div className="viewer-gesture-stage" data-photo-viewer-stage="true" style={{ opacity: chromeVisible ? 1 : 0 }}>
++              {shouldShowEntryImageCatchup && <div className="viewer-entry-catchup" data-photo-viewer-entry-catchup="true">
++                {photo.thumbHash && <Thumbhash thumbHash={photo.thumbHash}/>}
++                <img className="viewer-preview" src={photo.thumbnail || photo.src} alt="" draggable={false}/>
++              </div>}
++              {shouldMountImageStage && <Swiper modules={[Navigation, Virtual]} spaceBetween={0} slidesPerView={1} initialSlide={index} virtual
++                speed={reduced ? 0 : 300} allowTouchMove={canSwipe} className="viewer-swiper"
++                onSwiper={swiper => { swiperRef.current = swiper; swiper.allowTouchMove = canSwipe; }}
++                onBeforeDestroy={() => { swiperRef.current = null; }}
++                onSlideChange={swiper => {
++                  if (closing) return;
++                  if (pointers.current.size) pendingSlide.current = swiper.activeIndex;
++                  else if (swiper.activeIndex !== index) onIndex(swiper.activeIndex);
++                }}>
++                {photos.map((item, slideIndex) => {
++                  const isCurrentImage = slideIndex === index;
++                  const hidden = shouldHideCurrentViewerImage({ isCurrentImage, isEntryImageCatchupVisible: shouldShowEntryImageCatchup });
++                  const suppressEntry = reduced || (isCurrentImage && !!transitions.entryTransition);
++                  return <SwiperSlide key={item.id} virtualIndex={slideIndex} data-photo-id={item.id} inert={!isCurrentImage} aria-hidden={!isCurrentImage}>
++                    <m.div className="viewer-slide-content" initial={suppressEntry ? false : { opacity: .5, scale: .95 }}
++                      animate={suppressEntry ? undefined : { opacity: 1, scale: 1 }} transition={suppressEntry ? undefined : Spring.presets.smooth}>
++                      <div className="viewer-slide-visibility" style={{ opacity: hidden ? 0 : 1, pointerEvents: hidden ? 'none' : undefined }}>
++                        <ProgressiveImage photo={item} isCurrentImage={isCurrentImage} shouldRenderHighRes={isCurrentImage && chromeVisible}
++                          engineRef={engine} smooth={!reduced} enablePan={!mobile || zoomed} onZoomChange={setZoomed}
++                          onReady={setControlsReady} onBlobSrcChange={setCurrentBlobSrc} onVisualReadyChange={setVisualReady}/>
+                       </div>
+                     </m.div>
+-
+-                    {/* 加载指示器 */}
+-                    <LoadingIndicator ref={loadingIndicatorRef} />
+-                    <div
+-                      className="relative flex h-full w-full items-center justify-center"
+-                      data-photo-viewer-stage="true"
+-                      style={{
+-                        touchAction: isMobile ? 'pan-x pinch-zoom' : 'pan-y',
+-                      }}
+-                    >
+-                      {shouldShowEntryImageCatchup && (
+-                        <div
+-                          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center transition-opacity duration-150"
+-                          data-photo-viewer-entry-catchup="true"
+-                        >
+-                          <div className="relative h-full w-full">
+-                            {currentThumbHash && (
+-                              <Thumbhash
+-                                thumbHash={currentThumbHash}
+-                                className="pointer-events-none absolute inset-0"
+-                              />
+-                            )}
+-                            <img
+-                              src={currentPhoto.thumbnailUrl || currentPhoto.originalUrl}
+-                              alt=""
+-                              className="absolute inset-0 h-full w-full object-contain"
+-                              draggable={false}
+-                            />
+-                          </div>
+-                        </div>
+-                      )}
+-
+-                      {shouldMountImageStage ? (
+-                        <Swiper
+-                          modules={[Navigation, Virtual]}
+-                          spaceBetween={0}
+-                          slidesPerView={1}
+-                          initialSlide={currentIndex}
+-                          virtual
+-                          onSwiper={(swiper) => {
+-                            swiperRef.current = swiper
+-                            swiper.allowTouchMove
+-                              = !isImageZoomed && !(isMobile && (isVerticalGestureActive || isInspectorVisible))
+-                          }}
+-                          onSlideChange={(swiper) => {
+-                            onIndexChange(swiper.activeIndex)
+-                          }}
+-                          className="h-full w-full"
+-                          style={{ touchAction: isMobile ? 'pan-x' : 'pan-y' }}
+-                        >
+-                          {photos.map((photo, index) => {
+-                            const isCurrentImage = index === currentIndex
+-                            const hideCurrentImage = shouldHideCurrentViewerImage({
+-                              isCurrentImage,
+-                              isEntryImageCatchupVisible: shouldShowEntryImageCatchup,
+-                            })
+-                            const suppressSlideEntry
+-                              = (isCurrentImage && entryTransition?.variant === 'entry')
+-                                || photo.id === entrySuppressedPhotoId
+-                            return (
+-                              <SwiperSlide
+-                                key={photo.id}
+-                                className="flex items-center justify-center"
+-                                virtualIndex={index}
+-                              >
+-                                {showPhotoReactions && <ReactionRail photoId={photo.id} />}
+-                                <m.div
+-                                  initial={suppressSlideEntry ? false : { opacity: 0.5, scale: 0.95 }}
+-                                  animate={suppressSlideEntry ? undefined : { opacity: 1, scale: 1 }}
+-                                  exit={{ opacity: 0, scale: 0.95 }}
+-                                  transition={suppressSlideEntry ? undefined : Spring.presets.smooth}
+-                                  className="relative flex h-full w-full items-center justify-center"
+-                                  style={{
+-                                    opacity: hideCurrentImage ? 0 : 1,
+-                                    pointerEvents: hideCurrentImage ? 'none' : undefined,
+-                                  }}
+-                                >
+-                                  <ProgressiveImage
+-                                    loadingIndicatorRef={loadingIndicatorRef}
+-                                    isCurrentImage={isCurrentImage}
+-                                    src={photo.originalUrl}
+-                                    thumbnailSrc={photo.thumbnailUrl}
+-                                    alt={photo.title}
+-                                    width={isCurrentImage ? currentPhoto.width : undefined}
+-                                    height={isCurrentImage ? currentPhoto.height : undefined}
+-                                    className="h-full w-full object-contain"
+-                                    enablePan={isCurrentImage ? !isMobile || isImageZoomed : true}
+-                                    enableZoom={true}
+-                                    shouldRenderHighRes={isCurrentImage && isViewerContentVisible && isOpen}
+-                                    onZoomChange={isCurrentImage ? handleZoomChange : undefined}
+-                                    onBlobSrcChange={isCurrentImage ? handleBlobSrcChange : undefined}
+-                                    onVisualReadyChange={isCurrentImage ? setIsCurrentImageVisualReady : undefined}
+-                                    disableThumbnailTransition={isCurrentImage && entryTransition?.variant === 'entry'}
+-                                    videoSource={
+-                                      photo.video?.type === 'motion-photo'
+-                                        ? {
+-                                            type: 'motion-photo',
+-                                            imageUrl: photo.originalUrl,
+-                                            offset: photo.video.offset,
+-                                            size: photo.video.size,
+-                                            presentationTimestamp: photo.video.presentationTimestamp,
+-                                          }
+-                                        : photo.video?.type === 'live-photo'
+-                                          ? {
+-                                              type: 'live-photo',
+-                                              videoUrl: photo.video.videoUrl,
+-                                            }
+-                                          : { type: 'none' }
+-                                    }
+-                                    shouldAutoPlayVideoOnce={isCurrentImage}
+-                                    regions={getRenderablePhotoRegions(
+-                                      photo.regions,
+-                                      photo.width,
+-                                      photo.height,
+-                                      photo.exif?.Orientation,
+-                                      photo.exif?.RegionInfo,
+-                                    )}
+-                                    regionOrientation={photo.exif?.Orientation}
+-                                    regionAccentColor={regionAccentColor}
+-                                    regionLabelPlacement={regionLabelPlacement}
+-                                    activeRegionId={isCurrentImage ? activeRegionId : null}
+-                                    showAllRegions={isCurrentImage ? showAllRegions : false}
+-                                    enableRegionHover={isCurrentImage && canHoverRegions}
+-                                    onActiveRegionChange={isCurrentImage ? setActiveRegionId : undefined}
+-                                    isHDR={photo.isHDR}
+-                                  />
+-                                </m.div>
+-                              </SwiperSlide>
+-                            )
+-                          })}
+-                        </Swiper>
+-                      ) : (
+-                        <div className="h-full w-full" />
+-                      )}
+-
+-                      {isMobile && (
+-                        <m.div
+-                          className="bg-material-ultra-thick pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full px-3 py-1 text-xs text-white/70 backdrop-blur-xl"
+-                          style={{ opacity: stageHintOpacity, y: stageHintY }}
+-                        >
+-                          <i className="i-mingcute-arrow-up-line text-sm" />
+-                          <i className="i-mingcute-information-line text-sm" />
+-                          <span className="h-3 w-px bg-white/10" />
+-                          <i className="i-mingcute-arrow-down-line text-sm" />
+-                          <i className="i-mingcute-close-line text-sm" />
+-                        </m.div>
+-                      )}
+-
+-                      {/* 自定义导航按钮 */}
+-                      {!isMobile && (
+-                        <Fragment>
+-                          {currentIndex > 0 && (
+-                            <ActionButton
+-                              className="absolute top-1/2 left-4 z-20 -translate-y-1/2 opacity-0 group-hover/photo-viewer:opacity-100"
+-                              onClick={handlePrevious}
+-                            >
+-                              <i className="i-mingcute-left-line text-xl" />
+-                            </ActionButton>
+-                          )}
+-
+-                          {currentIndex < photos.length - 1 && (
+-                            <ActionButton
+-                              className="absolute top-1/2 right-4 z-20 -translate-y-1/2 opacity-0 group-hover/photo-viewer:opacity-100"
+-                              onClick={handleNext}
+-                            >
+-                              <i className="i-mingcute-right-line text-xl" />
+-                            </ActionButton>
+-                          )}
+-                        </Fragment>
+-                      )}
+-                    </div>
+-                  </m.div>
+-
+-                  <m.div
+-                    style={isMobile ? { opacity: thumbnailsOpacity, y: thumbnailsY } : undefined}
+-                    className={isMobile && isInspectorVisible ? 'pointer-events-none' : undefined}
+-                  >
+-                    <Suspense>
+-                      <GalleryThumbnail
+-                        currentIndex={currentIndex}
+-                        photos={photos}
+-                        onIndexChange={onIndexChange}
+-                        visible={isViewerContentVisible}
+-                        disableEntryTransition={disableEntryTransition}
+-                      />
+-                    </Suspense>
+-                  </m.div>
+-                </m.div>
+-              </div>
+-
+-              {/* PhotoInspector - 根据设备与折叠状态展示 */}
+-              <Suspense>
+-                {isMobile ? (
+-                  <MobilePhotoInspectorSheet
+-                    createPresentation={createInspectorSheetPresentation}
+-                    currentPhoto={currentPhoto}
+-                    exifData={currentPhoto.exif}
+-                    activeRegionId={activeRegionId}
+-                    isInteractive={isMobileInspectorVisible}
+-                    progress={inspectorProgress}
+-                    resolveHeight={resolveInspectorSheetHeight}
+-                    onClose={closeInspector}
+-                    onActiveRegionChange={setActiveRegionId}
+-                  />
+-                ) : (
+-                  isInspectorVisible && (
+-                    <PhotoInspector
+-                      currentPhoto={currentPhoto}
+-                      exifData={currentPhoto.exif}
+-                      activeRegionId={activeRegionId}
+-                      visible={isInspectorVisible && isViewerContentVisible}
+-                      onClose={() => setIsDesktopInspectorVisible(false)}
+-                      onActiveRegionChange={setActiveRegionId}
+-                    />
+-                  )
+-                )}
+-              </Suspense>
++                  </SwiperSlide>;
++                })}
++              </Swiper>}
++              {mobile && <m.div className="viewer-gesture-hint" aria-hidden="true" style={{ opacity: gestures.stageHintOpacity, y: gestures.stageHintY }}>
++                <ArrowUp size={14}/><span>信息</span><Info size={14}/><span className="hint-divider"/><ArrowDown size={14}/><span>关闭</span><X size={14}/>
++              </m.div>}
+             </div>
++            {!mobile && <><button className="icon-button viewer-previous" onClick={previous} disabled={index === 0 || closing} aria-label="上一张照片"><ChevronLeft size={22}/></button>
++              <button className="icon-button viewer-next" onClick={next} disabled={index === photos.length - 1 || closing} aria-label="下一张照片"><ChevronRight size={22}/></button></>}
++            {message && <p className="viewer-message" role="status">{message}</p>}
++          </div>
++          <m.div className="viewer-thumbnails-motion" data-viewer-interactive inert={mobile && detailsVisible} style={mobile ? { opacity: gestures.thumbnailsOpacity, y: gestures.thumbnailsY } : undefined}>
++            <AnimatePresence><GalleryThumbnail key="thumbnails" currentIndex={index} photos={photos} onIndexChange={navigate} visible={chromeVisible} disableEntryTransition={reduced}/></AnimatePresence>
+           </m.div>
+-        )}
+-      </AnimatePresence>
+-      {entryTransition && (
+-        <SharedElementTransitionPreview
+-          key={`${entryTransition.variant}-${entryTransition.itemId}`}
+-          transition={entryTransition}
+-          onReady={handleEntryTransitionReady}
+-          onComplete={handleEntryTransitionComplete}
+-          renderPlaceholder={thumbHash => (
+-            <Thumbhash thumbHash={thumbHash} className="pointer-events-none absolute inset-0 h-full w-full" />
+-          )}
+-        />
+-      )}
+-      {exitTransition && (
+-        <SharedElementTransitionPreview
+-          key={`${exitTransition.variant}-${exitTransition.itemId}`}
+-          transition={exitTransition}
+-          onComplete={handleExitAnimationComplete}
+-          renderPlaceholder={thumbHash => (
+-            <Thumbhash thumbHash={thumbHash} className="pointer-events-none absolute inset-0 h-full w-full" />
+-          )}
+-        />
+-      )}
+-    </>
+-  )
++        </m.div>
++      </div>
++      {mobile ? <MobilePhotoInspectorSheet currentPhoto={photo} isInteractive={detailsVisible && !closing} progress={gestures.inspectorProgress} onClose={closeInspector}/>
++        : detailsVisible && <aside className="viewer-inspector" aria-label="照片信息" style={{ opacity: chromeVisible ? 1 : 0 }}><header><span><Info size={14}/> 照片信息</span><button className="icon-button" onClick={toggleInspector} aria-label="收起照片信息"><PanelRightClose size={18}/></button></header><MetadataPanel key={photo.id} photo={photo}/><ViewerAttribution/></aside>}
++      <p id={helpId} className="sr-only">左右方向键切换，Home 和 End 跳至首尾，Escape 关闭。I 显示信息。双击或双指缩放，放大后拖动平移。</p>
++    </div>
++    {transitions.entryTransition && !reduced && <SharedElementTransitionPreview key={`entry-${transitions.entryTransition.itemId}`} transition={transitions.entryTransition} onReady={transitions.handleEntryTransitionReady} onComplete={transitions.handleEntryTransitionComplete} renderPlaceholder={hash => <Thumbhash thumbHash={hash}/>}/>}
++    {transitions.exitTransition && !reduced && <SharedElementTransitionPreview key={`exit-${transitions.exitTransition.itemId}`} transition={transitions.exitTransition} onComplete={transitions.handleExitAnimationComplete} renderPlaceholder={hash => <Thumbhash thumbHash={hash}/>}/>}
++  </dialog>;
+ }
+--- a/src/components/viewer/GalleryThumbnail.tsx
++++ b/src/components/viewer/GalleryThumbnail.tsx
+@@ -1,13 +1,17 @@
+-import { HoverCard, HoverCardContent, HoverCardTrigger, Thumbhash } from '@afilmory/ui'
++// Adapted from Afilmory/Afilmory, apps/web/src/modules/viewer/GalleryThumbnail.tsx
++// Upstream 1f65cde6672e5231599182620116ac904e39f548; AGPL-3.0-or-later + ANL §4, Copyright (c) 2025 Afilmory Team.
++// See THIRD_PARTY_NOTICES.md for the local adaptations.
++import { HoverCard, HoverCardContent, HoverCardTrigger } from './HoverCard'
++import { Thumbhash } from './Thumbhash'
+ import { clsxm, Spring } from '@afilmory/utils'
+ import { useVirtualizer } from '@tanstack/react-virtual'
+-import { m } from 'motion/react'
++import { m, useReducedMotion } from 'motion/react'
+ import type { FC } from 'react'
+ import { useEffect, useRef, useState } from 'react'
+ 
+-import { useMobile } from '~/hooks/useMobile'
+-import { nextFrame } from '~/lib/dom'
+-import type { PhotoManifest } from '~/types/photo'
++import { useMobile } from '../../hooks/useMobile'
++const nextFrame = (callback: FrameRequestCallback) => requestAnimationFrame(callback)
++import type { ViewerPhoto } from './photos'
+ 
+ const thumbnailSize = {
+   mobile: 48,
+@@ -16,7 +20,7 @@
+ 
+ export const GalleryThumbnail: FC<{
+   currentIndex: number
+-  photos: PhotoManifest[]
++  photos: readonly ViewerPhoto[]
+   onIndexChange: (index: number) => void
+   visible?: boolean
+   disableEntryTransition?: boolean
+@@ -24,6 +28,7 @@
+   const scrollContainerRef = useRef<HTMLDivElement>(null)
+ 
+   const isMobile = useMobile()
++  const reduced = !!useReducedMotion()
+ 
+   const [scrollContainerWidth, setScrollContainerWidth] = useState(0)
+ 
+@@ -35,7 +40,7 @@
+     getScrollElement: () => scrollContainerRef.current,
+     estimateSize: (index) => {
+       const photo = photos[index]
+-      return photo ? thumbnailHeight * photo.aspectRatio : thumbnailHeight
++      return photo ? thumbnailHeight * (photo.width / photo.height) : thumbnailHeight
+     },
+     horizontal: true,
+     overscan: 5,
+@@ -48,14 +53,16 @@
+       const handleResize = () => {
+         setScrollContainerWidth(scrollContainer.clientWidth)
+       }
+-      scrollContainer.addEventListener('resize', handleResize)
++      const observer = new ResizeObserver(handleResize)
++      observer.observe(scrollContainer)
+       return () => {
+-        scrollContainer.removeEventListener('resize', handleResize)
++        observer.disconnect()
+       }
+     }
+   }, [])
+ 
+   useEffect(() => {
++    let frame = 0
+     const scrollContainer = scrollContainerRef.current
+ 
+     if (scrollContainer && photos.length > 0 && currentIndex < photos.length) {
+@@ -70,10 +77,10 @@
+         // Center the thumbnail in the viewport
+         const scrollLeft = thumbnailCenter - scrollContainerWidth / 2
+ 
+-        nextFrame(() => {
++        frame = nextFrame(() => {
+           scrollContainer.scrollTo({
+             left: Math.max(0, scrollLeft),
+-            behavior: 'smooth',
++            behavior: reduced ? 'instant' : 'smooth',
+           })
+         })
+       }
+@@ -82,24 +89,27 @@
+         let thumbnailLeft = 0
+         for (let i = 0; i < currentIndex; i++) {
+           const photo = photos[i]
+-          const width = thumbnailHeight * photo.aspectRatio
++          const width = thumbnailHeight * (photo.width / photo.height)
+           thumbnailLeft += width
+         }
+ 
+         const currentPhoto = photos[currentIndex]
+-        const currentThumbnailWidth = thumbnailHeight * currentPhoto.aspectRatio
++        const currentThumbnailWidth = thumbnailHeight * (currentPhoto.width / currentPhoto.height)
+         const thumbnailCenter = thumbnailLeft + currentThumbnailWidth / 2
+         const scrollLeft = thumbnailCenter - scrollContainerWidth / 2
+ 
+-        nextFrame(() => {
++        frame = nextFrame(() => {
+           scrollContainer.scrollTo({
+             left: Math.max(0, scrollLeft),
+-            behavior: 'smooth',
++            behavior: reduced ? 'instant' : 'smooth',
+           })
+         })
+       }
+     }
+-  }, [currentIndex, isMobile, scrollContainerWidth, photos, thumbnailHeight, virtualizer])
++    return () => cancelAnimationFrame(frame)
++  }, [currentIndex, isMobile, scrollContainerWidth, photos, thumbnailHeight, reduced])
++
++  useEffect(() => { virtualizer.measure() }, [thumbnailHeight, photos, virtualizer])
+ 
+   // 处理鼠标滚轮事件，映射为横向滚动
+   useEffect(() => {
+@@ -127,14 +137,14 @@
+ 
+   return (
+     <m.div
+-      className="pb-safe bg-material-medium z-10 shrink-0 backdrop-blur-2xl"
+-      initial={disableEntryTransition ? false : { y: 100, opacity: 0 }}
++      className="viewer-thumbnail-bar"
++      initial={disableEntryTransition || reduced ? false : { y: 100, opacity: 0 }}
+       animate={{
+-        y: visible ? 0 : 48,
++        y: visible || reduced ? 0 : 48,
+         opacity: visible ? 1 : 0,
+       }}
+-      exit={{ y: 100, opacity: 0 }}
+-      transition={Spring.presets.smooth}
++      exit={{ y: reduced ? 0 : 100, opacity: 0 }}
++      transition={reduced ? { duration: 0 } : Spring.presets.smooth}
+       style={{
+         pointerEvents: visible ? 'auto' : 'none',
+         boxShadow:
+@@ -143,12 +153,12 @@
+     >
+       {/* Inner glow layer */}
+       <div
+-        className="pointer-events-none absolute inset-0"
++        className="viewer-thumbnail-glow"
+         style={{
+           background: 'linear-gradient(to top, color-mix(in srgb, var(--color-accent) 5%, transparent), transparent)',
+         }}
+       />
+-      <div ref={scrollContainerRef} className="scrollbar-none relative z-10 overflow-x-auto">
++      <div ref={scrollContainerRef} className="viewer-filmstrip" aria-label="照片缩略图导航">
+         <div
+           style={{
+             height: `${thumbnailHeight}px`,
+@@ -158,14 +168,14 @@
+         >
+           {virtualizer.getVirtualItems().map((virtualItem) => {
+             const photo = photos[virtualItem.index]
+-            const thumbnailWidth = thumbnailHeight * photo.aspectRatio
++            const thumbnailWidth = thumbnailHeight * (photo.width / photo.height)
+             const isCurrent = virtualItem.index === currentIndex
+ 
+             return (
+               <div
+                 key={virtualItem.key}
+                 data-index={virtualItem.index}
+-                className="absolute top-0"
++                className="viewer-thumbnail-item"
+                 style={{
+                   height: `${thumbnailHeight}px`,
+                   width: `${thumbnailWidth}px`,
+@@ -177,22 +187,20 @@
+                     <HoverCardTrigger asChild>
+                       <button
+                         type="button"
+-                        className={clsxm(
+-                          'contain-intrinsic-size h-full w-full overflow-hidden transition-all',
+-                          'hover:grayscale-0',
+-                          isCurrent
+-                            ? 'scale-110 border-accent shadow-[0_0_20px_color-mix(in_srgb,var(--color-accent)_20%,transparent)]'
+-                            : 'grayscale border-accent/20',
+-                        )}
++                        className={clsxm('viewer-thumbnail-button', isCurrent && 'selected')}
++                        data-filmstrip-id={photo.id}
++                        tabIndex={isCurrent ? 0 : -1}
++                        aria-label={`跳至照片：${photo.title}`}
++                        aria-current={isCurrent ? 'true' : undefined}
+                         onClick={() => onIndexChange(virtualItem.index)}
+                       >
+                         {photo.thumbHash && (
+-                          <Thumbhash thumbHash={photo.thumbHash} className="size-fill absolute inset-0" />
++                          <Thumbhash thumbHash={photo.thumbHash} className="viewer-thumbnail-image" />
+                         )}
+                         <img
+-                          src={photo.thumbnailUrl}
++                          src={photo.thumbnail}
+                           alt={photo.title}
+-                          className="absolute inset-0 h-full w-full object-cover"
++                          className="viewer-thumbnail-image"
+                         />
+                       </button>
+                     </HoverCardTrigger>
+@@ -202,32 +210,33 @@
+                       align="center"
+                       sideOffset={0}
+                       alignOffset={0}
+-                      className="w-80 overflow-hidden rounded-none border-0 p-0 shadow-[8px_-9px_20px_13px_var(--color-accent)]"
++                      className="viewer-thumbnail-hover"
++                      container={scrollContainerRef.current?.closest('dialog')}
+                     >
+-                      <div className="relative">
++                      <div className="viewer-thumbnail-hover-inner">
+                         {/* Preview image */}
+                         <div
+-                          className="relative w-full overflow-hidden"
+-                          style={{ aspectRatio: photo.aspectRatio, height: 'auto' }}
++                          className="viewer-thumbnail-hover-image"
++                          style={{ aspectRatio: (photo.width / photo.height), height: 'auto' }}
+                         >
+                           {photo.thumbHash && (
+-                            <Thumbhash thumbHash={photo.thumbHash} className="absolute inset-0 size-full" />
++                            <Thumbhash thumbHash={photo.thumbHash} className="viewer-thumbnail-image" />
+                           )}
+                           <img
+-                            src={photo.thumbnailUrl}
++                            src={photo.thumbnail}
+                             alt={photo.title}
+-                            className="absolute inset-0 h-full w-full object-cover"
++                            className="viewer-thumbnail-image"
+                           />
+                         </div>
+                         {/* Photo info overlay */}
+-                        {(photo.title || photo.dateTaken) && (
+-                          <div className="absolute right-0 bottom-0 left-0 bg-linear-to-t from-black/60 to-transparent p-3">
++                        {(photo.title || photo.date) && (
++                          <div className="viewer-thumbnail-hover-caption">
+                             {photo.title && (
+-                              <div className="truncate text-sm font-medium text-white">{photo.title}</div>
++                              <div className="viewer-thumbnail-hover-title">{photo.title}</div>
+                             )}
+-                            {photo.dateTaken && (
+-                              <div className="mt-1 text-xs text-white/80">
+-                                {new Date(photo.dateTaken).toLocaleDateString()}
++                            {photo.date && (
++                              <div className="viewer-thumbnail-hover-date">
++                                {new Date(photo.date).toLocaleDateString()}
+                               </div>
+                             )}
+                           </div>
+@@ -238,22 +247,20 @@
+                 ) : (
+                   <button
+                     type="button"
+-                    className={clsxm(
+-                      'contain-intrinsic-size h-full w-full overflow-hidden transition-all',
+-                      'hover:grayscale-0',
+-                      isCurrent
+-                        ? 'scale-110 border-accent shadow-[0_0_20px_color-mix(in_srgb,var(--color-accent)_20%,transparent)]'
+-                        : 'grayscale border-accent/20',
+-                    )}
++                    className={clsxm('viewer-thumbnail-button', isCurrent && 'selected')}
++                        data-filmstrip-id={photo.id}
++                        tabIndex={isCurrent ? 0 : -1}
++                        aria-label={`跳至照片：${photo.title}`}
++                        aria-current={isCurrent ? 'true' : undefined}
+                     onClick={() => onIndexChange(virtualItem.index)}
+                   >
+                     {photo.thumbHash && (
+-                      <Thumbhash thumbHash={photo.thumbHash} className="size-fill absolute inset-0" />
++                      <Thumbhash thumbHash={photo.thumbHash} className="viewer-thumbnail-image" />
+                     )}
+                     <img
+-                      src={photo.thumbnailUrl}
++                      src={photo.thumbnail}
+                       alt={photo.title}
+-                      className="absolute inset-0 h-full w-full object-cover"
++                      className="viewer-thumbnail-image"
+                     />
+                   </button>
+                 )}
+--- a/src/components/viewer/MobilePhotoInspectorSheet.tsx
++++ b/src/components/viewer/MobilePhotoInspectorSheet.tsx
+@@ -1,62 +1,21 @@
+-import type { PickedExif } from '@afilmory/builder'
+-import { MobileTabGroup, MobileTabItem } from '@afilmory/ui'
+-import { createInspectorSheetPresentation, resolveInspectorSheetHeight } from '@afilmory/viewer-motion'
+-import { useQuery } from '@tanstack/react-query'
+-import type { MotionValue } from 'motion/react'
+-import { m, useTransform } from 'motion/react'
+-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+-import { useTranslation } from 'react-i18next'
+-
+-import { injectConfig } from '~/config'
+-import { useViewport } from '~/hooks/useViewport'
+-import { commentsApi } from '~/lib/api/comments'
+-import { ExifPanelContent } from '~/modules/metadata/ExifPanel'
+-import { CommentsPanel } from '~/modules/social/comments'
+-import type { PhotoManifest } from '~/types/photo'
+-
+-type Tab = 'info' | 'comments'
+-
+-interface MobilePhotoInspectorSheetProps {
+-  createPresentation?: typeof createInspectorSheetPresentation
+-  currentPhoto: PhotoManifest
+-  exifData: PickedExif | null
+-  activeRegionId?: string | null
+-  isInteractive: boolean
+-  progress: MotionValue<number>
+-  resolveHeight?: typeof resolveInspectorSheetHeight
+-  onClose: () => void
+-  onActiveRegionChange?: (regionId: string | null) => void
+-}
+-
+-export const MobilePhotoInspectorSheet = ({
+-  createPresentation = createInspectorSheetPresentation,
+-  currentPhoto,
+-  exifData,
+-  activeRegionId,
+-  isInteractive,
+-  progress,
+-  resolveHeight = resolveInspectorSheetHeight,
+-  onClose,
+-  onActiveRegionChange,
+-}: MobilePhotoInspectorSheetProps) => {
+-  const { t } = useTranslation()
+-  const [activeTab, setActiveTab] = useState<Tab>('info')
+-  const sheetRef = useRef<HTMLDivElement>(null)
+-  const viewportHeight = useViewport(value => value.h) || (typeof window !== 'undefined' ? window.innerHeight : 844)
+-  const sheetHeight = useMemo(() => resolveHeight(viewportHeight), [resolveHeight, viewportHeight])
+-
+-  const showSocialFeatures = injectConfig.useCloud
+-  const { data: commentCount } = useQuery({
+-    queryKey: ['comment-count', currentPhoto.id],
+-    queryFn: () => commentsApi.count(currentPhoto.id),
+-    enabled: showSocialFeatures,
+-  })
+-  const hasComments = (commentCount?.count ?? 0) > 0
+-
+-  useEffect(() => {
+-    setActiveTab('info')
+-  }, [currentPhoto.id])
+-
++// Adapted from Afilmory/Afilmory, apps/web/src/modules/viewer/MobilePhotoInspectorSheet.tsx
++// Upstream 1f65cde6672e5231599182620116ac904e39f548; AGPL-3.0-or-later + ANL §4, Copyright (c) 2025 Afilmory Team.
++// See THIRD_PARTY_NOTICES.md for the local adaptations.
++import { createInspectorSheetPresentation, resolveInspectorSheetHeight, useWindowViewport } from '@afilmory/viewer-motion';
++import { m, useTransform, type MotionValue } from 'motion/react';
++import { useCallback, useEffect, useMemo, useRef } from 'react';
++import { X, Info } from 'lucide-react';
++import MetadataPanel from './MetadataPanel';
++import { ViewerAttribution } from './ViewerAttribution';
++import type { ViewerPhoto } from './photos';
++export function MobilePhotoInspectorSheet({ currentPhoto, isInteractive, progress, onClose,
++  createPresentation = createInspectorSheetPresentation, resolveHeight = resolveInspectorSheetHeight,
++}: { currentPhoto: ViewerPhoto; isInteractive: boolean; progress: MotionValue<number>; onClose: () => void;
++  createPresentation?: typeof createInspectorSheetPresentation; resolveHeight?: typeof resolveInspectorSheetHeight }) {
++  const sheetRef = useRef<HTMLDivElement>(null);
++  const { height: viewportHeight } = useWindowViewport();
++  const sheetHeight = useMemo(() => resolveHeight(viewportHeight || 844), [resolveHeight, viewportHeight]);
++  useEffect(() => { sheetRef.current?.querySelector('.inspector-sheet-content')?.scrollTo(0, 0); }, [currentPhoto.id, isInteractive]);
+   useEffect(() => {
+     if (!isInteractive) {
+       const { activeElement } = document
+@@ -80,98 +39,15 @@
+   const sheetOpacity = useTransform(() => getSheetPresentation().opacity)
+   const sheetScale = useTransform(() => getSheetPresentation().scale)
+ 
+-  return (
+-    <m.div
+-      className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center"
+-      aria-hidden={!isInteractive}
+-      inert={!isInteractive}
+-      style={{
+-        y: sheetY,
+-        opacity: sheetOpacity,
+-      }}
+-    >
+-      <m.div
+-        ref={sheetRef}
+-        className="bg-material-ultra-thick border-accent/20 pointer-events-auto relative flex w-full max-w-screen-lg flex-col overflow-hidden rounded-t-[28px] border text-white backdrop-blur-3xl"
+-        style={{
+-          height: sheetHeight,
+-          scale: sheetScale,
+-          transformOrigin: '50% 100%',
+-          boxShadow:
+-            '0 -20px 64px color-mix(in srgb, var(--color-accent) 16%, transparent), 0 -8px 28px rgba(0, 0, 0, 0.32)',
+-          pointerEvents: isInteractive ? 'auto' : 'none',
+-        }}
+-      >
+-        <div
+-          className="pointer-events-none absolute inset-0 rounded-t-[28px]"
+-          style={{
+-            background:
+-              'linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 16%, color-mix(in srgb, var(--color-accent) 7%, transparent))',
+-          }}
+-        />
+-
+-        <div className="relative z-10 flex shrink-0 flex-col px-4 pt-3">
+-          <div className="mb-3 flex items-center justify-center">
+-            <div className="h-1.5 w-11 rounded-full bg-white/20" />
+-          </div>
+-
+-          <div className="flex items-center gap-2 pb-1">
+-            <div className="min-w-0 flex-1">
+-              {showSocialFeatures ? (
+-                <MobileTabGroup value={activeTab} onValueChanged={value => setActiveTab(value as Tab)}>
+-                  <MobileTabItem
+-                    value="info"
+-                    label={(
+-                      <div className="flex items-center">
+-                        <i className="i-mingcute-information-line mr-1.5 text-base" />
+-                        {t('inspector.tab.info')}
+-                      </div>
+-                    )}
+-                  />
+-                  <MobileTabItem
+-                    value="comments"
+-                    label={(
+-                      <div className="flex items-center">
+-                        <i className="i-mingcute-comment-line mr-1.5 text-base" />
+-                        {t('inspector.tab.comments')}
+-                        {hasComments && <div className="bg-accent ml-1.5 size-1.5 rounded-full" />}
+-                      </div>
+-                    )}
+-                  />
+-                </MobileTabGroup>
+-              ) : (
+-                <div className="text-base font-semibold text-white">{t('exif.header.title')}</div>
+-              )}
+-            </div>
+-
+-            <button
+-              type="button"
+-              className="hover:bg-accent/10 flex size-9 shrink-0 items-center justify-center rounded-xl text-white/80 transition-colors hover:text-white"
+-              onClick={handleClose}
+-              aria-label="Close details"
+-            >
+-              <i className="i-mingcute-close-line text-lg" />
+-            </button>
+-          </div>
+-        </div>
+-
+-        <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+-          {activeTab === 'info' ? (
+-            <ExifPanelContent
+-              currentPhoto={currentPhoto}
+-              exifData={exifData}
+-              activeRegionId={activeRegionId}
+-              onActiveRegionChange={onActiveRegionChange}
+-              rootClassName="min-h-0 flex-1"
+-              viewportClassName="px-4 pb-[calc(env(safe-area-inset-bottom)+20px)] **:select-text"
+-            />
+-          ) : (
+-            <div className="min-h-0 flex-1 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+-              <CommentsPanel photoId={currentPhoto.id} />
+-            </div>
+-          )}
+-        </div>
+-      </m.div>
++  return <m.div className="mobile-inspector-sheet" aria-hidden={!isInteractive} inert={!isInteractive}
++    style={{ y: sheetY, opacity: sheetOpacity }}>
++    <m.div ref={sheetRef} className="viewer-inspector inspector-sheet-surface" role="region" aria-label="照片信息"
++      style={{ height: sheetHeight, scale: sheetScale, transformOrigin: '50% 100%', pointerEvents: isInteractive ? 'auto' : 'none' }}>
++      <div className="inspector-sheet-glow"/>
++      <header><div className="inspector-sheet-handle"/><span><Info size={16}/> 照片信息</span>
++        <button className="icon-button" type="button" onClick={handleClose} aria-label="收起照片信息"><X size={20}/></button>
++      </header>
++      <div className="inspector-sheet-content">{isInteractive && <><MetadataPanel key={currentPhoto.id} photo={currentPhoto}/><ViewerAttribution/></>}</div>
+     </m.div>
+-  )
++  </m.div>;
+ }
+--- a/src/components/viewer/ProgressiveImage.tsx
++++ b/src/components/viewer/ProgressiveImage.tsx
+@@ -1,490 +1,40 @@
+-import { clsxm } from '@afilmory/utils'
+-import type { ImageViewportState } from '@afilmory/webgl-viewer'
+-import { ImageViewer } from '@afilmory/webgl-viewer'
+-import { AnimatePresence, m } from 'motion/react'
+-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+-import { useTranslation } from 'react-i18next'
+-
+-import { useShowContextMenu } from '~/atoms/context-menu'
+-import { SlidingNumber } from '~/components/ui/number/SlidingNumber'
+-import { isMobileDevice } from '~/lib/device-viewport'
+-import { HDRBadge } from '~/modules/media/HDRBadge'
+-import { LivePhotoBadge } from '~/modules/media/LivePhotoBadge'
+-import type { LivePhotoVideoHandle } from '~/modules/media/LivePhotoVideo'
+-import { LivePhotoVideo } from '~/modules/media/LivePhotoVideo'
+-
+-import { ContainedImageFrame } from './ContainedImageFrame'
+-import { getProgressiveImageVisualReady, isThumbnailElementVisuallyReady } from './entry-animation-state'
+-import {
+-  createContextMenuItems,
+-  useImageLoader,
+-  useImageViewerLoadingState,
+-  useLivePhotoControls,
+-  useProgressiveImageState,
+-  useScaleIndicator,
+-} from './hooks'
+-import { PhotoRegionsOverlay } from './PhotoRegionsOverlay'
+-import type { ProgressiveImageProps } from './types'
+-
+-const loadedThumbnailSrcSet = new Set<string>()
+-
+-export const ProgressiveImage = ({
+-  src,
+-  thumbnailSrc,
+-  alt,
+-  width,
+-  height,
+-  className,
+-  onError,
+-  onProgress,
+-  onZoomChange,
+-  onBlobSrcChange,
+-  onVisualReadyChange,
+-  disableThumbnailTransition = false,
+-  enableZoom = true,
+-  enablePan = true,
+-  maxZoom = 20,
+-  minZoom = 1,
+-  isCurrentImage = false,
+-  shouldRenderHighRes = true,
+-  videoSource,
+-  shouldAutoPlayVideoOnce = false,
+-  regions = [],
+-  regionOrientation,
+-  regionAccentColor,
+-  regionLabelPlacement,
+-  activeRegionId,
+-  showAllRegions = false,
+-  enableRegionHover = true,
+-  onActiveRegionChange,
+-  loadingIndicatorRef,
+-}: ProgressiveImageProps) => {
+-  const { t } = useTranslation()
+-
+-  // State management
+-  const [state, setState] = useProgressiveImageState()
+-  const {
+-    blobSrc,
+-    highResLoaded,
+-    error,
+-    isHighResImageRendered,
+-    currentScale,
+-    showScaleIndicator,
+-    isThumbnailLoaded,
+-    isLivePhotoPlaying,
+-  } = state
+-
+-  const isActiveImage = Boolean(isCurrentImage && shouldRenderHighRes)
+-
+-  // 判断是否有视频内容（Live Photo 或 Motion Photo）
+-  const hasVideo = Boolean(videoSource && videoSource.type !== 'none')
+-
+-  // Refs
+-  const thumbnailRef = useRef<HTMLImageElement>(null)
+-  const imageViewerHostRef = useRef<HTMLDivElement>(null)
+-  const viewportFrameRef = useRef<HTMLDivElement>(null)
+-  const livePhotoRef = useRef<LivePhotoVideoHandle | null>(null)
+-  const [hasOverlayViewport, setHasOverlayViewport] = useState(false)
+-  const hasOverlayViewportRef = useRef(false)
+-
+-  const resolvedSrc = useMemo(() => {
+-    if (src.startsWith('/')) {
+-      return new URL(src, window.location.origin).toString()
+-    }
+-    return src
+-  }, [src])
+-
+-  // Hooks
+-  const imageLoaderManagerRef = useImageLoader(
+-    resolvedSrc,
+-    isCurrentImage,
+-    highResLoaded,
+-    error,
+-    onProgress,
+-    onError,
+-    onBlobSrcChange,
+-    loadingIndicatorRef,
+-    setState.setBlobSrc,
+-    setState.setHighResLoaded,
+-    setState.setError,
+-    setState.setIsHighResImageRendered,
+-  )
+-
+-  const { onTransformed } = useScaleIndicator(onZoomChange, setState.setCurrentScale, setState.setShowScaleIndicator)
+-
+-  const { handleLongPressStart, handleLongPressEnd } = useLivePhotoControls(hasVideo, isLivePhotoPlaying, livePhotoRef)
+-
+-  const handleImageLoadingStateChange = useImageViewerLoadingState(loadingIndicatorRef)
+-
+-  const handleThumbnailLoad = useCallback(() => {
+-    if (thumbnailSrc) {
+-      loadedThumbnailSrcSet.add(thumbnailSrc)
+-    }
+-    setState.setIsThumbnailLoaded(true)
+-  }, [setState, thumbnailSrc])
+-
++// Adapted from Afilmory/Afilmory, apps/web/src/modules/viewer/ProgressiveImage.tsx
++// Upstream 1f65cde6672e5231599182620116ac904e39f548; AGPL-3.0-or-later + ANL §4, Copyright (c) 2025 Afilmory Team.
++// Retains upstream slide/visual-readiness lifecycle around Jason's HDR/GPU/fallback renderer.
++import { useLayoutEffect, useRef, useState } from 'react';
++import { getProgressiveImageVisualReady, isThumbnailElementVisuallyReady } from './entry-animation-state';
++import { PhotoMedia, type Controls } from './PhotoMedia';
++import { Thumbhash } from './Thumbhash';
++import type { ViewerPhoto } from './photos';
++const loadedThumbnailSrcSet = new Set<string>();
++export function ProgressiveImage({ photo, isCurrentImage, shouldRenderHighRes, engineRef, smooth, enablePan,
++  onZoomChange, onReady, onBlobSrcChange, onVisualReadyChange,
++}: { photo: ViewerPhoto; isCurrentImage: boolean; shouldRenderHighRes: boolean; engineRef: React.RefObject<Controls | null>;
++  smooth: boolean; enablePan: boolean; onZoomChange: (zoomed: boolean) => void; onReady: (ready: boolean) => void;
++  onBlobSrcChange: (src: string | null) => void; onVisualReadyChange: (ready: boolean) => void }) {
++  const thumbnailRef = useRef<HTMLImageElement>(null);
++  const [isThumbnailLoaded, setIsThumbnailLoaded] = useState(loadedThumbnailSrcSet.has(photo.thumbnail));
++  const [thumbnailFailed, setThumbnailFailed] = useState(false);
++  const [isHighResImageRendered, setIsHighResImageRendered] = useState(false);
++  const isActiveImage = isCurrentImage && shouldRenderHighRes;
+   useLayoutEffect(() => {
+-    if (!thumbnailSrc) {
+-      setState.setIsThumbnailLoaded(false)
+-      return
+-    }
+-
+-    const thumbnailElement = thumbnailRef.current
+-    const isAlreadyLoaded
+-      = loadedThumbnailSrcSet.has(thumbnailSrc)
+-        || isThumbnailElementVisuallyReady({
+-          currentSrc: thumbnailElement?.currentSrc,
+-          naturalWidth: thumbnailElement?.naturalWidth,
+-          src: thumbnailElement?.src,
+-          thumbnailSrc,
+-        })
+-
+-    if (isAlreadyLoaded) {
+-      loadedThumbnailSrcSet.add(thumbnailSrc)
+-      setState.setIsThumbnailLoaded(true)
+-      return
+-    }
+-
+-    setState.setIsThumbnailLoaded(false)
+-  }, [setState, thumbnailSrc])
+-
+-  const showContextMenu = useShowContextMenu()
+-
+-  const [renderedHDR, setRenderedHDR] = useState(false)
+-  const hasRegions = regions.length > 0
+-  const shouldRenderThumbnailPhase = Boolean(thumbnailSrc && (!highResLoaded || !blobSrc || !isActiveImage || error))
+-
+-  const imagePinchConfig = useMemo(
+-    () => ({
+-      step: 0.5,
+-      disabled: !enableZoom,
+-    }),
+-    [enableZoom],
+-  )
+-
+-  const imageDoubleClickConfig = useMemo(
+-    () => ({
+-      step: 2,
+-      disabled: !enableZoom,
+-      mode: 'toggle' as const,
+-      animationTime: 200,
+-    }),
+-    [enableZoom],
+-  )
+-
+-  const imagePanningConfig = useMemo(
+-    () => ({
+-      disabled: !enablePan,
+-    }),
+-    [enablePan],
+-  )
+-
+-  const isVisualReady = getProgressiveImageVisualReady({
+-    isHighResImageRendered,
+-    isThumbnailLoaded,
+-    thumbnailSrc,
+-  })
+-
++    const image = thumbnailRef.current;
++    setIsThumbnailLoaded(loadedThumbnailSrcSet.has(photo.thumbnail) || isThumbnailElementVisuallyReady({
++      currentSrc: image?.currentSrc, naturalWidth: image?.naturalWidth, src: image?.src, thumbnailSrc: photo.thumbnail,
++    }));
++  }, [photo.thumbnail]);
+   useLayoutEffect(() => {
+-    onVisualReadyChange?.(isVisualReady)
+-  }, [isVisualReady, onVisualReadyChange])
+-
+-  const handleViewportChange = useCallback((viewport: ImageViewportState) => {
+-    const overlayFrame = viewportFrameRef.current
+-    if (!overlayFrame) {
+-      return
+-    }
+-
+-    const renderedWidth = viewport.imageWidth * viewport.scale
+-    const renderedHeight = viewport.imageHeight * viewport.scale
+-    const left = viewport.containerWidth / 2 + viewport.translateX - renderedWidth / 2
+-    const top = viewport.containerHeight / 2 + viewport.translateY - renderedHeight / 2
+-
+-    overlayFrame.style.width = `${renderedWidth}px`
+-    overlayFrame.style.height = `${renderedHeight}px`
+-    overlayFrame.style.transform = `translate3d(${left}px, ${top}px, 0)`
+-
+-    if (!hasOverlayViewportRef.current) {
+-      hasOverlayViewportRef.current = true
+-      setHasOverlayViewport(true)
+-    }
+-  }, [])
+-
+-  const getViewerCanvas = useCallback(() => {
+-    const canvas = imageViewerHostRef.current?.querySelector('canvas')
+-    return canvas instanceof HTMLCanvasElement ? canvas : null
+-  }, [])
+-
+-  const shouldForwardViewerEvent = useCallback((target: EventTarget | null, canvas: HTMLCanvasElement) => {
+-    return target instanceof Node && !canvas.contains(target)
+-  }, [])
+-
+-  const dispatchMouseEventToCanvas = useCallback(
+-    (type: 'mousedown' | 'mousemove' | 'mouseup' | 'dblclick', event: React.MouseEvent<HTMLDivElement>) => {
+-      const canvas = getViewerCanvas()
+-      if (!canvas || !shouldForwardViewerEvent(event.target, canvas)) {
+-        return
+-      }
+-
+-      event.preventDefault()
+-      event.stopPropagation()
+-
+-      canvas.dispatchEvent(
+-        new MouseEvent(type, {
+-          bubbles: true,
+-          cancelable: true,
+-          button: event.button,
+-          buttons: event.buttons,
+-          clientX: event.clientX,
+-          clientY: event.clientY,
+-          altKey: event.altKey,
+-          ctrlKey: event.ctrlKey,
+-          metaKey: event.metaKey,
+-          shiftKey: event.shiftKey,
+-        }),
+-      )
+-    },
+-    [getViewerCanvas, shouldForwardViewerEvent],
+-  )
+-
+-  const dispatchTouchEventToCanvas = useCallback(
+-    (type: 'touchstart' | 'touchmove' | 'touchend', event: React.TouchEvent<HTMLDivElement>) => {
+-      const canvas = getViewerCanvas()
+-      if (!canvas || !shouldForwardViewerEvent(event.target, canvas) || typeof TouchEvent === 'undefined') {
+-        return
+-      }
+-
+-      event.preventDefault()
+-      event.stopPropagation()
+-
+-      canvas.dispatchEvent(
+-        new TouchEvent(type, {
+-          bubbles: true,
+-          cancelable: true,
+-          touches: Array.from(event.nativeEvent.touches),
+-          targetTouches: Array.from(event.nativeEvent.targetTouches),
+-          changedTouches: Array.from(event.nativeEvent.changedTouches),
+-          altKey: event.altKey,
+-          ctrlKey: event.ctrlKey,
+-          metaKey: event.metaKey,
+-          shiftKey: event.shiftKey,
+-        }),
+-      )
+-    },
+-    [getViewerCanvas, shouldForwardViewerEvent],
+-  )
+-
+-  const handleOverlayWheel = useCallback(
+-    (event: React.WheelEvent<HTMLDivElement>) => {
+-      const canvas = imageViewerHostRef.current?.querySelector('canvas')
+-      if (!(canvas instanceof HTMLCanvasElement) || !shouldForwardViewerEvent(event.target, canvas)) {
+-        return
+-      }
+-
+-      event.preventDefault()
+-      event.stopPropagation()
+-
+-      canvas.dispatchEvent(
+-        new WheelEvent('wheel', {
+-          bubbles: true,
+-          cancelable: true,
+-          clientX: event.clientX,
+-          clientY: event.clientY,
+-          deltaX: event.deltaX,
+-          deltaY: event.deltaY,
+-          deltaZ: event.deltaZ,
+-          deltaMode: event.deltaMode,
+-          altKey: event.altKey,
+-          ctrlKey: event.ctrlKey,
+-          metaKey: event.metaKey,
+-          shiftKey: event.shiftKey,
+-        }),
+-      )
+-    },
+-    [shouldForwardViewerEvent],
+-  )
+-
+-  useLayoutEffect(() => {
+-    setRenderedHDR(false)
+-    hasOverlayViewportRef.current = false
+-    setHasOverlayViewport(false)
+-
+-    const overlayFrame = viewportFrameRef.current
+-    if (!overlayFrame) {
+-      return
+-    }
+-
+-    overlayFrame.style.width = '0px'
+-    overlayFrame.style.height = '0px'
+-    overlayFrame.style.transform = 'translate3d(0px, 0px, 0)'
+-  }, [blobSrc, highResLoaded, isActiveImage, src])
+-
+-  return (
+-    <div
+-      className={clsxm('relative overflow-hidden', className)}
+-      onMouseDown={handleLongPressStart}
+-      onMouseUp={handleLongPressEnd}
+-      onMouseLeave={handleLongPressEnd}
+-      onTouchStart={handleLongPressStart}
+-      onTouchEnd={handleLongPressEnd}
+-    >
+-      {/* 缩略图 - 在高分辨率图片未加载或加载失败时显示 */}
+-      {thumbnailSrc && (!isHighResImageRendered || error) && (
+-        <ContainedImageFrame
+-          width={width}
+-          height={height}
+-          className="absolute inset-0 flex h-full w-full items-center justify-center overflow-visible"
+-        >
+-          <img
+-            ref={thumbnailRef}
+-            src={thumbnailSrc}
+-            key={thumbnailSrc}
+-            alt={alt}
+-            className={clsxm(
+-              'block size-full object-contain transition-opacity duration-300',
+-              disableThumbnailTransition && 'transition-none',
+-              isThumbnailLoaded ? 'opacity-100' : 'opacity-0',
+-            )}
+-            onLoad={handleThumbnailLoad}
+-          />
+-          {hasRegions && shouldRenderThumbnailPhase && (
+-            <PhotoRegionsOverlay
+-              regions={regions}
+-              photoWidth={width}
+-              photoHeight={height}
+-              orientation={regionOrientation}
+-              accentColor={regionAccentColor}
+-              labelPlacement={regionLabelPlacement}
+-              activeRegionId={activeRegionId}
+-              showAllBoxes={showAllRegions}
+-              interactive={enableRegionHover}
+-              onActiveRegionChange={onActiveRegionChange}
+-            />
+-          )}
+-        </ContainedImageFrame>
+-      )}
+-
+-      {/* 高分辨率图片 - 只在成功加载且非错误状态时显示 */}
+-      {highResLoaded && blobSrc && isActiveImage && !error && (
+-        <div
+-          className="absolute inset-0 h-full w-full"
+-          onContextMenu={(e) => {
+-            const items = createContextMenuItems(blobSrc, alt, t)
+-            showContextMenu(items, e)
+-          }}
+-        >
+-          <div
+-            ref={imageViewerHostRef}
+-            className="absolute inset-0 h-full w-full"
+-            onWheelCapture={handleOverlayWheel}
+-            onMouseDownCapture={event => dispatchMouseEventToCanvas('mousedown', event)}
+-            onMouseMoveCapture={event => dispatchMouseEventToCanvas('mousemove', event)}
+-            onMouseUpCapture={event => dispatchMouseEventToCanvas('mouseup', event)}
+-            onDoubleClickCapture={event => dispatchMouseEventToCanvas('dblclick', event)}
+-            onTouchStartCapture={event => dispatchTouchEventToCanvas('touchstart', event)}
+-            onTouchMoveCapture={event => dispatchTouchEventToCanvas('touchmove', event)}
+-            onTouchEndCapture={event => dispatchTouchEventToCanvas('touchend', event)}
+-          >
+-            <ImageViewer
+-              src={blobSrc}
+-              alt={alt}
+-              onLoad={() => setState.setIsHighResImageRendered(true)}
+-              onHDRChange={setRenderedHDR}
+-              onError={() => {
+-                setState.setError(true)
+-                onError?.()
+-              }}
+-              className="absolute inset-0 h-full w-full"
+-              width={width}
+-              height={height}
+-              initialScale={1}
+-              minScale={minZoom}
+-              maxScale={maxZoom}
+-              pinch={imagePinchConfig}
+-              doubleClick={imageDoubleClickConfig}
+-              panning={imagePanningConfig}
+-              limitToBounds={true}
+-              centerOnInit={true}
+-              smooth={true}
+-              onZoomChange={onTransformed}
+-              onViewportChange={handleViewportChange}
+-              onLoadingStateChange={handleImageLoadingStateChange}
+-              debug={import.meta.env.DEV && !isMobileDevice}
+-            />
+-            {(hasRegions || hasVideo) && (
+-              <div className="pointer-events-none absolute inset-0 z-20">
+-                <div
+-                  ref={viewportFrameRef}
+-                  className={clsxm(
+-                    'absolute left-0 top-0 overflow-visible transition-opacity duration-200',
+-                    hasOverlayViewport ? 'opacity-100' : 'opacity-0',
+-                  )}
+-                >
+-                  {hasVideo && videoSource && imageLoaderManagerRef.current && hasOverlayViewport && (
+-                    <LivePhotoVideo
+-                      ref={livePhotoRef}
+-                      videoSource={videoSource}
+-                      imageLoaderManager={imageLoaderManagerRef.current}
+-                      loadingIndicatorRef={loadingIndicatorRef}
+-                      isCurrentImage={isCurrentImage}
+-                      onPlayingChange={setState.setIsLivePhotoPlaying}
+-                      shouldAutoPlayOnce={shouldAutoPlayVideoOnce}
+-                    />
+-                  )}
+-                  {hasRegions && (
+-                    <PhotoRegionsOverlay
+-                      regions={regions}
+-                      photoWidth={width}
+-                      photoHeight={height}
+-                      orientation={regionOrientation}
+-                      accentColor={regionAccentColor}
+-                      labelPlacement={regionLabelPlacement}
+-                      activeRegionId={activeRegionId}
+-                      showAllBoxes={showAllRegions}
+-                      interactive={enableRegionHover}
+-                      onActiveRegionChange={onActiveRegionChange}
+-                    />
+-                  )}
+-                </div>
+-              </div>
+-            )}
+-          </div>
+-        </div>
+-      )}
+-
+-      {hasVideo && highResLoaded && blobSrc && isActiveImage && !error && (
+-        <LivePhotoBadge
+-          livePhotoRef={livePhotoRef}
+-          isLivePhotoPlaying={isLivePhotoPlaying}
+-          imageLoaderManagerRef={imageLoaderManagerRef}
+-        />
+-      )}
+-
+-      {renderedHDR && highResLoaded && blobSrc && isActiveImage && !error && <HDRBadge />}
+-
+-      {/* 操作提示 */}
+-      {!hasVideo && (
+-        <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded bg-black/50 px-2 py-1 text-xs text-white opacity-0 duration-200 group-hover:opacity-50">
+-          {t('photo.zoom.hint')}
+-        </div>
+-      )}
+-
+-      {/* 缩放倍率提示 */}
+-      <AnimatePresence>
+-        {showScaleIndicator && (
+-          <m.div
+-            initial={{ opacity: 0, y: 10 }}
+-            animate={{ opacity: 1, y: 0 }}
+-            exit={{ opacity: 0, y: 10 }}
+-            className="pointer-events-none absolute bottom-4 left-4 z-20 flex items-center gap-0.5 rounded bg-black/50 px-3 py-1 text-lg text-white tabular-nums"
+-          >
+-            <SlidingNumber number={currentScale} decimalPlaces={1} />
+-            <span>x</span>
+-          </m.div>
+-        )}
+-      </AnimatePresence>
+-    </div>
+-  )
++    if (!isActiveImage) setIsHighResImageRendered(false);
++  }, [isActiveImage]);
++  const visualReady = thumbnailFailed || getProgressiveImageVisualReady({ isHighResImageRendered, isThumbnailLoaded, thumbnailSrc: photo.thumbnail });
++  useLayoutEffect(() => { if (isCurrentImage) onVisualReadyChange(visualReady); }, [isCurrentImage, visualReady, onVisualReadyChange]);
++  return <div className="viewer-progressive-image">
++    {(!isActiveImage || !isHighResImageRendered) && <div className="viewer-slide-preview">
++      {photo.thumbHash && <Thumbhash thumbHash={photo.thumbHash}/>}
++      <img ref={thumbnailRef} className="viewer-preview" src={photo.thumbnail} alt={photo.alt} draggable={false}
++        onError={() => setThumbnailFailed(true)} onLoad={() => { loadedThumbnailSrcSet.add(photo.thumbnail); setIsThumbnailLoaded(true); }}/>
++    </div>}
++    {isActiveImage && <PhotoMedia photo={photo} engineRef={engineRef} smooth={smooth} enablePan={enablePan}
++      onZoom={onZoomChange} onDisplaySrc={onBlobSrcChange} onReady={ready => { setIsHighResImageRendered(ready); onReady(ready); }}/ >}
++  </div>;
+ }
+-
+-export type { ProgressiveImageProps } from './types'
+--- a/src/components/viewer/PhotoViewer.css
++++ b/src/components/viewer/PhotoViewer.css
+@@ -1,4 +1,6 @@
+-.contain-intrinsic-size {
++/* Afilmory/Afilmory apps/web/src/modules/viewer/PhotoViewer.css
++ * 1f65cde6672e5231599182620116ac904e39f548, AGPL-3.0-or-later + ANL §4. Copyright (c) 2025 Afilmory Team. Scoped to Viewer; see THIRD_PARTY_NOTICES.md. */
++.photo-dialog .contain-intrinsic-size {
+   contain-intrinsic-size: 64px;
+   content-visibility: auto;
+ }
+@@ -6,46 +8,46 @@
+ /* PhotoViewer custom styles */
+ 
+ /* Hide default Swiper navigation buttons since we use custom ones */
+-.swiper-button-next,
+-.swiper-button-prev {
++.photo-dialog .swiper-button-next,
++.photo-dialog .swiper-button-prev {
+   display: none !important;
+ }
+ 
+ /* Ensure Swiper slides don't interfere with zoom/pan gestures */
+-.swiper-slide {
++.photo-dialog .swiper-slide {
+   overflow: visible;
+ }
+ 
+ /* Custom navigation button hover effects */
+-.swiper-button-prev-custom,
+-.swiper-button-next-custom {
++.photo-dialog .swiper-button-prev-custom,
++.photo-dialog .swiper-button-next-custom {
+   transition: all 0.2s ease;
+ }
+ 
+ /* Ensure proper touch handling */
+-.swiper {
++.photo-dialog .swiper {
+   touch-action: pan-x;
+ }
+ 
+-.swiper-slide {
++.photo-dialog .swiper-slide {
+   touch-action: manipulation;
+ }
+ 
+ /* Mobile optimizations */
+-@media (max-width: 768px) {
++@media (max-width: 1023px) {
+   /* Improve touch targets on mobile */
+-  .swiper-button-prev-custom,
+-  .swiper-button-next-custom {
++  .photo-dialog .swiper-button-prev-custom,
++  .photo-dialog .swiper-button-next-custom {
+     min-width: 44px;
+     min-height: 44px;
+   }
+ 
+   /* Enable horizontal swiping on mobile */
+-  .swiper {
++  .photo-dialog .swiper {
+     touch-action: pan-x;
+   }
+ 
+-  .swiper-slide {
++  .photo-dialog .swiper-slide {
+     touch-action: pan-x;
+   }
+ 
+@@ -80,8 +82,72 @@
+ 
+ /* Improve accessibility */
+ @media (prefers-reduced-motion: reduce) {
+-  .swiper-button-prev-custom,
+-  .swiper-button-next-custom {
++  .photo-dialog .swiper-button-prev-custom,
++  .photo-dialog .swiper-button-next-custom {
+     transition: none;
+   }
+ }
++
++/* Jason layout adapter for the upstream flex stage. Sizes also drive shared-element frames. */
++.photo-dialog { --color-accent: #e4c496; background: transparent; }
++.photo-dialog::backdrop { background: transparent; }
++.viewer-backdrop-presence { position: absolute; inset: 0; pointer-events: none; }
++.viewer-backdrop-base { position: absolute; inset: 0; background: #181818; }
++.photo-dialog .viewer-stage { touch-action: none; }
++.photo-dialog .viewer-drag-content { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
++.photo-dialog[data-mobile='true'] .viewer-drag-content { overflow: hidden; }
++.viewer-image-stage { position: relative; flex: 1; min-height: 0; min-width: 0; }
++.photo-dialog .viewer-gesture-stage { position: absolute; inset: 0; touch-action: none; }
++.photo-dialog .viewer-swiper { width: 100%; height: 100%; }
++.viewer-slide-content, .viewer-slide-visibility, .viewer-progressive-image { width: 100%; height: 100%; position: relative; }
++.viewer-slide-preview, .viewer-entry-catchup { position: absolute; inset: 0; pointer-events: none; }
++.viewer-entry-catchup { z-index: 10; }
++.viewer-thumbhash { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
++.viewer-chrome-presence { position: absolute; inset: 0; z-index: 12; pointer-events: none; }
++.photo-dialog .viewer-previous, .photo-dialog .viewer-next { top: 50%; }
++.photo-dialog .viewer-toolbar[inert] > * { pointer-events: none; }
++.viewer-thumbnails-motion { flex: 0 0 auto; min-width: 0; }
++.viewer-thumbnail-bar { position: relative; flex-shrink: 0; background: #15151525; z-index: 10; }
++.viewer-thumbnail-glow { position: absolute; inset: 0; pointer-events: none; }
++.photo-dialog .viewer-filmstrip { position: relative; z-index: 1; overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain; touch-action: pan-x; scrollbar-width: none; }
++.viewer-filmstrip::-webkit-scrollbar { display: none; }
++.viewer-thumbnail-item { position: absolute; top: 0; }
++.photo-dialog .viewer-thumbnail-button { position: relative; display: block; height: 100%; width: 100%; overflow: hidden; border: 0; border-radius: 0; padding: 0; background: transparent; opacity: .52; filter: grayscale(1); transition: transform .2s, opacity .2s, filter .2s; }
++.photo-dialog .viewer-thumbnail-button.selected { opacity: 1; filter: none; transform: scale(1.1); z-index: 2; box-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 20%, transparent); }
++.photo-dialog .viewer-thumbnail-button:hover, .photo-dialog .viewer-thumbnail-button:focus-visible { opacity: 1; filter: none; z-index: 3; }
++.viewer-thumbnail-image { position: absolute; inset: 0; height: 100%; width: 100%; object-fit: cover; }
++.viewer-thumbnail-hover { z-index: 50; width: 320px; overflow: hidden; background: #181818; box-shadow: 0 -8px 32px color-mix(in srgb, var(--color-accent) 35%, transparent); pointer-events: none; }
++.viewer-thumbnail-hover-inner, .viewer-thumbnail-hover-image { position: relative; width: 100%; overflow: hidden; }
++.viewer-thumbnail-hover-caption { position: absolute; inset: auto 0 0; padding: 12px; color: #fff; background: linear-gradient(transparent, #0009); }
++.viewer-thumbnail-hover-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
++.viewer-thumbnail-hover-date { margin-top: 4px; font-size: 12px; color: #fffc; }
++.viewer-gesture-hint { position: absolute; bottom: 16px; left: 50%; translate: -50% 0; display: flex; align-items: center; gap: 6px; white-space: nowrap; padding: 5px 12px; border-radius: 20px; background: #202020cc; color: #fff; backdrop-filter: blur(24px); pointer-events: none; font-size: 12px; z-index: 15; }
++.hint-divider { width: 1px; height: 12px; background: #fff3; margin-inline: 3px; }
++.mobile-inspector-sheet { position: fixed; inset: auto 0 0; display: flex; justify-content: center; pointer-events: none; z-index: 30; }
++.photo-dialog .inspector-sheet-surface { position: relative; display: flex; flex-direction: column; width: 100%; max-width: 1024px; padding: 0; overflow: hidden; border-radius: 28px 28px 0 0; background: #242424f0; border: 1px solid color-mix(in srgb, var(--color-accent) 20%, transparent); backdrop-filter: blur(60px); box-shadow: 0 -20px 64px color-mix(in srgb, var(--color-accent) 16%, transparent), 0 -8px 28px #0005; }
++.inspector-sheet-glow { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, #ffffff14, transparent 16%, color-mix(in srgb, var(--color-accent) 7%, transparent)); }
++.photo-dialog .inspector-sheet-surface > header { position: relative; height: 88px; flex-shrink: 0; margin: 0; padding: 24px 16px 0; background: transparent; }
++.inspector-sheet-handle { position: absolute; top: 12px; left: calc(50% - 22px); width: 44px; height: 6px; background: #fff3; border-radius: 8px; }
++.inspector-sheet-content { position: relative; min-height: 0; flex: 1; overflow-y: auto; overflow-anchor: none; overscroll-behavior: contain; touch-action: pan-y; padding: 8px 16px calc(env(safe-area-inset-bottom) + 20px); }
++.inspector-sheet-content * { user-select: text; }
++.photo-dialog[data-mobile='true'] .viewer-toolbar { left: 8px; right: 8px; height: 52px; }
++.photo-dialog[data-mobile='true'] .icon-button { width: 44px; height: 44px; }
++.photo-dialog[data-mobile='true'] .viewer-actions { gap: 0; }
++.photo-dialog[data-mobile='true'] .viewer-actions button:is([aria-label='放大'],[aria-label='缩小'],[aria-label='适应屏幕']) { display: none; }
++@media (prefers-reduced-motion: reduce) {
++  .photo-dialog .viewer-thumbnail-button, .photo-dialog .swiper-wrapper { transition-duration: 0s !important; }
++  .photo-dialog .loading-dot { animation: none; }
++}
++@media (prefers-color-scheme: light) {
++  .viewer-backdrop-base { background: #f5f5f5; }
++  .viewer-thumbnail-bar { background: #ffffff70; }
++  .photo-dialog .inspector-sheet-surface { background: #fffffff0; }
++  .inspector-sheet-handle { background: #0003; }
++}
++
++.viewer-attribution { margin-top: 24px; padding-top: 14px; border-top: 1px solid #8884; font-size: 11px; line-height: 1.8; opacity: .8; overflow-wrap: anywhere; }
++.viewer-attribution a { text-decoration: underline; }
++
++/* Keep the material in a separate layer: blur on the animated thumbnail parent
++   can stall Chromium Graphite/SwiftShader adapter initialization. */
++.viewer-thumbnail-bar::before { content: ''; position: absolute; inset: 0; backdrop-filter: blur(40px); pointer-events: none; }
+--- a/src/hooks/useMobile.ts
++++ b/src/hooks/useMobile.ts
+@@ -1,10 +1,9 @@
+-import { useViewport } from './useViewport'
+-
++// Adapted from Afilmory/Afilmory, apps/web/src/hooks/useMobile.ts
++// Upstream 1f65cde6672e5231599182620116ac904e39f548; AGPL-3.0-or-later + ANL §4, Copyright (c) 2025 Afilmory Team.
++// See THIRD_PARTY_NOTICES.md for the local adaptations.
++import { useWindowViewport } from '@afilmory/viewer-motion';
+ export const useMobile = () => {
+-  return useViewport((v) => v.w < 1024 && v.w !== 0)
+-}
+-
+-export const isMobile = () => {
+-  const w = window.innerWidth
+-  return w < 1024 && w !== 0
+-}
++  const { width } = useWindowViewport();
++  return width < 1024 && width !== 0;
++};
++export const isMobile = () => window.innerWidth < 1024 && window.innerWidth !== 0;
+--- a/src/components/viewer/HoverCard.tsx
++++ b/src/components/viewer/HoverCard.tsx
+@@ -1,68 +1,19 @@
+-import { clsxm, Spring } from '@afilmory/utils'
+-import * as HoverCardPrimitive from '@radix-ui/react-hover-card'
+-import { m } from 'motion/react'
+-import * as React from 'react'
+-
+-import { RootPortal } from '../portal'
+-
+-const HoverCard = HoverCardPrimitive.Root
+-
+-const HoverCardTrigger = HoverCardPrimitive.Trigger
+-
+-const HoverCardContent = ({
+-  ref,
+-  className,
+-  align = 'center',
+-  sideOffset = 4,
+-  ...props
+-}: React.ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content> & {
+-  ref?: React.RefObject<React.ElementRef<typeof HoverCardPrimitive.Content> | null>
+-}) => (
+-  <RootPortal>
+-    <HoverCardPrimitive.Content
+-      ref={ref}
+-      align={align}
+-      sideOffset={sideOffset}
+-      className={clsxm(
+-        'z-50 w-64 rounded-2xl p-4 outline-none backdrop-blur-2xl relative overflow-hidden',
+-        'data-[state=open]:animate-in data-[state=closed]:animate-out',
+-        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+-        'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+-        'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2',
+-        'data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+-        className,
+-      )}
+-      asChild
+-      {...props}
+-    >
+-      <m.div
+-        className="border-accent/20 border"
+-        style={{
+-          backgroundImage:
+-            'linear-gradient(to bottom right, color-mix(in srgb, var(--color-background) 98%, transparent), color-mix(in srgb, var(--color-background) 95%, transparent))',
+-          boxShadow:
+-            '0 8px 32px color-mix(in srgb, var(--color-accent) 8%, transparent), 0 4px 16px color-mix(in srgb, var(--color-accent) 6%, transparent), 0 2px 8px rgba(0, 0, 0, 0.1)',
+-        }}
+-        initial={{ opacity: 0, scale: 0.95, y: 4 }}
+-        animate={{ opacity: 1, scale: 1, y: 0 }}
+-        exit={{ opacity: 0, scale: 0.95, y: 4 }}
+-        transition={Spring.presets.smooth}
+-      >
+-        {/* Inner glow layer */}
+-        <div
+-          className="pointer-events-none absolute inset-0 rounded-2xl"
+-          style={{
+-            background:
+-              'linear-gradient(to bottom right, color-mix(in srgb, var(--color-accent) 5%, transparent), transparent, color-mix(in srgb, var(--color-accent) 5%, transparent))',
+-          }}
+-        />
+-
+-        {/* Content */}
+-        <div className="relative">{props.children}</div>
++// Adapted from Afilmory/Afilmory, packages/ui/src/hover-card/index.tsx
++// Upstream 1f65cde6672e5231599182620116ac904e39f548; MIT, Copyright (c) 2025 Afilmory Team.
++// Portal targets the native dialog top layer. See THIRD_PARTY_NOTICES.md.
++import * as HoverCardPrimitive from '@radix-ui/react-hover-card';
++import { m, useReducedMotion } from 'motion/react';
++import { Spring } from '@afilmory/utils';
++import type { ComponentPropsWithoutRef } from 'react';
++export const HoverCard = HoverCardPrimitive.Root;
++export const HoverCardTrigger = HoverCardPrimitive.Trigger;
++export function HoverCardContent({ container, children, ...props }: ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content> & { container?: HTMLElement | null }) {
++  const reduced = useReducedMotion();
++  return <HoverCardPrimitive.Portal container={container}>
++    <HoverCardPrimitive.Content align="center" sideOffset={4} {...props} asChild>
++      <m.div initial={reduced ? false : { opacity: 0, scale: .95, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .95, y: 4 }} transition={reduced ? { duration: 0 } : Spring.presets.smooth}>
++        {children}
+       </m.div>
+     </HoverCardPrimitive.Content>
+-  </RootPortal>
+-)
+-HoverCardContent.displayName = HoverCardPrimitive.Content.displayName
+-
+-export { HoverCard, HoverCardContent, HoverCardTrigger }
++  </HoverCardPrimitive.Portal>;
++}
+--- a/src/components/viewer/Thumbhash.tsx
++++ b/src/components/viewer/Thumbhash.tsx
+@@ -1,14 +1,12 @@
+-import { clsxm, decompressUint8Array } from '@afilmory/utils'
+-import { useMemo } from 'react'
+-import { thumbHashToDataURL } from 'thumbhash'
+-
+-export const Thumbhash = ({ thumbHash, className }: { thumbHash: ArrayLike<number> | string; className?: string }) => {
++// Adapted from Afilmory/Afilmory, packages/ui/src/thumbhash/index.tsx
++// Upstream 1f65cde6672e5231599182620116ac904e39f548; MIT, Copyright (c) 2025 Afilmory Team.
++// See THIRD_PARTY_NOTICES.md for the local adaptations.
++import { useMemo } from 'react';
++import { thumbHashToDataURL } from 'thumbhash';
++import { decodeThumbHash } from '../../photo-engine/thumbnail';
++export function Thumbhash({ thumbHash, className = '' }: { thumbHash: string; className?: string }) {
+   const dataURL = useMemo(() => {
+-    if (typeof thumbHash === 'string') {
+-      return thumbHashToDataURL(decompressUint8Array(thumbHash))
+-    }
+-    return thumbHashToDataURL(thumbHash)
+-  }, [thumbHash])
+-
+-  return <img src={dataURL} className={clsxm('h-full w-full', className)} />
++    try { return thumbHashToDataURL(decodeThumbHash(thumbHash)); } catch { return undefined; }
++  }, [thumbHash]);
++  return dataURL ? <img src={dataURL} alt="" draggable={false} className={`viewer-thumbhash ${className}`}/> : null;
+ }

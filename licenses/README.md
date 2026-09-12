@@ -41,3 +41,13 @@ The portfolio, gallery, metadata, and map application components are authored lo
 The current Viewer baseline is **1f65cde6672e5231599182620116ac904e39f548**; `viewer-upstream.json` supersedes the original Viewer source hashes for synchronization checks. Fifteen core source files still match upstream byte-for-byte. `ImageViewer.tsx` retains the context-loss patch and adds renderer restart/first-frame handoff; `patches/afilmory-viewer-lifecycle.patch` records the complete wrapper difference against this baseline (do not also apply the historical HDR patch).
 
 The reusable image-loading/conversion modules under `src/lib` are adapted from Afilmory's `apps/web/src/lib/image-loader-manager.ts` and `image-convert/` library modules; their source references and hashes are recorded in the new manifest. Copyright (c) 2025 Afilmory Team; the preserved root license covers their reusable library role. `src/components/viewer/useImageLoader.ts` and the site media integration are locally authored adapters referencing the public behavior of ProgressiveImage/hooks; no upstream application UI is copied. The pipeline file is copied from the reusable upstream queue. See the alignment report for behavior and ownership changes. Dependencies `file-type`, `heic-to` and `tiff` retain their registry licenses and pinned lockfile resolutions.
+
+## Viewer interaction core migration (2026-09-12)
+
+The historical statements above about application UI not being copied describe
+those earlier phases. This phase directly migrates `apps/web` Viewer components
+at `1f65cde6672e5231599182620116ac904e39f548`, under AGPL-3.0-or-later + ANL §4.
+See [the complete new notices](../THIRD_PARTY_NOTICES.md) and
+`viewer-interaction-upstream.json` for copied files and adaptations. The
+viewer-motion sources also now carry a small reduced-motion/cleanup adaptation;
+`viewer-motion-files.json` supersedes its former byte-identical source record.

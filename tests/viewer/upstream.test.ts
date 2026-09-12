@@ -37,3 +37,10 @@ test('bundle audit exception only accepts file-type dormant Node method, retaini
   assert(browserBundleForAudit(method.replace('this.fromTokenizer(f)', 'this.fromTokenizer(f);"@afilmory/builder"')).includes('@afilmory/builder'));
   assert.throws(() => browserBundleForAudit('async fromFile(e){x("node:fs/promises")}'), /Unexpected/);
 });
+
+test('all localized interaction files match their reviewed upstream/adaptation records', async () => {
+  const { checkViewerInteractions } = await import('../../scripts/upstream/check-viewer-interactions');
+  const result = await checkViewerInteractions();
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.count, 23);
+});
