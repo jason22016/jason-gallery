@@ -71,6 +71,7 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
   await page.locator('.gallery-live [data-gallery-index="0"]').click();
   for (const [i,p] of photos.entries()) {
     await expectFallbackSource(page, p.originalUrl);
+    await page.getByRole('button', { name: '照片信息', exact: true }).click();
     await expect(page.locator('.metadata-content')).toContainText(`Artist ${i}`);
     assert.equal(new URL(page.url()).searchParams.get('photo'),p.id);
     const details = await context.request.get(`${server.url}/projects/mixed/photos/${p.id}.json`);

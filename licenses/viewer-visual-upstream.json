@@ -114,7 +114,7 @@
     },
     {
       "local": "src/components/viewer/PhotoViewer.tsx",
-      "sha256": "d2d4a606671dd0e4af2158719e5f91720a73d2941d7a85c99b5db428749179c4",
+      "sha256": "23296286985e3baf9ddc8ab18caa86cc451087dccb93384a262f39e23a46b32a",
       "adapted": true,
       "upstream": [
         {

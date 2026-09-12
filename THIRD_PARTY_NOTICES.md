@@ -177,3 +177,9 @@ pairs, Lucide imports, off-role blur, arbitrary z-index, pointer-only slider beh
 spatial CSS tweens were not carried into the new components. The Vaul drawer shell uses
 Motion springs in place of Vaul's default CSS easing. Source provenance records for the
 existing Viewer CSS were updated only for the reviewed token and minimap status changes.
+
+Final parity audit (2026-09-13) verified the same upstream HEAD and DESIGN.md. The mobile
+header now follows upstream's top action group and desktop-only view segment/map shortcut;
+mobile view and map actions remain in Settings/Search. The desktop Inspector starts collapsed
+per DESIGN.md §8.1, taking precedence over upstream's default-open state. Only these reviewed
+Gallery/Viewer adaptations have updated provenance hashes.

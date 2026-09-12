@@ -346,6 +346,7 @@ test('project information, filters, chronological sort, list persistence, and sh
   await page.getByRole('button', { name: '查看 1 张照片' }).click();
   await expect(page.locator('.gallery-live [data-gallery-index]')).toHaveCount(1);
   await open(page); await loaded(page); await expect(page.locator('.viewer-counter')).toHaveText('1 / 1');
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
   await expect(page.locator('.viewer-inspector')).toContainText('Fixture artist');
   await expect(page.getByRole('button', { name: '下一张照片' })).toBeDisabled();
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -509,6 +510,8 @@ test('metadata stays lazy, preserves units/offsets and zero values, retries, and
   const detailsURL = `**/photos/${fixture.photos[0]!.photoId}.json`;
   await page.route(detailsURL, route => route.abort());
   await open(page); await loaded(page);
+  assert.equal(requests, 0, 'Collapsed Inspector must not fetch metadata');
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
   await expect(page.locator('.metadata-content')).toContainText('详细信息暂时不可用');
   await page.unroute(detailsURL);
   await page.locator('.metadata-content').getByRole('button', { name: '重试', exact: true }).click();
@@ -723,6 +726,8 @@ test('home follows the device while Project Gallery and Viewer keep DESIGN.md da
   assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(28, 28, 30)');
   await open(page); await loaded(page);
   assert.equal(await page.locator('.viewer-backdrop-base').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(40, 40, 40)');
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
+  await expect(page.locator('.viewer-inspector')).toBeVisible();
   assert.equal(await page.locator('.viewer-inspector .photo-caption').evaluate(el => getComputedStyle(el).color), 'rgba(255, 255, 255, 0.5)');
   assert.equal(await page.locator('.viewer-inspector').evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(40, 40, 40, 0.6)');
   assert.equal(await page.locator('.photo-dialog').evaluate(el => getComputedStyle(el).colorScheme), 'dark');

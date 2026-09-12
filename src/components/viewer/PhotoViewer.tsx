@@ -41,7 +41,7 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
   const titleId = useId(), helpId = useId();
   const reduced = !!useReducedMotion();
   const mobile = useMobile();
-  const [inspector, setInspector] = useState(!mobile);
+  const [inspector, setInspector] = useState(false);
   const [closing, setClosing] = useState(false);
   const [exitFrame, setExitFrame] = useState<AnimationFrameRect | null>(null);
   const [zoomed, setZoomed] = useState(false);
@@ -97,7 +97,7 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
   const opaqueBackdropOpacity = useTransform(() => Math.min(1, gestures.backdropOpacity.get() + Math.max(0, Math.min(1, gestures.inspectorProgress.get())) * .08));
   const detailsVisible = mobile ? gestures.isInspectorVisible : inspector;
   const canSwipe = !zoomed && !multiplePointers && !closing && !(mobile && (gestures.isVerticalGestureActive || detailsVisible));
-  useEffect(() => { setInspector(!mobile); }, [mobile]);
+  useEffect(() => { setInspector(false); }, [mobile]);
   useLayoutEffect(() => { dialog.current?.querySelector<HTMLElement>('.viewer-inspector')?.scrollTo(0, 0); }, [photo.id, detailsVisible]);
   useLayoutEffect(() => { setControlsReady(false); setCurrentBlobSrc(null); }, [photo.id]);
   useEffect(() => {

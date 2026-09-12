@@ -86,7 +86,7 @@
     },
     {
       "local": "src/components/gallery/PageHeader.tsx",
-      "localSha256": "de8548882fcb060141474c1d9d1c9c71fcf32c858dfa627a24aa0e5040c42e88",
+      "localSha256": "bc9df945893eb2b19a119f2bb5389e3f0cbd029790d0c07f4138c9c57e0ce0ab",
       "license": "AGPL-3.0-or-later + ANL §4",
       "upstream": [
         {
@@ -143,7 +143,7 @@
     },
     {
       "local": "src/styles/gallery.css",
-      "localSha256": "1d189d5871cbf8cbe2f4079a54ca736538f1c068d844ee21c71d3c93983403a3",
+      "localSha256": "5ac11f56106c4e3ba6f60a7d75378bc7d0c083c0c27fcad032774535f9d4093f",
       "license": "AGPL-3.0-or-later + ANL §4",
       "upstream": [
         {

@@ -119,7 +119,7 @@
       "local": "src/components/viewer/PhotoViewer.tsx",
       "upstream": "apps/web/src/modules/viewer/PhotoViewer.tsx",
       "upstreamSha256": "012063d75551a288540ee764fc168a50b898c74750914626bfef3ad8c89d53b3",
-      "sha256": "d2d4a606671dd0e4af2158719e5f91720a73d2941d7a85c99b5db428749179c4",
+      "sha256": "23296286985e3baf9ddc8ab18caa86cc451087dccb93384a262f39e23a46b32a",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adapted": true
     },

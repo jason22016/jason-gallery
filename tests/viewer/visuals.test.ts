@@ -59,12 +59,14 @@ test('photo accents stay in the upstream contrast band and malformed hashes are 
 test('dark-only materials, local icons/font, quiet desktop controls and spring Inspector stay usable', async t => {
   const { page, context } = await fixture({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' }); t.after(() => context.close());
   await open(page);
-  await page.mouse.move(1270, 5);
+  await expect(page.locator('.viewer-inspector')).toHaveCount(0);
+  await expect(page.locator('.viewer-inspector-slot')).toHaveCSS('width', '0px');
+  await expect(page.getByRole('button', { name: '照片信息', exact: true })).toHaveAttribute('aria-expanded', 'false');
+  await page.mouse.move(1270, 895);
   await expect(page.locator('.viewer-next')).toHaveCSS('opacity', '0');
   await expect(page.getByRole('button', { name: '放大', exact: true })).toHaveCSS('opacity', '0');
   await expect(page.locator('.photo-dialog')).toHaveCSS('color-scheme', 'dark');
   await expect(page.locator('.viewer-backdrop-base')).toHaveCSS('background-color', 'rgb(40, 40, 40)');
-  await expect(page.locator('.viewer-desktop-inspector')).toHaveCSS('backdrop-filter', 'blur(40px)');
   await expect(page.locator('.viewer-close')).toHaveCSS('width', '32px');
   await expect(page.locator('.viewer-close')).toHaveCSS('border-radius', '999px');
   assert((await page.locator('.viewer-close i').evaluate(el => getComputedStyle(el).maskImage)).includes('data:image/svg+xml'));
@@ -76,6 +78,9 @@ test('dark-only materials, local icons/font, quiet desktop controls and spring I
   await expect.poll(() => page.locator('.photo-dialog').evaluate(el => getComputedStyle(el).getPropertyValue('--color-accent'))).not.toBe(accent);
   await page.emulateMedia({ colorScheme: 'dark' });
   await expect(page.locator('.viewer-backdrop-base')).toHaveCSS('background-color', 'rgb(40, 40, 40)');
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
+  await expect(page.locator('.viewer-inspector-slot')).toHaveCSS('width', '320px');
+  await expect(page.locator('.viewer-desktop-inspector')).toHaveCSS('backdrop-filter', 'blur(40px)');
   await page.evaluate(`
     window.inspectorWidths = [];
     const sample = () => {
@@ -98,6 +103,7 @@ test('dark-only materials, local icons/font, quiet desktop controls and spring I
   await expect(page.locator('.photo-dialog')).toHaveAttribute('data-mobile', 'true');
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(page.locator('.photo-dialog')).toHaveAttribute('data-mobile', 'false');
+  await expect(page.locator('.viewer-inspector-slot')).toHaveCSS('width', '0px');
   await expect(page.getByRole('button', { name: '放大', exact: true })).toBeEnabled();
 });
 
@@ -124,6 +130,7 @@ test('background crossfades, holds the prior layer until fallback decodes, and i
 test('metadata sections preserve recipe extras and zero GPS; histogram resizes and errors remain honest', async t => {
   const { page, context } = await fixture({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 }); t.after(() => context.close());
   await open(page);
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
   await expect(page.locator('.viewer-histogram')).toHaveAttribute('data-histogram-state', 'ready');
   assert.deepEqual(await page.locator('.metadata-section h3').allTextContents(), ['基本信息', '拍摄参数', '照片说明', '标签', '影调分析', '直方图', '设备信息', '拍摄模式', '胶片模拟配方', '拍摄位置', '技术参数']);
   for (const text of ['Preserved Jason field', '0 EV', '0 m', '0 °', 'Fixture owner']) await expect(page.locator('.metadata-content')).toContainText(text);
@@ -151,6 +158,7 @@ test('MiniMap renders its local style with real WebGL and retains provider attri
   });
   await page.route('**/empty/**/*.pbf', route => route.fulfill({ body: Buffer.alloc(0), contentType: 'application/x-protobuf' }));
   await open(page);
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
   await page.locator('.viewer-minimap').scrollIntoViewIfNeeded();
   await expect(page.locator('.viewer-minimap')).toHaveAttribute('data-map-state', 'ready');
   await expect(page.locator('.viewer-minimap-marker')).toBeVisible();

@@ -191,15 +191,29 @@ test('48px progressive header and safe-area mobile actions remain usable at narr
   assert.equal(await page.locator('.linear-blur-layer').count(), 8);
   for (const width of [320,390,768,1023]) {
     await page.setViewportSize({ width, height: 844 });
-    for (const name of ['瀑布流','列表视图','搜索和筛选','地图探索','显示设置','项目信息']) {
+    for (const name of ['搜索和筛选','显示设置','项目信息']) {
       const button = page.getByRole('button', { name, exact: true });
       await expect.poll(async () => {
         const box = await button.boundingBox();
-        return !!box && box.x >= 0 && box.x + box.width <= width && box.y >= 0 && box.y + box.height <= 844;
+        return !!box && box.x >= 0 && box.x + box.width <= width && box.y >= 0 && box.y + box.height <= 48;
       }, { message: `${name} must stay inside the ${width} × 844 viewport after resize` }).toBe(true);
     }
+    await expect(page.locator('.gallery-header .view-segment')).toHaveCount(0);
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   }
+  await page.getByRole('button', { name: '显示设置' }).tap();
+  await page.getByRole('button', { name: '列表视图' }).tap();
+  await page.getByRole('button', { name: '关闭面板', exact: true }).tap();
+  await expect(page.locator('.list-card').first()).toBeVisible();
+  await page.getByRole('button', { name: '搜索和筛选' }).tap();
+  await page.locator('.palette-actions summary').tap();
+  await page.getByRole('button', { name: '地图探索', exact: true }).tap();
+  await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '关闭面板', exact: true }).tap();
+  await page.setViewportSize({ width: 1024, height: 844 });
+  await expect(page.locator('.gallery-header .view-segment')).toBeVisible();
+  await expect(page.getByRole('button', { name: '地图探索', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '瀑布流' }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await expect(cards(page).first()).toBeVisible();
