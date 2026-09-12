@@ -126,7 +126,7 @@
     },
     {
       "local": "src/components/viewer/PhotoViewer.css",
-      "sha256": "70c629c7415f0b8082051985acb7fcad4709df62dcfafb923a9a9d5f1b711dfe",
+      "sha256": "041995e77e16e8b8ab4d3c2e4d655f3046054b2870457c8277ff39e991a72f5b",
       "adapted": true,
       "upstream": [
         {

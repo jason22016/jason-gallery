@@ -178,7 +178,24 @@ test('MiniMap renders its local style with real WebGL and retains provider attri
   await page.locator('.viewer-minimap').scrollIntoViewIfNeeded();
   await expect(page.locator('.viewer-minimap')).toHaveAttribute('data-map-state', 'ready');
   await expect(page.locator('.viewer-minimap-marker')).toBeVisible();
-  assert(await page.locator('.viewer-minimap-canvas canvas').evaluate(el => (el as HTMLCanvasElement).width > 0));
+  // A ready WebGL canvas can still be clipped by a zero-height map container.
+  // Load the vendor rules last as also happens with lazy Viewer CSS chunks.
+  await page.addStyleTag({ content: await readFile('node_modules/maplibre-gl/dist/maplibre-gl.css', 'utf8') });
+  const geometry = () => page.locator('.viewer-minimap').evaluate(el => {
+    const host = el as HTMLElement;
+    const container = el.querySelector<HTMLElement>('.viewer-minimap-canvas')!;
+    const canvas = container.querySelector('canvas')!;
+    const marker = el.querySelector('.viewer-minimap-marker')!.getBoundingClientRect();
+    const bounds = canvas.getBoundingClientRect();
+    return container.clientWidth === host.clientWidth && container.clientHeight === host.clientHeight
+      && host.clientHeight > 0 && canvas.clientWidth === host.clientWidth && canvas.clientHeight === host.clientHeight
+      && canvas.width === Math.round(host.clientWidth * devicePixelRatio) && canvas.height === Math.round(host.clientHeight * devicePixelRatio)
+      && Math.abs(marker.x + marker.width / 2 - bounds.x - bounds.width / 2) < 1
+      && Math.abs(marker.y + marker.height / 2 - bounds.y - bounds.height / 2) < 1;
+  });
+  await expect.poll(geometry).toBe(true);
+  await page.locator('.viewer-minimap').evaluate(el => { (el as HTMLElement).style.width = '240px'; (el as HTMLElement).style.height = '200px'; });
+  await expect.poll(geometry).toBe(true);
   await expect(page.locator('.viewer-minimap-attribution')).toContainText('© OpenStreetMap · © CARTO');
 });
 

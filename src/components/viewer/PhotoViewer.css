@@ -101,7 +101,9 @@
 .histogram-legend > :nth-child(2) { color: var(--color-green); }
 .histogram-legend > :nth-child(3) { color: var(--color-histogram-blue); }
 .viewer-minimap { position: relative; height: 160px; width: 100%; overflow: hidden; border-radius: 8px; border: 1px solid var(--viewer-border); background: var(--color-material-ultra-thin); backdrop-filter: blur(var(--viewer-blur-panel)); }
-.viewer-minimap-canvas, .viewer-minimap-link { position: absolute; inset: 0; }
+/* Outrank MapLibre's .maplibregl-map positioning even when its CSS loads last.
+   A relative, auto-height host collapses and clips the otherwise loaded canvas. */
+.viewer-minimap > .viewer-minimap-canvas, .viewer-minimap-link { position: absolute; inset: 0; }
 .viewer-minimap-link { z-index: 10; transition: background-color .2s; }
 .viewer-minimap-link:hover { background: var(--viewer-wash); }
 .viewer-minimap-link:focus-visible { outline-offset: -3px; }
