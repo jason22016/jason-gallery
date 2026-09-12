@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { captureDate, captureZone, photoLocation, altitude, aperture, unit } from '../../src/components/viewer/metadata';
+import { captureDate, captureZone, formatCaptureTime, photoLocation, altitude, aperture, unit } from '../../src/components/viewer/metadata';
 import { viewerPhotos, selectPhotos, emptyFilters, formatBytes } from '../../src/components/viewer/photos';
 import { resolveProjects } from '../../src/projects/resolver';
 import { photo, project } from '../projects/fixtures';
@@ -13,8 +13,22 @@ test('capture time preserves EXIF wall clock and offsets; build clock and malfor
   assert.equal(captureDate({ DateTimeOriginal: date }), date);
   assert.equal(captureZone({ DateTimeOriginal: date }), '未记录');
   assert.equal(captureDate({ DateTimeOriginal: date, OffsetTimeOriginal: '+05:30' }), `${date}+05:30`);
-  assert.match(captureZone({ DateTimeOriginal: `${date}-03:30` }), /UTC-03:30/);
+  assert.equal(captureZone({ DateTimeOriginal: `${date}-03:30` }), 'UTC_-3:30');
   assert.equal(captureDate({ DateTimeOriginal: `${date}Z`, OffsetTimeOriginal: '+08:00' }), `${date}Z`);
+});
+
+test('capture display omits fractions and offsets without shifting the recorded wall clock', () => {
+  const date = '2026-02-18T07:59:55.990+08:00';
+  assert.equal(formatCaptureTime(date), '2026-02-18 07:59:55');
+  assert.equal(formatCaptureTime('2026-02-18T00:01:02.123-03:30'), '2026-02-18 00:01:02');
+  assert.equal(formatCaptureTime('2026-02-18T07:59:55Z'), '2026-02-18 07:59:55');
+  assert.equal(formatCaptureTime('2026-02-18T07:59:55'), '2026-02-18 07:59:55');
+  assert.equal(formatCaptureTime(''), '未记录');
+  assert.equal(formatCaptureTime('2026-02-30T07:59:55'), '未记录');
+  assert.equal(captureZone({ DateTimeOriginal: date, OffsetTimeOriginal: '+08:00', zone: 'UTC+8', tzSource: 'OffsetTimeOriginal' }), 'UTC_8');
+  assert.equal(captureZone({ DateTimeOriginal: '2026-02-18T07:59:55Z' }), 'UTC_0');
+  assert.equal(captureZone({ DateTimeOriginal: '2026-02-18T07:59:55+05:45' }), 'UTC_5:45');
+  assert.equal(captureZone({ DateTimeOriginal: '2026-02-18T07:59:55', zone: 'UTC+8' }), 'UTC_8');
 });
 
 test('native EXIF GPS works without reverse geocoding; zero, signed hemispheres, invalid/missing pairs and units stay honest', () => {

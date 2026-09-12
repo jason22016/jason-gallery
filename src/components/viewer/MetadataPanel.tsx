@@ -1,7 +1,7 @@
 // Layout adapted from Afilmory/Afilmory, apps/web/src/modules/metadata/ExifPanel.tsx
 // 1f65cde6672e5231599182620116ac904e39f548; AGPL-3.0-or-later + ANL §4. See THIRD_PARTY_NOTICES.md.
 import { useEffect, useState } from 'react';
-import { altitude, aperture, captureZone, unit } from './metadata';
+import { altitude, aperture, captureZone, formatCaptureTime, unit } from './metadata';
 import { formatBytes, type PhotoDetails, type ViewerPhoto } from './photos';
 import { ExifSection, Rows } from './ExifSection';
 import { HistogramChart } from './HistogramChart';
@@ -38,11 +38,10 @@ export default function MetadataPanel({ photo }: { photo: ViewerPhoto }) {
   return <div className="metadata-content">
     <ExifSection title="基本信息"><Rows values={[
       ['文件名', photo.filename], ['格式', photo.format.toUpperCase()], ['尺寸', `${photo.width} × ${photo.height}`], ['文件大小', formatBytes(photo.size)], ['像素', `${(photo.width * photo.height / 1e6).toFixed(1)} MP`],
-      ['色彩空间', exif?.ColorSpace], ['评分', exif?.Rating ? '★'.repeat(Math.min(5, Math.max(0, exif.Rating))) : null], ['拍摄时间', photo.date ? photo.date.replace('T', ' ') : '未记录'], ['时区', captureZone(exif)], ['艺术家', exif?.Artist], ['软件', exif?.Software],
+      ['色彩空间', exif?.ColorSpace], ['评分', exif?.Rating ? '★'.repeat(Math.min(5, Math.max(0, exif.Rating))) : null], ['拍摄时间', formatCaptureTime(photo.date)], ['时区', captureZone(exif)], ['艺术家', exif?.Artist], ['软件', exif?.Software],
     ]}/></ExifSection>
     {photo.exposure.length > 0 && <ExifSection title="拍摄参数"><div className="exposure-grid">{photo.exposure.map((value, i) => { const Icon = value.startsWith('ISO') ? CarbonIsoOutline : value.startsWith('ƒ/') ? TablerAperture : value.endsWith(' s') ? MaterialSymbolsShutterSpeed : StreamlineImageAccessoriesLensesPhotosCameraShutterPicturePhotographyPicturesPhotoLens; return <span key={`${i}:${value}`}><Icon aria-hidden="true"/>{value}</span>; })}{exif?.ExposureCompensation != null && <span><MaterialSymbolsExposure aria-hidden="true"/>{unit(exif.ExposureCompensation, 'EV')}</span>}</div></ExifSection>}
     {(photo.caption || photo.description) && <ExifSection title="照片说明"><p className="photo-caption">{photo.caption || photo.description}</p>{photo.caption && photo.description && photo.description !== photo.caption && <p className="photo-caption">{photo.description}</p>}</ExifSection>}
-    {!!photo.tags.length && <ExifSection title="标签"><ul className="metadata-tags">{photo.tags.map(tag => <li key={tag}>{tag}</li>)}</ul></ExifSection>}
     {tone && <ExifSection title="影调分析"><Rows values={[
       ['影调类型', ({ 'low-key': '低调', 'high-key': '高调', normal: '正常', 'high-contrast': '高对比' })[tone.toneType]],
     ]}/><Rows className="metadata-tone-grid" values={[['亮度', `${Math.round(tone.brightness)}%`], ['对比度', `${Math.round(tone.contrast)}%`], ['阴影占比', `${Math.round(tone.shadowRatio * 100)}%`], ['高光占比', `${Math.round(tone.highlightRatio * 100)}%`],
@@ -64,5 +63,6 @@ export default function MetadataPanel({ photo }: { photo: ViewerPhoto }) {
     {status === 'loading' && <p className="muted" role="status">正在加载详细信息…</p>}
     {status === 'error' && <p className="muted" role="status">详细信息暂时不可用。<button onClick={event => { event.currentTarget.closest('dialog')?.querySelector<HTMLButtonElement>('.viewer-close')?.focus(); setAttempt(n => n + 1); }}>重试</button></p>}
     {status === 'ready' && !exif && <p className="muted">此照片没有 EXIF 信息。</p>}
+    {!!photo.tags.length && <ExifSection title="标签"><ul className="metadata-tags">{photo.tags.map(tag => <li key={tag}>{tag}</li>)}</ul></ExifSection>}
   </div>;
 }

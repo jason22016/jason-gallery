@@ -70,14 +70,15 @@
     },
     {
       "local": "src/components/viewer/MetadataPanel.tsx",
-      "sha256": "0e78900dfe253c699309504bc63a77bb4bad8134edd2a0589631474609532e44",
+      "sha256": "76fae2e9174f133c27698ae6f794482f749a1f8800e72e6bd3c5ac9a49ca03e1",
       "adapted": true,
       "upstream": [
         {
           "path": "apps/web/src/modules/metadata/ExifPanel.tsx",
           "sha256": "f15831360257e61074a1bb9d2f2a042c13cc953628b6762a4b9c7b168b62d570"
         }
-      ]
+      ],
+      "metadataLoadingAdaptation": "Display capture wall time to whole seconds, show one compact UTC offset, and place tags after all photo metadata and load notices."
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",
@@ -125,7 +126,7 @@
     },
     {
       "local": "src/components/viewer/PhotoViewer.css",
-      "sha256": "7766c3af74d19486b8a1872938e103d2f245c5dbba7d905f880e24dd30e791c3",
+      "sha256": "70c629c7415f0b8082051985acb7fcad4709df62dcfafb923a9a9d5f1b711dfe",
       "adapted": true,
       "upstream": [
         {
@@ -141,7 +142,8 @@
           "sha256": "b97e2f889ab96ed672a8da343c1ea4263c16993d5c479638255abe152261284b"
         }
       ],
-      "phase4Adaptation": "Share photo-tokens.css with Gallery; use semantic RGB legend tokens and control-role blur on minimap status. No Viewer gesture or rendering logic changed."
+      "phase4Adaptation": "Share photo-tokens.css with Gallery; use semantic RGB legend tokens and control-role blur on minimap status. No Viewer gesture or rendering logic changed.",
+      "metadataLoadingAdaptation": "Increase Inspector metadata and headings by 1px; style a bottom-right download badge with byte counts and reduced-motion support; hide the mobile gesture hint while loading to prevent overlap."
     },
     {
       "local": "src/components/viewer/GalleryThumbnail.tsx",

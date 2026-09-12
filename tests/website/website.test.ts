@@ -524,7 +524,7 @@ test('metadata stays lazy, preserves units/offsets and zero values, retries, and
   await page.unroute(detailsURL);
   await page.locator('.metadata-content').getByRole('button', { name: '重试', exact: true }).click();
   await expect(page.locator('.metadata-content')).toContainText('Fixture artist');
-  for (const value of ['2024-03-02 12:00:00+08:00', 'UTC+08:00', '35 mm', '1/125 s', '0 EV', '0 m', '22.3 °', '114.17 °']) await expect(page.locator('.metadata-content')).toContainText(value);
+  for (const value of ['2024-03-02 12:00:00', 'UTC_8', '35 mm', '1/125 s', '0 EV', '0 m', '22.3 °', '114.17 °']) await expect(page.locator('.metadata-content')).toContainText(value);
   let release!: () => void; const pending = new Promise<void>(resolve => { release = resolve; }); t.after(() => release());
   const nearId = fixture.manifest.data.find(photo => photo.s3Key === 'map-near.jpg')!.id;
   let intercepted = 0;

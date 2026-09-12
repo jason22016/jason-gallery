@@ -23,6 +23,7 @@ async function fixture(options: BrowserContextOptions = {}, webgl = false) {
   await page.route('https://**', route => route.abort());
   await page.route('**/visual-metadata.json?*', route => route.fulfill({ json: {
     exif: { FocalLength: 35, FNumber: 1.4, ExposureTime: '1/125', ISO: 100, ExposureCompensation: 0, GPSAltitude: 0,
+      DateTimeOriginal: '2026-02-18T07:59:55.990+08:00', OffsetTimeOriginal: '+08:00', zone: 'UTC+8', tzSource: 'OffsetTimeOriginal',
       Artist: 'Metadata fixture', ExposureProgram: 'Manual', WhiteBalance: 'Auto', Copyright: 'Fixture owner',
       FujiRecipe: { Clarity: 0, FilmMode: 'Classic Chrome', DynamicRange: 100, ExtraSetting: 'Preserved Jason field' } },
     toneAnalysis: { toneType: 'normal', brightness: 40, contrast: 50, shadowRatio: .2, highlightRatio: .1 },
@@ -143,8 +144,12 @@ test('metadata sections preserve recipe extras and zero GPS; histogram resizes a
   await open(page);
   await page.getByRole('button', { name: '照片信息', exact: true }).click();
   await expect(page.locator('.viewer-histogram')).toHaveAttribute('data-histogram-state', 'ready');
-  assert.deepEqual(await page.locator('.metadata-section h3').allTextContents(), ['基本信息', '拍摄参数', '照片说明', '标签', '影调分析', '直方图', '设备信息', '拍摄模式', '胶片模拟配方', '拍摄位置', '技术参数']);
+  assert.deepEqual(await page.locator('.metadata-section h3').allTextContents(), ['基本信息', '拍摄参数', '照片说明', '影调分析', '直方图', '设备信息', '拍摄模式', '胶片模拟配方', '拍摄位置', '技术参数', '标签']);
   for (const text of ['Preserved Jason field', '0 EV', '0 m', '0 °', 'Fixture owner']) await expect(page.locator('.metadata-content')).toContainText(text);
+  await expect(page.locator('.metadata-rows > div').filter({ has: page.getByText('拍摄时间', { exact: true }) }).locator('dd')).toHaveText('2026-02-18 07:59:55');
+  await expect(page.locator('.metadata-rows > div').filter({ has: page.getByText('时区', { exact: true }) }).locator('dd')).toHaveText('UTC_8');
+  await expect(page.locator('.metadata-rows').first()).toHaveCSS('font-size', '13px');
+  await expect(page.locator('.metadata-section h3').first()).toHaveCSS('font-size', '15px');
   const dimensions = await page.locator('canvas.histogram').evaluate(el => ({ width: (el as HTMLCanvasElement).width, css: el.clientWidth }));
   assert.equal(dimensions.width, dimensions.css * 2);
   await page.locator('.viewer-minimap').scrollIntoViewIfNeeded();
@@ -175,6 +180,27 @@ test('MiniMap renders its local style with real WebGL and retains provider attri
   await expect(page.locator('.viewer-minimap-marker')).toBeVisible();
   assert(await page.locator('.viewer-minimap-canvas canvas').evaluate(el => (el as HTMLCanvasElement).width > 0));
   await expect(page.locator('.viewer-minimap-attribution')).toContainText('© OpenStreetMap · © CARTO');
+});
+
+test('mobile download badge uses manifest size before headers and stays clear of gesture hints', async t => {
+  const { page, context } = await fixture({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }); t.after(() => context.close());
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; }); t.after(() => release());
+  await page.route('**/viewer-portrait.jpg', async route => { await held; await route.continue().catch(() => {}); });
+  await page.getByRole('button', { name: 'Open visual viewer' }).click();
+  const status = page.locator('.viewer-status');
+  await expect(status.locator('.viewer-loading-heading')).toHaveText('加载中0%');
+  await expect(status.locator('.viewer-loading-bytes')).toHaveText('0.0 MB / 1.0 MB');
+  await expect(page.locator('.viewer-gesture-hint')).toHaveCSS('visibility', 'hidden');
+  await expect(status.locator('.loading-dot')).toHaveCSS('animation-name', 'none');
+  const stage = (await page.locator('.viewer-image-stage').boundingBox())!;
+  const badge = (await status.boundingBox())!;
+  assert(Math.abs(stage.x + stage.width - badge.x - badge.width - 16) < 1);
+  assert(Math.abs(stage.y + stage.height - badge.y - badge.height - 16) < 1);
+  release();
+  await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loaded');
+  await expect(status).toHaveCount(0);
+  await expect(page.locator('.viewer-gesture-hint')).toHaveCSS('visibility', 'visible');
 });
 
 test('mobile Sheet keeps opaque backing, safe-area geometry and 32px controls with 44px hit targets', async t => {

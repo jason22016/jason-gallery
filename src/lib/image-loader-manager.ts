@@ -17,24 +17,24 @@ export interface LoadingCallbacks {
   onLoadingStateUpdate?: (state: Partial<LoadingState>) => void;
 }
 export interface ImageLoadResult { blobSrc: string; convertedUrl?: string }
-type Entry = { result: ImageLoadResult; refs: number; cached: boolean };
+type Entry = { result: ImageLoadResult; sourceBytes: number; refs: number; cached: boolean };
 
 /** LRU ownership is separate from a mounted viewer's lease. Eviction must not
  * revoke a URL still being read by a GPU worker, native image or another viewer. */
 export class ImageBlobCache {
   private entries = new Map<string, Entry>();
   constructor(private maxSize = 10) {}
-  acquire(key: string): { result: ImageLoadResult; release: () => void } | undefined {
+  acquire(key: string): { result: ImageLoadResult; sourceBytes: number; release: () => void } | undefined {
     const entry = this.entries.get(key);
     if (!entry) return;
     this.entries.delete(key); this.entries.set(key, entry);
     return this.lease(entry);
   }
-  store(key: string, blob: Blob, converted: boolean) {
+  store(key: string, blob: Blob, converted: boolean, sourceBytes = blob.size) {
     const existing = this.acquire(key);
     if (existing) return existing;
     const blobSrc = URL.createObjectURL(blob);
-    const entry: Entry = { result: { blobSrc, ...(converted ? { convertedUrl: blobSrc } : {}) }, refs: 0, cached: true };
+    const entry: Entry = { result: { blobSrc, ...(converted ? { convertedUrl: blobSrc } : {}) }, sourceBytes, refs: 0, cached: true };
     this.entries.set(key, entry);
     const lease = this.lease(entry);
     while (this.entries.size > this.maxSize) this.delete(this.entries.keys().next().value!);
@@ -43,7 +43,7 @@ export class ImageBlobCache {
   private lease(entry: Entry) {
     entry.refs++;
     let released = false;
-    return { result: entry.result, release: () => {
+    return { result: entry.result, sourceBytes: entry.sourceBytes, release: () => {
       if (released) return;
       released = true; entry.refs--;
       if (!entry.cached && !entry.refs) URL.revokeObjectURL(entry.result.blobSrc);
@@ -82,7 +82,7 @@ export class ImageLoaderManager {
     const cached = regularImageCache.acquire(src) ?? convertedImageCache.acquire(src);
     if (cached) {
       this.release = cached.release;
-      update({ isVisible: false, loadingProgress: 100 }); callbacks.onProgress?.(100);
+      update({ isVisible: false, loadingProgress: 100, loadedBytes: cached.sourceBytes, totalBytes: cached.sourceBytes }); callbacks.onProgress?.(100);
       return cached.result;
     }
     // Race the *entire* pipeline so cleanup settles even during an uninterruptible decoder.
@@ -96,6 +96,7 @@ export class ImageLoaderManager {
         update(state);
         if (state.loadingProgress !== undefined && !signal.aborted) callbacks.onProgress?.(state.loadingProgress);
       });
+      update({ loadingProgress: 100, loadedBytes: blob.size, totalBytes: blob.size });
       const type = blob.size ? await fileTypeFromBlob(blob, { signal }) : undefined;
       signal.throwIfAborted();
       if (!type?.mime.startsWith('image/')) throw new Error('Response is not a valid image');
@@ -109,7 +110,7 @@ export class ImageLoaderManager {
         console.warn('Image conversion failed; trying original image', error);
       }
       signal.throwIfAborted();
-      const lease = (converted ? convertedImageCache : regularImageCache).store(src, converted ?? original, !!converted);
+      const lease = (converted ? convertedImageCache : regularImageCache).store(src, converted ?? original, !!converted, original.size);
       this.release = lease.release;
       update({ isVisible: false, isConverting: false, isQueueWaiting: false, loadingProgress: 100 });
       return lease.result;
@@ -137,8 +138,8 @@ export class ImageLoaderManager {
           xhr.onload = () => xhr!.status === 200 ? finish(undefined, xhr!.response as Blob) : finish(new Error(`HTTP ${xhr!.status}`));
           xhr.onerror = () => finish(new Error('Network error'));
           xhr.onabort = () => finish(new DOMException('Image request aborted', 'AbortError'));
-          xhr.onprogress = event => update({ loadedBytes: event.loaded, totalBytes: event.lengthComputable ? event.total : undefined,
-            loadingProgress: event.lengthComputable ? event.loaded / event.total * 100 : undefined });
+          xhr.onprogress = event => update({ loadedBytes: event.loaded, totalBytes: event.lengthComputable && event.total > 0 ? event.total : undefined,
+            loadingProgress: event.lengthComputable && event.total > 0 ? event.loaded / event.total * 100 : undefined });
           xhr.send();
         } catch (error) { finish(error); }
       }, 300);

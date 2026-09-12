@@ -4,6 +4,7 @@ import type { ViewerPhoto } from './photos';
 import { useImageLoader } from './useImageLoader';
 import { removeImageCacheByUrl } from '../../lib/image-loader-manager';
 import { imageViewerConfig } from './image-viewer-config';
+import { LoadingIndicator } from './LoadingIndicator';
 export type Controls = { zoomIn: (animated?: boolean) => void; zoomOut: (animated?: boolean) => void; resetView: () => void; getScale: () => number };
 export function PhotoMedia({ photo, ...props }: { photo: ViewerPhoto; engineRef: React.RefObject<Controls | null>; onZoom: (zoomed: boolean) => void; onReady: (ready: boolean) => void; smooth: boolean; enablePan?: boolean; onDisplaySrc?: (src: string | null) => void }) {
   const [attempt, setAttempt] = useState(0);
@@ -32,7 +33,7 @@ function MediaAttempt({ photo, onRetry, engineRef, onZoom, onReady, smooth, enab
       onLoad={() => { if (active.current) { setState('loaded'); onReady(true); } }} onZoomChange={(_original, relative) => onZoom(relative > 1.02)}
       onHDRChange={value => { if (active.current) setHDR(value); }} onRendererChange={value => { if (active.current) setRenderer(value); }} onError={failed} />}
     {mode === 'image' && (blobSrc || loadError) && state !== 'error' && <FallbackImage src={blobSrc ?? photo.src} photo={photo} engineRef={engineRef} onZoom={onZoom} onLoad={() => { setState('loaded'); onReady(true); }} onError={() => { setState('error'); onReady(false); }}/ >}
-    {state === 'loading' && <p className="viewer-status" role="status"><span className="loading-dot"/>正在加载照片…</p>}
+    {state === 'loading' && <LoadingIndicator loading={loading} size={photo.size} untracked={loadError}/>}
     {state === 'error' && <div className="viewer-error"><p role="alert">照片加载失败</p><button type="button" onClick={event => { event.currentTarget.closest('dialog')?.querySelector<HTMLButtonElement>('.viewer-close')?.focus(); onRetry(); }}>重新加载</button><a href={photo.src} target="_blank" rel="noreferrer">打开原图 ↗</a></div>}
     {photo.isHDR && <span className="hdr-status">{hdr && state === 'loaded' ? 'HDR active' : 'HDR source'}</span>}
   </div>;

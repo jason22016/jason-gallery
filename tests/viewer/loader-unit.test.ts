@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ImageBlobCache, ImageLoaderManager, clearImageCaches, getImageCacheStats } from '../../src/lib/image-loader-manager';
+import { ImageBlobCache, ImageLoaderManager, clearImageCaches, getImageCacheStats, type LoadingState } from '../../src/lib/image-loader-manager';
 import { imageConverterManager, needsImageConversion } from '../../src/lib/image-convert';
 import { ImageConversionPipeline } from '../../src/lib/image-convert/pipeline';
 import { imageViewerConfig } from '../../src/components/viewer/image-viewer-config';
@@ -67,9 +67,12 @@ test('magic detection preserves ordinary bytes, reports progress, caches before 
   clearImageCaches(); XHR.requests = [];
   const manager = new ImageLoaderManager();
   const progress: number[] = [];
-  const promise = manager.loadImage('image', { onProgress: value => progress.push(value) });
+  let loading: Partial<LoadingState> = {};
+  const onLoadingStateUpdate = (state: Partial<LoadingState>) => { loading = { ...loading, ...state }; };
+  const promise = manager.loadImage('image', { onProgress: value => progress.push(value), onLoadingStateUpdate });
   t.mock.timers.tick(300);
   XHR.requests[0]!.onprogress({ loaded: 5, total: 10, lengthComputable: true });
+  assert.equal(loading.loadedBytes, 5); assert.equal(loading.totalBytes, 10);
   XHR.requests[0]!.onload();
   const result = await promise;
   assert(result.blobSrc.startsWith('blob:'));
@@ -77,7 +80,10 @@ test('magic detection preserves ordinary bytes, reports progress, caches before 
   assert.equal(response.headers.get('content-type'), 'image/png');
   assert.deepEqual(Buffer.from(await response.arrayBuffer()), Buffer.from(await png.arrayBuffer()));
   assert.deepEqual(progress, [50]);
-  const cached = await manager.loadImage('image');
+  assert.equal(loading.loadedBytes, png.size); assert.equal(loading.totalBytes, png.size);
+  const cached = await manager.loadImage('image', { onLoadingStateUpdate });
+  assert.equal(loading.loadingProgress, 100);
+  assert.equal(loading.loadedBytes, png.size); assert.equal(loading.totalBytes, png.size);
   assert.equal(cached.blobSrc, result.blobSrc); assert.equal(XHR.requests.length, 1);
   const bad = manager.loadImage('html');
   const rejected = assert.rejects(bad, /not a valid image/);

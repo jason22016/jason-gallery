@@ -11,7 +11,7 @@ const photos: ViewerPhoto[] = Array.from({ length: 3 }, (_, i) => ({
   id: `visual-${i}`, src: `/viewer-${i === 1 ? 'landscape' : 'portrait'}.jpg`, thumbnail: `/ordinary.jpg?background=${i}`,
   thumbHash: [hash(80, 120, 160), hash(180, 90, 60), null][i]!, width: i === 1 ? 960 : 640, height: i === 1 ? 640 : 960,
   alt: `Visual photo ${i}`, title: `Visual photo ${i}`, filename: `visual-${i}.jpg`, description: '保留 Jason 的说明与完整元数据。',
-  date: '2024-03-02T12:00:00+08:00', tags: ['城市', '光影', '长标签依然可以完整阅读并且不会横向溢出'], camera: 'FUJIFILM X-T5', lens: 'XF35mmF1.4 R',
+  date: '2026-02-18T07:59:55.990+08:00', tags: ['城市', '光影', '长标签依然可以完整阅读并且不会横向溢出'], camera: 'FUJIFILM X-T5', lens: 'XF35mmF1.4 R',
   exposure: ['35 mm', 'ƒ/1.4', '1/125 s', 'ISO 100'], format: 'jpeg', size: 1048576,
   location: { latitude: 0, longitude: 0, city: 'GPS origin fixture' }, detailsUrl: `/visual-metadata.json?photo=${i}`, isHDR: false,
 }));

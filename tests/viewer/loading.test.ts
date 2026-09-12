@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { serve } from '../website/server';
 import { softwareGPUOptions } from '../browser';
+import { createServer } from 'node:http';
 
 let browser: Browser, server: Awaited<ReturnType<typeof serve>>;
 before(async () => { server = await serve('.cache/viewer-dist'); browser = await chromium.launch(softwareGPUOptions()); });
@@ -27,6 +28,42 @@ async function loaded(page: Page, renderer?: string) {
   if (renderer) await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', renderer);
   assert.equal(await page.locator('.viewer-preview').count(), 0);
 }
+
+test('streamed download reports real bytes and percentage at bottom right, then hides on display', async () => {
+  const original = await readFile('.cache/viewer-fixtures/ordinary.jpg');
+  const body = Buffer.concat([original, Buffer.alloc(1_000_000 - original.length)]);
+  for (const knownTotal of [true, false]) {
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const stream = createServer(async (_request, response) => {
+      response.writeHead(200, { 'Content-Type': 'image/jpeg', 'Access-Control-Allow-Origin': '*', ...(knownTotal ? { 'Content-Length': body.length } : {}) });
+      response.write(body.subarray(0, 500_000));
+      await held;
+      response.end(body.subarray(500_000));
+    });
+    await new Promise<void>(resolve => stream.listen(0, '127.0.0.1', resolve));
+    const address = stream.address() as { port: number };
+    const page = await pageFor('no-gpu');
+    try {
+      await page.goto(`${server.url}/loader.html?src=${encodeURIComponent(`http://127.0.0.1:${address.port}/photo.jpg`)}`);
+      const status = page.locator('.viewer-status');
+      await expect(status.locator('.viewer-loading-bytes')).toHaveText(knownTotal ? '0.5 MB / 1.0 MB' : '0.5 MB / 总量未知');
+      await expect(status.locator('.viewer-loading-heading')).toHaveText(knownTotal ? '加载中50%' : '加载中—%');
+      const stage = (await page.locator('.viewer-media').boundingBox())!;
+      const badge = (await status.boundingBox())!;
+      assert(Math.abs(stage.x + stage.width - badge.x - badge.width - 16) < 1);
+      assert(Math.abs(stage.y + stage.height - badge.y - badge.height - 16) < 1);
+      release();
+      await loaded(page, 'image');
+      await expect(status).toHaveCount(0);
+    } finally {
+      release();
+      await page.close();
+      stream.closeAllConnections();
+      await new Promise<void>(resolve => stream.close(() => resolve()));
+    }
+  }
+});
 
 test('production PhotoMedia keeps thumbnail until real WebGPU queue completion and first frame handoff', async () => {
   const page = await pageFor();

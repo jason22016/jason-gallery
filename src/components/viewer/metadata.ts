@@ -13,10 +13,18 @@ export function captureDate(exif: Exif): string {
   return Number.isFinite(Date.parse(/(Z|[+-]\d{2}:\d{2})$/.test(result) ? result : `${result}Z`)) ? result : '';
 }
 export function captureZone(exif: Exif): string {
-  if (!captureDate(exif)) return '';
-  const offset = captureDate(exif).match(/(Z|[+-]\d{2}:\d{2})$/)?.[1];
-  const zone = exif?.zone || exif?.tz;
-  return [offset === 'Z' ? 'UTC' : offset ? `UTC${offset}` : '', zone, exif?.tzSource ? `来源：${exif.tzSource}` : ''].filter(Boolean).join(' · ') || '未记录';
+  const date = captureDate(exif);
+  if (!date) return '';
+  const zone = date.match(/(Z|[+-]\d{2}:\d{2})$/)?.[1] || exif?.zone || exif?.tz || '';
+  if (/^(Z|UTC|GMT)$/i.test(zone)) return 'UTC_0';
+  const offset = zone.match(/^(?:UTC|GMT)?([+-])(\d{1,2})(?::(\d{2}))?$/i);
+  if (!offset) return zone || '未记录';
+  const [, sign, hours, minutes = '00'] = offset;
+  return `UTC_${sign === '-' && (Number(hours) || Number(minutes)) ? '-' : ''}${Number(hours)}${minutes === '00' ? '' : `:${minutes}`}`;
+}
+export function formatCaptureTime(value: string): string {
+  const date = captureDate({ DateTimeOriginal: value });
+  return date ? date.slice(0, 19).replace('T', ' ') : '未记录';
 }
 export function validLocation(location: PhotoManifestItem['location']): boolean {
   return !!location && Number.isFinite(location.latitude) && Number.isFinite(location.longitude)
