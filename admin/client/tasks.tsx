@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { request } from './api';
-export function Tasks({ pending, refreshPhotos }: { pending?: { requestId: string; mode: string }; refreshPhotos: () => void }) {
+export function Tasks({ pending, refreshPhotos, completed }: { pending?: { requestId: string; mode: string }; refreshPhotos: () => void; completed?: (success: boolean) => Promise<void> }) {
+  const completion = useRef(completed); completion.current = completed;
+  const reported = useRef<string | null>(null);
   const [data, setData] = useState<any>(null); const [error, setError] = useState('');
   useEffect(() => {
     let active = true; let timer: ReturnType<typeof setTimeout>;
     async function poll() {
       let keepPolling = true;
-      try { const result = await request('/api/tasks' + (pending ? `?requestId=${pending.requestId}` : '')); if (active) { setData(result); setError(''); } keepPolling = result.pending || result.tasks.some((task: any) => task.state !== 'completed'); }
+      try { const result = await request('/api/tasks' + (pending ? `?requestId=${pending.requestId}` : '')); if (active) { setData(result); setError(''); } keepPolling = result.pending || result.tasks.some((task: any) => task.state !== 'completed'); if (active && pending && !keepPolling && result.tasks.length && reported.current !== pending.requestId) { reported.current = pending.requestId; await completion.current?.(result.tasks[0].summary?.photos?.status === 'success' && result.tasks[0].summary?.adminRead?.status === 'success'); } }
       catch (e) { if (active) setError(e instanceof Error ? e.message : '任务读取失败'); }
       if (active && keepPolling) timer = setTimeout(poll, 8000);
     }

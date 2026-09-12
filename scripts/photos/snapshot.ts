@@ -3,7 +3,7 @@ import { SUPPORTED_FORMATS } from '@afilmory/builder/constants/index.js';
 import { createReadOnlyFetch } from './network.js';
 import { loadSources, makeSnapshot, sourceAPI, originalURL, type SourcesConfig, type PhotoSnapshot } from '../../src/photo-engine/sources.js';
 
-export interface SourceStatus { sourceId: string; status: 'disabled' | 'pending' | 'resolved' | 'success' | 'failure'; commit: string | null; total: number | null; processed: number | null; reused: number | null; failureReason: string | null }
+export interface SourceStatus { sourceId: string; status: 'disabled' | 'pending' | 'resolved' | 'success' | 'failure'; commit: string | null; total: number | null; processed: number | null; reused: number | null; failureReason: string | null; retained?: boolean }
 export const sourceStatuses = (config: SourcesConfig): SourceStatus[] => config.sources.map(s => ({ sourceId: s.sourceId, status: s.enabled ? 'pending' : 'disabled', commit: null, total: null, processed: null, reused: null, failureReason: null }));
 export function sourceToken(sourceId: string) {
   const tokens = JSON.parse(process.env.JASON_PHOTOS_READ_TOKENS || '{}');
@@ -54,13 +54,17 @@ async function apiJSON(request: typeof fetch, url: string, stage: string, token?
   try { return await response.json(); } catch { throw new Error(`${stage}: invalid JSON response`); }
 }
 
-export async function resolveSnapshot(config: SourcesConfig = loadSources(), requested?: Record<string,string>, statuses = sourceStatuses(config)): Promise<PhotoSnapshot> {
+export async function resolveSnapshot(config: SourcesConfig = loadSources(), requested?: Record<string,string>, statuses = sourceStatuses(config), retained: string[] = []): Promise<PhotoSnapshot> {
   if (requested) makeSnapshot(config, requested);
   const request = createReadOnlyFetch([]);
   const commits: Record<string,string> = {};
   for (const source of config.sources.filter(s => s.enabled)) {
     const status = statuses.find(s => s.sourceId === source.sourceId)!;
     try {
+      if (retained.includes(source.sourceId)) {
+        if (!requested?.[source.sourceId]) throw new Error('Retained source requires pinned baseline');
+        commits[source.sourceId] = requested[source.sourceId]!; status.commit = commits[source.sourceId]!; status.status = 'resolved'; continue;
+      }
       const token = sourceToken(source.sourceId);
       const repository = await apiJSON(request, sourceAPI(source), 'repository visibility API', token);
       if (repository?.private === true) throw new Error('private_repository: public photo sources required');
@@ -78,7 +82,6 @@ export async function resolveSnapshot(config: SourcesConfig = loadSources(), req
       const prefix = source.path ? `${source.path}/` : '';
       const originals = tree.tree.filter((entry: any) => typeof entry.path === 'string' && entry.path.startsWith(prefix)
         && !entry.path.split('/').includes('.afilmory') && SUPPORTED_FORMATS.has(path.extname(entry.path).toLowerCase()));
-      if (!originals.length) throw new Error('No photos in snapshot');
       for (const entry of originals) {
         if (entry.type !== 'blob' || !['100644', '100755'].includes(entry.mode) || entry.path.split('/').some((p: string) => !p || p === '.' || p === '..')) throw new Error('Invalid original in pinned tree');
         const url = new URL(originalURL(source, commit, entry.path.slice(prefix.length)));

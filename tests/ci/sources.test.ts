@@ -123,3 +123,39 @@ test('two isolated repositories preserve native collisions, complete snapshots, 
   assert.deepEqual(loadPhotoIndex(path.join(output,'photo-index.json')).listPhotos(),[]);
   await fs.writeFile(path.join(root,'report.json'), JSON.stringify({ status:'PASS', cases:serial, nativeCollision:nativeA.data[0].id, qualifiedReferences:photos.map(p => p.id) }, null, 2));
 });
+
+test('selected source sync retains unselected artifacts and atomically rejects referenced removal', { timeout: 240_000 }, async () => {
+  const root=path.resolve('.cache/partial-source-test'); await fs.rm(root,{recursive:true,force:true});await fs.mkdir(root,{recursive:true});
+  const projects=path.join(root,'projects');await fs.mkdir(projects);
+  const config=parseSources({schemaVersion:1,sources:[LEGACY_SOURCE,{...LEGACY_SOURCE,sourceId:'second',owner:'fixture',repo:'second'}]});
+  const fixture={repositories:config.sources.map((s,i)=>({owner:s.owner,repo:s.repo,branch:s.branch,ref:String(i+1).repeat(40),files:{'images/a.jpg':{file:s.sourceId+'.jpg',commit:String(i+1).repeat(40)}} as Record<string,{file:string;commit:string}>,fail:false,rawStatus:200}))};
+  for(const [i,s] of config.sources.entries())await fs.writeFile(path.join(root,s.sourceId+'.jpg'),await jpeg(i?'#aa6622':'#2266aa'));
+  await fs.writeFile(path.join(root,'config.json'),JSON.stringify(config));
+  const engine=path.join(root,'engine'),output=path.join(engine,'output');
+  async function sync(extra:string[]=[],fail=false){
+    await fs.writeFile(path.join(root,'fixture.json'),JSON.stringify(fixture));
+    const result=spawnSync(process.execPath,['--import','tsx','scripts/photos/sync.ts','--root',engine,'--config',path.join(root,'config.json'),'--fixture',path.join(root,'fixture.json'),'--projects',projects,...extra],{encoding:'utf8',timeout:90000});
+    assert.equal(result.status,fail?1:0,result.stdout+result.stderr);
+    return read(path.join(engine,'last-sync-result.json'));
+  }
+  await sync();const baseline=await fs.realpath(output);const retained=await fs.readFile(path.join(baseline,'sources/second/photos-manifest.json'),'utf8');
+  // The unselected repository is now unavailable and changed: it must never be read/processed.
+  fixture.repositories[1]!.fail=true;fixture.repositories[1]!.ref='e'.repeat(40);
+  fixture.repositories[0]!.ref='c'.repeat(40);fixture.repositories[0]!.files['images/new.jpg']={file:'jason-photos.jpg',commit:'c'.repeat(40)};
+  const extra=['--source-ids','["jason-photos"]','--baseline',baseline];
+  const added=await sync(extra);
+  assert.equal(added.total,3);assert.equal(added.sync.counts.added,1);assert.equal(added.sync.counts.unchanged,1);
+  assert.equal(await fs.readFile(path.join(output,'sources/second/photos-manifest.json'),'utf8'),retained);
+  const collection=await verifyCollection(output);assert.equal(collection.snapshot.sources.find(s=>s.sourceId==='second')!.commit,'2'.repeat(40));assert.equal(collection.sources.find(s=>s.sourceId==='second')!.retained,true);
+  const index=loadPhotoIndex(path.join(output,'photo-index.json'));
+  const photo=index.listPhotos().find(p=>p.originalUrl.includes('/jason-photos/'))!;
+  await fs.writeFile(path.join(projects,'protected.json'),JSON.stringify({schemaVersion:1,id:'protected',slug:'protected',title:'Protected',status:'draft',photos:[{photoId:photo.id}],coverPhotoId:photo.id,order:0}));
+  const stable=await fs.realpath(output);
+  fixture.repositories[0]!.files={};fixture.repositories[0]!.ref='d'.repeat(40);
+  await sync(['--source-ids','["jason-photos"]','--baseline',stable],true);
+  assert.equal(await fs.realpath(output),stable);
+  await fs.rm(path.join(projects,'protected.json'));
+  const removed=await sync(['--source-ids','["jason-photos"]','--baseline',stable]);
+  assert.equal(removed.total,1);assert.equal(removed.sync.counts.removed,2);
+  assert.equal(await fs.readFile(path.join(output,'sources/second/photos-manifest.json'),'utf8'),retained);
+});

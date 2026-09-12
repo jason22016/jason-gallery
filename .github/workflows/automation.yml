@@ -19,6 +19,16 @@ on:
       photo_run_id:
         description: 'Optional successful sync/publish run ID to reuse its photos artifact (14 days); fingerprint must match.'
         type: string
+      sync_first_run:
+        description: 'Sync only: no historical run exists; compare against an empty library'
+        type: boolean
+        default: false
+      source_ids:
+        description: 'Sync only: JSON array of selected enabled source IDs; omitted means all enabled sources'
+        type: string
+      sync_baseline_run_id:
+        description: 'Sync only: completed run whose verified photos provide the comparison and unselected sources'
+        type: string
       request_id:
         description: 'Admin-generated correlation UUID; not a credential'
         type: string
@@ -49,6 +59,9 @@ jobs:
       AUTO_DEPLOY_ENABLED: ${{ vars.AUTO_DEPLOY_ENABLED || 'false' }}
       PHOTO_COMMITS: ${{ inputs.photo_commits }}
       PHOTO_RUN_ID: ${{ inputs.photo_run_id }}
+      SYNC_FIRST_RUN: ${{ inputs.sync_first_run }}
+      SYNC_SOURCE_IDS: ${{ inputs.source_ids }}
+      SYNC_BASELINE_RUN_ID: ${{ inputs.sync_baseline_run_id }}
       DEPLOYMENT_ID: ${{ inputs.deployment_id }}
       ASTRO_TELEMETRY_DISABLED: '1'
       WRANGLER_SEND_METRICS: 'false'
@@ -77,6 +90,14 @@ jobs:
           path: .cache/color-test/diagnostics
           include-hidden-files: true
           retention-days: 14
+      - name: Download baseline for selected-source sync
+        if: env.TASK_MODE == 'sync' && env.SYNC_BASELINE_RUN_ID != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: photos
+          path: .cache/automation/sync-baseline
+          run-id: ${{ inputs.sync_baseline_run_id }}
+          github-token: ${{ github.token }}
       - name: Resolve immutable photo snapshot
         id: snapshot
         if: env.TASK_MODE != 'rollback'

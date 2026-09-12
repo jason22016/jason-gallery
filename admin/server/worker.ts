@@ -1,3 +1,4 @@
+import { previewSync } from './sync-preview';
 import { ZodError } from 'zod';
 import { authenticate } from './auth';
 import { ApiError, jsonBody } from './errors';
@@ -24,6 +25,7 @@ async function route(request: Request, env: Env, transport: typeof fetch, assetR
     if (url.pathname.startsWith('/api/')) {
       let data: unknown;
       if (request.method === 'GET' && url.pathname === '/api/state') data = { ...await service.bootstrap(), email };
+      else if (request.method === 'GET' && url.pathname === '/api/sync-preview') data = await previewSync(service, url.searchParams.getAll('sourceId'));
       else if (request.method === 'GET' && url.pathname === '/api/tasks') data = await service.tasks(url.searchParams.get('requestId') ?? undefined);
       else if (request.method === 'POST' && ['/api/save', '/api/delete', '/api/impact', '/api/dispatch'].includes(url.pathname)) {
         const body = await jsonBody(request as unknown as Response, 512000);
@@ -58,7 +60,7 @@ export async function handle(request: Request, env: Env, transport: typeof fetch
   const response = await route(request, env, counted, () => { assetRequests++; });
   response.headers.set('X-Admin-Request-Id', requestId);
   const pathname = new URL(request.url).pathname;
-  const label = /^\/api\/thumbnail\//.test(pathname) ? '/api/thumbnail/*' : ['/api/state', '/api/save', '/api/delete', '/api/impact', '/api/dispatch', '/api/tasks'].includes(pathname) ? pathname : 'asset-or-unknown';
+  const label = /^\/api\/thumbnail\//.test(pathname) ? '/api/thumbnail/*' : ['/api/state', '/api/save', '/api/delete', '/api/impact', '/api/dispatch', '/api/tasks', '/api/sync-preview'].includes(pathname) ? pathname : 'asset-or-unknown';
   // No URLs, identities, cookies, tokens, signed locations or payloads. CPU/outcome
   // are Cloudflare invocation fields, never inferred from this wall-clock duration.
   console.info(JSON.stringify({ event: 'admin-request', requestId, route: label, method: request.method, status: response.status, upstreamRequests, assetRequests, cacheOperations: 0, wallMs: Date.now() - started, ...(response.status >= 400 ? { errorCode: response.headers.get('X-Admin-Error-Code'), errorStage: response.headers.get('X-Admin-Error-Stage') ?? 'unclassified', upstreamStatus: Number(response.headers.get('X-Admin-Upstream-Status')) || undefined } : {}) }));

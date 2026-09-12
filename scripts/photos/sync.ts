@@ -1,3 +1,4 @@
+import { selectedSources, combinedSnapshot, readBaseline, actualSyncDiff } from './partial-sync.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync, execFileSync } from 'node:child_process';
@@ -11,11 +12,11 @@ import { sealCollection, verifyCollection, exportCollection } from './collection
 
 const args = process.argv.slice(2);
 const value = (key: string) => args.includes(key) ? args[args.indexOf(key) + 1] : undefined;
-const allowed = new Set(['--root', '--config', '--snapshot', '--commits', '--fixture', '--projects', '--export', '--git-credential']);
+const allowed = new Set(['--root', '--config', '--snapshot', '--commits', '--fixture', '--projects', '--export', '--git-credential', '--source-ids', '--baseline', '--first-sync']);
 for (let i=0; i<args.length; i++) {
   const key = args[i]!;
   if (!allowed.has(key)) throw new Error(`Unknown photos option: ${key}`);
-  if (!['--export', '--git-credential'].includes(key) && (!args[++i] || args[i]!.startsWith('--'))) throw new Error(`Missing value for ${key}`);
+  if (!['--export', '--git-credential', '--first-sync'].includes(key) && (!args[++i] || args[i]!.startsWith('--'))) throw new Error(`Missing value for ${key}`);
 }
 const root = path.resolve(value('--root') ?? '.cache/photo-engine');
 await fs.mkdir(root, { recursive: true });
@@ -40,17 +41,34 @@ try {
   const selected = value('--snapshot')
     ? verifySnapshot(JSON.parse(await fs.readFile(value('--snapshot')!, 'utf8')), config)
     : null;
-  const snapshot = await resolveSnapshot(config, selected ? Object.fromEntries(selected.sources.map(s => [s.sourceId,s.commit])) : parseCommits(value('--commits') ?? '', config), result.sources);
+  const ids = selectedSources(config, value('--source-ids'));
+  const fingerprint = await processingFingerprint();
+  const partial = ids.length !== config.sources.filter(s => s.enabled).length;
+  const baseline = await readBaseline(value('--baseline'), fingerprint, partial, !value('--fixture'));
+  const retained = config.sources.filter(s => s.enabled && !ids.includes(s.sourceId)).map(s => s.sourceId);
+  if (partial && selected) combinedSnapshot(config, ids, Object.fromEntries(selected.sources.filter(s => ids.includes(s.sourceId)).map(s => [s.sourceId, s.commit])), baseline);
+  let pinned = selected ? Object.fromEntries(selected.sources.map(s => [s.sourceId,s.commit])) : parseCommits(value('--commits') ?? '', config);
+  if (partial && !pinned) {
+    const resolved = await resolveSnapshot({ ...config, sources: config.sources.filter(s => ids.includes(s.sourceId)) }, undefined, result.sources);
+    pinned = Object.fromEntries(combinedSnapshot(config, ids, Object.fromEntries(resolved.sources.map(s => [s.sourceId, s.commit])), baseline).sources.map(s => [s.sourceId, s.commit]));
+  }
+  const snapshot = await resolveSnapshot(config, pinned, result.sources, retained);
   result.snapshot = snapshot;
   // All source commits are fixed before importing/starting any Builder process.
   await fs.writeFile(path.join(run, 'snapshot.json'), JSON.stringify(snapshot, null, 2));
-  const fingerprint = await processingFingerprint();
   const artifact = path.join(run, 'artifact');
   await fs.mkdir(path.join(artifact, 'sources'), { recursive: true });
   for (const source of snapshot.sources) {
     const status = result.sources.find((s: any) => s.sourceId === source.sourceId);
     status.commit = source.commit;
     try {
+      if (retained.includes(source.sourceId)) {
+        const prior = baseline!.sources.find(s => s.sourceId === source.sourceId)!;
+        if (source.commit !== prior.commit) throw new Error('Retained source commit differs from baseline');
+        await fs.cp(path.join(value('--baseline')!, 'sources', source.sourceId), path.join(artifact, 'sources', source.sourceId), { recursive: true });
+        Object.assign(status, { ...prior, retained: true, processed: 0, reused: prior.total });
+        continue;
+      }
       const configSource = config.sources.find(s => s.sourceId === source.sourceId)!;
       const sourceFile = path.join(run, `${source.sourceId}.json`);
       await fs.writeFile(sourceFile, JSON.stringify(configSource));
@@ -76,12 +94,15 @@ try {
   const verified = await verifyCollection(artifact, { config, snapshot, fingerprint });
   // Sync also validates draft references when a source/photo is removed or disabled.
   loadProjectCatalog({ directory: value('--projects') ?? 'src/content/projects', manifestFile: path.join(artifact, 'photo-index.json') });
+  const delta = value('--baseline') || args.includes('--first-sync') ? await actualSyncDiff(artifact, ids, value('--baseline')) : { sourceIds: ids, counts: null, sources: [] };
+  result.sync = { ...delta, applied: false };
   const output = path.join(root, 'output');
   const link = path.join(run, 'output-link');
   await fs.symlink(artifact, link, 'dir');
   const previous = await fs.lstat(output).catch(() => null);
   if (previous && !previous.isSymbolicLink()) throw new Error('Existing output must be an atomic symlink');
   await fs.rename(link, output);
+  if (result.sync) result.sync.applied = true;
   if (args.includes('--export')) await exportCollection(artifact, process.cwd());
   Object.assign(result, { status: 'success', total: verified.photos, processed: verified.processed, reused: verified.reused, artifactVersion: verified.version });
 } catch (error) {

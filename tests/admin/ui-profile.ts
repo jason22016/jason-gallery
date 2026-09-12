@@ -54,7 +54,7 @@ try {
     const last = page.locator('.photo-card').last(); await last.click();
     await page.getByLabel('搜索照片').fill(''); assert.equal(await page.locator('.photo-card[aria-pressed="true"]').count(), 2);
     if ((replay?.config ?? config).sources.length > 1) {
-      await page.locator('.tabs button').last().click(); await page.locator('.tabs button').first().click();
+      await page.getByRole('group', { name: '照片来源筛选' }).getByRole('button').last().click(); await page.getByRole('group', { name: '照片来源筛选' }).getByRole('button').first().click();
       assert.equal(await page.locator('.photo-card[aria-pressed="true"]').count(), 2);
     }
     await page.getByRole('navigation').getByRole('button', { name: 'Project', exact: true }).click(); await page.getByRole('button', { name: /Profile 0 / }).click();

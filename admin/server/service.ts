@@ -1,3 +1,4 @@
+import { previewSync, SourceIdsSchema } from './sync-preview';
 import { z } from 'zod';
 import { proofSigner, verifyProof, type PreviewProof } from './preview-proof';
 import { signSaveProof, verifySaveProof, projectReferences, type SaveProof } from './save-proof';
@@ -13,7 +14,7 @@ const projectPath = /^src\/content\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)\.json$/
 const headSchema = z.string().regex(/^[a-f\d]{40}$/);
 const idSchema = z.number().int().positive();
 const SaveSchema = z.discriminatedUnion('kind', [z.strictObject({ kind: z.literal('sources'), expectedHead: headSchema, config: z.unknown() }), z.strictObject({ kind: z.literal('project'), expectedHead: headSchema, project: ProjectSchema, saveProof: z.string().max(256000).optional() })]);
-const DispatchSchema = z.strictObject({ mode: z.enum(['sync', 'publish']), expectedHead: headSchema, photoRunId: idSchema.optional() });
+const DispatchSchema = z.strictObject({ mode: z.enum(['sync', 'publish']), expectedHead: headSchema, photoRunId: idSchema.optional(), sourceIds: SourceIdsSchema.optional(), previewRevision: z.string().regex(/^[a-f0-9]{64}$/).optional() });
 const DeleteSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('project'), expectedHead: headSchema, projectId: ProjectSchema.shape.id }),
   z.strictObject({ kind: z.literal('source'), expectedHead: headSchema, sourceId: z.string().max(48).regex(/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/) }),
@@ -59,8 +60,17 @@ export class AdminService {
     const runs = requestedRun ? [await this.github.run(requestedRun)] : await this.github.runs(true);
     const selected = runs.find(r => r.status === 'completed' && r.event !== 'pull_request');
     if (!selected) throw new ApiError(404, 'empty', '还没有完整照片产物，请先同步');
-    const run = this.github.verifyRun(selected);
-    const summary = await this.summary(run);
+    let run = this.github.verifyRun(selected);
+    let summary = await this.summary(run);
+    if (!requestedRun && (summary?.photos?.status !== 'success' || summary?.adminRead?.status !== 'success')) {
+      const recent = await this.github.runs();
+      for (const candidate of recent.filter(r => r.status === 'completed' && r.id !== run.id).sort((a,b) => (Date.parse(b.run_started_at ?? b.updated_at) || 0) - (Date.parse(a.run_started_at ?? a.updated_at) || 0))) {
+        this.github.verifyRun(candidate);
+        const previous = await this.summary(candidate);
+        if (previous?.photos?.status === 'success' && previous?.adminRead?.status === 'success') { run = candidate; summary = previous; break; }
+      }
+    }
+
     if (!summary || summary.photos?.status !== 'success') throw new ApiError(422, 'sync_failed', summary?.failureReason || '最近任务未生成完整照片产物，请查看任务失败原因并重新同步');
     const seal = summary.adminRead;
     if (seal?.status !== 'success') throw new ApiError(422, 'format', '缺少已验证的新版后台读取产物，请运行一次新版同步');
@@ -233,6 +243,19 @@ export class AdminService {
     if (body.mode === 'publish' && this.github.env.PUBLISH_ENABLED !== 'true') throw new ApiError(503, 'publish_disabled', '后台发布入口未启用；这不代表主站尚未部署，请检查后台发布开关');
     const requestId = crypto.randomUUID();
     const inputs: Record<string, string> = { mode: body.mode, request_id: requestId, expected_website_commit: content.head };
+    if (body.mode === 'sync' && body.sourceIds) {
+      const preview = await previewSync(this, body.sourceIds, content);
+      if (preview.head !== body.expectedHead) throw new ApiError(409, 'conflict', '网站仓库已更新，请刷新后重试');
+      if (body.previewRevision && body.previewRevision !== preview.revision) throw new ApiError(409, 'preview_changed', '来源或比较基线已变化，请检查更新后的预览，再点击同步照片', { preview });
+      if (!preview.canSync && preview.errors.length) throw new ApiError(422, 'preview_failed', '差异检查不完整，无法开始同步', { preview });
+      if (preview.conflicts.length) throw new ApiError(422, 'sync_references', '待移除照片仍被 Project 引用，请先处理引用', { preview });
+      const partial = body.sourceIds.length !== content.config.sources.filter(s => s.enabled).length;
+      if (partial && !preview.partialAllowed) throw new ApiError(422, 'full_sync_required', preview.partialReason!, { preview });
+      if (preview.baselineState === 'empty') inputs.sync_first_run = 'true';
+      inputs.source_ids = JSON.stringify(preview.sourceIds);
+      inputs.photo_commits = JSON.stringify(preview.commits);
+      if (preview.baselineRunId) inputs.sync_baseline_run_id = String(preview.baselineRunId);
+    }
     if (body.mode === 'publish') {
       assert(body.photoRunId, '发布前请先同步并选择完整照片产物');
       const photos = await this.photos(content, body.photoRunId, false);
@@ -253,7 +276,7 @@ export class AdminService {
       if (run.status === 'completed') { try { summary = await this.summary(run); } catch (e) { summaryError = e instanceof ApiError ? e.message : '执行摘要暂时不可读取；请重试或查看 Actions。部署未确认。'; } }
       if (summary?.adminRead?.catalog) summary = { ...summary, adminRead: { ...summary.adminRead, catalog: undefined } };
       const jobs = await this.github.call(`/actions/runs/${run.id}/jobs?per_page=10`);
-      const task = { id: run.id, title: run.display_title, state: run.status, conclusion: run.conclusion, event: run.event, head: run.head_sha, url: `https://github.com/${this.github.env.GITHUB_REPOSITORY}/actions/runs/${run.id}`, steps: jobs.jobs.flatMap((j: any) => (j.steps ?? []).map((s: any) => ({ name: s.name, status: s.status, conclusion: s.conclusion }))), summary, summaryError, published: run.status === 'completed' && run.conclusion === 'success' && summary?.action === 'publish' && ['success', 'unchanged'].includes(summary?.deployment?.status) && !!summary?.deployment?.version && !!summary?.deployment?.url };
+      const task = { completedAt: run.status === 'completed' ? run.updated_at : null, startedAt: run.run_started_at ?? run.created_at, id: run.id, title: run.display_title, state: run.status, conclusion: run.conclusion, event: run.event, head: run.head_sha, url: `https://github.com/${this.github.env.GITHUB_REPOSITORY}/actions/runs/${run.id}`, steps: jobs.jobs.flatMap((j: any) => (j.steps ?? []).map((s: any) => ({ name: s.name, status: s.status, conclusion: s.conclusion }))), summary, summaryError, published: run.status === 'completed' && run.conclusion === 'success' && summary?.action === 'publish' && ['success', 'unchanged'].includes(summary?.deployment?.status) && !!summary?.deployment?.version && !!summary?.deployment?.url };
       tasks.push(task);
     }
     return { tasks, pending: !!requestId && !tasks.length, historyUrl: `https://github.com/${this.github.env.GITHUB_REPOSITORY}/actions/workflows/automation.yml` };

@@ -31,7 +31,7 @@ export async function decode(bytes: Buffer) {
   const result = await sharp(bytes, { failOn: 'warning' }).raw().toBuffer({ resolveWithObject: true });
   if (!result.info.width || !result.info.height) throw new Error('Empty thumbnail');
 }
-interface CacheEntry { original: string; remote?: string; thumbnail: string; metadata?: string; }
+interface CacheEntry { original: string; remote?: string; companion?: string; thumbnail: string; metadata?: string; }
 interface Cache { fingerprint: string; identity: string; ref: string; entries: Record<string, CacheEntry>; }
 export async function buildPhotos(options: { root: string; ref: string; keyRegex?: string; source?: PhotoSource }) {
   if (!/^[a-f0-9]{40}$/.test(options.ref)) throw new Error('A pinned Git commit is required');
@@ -75,12 +75,12 @@ export async function buildPhotos(options: { root: string; ref: string; keyRegex
         manager.addExcludePrefix('.afilmory');
         manager.uploadFile = deny; manager.deleteFile = deny; manager.deleteFolder = deny; manager.moveFile = deny;
         // Native GitHub scanner once, pinned to a commit; avoid duplicate API scans.
-        all = await storage.listAllFiles();
         // Contents API can truncate large directories; independently cross-check Git's tree.
         const tree = await jsonGet(`${sourceAPI(source)}/git/trees/${options.ref}?recursive=1`);
         if (tree.truncated || !Array.isArray(tree.tree)) throw new Error('Incomplete Git tree');
         const prefix = source.path ? `${source.path}/` : '';
         const sourceTree = tree.tree.filter((x: any) => x.path.startsWith(prefix) && x.type !== 'tree');
+        all = sourceTree.length ? await storage.listAllFiles() : [];
         if (sourceTree.some((x: any) => x.type !== 'blob' || x.mode === '120000') || sourceTree.length !== all.length || sourceTree.some((x: any) => !all.some(o => o.key === x.path.slice(prefix.length) && o.etag === x.sha && o.size === x.size))) throw new Error('Source listing differs from pinned Git tree');
         manager.listAllFiles = async () => all.filter(x => !x.key.split('/').includes('.afilmory'));
         const { SUPPORTED_FORMATS } = await import('@afilmory/builder/constants/index.js');
@@ -95,9 +95,9 @@ export async function buildPhotos(options: { root: string; ref: string; keyRegex
       },
       afterImagesListed: async ({ payload }) => {
         originals = [...payload.imageObjects];
-        if (!originals.length) throw new Error('No photos in snapshot');
         await fs.writeFile(path.join(workdir, 'source-snapshot.json'), JSON.stringify({ source, ref: options.ref, all, originals }, null, 2));
         uniqueIds(originals.map(x => ({ id: expectedId(x.key) })));
+        const companions = storage.detectLivePhotos(all.filter(o => !o.key.split('/').includes('.afilmory')));
         const basenameCounts = new Map<string, number>();
         for (const obj of originals) {
           const base = path.parse(obj.key).name;
@@ -110,9 +110,11 @@ export async function buildPhotos(options: { root: string; ref: string; keyRegex
           const id = expectedId(obj.key);
           const legacyKey = `.afilmory/thumbnails/${path.parse(obj.key).name}.jpg`;
           const remote = all.find(x => x.key === `.afilmory/thumbnails/${id}.jpg`) ?? (basenameCounts.get(path.parse(obj.key).name) === 1 ? all.find(x => x.key === legacyKey) : undefined);
+          const video = companions.get(obj.key);
+          const companion = video ? `${video.key}:${video.etag}` : undefined;
           const previous = old?.fingerprint === fingerprint && old.identity === next.identity ? old.entries[obj.key] : undefined;
           let thumbnail: Buffer | undefined;
-          if (previous && previous.original === obj.etag && previous.remote === remote?.etag) {
+          if (previous && previous.original === obj.etag && previous.remote === remote?.etag && previous.companion === companion) {
             try {
               const candidate = await fs.readFile(path.join(cacheDir, 'thumbnails', `${id}.jpg`));
               if (hash(candidate) !== previous.thumbnail) throw new Error('Changed cached thumbnail');
@@ -123,7 +125,7 @@ export async function buildPhotos(options: { root: string; ref: string; keyRegex
           // Reuse verified local derivatives only; regenerate legacy candidates.
           if (thumbnail) await fs.writeFile(path.join(workdir, 'public/thumbnails', `${id}.jpg`), thumbnail);
           else decisions[obj.key] ??= remote ? 'generated:unversioned-remote' : 'generated:missing';
-          next.entries[obj.key] = { original: obj.etag!, remote: remote?.etag, thumbnail: '' };
+          next.entries[obj.key] = { original: obj.etag!, remote: remote?.etag, companion, thumbnail: '' };
           if (decisions[obj.key] === 'local' && previous?.metadata) {
             try {
               const metadata = await fs.readFile(path.join(cacheDir, 'metadata', `${id}.json`));
@@ -167,7 +169,18 @@ export async function buildPhotos(options: { root: string; ref: string; keyRegex
   // Construct AFTER adding plugin references (constructor captures references).
   const configuredBuilder = new AfilmoryBuilder(config);
   await configuredBuilder.ensurePluginsReady();
+  const { SUPPORTED_FORMATS } = await import('@afilmory/builder/constants/index.js');
+  const empty = !all.some(o => !o.key.split('/').includes('.afilmory') && SUPPORTED_FORMATS.has(path.extname(o.key).toLowerCase()));
+  if (empty) {
+    // The upstream builder returns before writing a manifest for zero photos.
+    // Our verified complete-library contract must also represent an emptied source.
+    await fs.mkdir(path.join(workdir, 'src/data'), { recursive: true });
+    await fs.mkdir(path.join(workdir, 'public/thumbnails'), { recursive: true });
+    await fs.writeFile(path.join(workdir, 'src/data/photos-manifest.json'), JSON.stringify({ version: 'v10', data: [], cameras: [], lenses: [] }));
+    await fs.writeFile(path.join(workdir, 'source-snapshot.json'), JSON.stringify({ source, ref: options.ref, all, originals: [] }));
+  } else {
   await runWithPhotoExecutionContext({ builder: configuredBuilder, storageManager: configuredBuilder.getStorageManager(), storageConfig: config.user!.storage!, normalizeStorageKey: createStorageKeyNormalizer(config.user!.storage!), loggers: createPhotoProcessingLoggers(0, logger) }, () => configuredBuilder.buildManifest({ isForceMode: false, isForceManifest: true, isForceThumbnails: false, keyRegex: options.keyRegex }));
+  }
   const manifestFile = path.join(workdir, 'src/data/photos-manifest.json');
   const manifest = JSON.parse(await fs.readFile(manifestFile, 'utf8'));
   if (manifest.version !== 'v10') throw new Error(`Unexpected schema: ${manifest.version}`);

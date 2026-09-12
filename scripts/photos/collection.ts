@@ -57,8 +57,8 @@ export async function verifyCollection(directory: string, options: { config?: So
       if (files[name] !== native.files[`public/thumbnails/${photo.id}.jpg`]) throw new Error('Cross-source thumbnail mismatch');
     }
     const status = artifact.sources.find(status => status.sourceId === s.sourceId);
-    if (!status || status.status !== 'success' || status.failureReason !== null || status.commit !== s.commit || status.total !== native.photos || status.processed !== native.processed || status.reused !== native.reused) throw new Error('Source result mismatch');
-    total += native.photos; processed += native.processed; reused += native.reused;
+    if (!status || status.status !== 'success' || status.failureReason !== null || status.commit !== s.commit || status.total !== native.photos || status.processed !== (status.retained ? 0 : native.processed) || status.reused !== (status.retained ? native.photos : native.reused)) throw new Error('Source result mismatch');
+    total += native.photos; processed += status.processed; reused += status.reused;
   }
   if (artifact.sources.length !== snapshot.config.sources.length || new Set(artifact.sources.map(s => s.sourceId)).size !== artifact.sources.length) throw new Error('Source status set mismatch');
   for (const s of snapshot.config.sources.filter(s => !s.enabled)) {

@@ -12,7 +12,7 @@ async function api(f: Awaited<ReturnType<typeof fixture>>, path:string, body?:un
 }
 test('all APIs and static assets reject missing, forged, expired, wrong issuer/audience/email JWT; authenticated same-origin writes only', async()=>{
   const f=await fixture();
-  for(const path of ['/','/api/state','/api/save','/api/dispatch','/api/thumbnail/1/foo']) {
+  for(const path of ['/','/api/state','/api/save','/api/dispatch','/api/sync-preview','/api/thumbnail/1/foo']) {
     const r=await api(f,path,path==='/api/save'?{}:undefined,''); assert.equal(r.status,401);
   }
   for(const claims of [{exp:1},{aud:'wrong'},{iss:'https://evil.com'},{email:'reader@example.com'},{nbf:Math.floor(Date.now()/1000)+1000}]) assert.equal((await api(f,'/api/state',undefined,await token(claims))).status,401);
@@ -75,4 +75,35 @@ test('authenticated thumbnails remain bounded without Cache API, never read cont
     const legacy={schemaVersion:1,id:'legacy',slug:'legacy',title:'Legacy dash filename',coverPhotoId:'file--with-dashes_abcd',photos:[{photoId:'file--with-dashes_abcd'}],order:0,status:'draft'} as const;
     assert.equal(sourceImpacts(config,{...config,sources:config.sources.filter(s=>s.sourceId!=='jason-photos')},[legacy as any]).length,1);
   } finally {Object.defineProperty(globalThis,'caches',{value:prior,configurable:true});}
+});
+
+test('authenticated sync preview only reads metadata and never changes repository or dispatches', async()=>{
+  const f=await fixture(); const jwt=await token(); const original=f.fetcher;
+  f.fetcher=async(input,init)=>{
+    const url=new URL(String(input));
+    if(url.hostname==='api.github.com' && !url.pathname.startsWith('/repos/fixture/website') && url.pathname!=='/graphql') {
+      f.network.push({url:url.origin+url.pathname,method:init?.method??'GET'});
+      assert.equal(init?.method??'GET','GET');
+      if(url.pathname.includes('/git/trees/'))return Response.json({truncated:false,tree:[{path:'images/new.jpg',type:'blob',mode:'100644',sha:'d'.repeat(40)}]});
+      if(url.pathname.includes('/commits/'))return Response.json({sha:'c'.repeat(40)});
+      return Response.json({private:false});
+    }
+    return original(input,init);
+  };
+  const response=await api(f,'/api/sync-preview?sourceId=jason-photos',undefined,jwt);
+  assert.equal(response.status,200,await response.clone().text());
+  const value=await response.json() as any;
+  assert.equal(value.counts.unchanged,1);assert.equal(value.sourceIds.length,1);assert.equal(value.partialAllowed,true);
+  assert.equal(response.headers.get('Cache-Control'),'no-store');assert.equal(f.mutations.length,0);
+  assert(!f.network.some(n=>n.url.includes('raw.githubusercontent.com')));
+  assert.equal((await api(f,'/api/sync-preview?sourceId=jason-photos',undefined,'')).status,401);
+});
+
+test('a failed newer sync keeps the preceding verified library available',async()=>{
+  const f=await fixture();const github=new GitHub(env,f.fetcher);const service=new AdminService(github);
+  github.runs=async()=>[{...f.run,id:2,conclusion:'failure'},f.run];
+  const summary=service.summary.bind(service);
+  service.summary=async(run:any)=>run.id===2?{photos:{status:'failure'},failureReason:'source unavailable'}:summary(run);
+  const library=await service.catalog();
+  try {assert.equal(library.runId,1);assert.equal(library.photos.length,2);}finally{await library.close();}
 });

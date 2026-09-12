@@ -1,3 +1,4 @@
+import { selectedSources, combinedSnapshot, readBaseline } from '../photos/partial-sync.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -24,7 +25,39 @@ try {
     if (process.env.PHOTO_COMMIT) throw new Error('photo_commit is obsolete; use photo_commits keyed by every enabled sourceId');
     const config = loadSources();
     state.sources = sourceStatuses(config);
-    const commits = parseCommits(requested, config);
+    const ids = selectedSources(config, process.env.SYNC_SOURCE_IDS);
+    const fingerprint = await processingFingerprint();
+    const partial = ids.length !== config.sources.filter(s => s.enabled).length;
+    if ((process.env.SYNC_SOURCE_IDS || process.env.SYNC_BASELINE_RUN_ID) && (process.env.TASK_MODE !== 'sync' || process.env.PHOTO_RUN_ID)) throw new Error('Source selection is only supported for sync');
+    if (process.env.SYNC_BASELINE_RUN_ID) {
+      if (!/^[1-9][0-9]*$/.test(process.env.SYNC_BASELINE_RUN_ID)) throw new Error('Invalid baseline run');
+      const response = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.SYNC_BASELINE_RUN_ID}`, { headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }, signal: AbortSignal.timeout(20000) });
+      if (!response.ok) throw new Error('Baseline run cannot be verified');
+      const run = await response.json() as any;
+      if (run.head_branch !== 'main' || run.path !== '.github/workflows/automation.yml' || run.status !== 'completed' || run.repository?.full_name !== process.env.GITHUB_REPOSITORY || run.head_repository?.full_name !== process.env.GITHUB_REPOSITORY) throw new Error('Baseline must be a completed trusted main run');
+      // A different sync may have completed while this request waited in Actions.
+      // Never replace unselected sources using a superseded baseline.
+      if (partial) {
+        const recentResponse = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/workflows/automation.yml/runs?branch=main&status=completed&per_page=100`, { headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }, signal: AbortSignal.timeout(20000) });
+        if (!recentResponse.ok) throw new Error('Cannot revalidate partial-sync baseline');
+        const recent = await recentResponse.json() as any;
+        if (!Array.isArray(recent.workflow_runs) || !recent.workflow_runs.some((r:any) => String(r.id) === process.env.SYNC_BASELINE_RUN_ID)) throw new Error('Baseline no longer in recent history; refresh preview');
+        for (const newer of recent.workflow_runs.filter((r:any) => r.id !== run.id && Date.parse(r.run_started_at ?? r.updated_at) >= Date.parse(run.run_started_at ?? run.updated_at))) {
+          const response = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${newer.id}/artifacts?per_page=100`, { headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }, signal: AbortSignal.timeout(20000) });
+          if (!response.ok) throw new Error('Cannot check intervening photo sync');
+          const artifacts = await response.json() as any;
+          if (!Array.isArray(artifacts.artifacts) || artifacts.total_count > artifacts.artifacts.length || artifacts.artifacts.some((a:any) => a.name === 'photos')) throw new Error('Photo baseline changed while queued; refresh preview and retry');
+        }
+      }
+
+    }
+    const baseline = await readBaseline(process.env.SYNC_BASELINE_RUN_ID ? path.join(root, 'sync-baseline') : undefined, fingerprint, partial, true);
+    const commits = process.env.SYNC_SOURCE_IDS && requested
+      ? Object.fromEntries(combinedSnapshot(config, ids, JSON.parse(requested), baseline).sources.map(s => [s.sourceId, s.commit]))
+      : parseCommits(requested, config);
+    if (partial && !commits) throw new Error('Partial sync requires pinned selected commits');
+    state.syncSourceIds = ids;
+
     if (process.env.PHOTO_RUN_ID && (!/^\d+$/.test(process.env.PHOTO_RUN_ID) || !requested)) throw new Error('Reusing photo_run_id requires its exact photo_commits');
     if (process.env.PHOTO_RUN_ID) {
       const response = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.PHOTO_RUN_ID}`, { headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }, signal: AbortSignal.timeout(60_000) });
@@ -34,9 +67,8 @@ try {
       // A website failure does not negate a successfully uploaded photo artifact.
     }
     const { installReadOnlyFetch } = await import('../photos/network.js'); installReadOnlyFetch([]);
-    state.photoSnapshot = await resolveSnapshot(config, commits, state.sources);
+    state.photoSnapshot = await resolveSnapshot(config, commits, state.sources, config.sources.filter(s => s.enabled && !ids.includes(s.sourceId)).map(s => s.sourceId));
     await fs.writeFile(path.join(root, 'snapshot.json'), JSON.stringify(state.photoSnapshot));
-    const fingerprint = await processingFingerprint();
     await output('snapshot_version', state.photoSnapshot.version);
     await output('config_digest', state.photoSnapshot.configDigest);
     await output('fingerprint', fingerprint);
@@ -44,10 +76,11 @@ try {
   } else if (command === 'photos') {
     if (!process.env.PHOTO_RUN_ID) {
       const invocationId = randomUUID();
-      const result = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/photos/sync.ts', '--snapshot', path.join(root, 'snapshot.json')], { stdio: 'inherit', env: { ...process.env, JASON_PHOTO_SYNC_ID: invocationId } });
+      const result = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/photos/sync.ts', '--snapshot', path.join(root, 'snapshot.json'), ...(process.env.SYNC_SOURCE_IDS ? ['--source-ids', process.env.SYNC_SOURCE_IDS] : []), ...(process.env.SYNC_FIRST_RUN === 'true' ? ['--first-sync'] : []), ...(process.env.SYNC_BASELINE_RUN_ID ? ['--baseline', path.join(root, 'sync-baseline')] : [])], { stdio: 'inherit', env: { ...process.env, JASON_PHOTO_SYNC_ID: invocationId } });
       const syncResult = await read('.cache/photo-engine/last-sync-result.json').catch(() => null);
       if (syncResult?.invocationId === invocationId) state.sources = syncResult.sources;
       if (result.error || result.status !== 0 || syncResult?.invocationId !== invocationId) throw new Error(syncResult?.invocationId === invocationId ? syncResult.failureReason ?? 'Photo processing failed' : 'Photo sync did not produce a result for this invocation; previous output is not publishable');
+      state.sync = syncResult.sync;
       await fs.rm(path.join(root, 'photos'), { recursive: true, force: true });
       await fs.cp(await fs.realpath('.cache/photo-engine/output'), path.join(root, 'photos'), { recursive: true });
     }
