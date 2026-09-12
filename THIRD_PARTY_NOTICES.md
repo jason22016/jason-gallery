@@ -8,7 +8,7 @@ Pinned and checked against upstream HEAD on 2026-09-12:
 Copyright (c) 2025 Afilmory Team. The complete upstream Attribution Network
 License (ANL) v1.0, including MIT, AGPLv3 and the §4 attribution terms, is
 preserved in [licenses/AFILMORY-LICENSE](licenses/AFILMORY-LICENSE).
-The public copy is `public/licenses/afilmory.txt`. Photographs retain their
+The public copy is bundled from `src/assets/licenses/afilmory.txt` into a hashed `_astro` asset. Photographs retain their
 owners' separate rights.
 
 Application code from `apps/web` is Project Code under **AGPL-3.0-or-later

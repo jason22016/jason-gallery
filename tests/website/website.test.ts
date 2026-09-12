@@ -342,6 +342,11 @@ test('project information, filters, chronological sort, list persistence, and sh
   const ctx = await context(); t.after(() => ctx.close()); const page = await projectPage(ctx);
   await page.getByRole('button', { name: '项目信息', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Fixture location');
+  const licenseHref = await page.getByRole('dialog').getByRole('link', { name: 'AGPL-3.0-or-later + ANL §4', exact: true }).getAttribute('href');
+  assert.match(licenseHref!, /^\/_astro\/afilmory\.[^/]+\.txt$/, 'License must be a bundled release asset');
+  const licenseResponse = await fetch(new URL(licenseHref!, server.url));
+  assert.equal(licenseResponse.status, 200);
+  assert.equal(await licenseResponse.text(), await fs.readFile(path.join(repo, 'licenses/AFILMORY-LICENSE'), 'utf8'));
   await page.getByRole('button', { name: '关闭面板' }).click();
   await page.getByRole('button', { name: '搜索和筛选' }).click();
   await page.getByRole('button', { name: '相机：NIKON Z6', exact: true }).click();
