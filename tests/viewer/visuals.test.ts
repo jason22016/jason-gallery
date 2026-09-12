@@ -113,9 +113,20 @@ test('background crossfades, holds the prior layer until fallback decodes, and i
   const held = new Promise<void>(resolve => { release = resolve; }); t.after(() => release());
   await page.route('**/ordinary.jpg?background=2', async route => { await held; await route.continue().catch(() => {}); });
   await open(page);
+  // Record the transient overlap in the renderer; a slow CDP round trip can
+  // arrive after the outgoing layer has already finished its exit animation.
+  await page.evaluate(() => {
+    const observer = new MutationObserver(() => {
+      if (document.querySelector('[data-background-photo="visual-0"]') && document.querySelector('[data-background-photo="visual-1"]')) {
+        document.documentElement.dataset.backgroundOverlap = 'true';
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.querySelector('.viewer-backdrop')!, { childList: true, subtree: true });
+  });
   await page.keyboard.press('ArrowRight');
   await expect(page.locator('[data-background-photo="visual-1"]')).toBeAttached();
-  assert.equal(await page.locator('.viewer-background-layer').count(), 2, 'Outgoing and incoming hashes overlap');
+  await expect(page.locator('html')).toHaveAttribute('data-background-overlap', 'true');
   await expect(page.locator('.viewer-background-layer')).toHaveCount(1);
   await page.keyboard.press('End');
   await expect(page.locator('.viewer-counter')).toHaveText('3 / 3');

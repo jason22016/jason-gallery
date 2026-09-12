@@ -111,6 +111,19 @@ test('Inspector Sheet y/opacity/scale follow partial gesture and remain inert wh
   await expect(page.locator('.viewer-thumbnails-motion')).toHaveAttribute('inert', '');
   await page.evaluate(`
     window.inspectorTouchEvents = [];
+    window.inspectorTouchTrace = [];
+    for (const type of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup', 'click', 'contextmenu']) {
+      document.addEventListener(type, event => window.inspectorTouchTrace.push({
+        type, time: performance.now(), timestamp: event.timeStamp, prevented: event.defaultPrevented,
+        target: event.target.closest('button')?.getAttribute('aria-label') || event.target.tagName,
+        bounds: document.querySelector('.mobile-inspector-sheet button').getBoundingClientRect().toJSON(),
+      }), true);
+    }
+    const prevent = Event.prototype.preventDefault;
+    Event.prototype.preventDefault = function () {
+      if (/^(touch|pointer|click)/.test(this.type)) window.inspectorTouchTrace.push({type: 'prevent:' + this.type, stack: new Error().stack});
+      return prevent.call(this);
+    };
     const button = document.querySelector('.mobile-inspector-sheet button');
     for (const type of ['touchstart', 'touchend', 'click']) {
       button.addEventListener(type, event => window.inspectorTouchEvents.push(type + ':' + event.isTrusted));
@@ -121,7 +134,12 @@ test('Inspector Sheet y/opacity/scale follow partial gesture and remain inert wh
   assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), point), '收起照片信息');
   // Chromium schedules the full native gesture; locator.tap sends down/up concurrently.
   await cdp.send('Input.synthesizeTapGesture', { ...point, gestureSourceType: 'touch' });
-  await expect.poll(() => page.evaluate('window.inspectorTouchEvents')).toEqual(['touchstart:true', 'touchend:true', 'click:true']);
+  try {
+    await expect.poll(() => page.evaluate('window.inspectorTouchEvents')).toEqual(['touchstart:true', 'touchend:true', 'click:true']);
+  } catch (error) {
+    console.log('Inspector native touch trace:', await page.evaluate('window.inspectorTouchTrace'));
+    throw error;
+  }
   await expect(sheet).toHaveAttribute('inert', '');
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 180');
 });
@@ -251,12 +269,13 @@ test('real WebGL double-tap zoom blocks swipe and dismiss, then zoom reset resto
   await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'webgl');
   const cdp = await context.newCDPSession(page);
   const doubleTap = async () => {
-    await touch(cdp, 'touchStart', 190, 340); await touch(cdp, 'touchEnd');
-    await page.waitForTimeout(80);
-    await touch(cdp, 'touchStart', 190, 340); await touch(cdp, 'touchEnd');
+    // Let the browser schedule both taps inside the engine's 300ms window;
+    // four host round trips can exceed it on the software-rendered CI runner.
+    await cdp.send('Input.synthesizeTapGesture', { x: 190, y: 340, gestureSourceType: 'touch', tapCount: 2 });
     await page.waitForTimeout(350);
   };
   await doubleTap();
+  await expect.poll(() => page.locator('.swiper').evaluate(el => (el as HTMLElement & { swiper: { allowTouchMove: boolean } }).swiper.allowTouchMove)).toBe(false);
   await page.keyboard.press('ArrowRight');
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 180');
   await drag(cdp, [310, 340], [60, 340]); await drag(cdp, [190, 230], [190, 520]);
