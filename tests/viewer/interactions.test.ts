@@ -107,8 +107,21 @@ test('Inspector Sheet y/opacity/scale follow partial gesture and remain inert wh
   assert(surface.scale > .965 && surface.scale < 1);
   await touch(cdp, 'touchMove', 190, 210); await touch(cdp, 'touchEnd');
   await expect.poll(async () => (await transform(page, '.mobile-inspector-sheet')).y).toBe(0);
+  await expect.poll(async () => (await transform(page, '.inspector-sheet-surface')).scale).toBe(1);
   await expect(page.locator('.viewer-thumbnails-motion')).toHaveAttribute('inert', '');
-  await page.getByRole('button', { name: '收起照片信息' }).tap();
+  await page.evaluate(`
+    window.inspectorTouchEvents = [];
+    const button = document.querySelector('.mobile-inspector-sheet button');
+    for (const type of ['touchstart', 'touchend', 'click']) {
+      button.addEventListener(type, event => window.inspectorTouchEvents.push(type + ':' + event.isTrusted));
+    }
+  `);
+  const close = await page.getByRole('button', { name: '收起照片信息' }).boundingBox(); assert(close);
+  const point = { x: close.x + close.width / 2, y: close.y + close.height / 2 };
+  assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), point), '收起照片信息');
+  // Chromium schedules the full native gesture; locator.tap sends down/up concurrently.
+  await cdp.send('Input.synthesizeTapGesture', { ...point, gestureSourceType: 'touch' });
+  await expect.poll(() => page.evaluate('window.inspectorTouchEvents')).toEqual(['touchstart:true', 'touchend:true', 'click:true']);
   await expect(sheet).toHaveAttribute('inert', '');
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 180');
 });
@@ -132,7 +145,14 @@ test('pinch and zoom block slide/dismiss gestures, reset on navigation, and canc
   await touch(cdp, 'touchStart', 100, 300); await touch(cdp, 'touchCancel');
   // Let Chromium retire the canceled native touch sequence before starting another.
   await page.waitForTimeout(150);
-  await drag(cdp, [80, 350], [300, 350]);
+  // Exercise a deliberate long swipe: threshold handling consumes the first move,
+  // so the old 220px gesture traveled less than half of the 390px slide.
+  const startTranslate = (await transform(page, '.swiper-wrapper')).x;
+  await drag(cdp, [40, 350], [350, 350], false);
+  assert((await transform(page, '.swiper-wrapper')).x - startTranslate > 390 / 2);
+  const longSwipeDuration = await page.locator('.swiper').evaluate(el => (el as HTMLElement & { swiper: { params: { longSwipesMs: number } } }).swiper.params.longSwipesMs);
+  await page.waitForTimeout(longSwipeDuration + 50);
+  await touch(cdp, 'touchEnd');
   await expect(page.locator('.viewer-counter')).toHaveText('179 / 180');
 });
 
@@ -141,17 +161,38 @@ test('thumbnail aspect ratios, virtualization, centering, wheel, hover preview a
   assert(await page.locator('[data-filmstrip-id]').count() < 40, '180 thumbnails must be horizontally virtualized');
   const portrait = await page.locator('.viewer-thumbnail-item').first().boundingBox(); assert(portrait);
   assert.equal(portrait.height, 64); assert(Math.abs(portrait.width - 64 * 2 / 3) < 1);
+  const filmstrip = page.locator('.viewer-filmstrip');
+  // The selected thumbnail's 1.1 scale can extend scrollWidth beyond the layout track.
+  const atEnd = () => expect.poll(() => filmstrip.evaluate(el => (el.firstElementChild as HTMLElement).offsetWidth - el.clientWidth - el.scrollLeft)).toBeLessThan(2);
+  const slideSettled = () => expect.poll(() => page.locator('.swiper').evaluate(el => (el as HTMLElement & { swiper: { animating: boolean } }).swiper.animating)).toBe(false);
   await page.keyboard.press('End'); await expect(page.locator('.viewer-counter')).toHaveText('180 / 180');
+  await slideSettled(); await atEnd();
   await expect(page.locator('[data-filmstrip-id="photo-179"]')).toBeInViewport();
-  await page.keyboard.press('Home'); await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Home'); await expect(page.locator('.viewer-counter')).toHaveText('1 / 180');
+  await slideSettled(); await expect.poll(() => filmstrip.evaluate(el => el.scrollLeft)).toBe(0);
+  await page.keyboard.press('ArrowRight'); await expect(page.locator('.viewer-counter')).toHaveText('2 / 180');
+  await slideSettled();
   await page.locator('[data-filmstrip-id="photo-1"]').hover(); await expect(page.locator('.viewer-thumbnail-hover')).toBeVisible();
-  await page.keyboard.press('End'); await page.keyboard.press('ArrowLeft');
-  await page.locator('.viewer-filmstrip').hover(); await page.mouse.wheel(0, -600);
-  await expect.poll(() => page.locator('.viewer-filmstrip').evaluate(el => el.scrollLeft)).toBeLessThan(12000);
-  // Navigate to a middle virtual thumbnail from the visible range and check its center.
-  const target = page.locator('[data-filmstrip-id]').nth(7);
-  const id = await target.getAttribute('data-filmstrip-id'); assert(id);
-  await target.click();
+  await page.keyboard.press('End'); await expect(page.locator('.viewer-counter')).toHaveText('180 / 180');
+  await slideSettled(); await atEnd();
+  await page.keyboard.press('ArrowLeft'); await expect(page.locator('.viewer-counter')).toHaveText('179 / 180');
+  await slideSettled(); await atEnd();
+  const beforeWheel = await filmstrip.evaluate(el => el.scrollLeft);
+  await filmstrip.hover(); await page.mouse.wheel(0, -600);
+  await expect.poll(() => filmstrip.evaluate(el => el.scrollLeft)).toBeLessThan(beforeWheel - 500);
+  // Pick an immutable identity whose center is reachable, excluding clamped edge items.
+  const id = await filmstrip.evaluate(bar => {
+    const bounds = bar.getBoundingClientRect();
+    return [...bar.querySelectorAll<HTMLElement>('[data-filmstrip-id]')].map(item => {
+      const box = item.getBoundingClientRect();
+      const center = box.x + box.width / 2 - bounds.x;
+      return { id: item.dataset.filmstripId, center, absolute: center + bar.scrollLeft, selected: item.hasAttribute('aria-current') };
+    }).filter(item => !item.selected && item.center > 0 && item.center < bar.clientWidth && item.absolute >= bar.clientWidth / 2 && item.absolute <= bar.scrollWidth - bar.clientWidth / 2)
+      .sort((a, b) => Math.abs(a.center - bar.clientWidth / 2) - Math.abs(b.center - bar.clientWidth / 2))[0]?.id;
+  });
+  assert(id, 'A visible non-edge thumbnail must be available');
+  await page.locator(`[data-filmstrip-id="${id}"]`).click();
+  await expect(page.locator(`[data-filmstrip-id="${id}"]`)).toHaveAttribute('aria-current', 'true');
   await expect.poll(async () => {
     const item = await page.locator(`[data-filmstrip-id="${id}"]`).boundingBox(), bar = await page.locator('.viewer-filmstrip').boundingBox();
     return item && bar ? Math.abs(item.x + item.width / 2 - bar.x - bar.width / 2) : 1000;
