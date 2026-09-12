@@ -1,0 +1,10 @@
+Website browser: 151.0.7922.34
+✔ real MapLibre renders fixture points, expands a cluster, opens a point, and restores the filtered map (24891.066791ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 25523.408

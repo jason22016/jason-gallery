@@ -1,3 +1,7 @@
+import { EllipsisWithTooltip } from './ui/EllipsisWithTooltip';
+import { Spring } from '@afilmory/utils';
+import { m } from 'motion/react';
+import { useReducedMotion } from './ui/useReducedMotion';
 import { getViewerTransitionTriggerProps } from '@afilmory/viewer-motion';
 import { memo, useState, type MouseEvent } from 'react';
 import type { RenderComponentProps } from 'masonic';
@@ -9,6 +13,7 @@ import type { GalleryItem } from './photos';
 export const MasonryPhotoItem = memo(function MasonryPhotoItem({ data: { photo, index, onOpen }, width }: RenderComponentProps<GalleryItem>) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const live = useLivePhoto(photo, imageLoaded);
+  const reduced = useReducedMotion();
   const calculatedHeight = width / photo.aspectRatio;
   const description = photo.caption || photo.description;
   const capture = photo.capture;
@@ -16,11 +21,13 @@ export const MasonryPhotoItem = memo(function MasonryPhotoItem({ data: { photo, 
     if (event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault(); live.stop(); onOpen(photo, event.currentTarget);
   };
-  return <a className="photo-link masonry-photo group" href={photo.src} style={{ width, height: calculatedHeight }}
+  return <m.a initial={false} whileHover={!live.isMobile && !reduced ? "hover" : "rest"} className="photo-link masonry-photo group" href={photo.src} style={{ width, height: calculatedHeight }}
     {...getViewerTransitionTriggerProps(photo.id)} data-viewer-trigger={photo.id} data-photo-id={photo.id} data-gallery-index={index}
     aria-label={`查看照片：${photo.alt}`} onClick={open} onMouseEnter={live.enter} onMouseLeave={live.stop}>
+    <m.span className="masonry-media" variants={{ hover: { scale: 1.05 }, rest: { scale: 1 } }} animate={reduced ? { scale: 1 } : undefined} transition={Spring.presets.smooth}>
     <PhotoThumbnail photo={photo} eager={index < 8} onReady={setImageLoaded} />
     {photo.video && <video ref={live.videoRef} className="live-photo-video" data-playing={live.playing} muted playsInline preload="auto" onEnded={live.stop} aria-hidden="true" />}
+    </m.span>
     <span className="photo-badges">
       {photo.video && <span className="photo-badge live-photo-badge" data-state={live.state} data-playing={live.playing}
         title={live.state === 'error' ? '实况预览暂不可用' : live.isMobile ? '实况照片' : '悬停播放实况照片'}>
@@ -34,8 +41,8 @@ export const MasonryPhotoItem = memo(function MasonryPhotoItem({ data: { photo, 
       <span className="photo-hover-gradient" />
       <span className="photo-hover">
         <span className="photo-summary">
-          <strong className="photo-title" title={photo.title}>{photo.title}</strong>
-          {description && <span className="photo-description" title={description}>{description}</span>}
+          <strong className="photo-title"><EllipsisWithTooltip>{photo.title}</EllipsisWithTooltip></strong>
+          {description && <EllipsisWithTooltip className="photo-description" multiline>{description}</EllipsisWithTooltip>}
           <span className="photo-file-info"><span>{photo.format.toUpperCase()}</span><span>•</span><span>{photo.width} × {photo.height}</span><span>•</span><span>{(photo.size / 1024 / 1024).toFixed(1)}MB</span></span>
           {!!photo.tags.length && <span className="photo-tags" title={photo.tags.join(' · ')}>{photo.tags.map(tag => <span key={tag}>{tag}</span>)}</span>}
         </span>
@@ -47,5 +54,5 @@ export const MasonryPhotoItem = memo(function MasonryPhotoItem({ data: { photo, 
         </span>}
       </span>
     </>}
-  </a>;
+  </m.a>;
 });

@@ -151,9 +151,10 @@
       "local": "src/components/viewer/PhotoViewer.css",
       "upstream": "apps/web/src/modules/viewer/PhotoViewer.css",
       "upstreamSha256": "367f5b7586549ce44fbdb7b67606c9f5495b2d1fa10b0cce5490f72666b76c05",
-      "sha256": "ac232124f70b94fa03c1edd033aa549b2a1f2f308be30f27ea6312733dffd98c",
+      "sha256": "7766c3af74d19486b8a1872938e103d2f245c5dbba7d905f880e24dd30e791c3",
       "license": "AGPL-3.0-or-later + ANL §4",
-      "adapted": true
+      "adapted": true,
+      "phase4Adaptation": "Share photo-tokens.css with Gallery; use semantic RGB legend tokens and control-role blur on minimap status. No Viewer gesture or rendering logic changed."
     },
     {
       "local": "src/components/viewer/entry-animation-state.ts",

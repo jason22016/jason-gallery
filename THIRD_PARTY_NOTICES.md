@@ -150,3 +150,30 @@ with FFmpeg's `testsrc2` and H.264 encoder, not a third-party photograph/video.
 React's external-store subscription because the installed Motion hook captures
 only its mount-time preference. The native indicator branch avoids residual layout
 projection when reduced motion changes during a session; live playback stops too.
+
+## Phase 4 — Secondary Gallery UI (2026-09-13)
+
+Pinned upstream remains `Afilmory/Afilmory@1f65cde6672e5231599182620116ac904e39f548`.
+The complete `DESIGN.md` was checked against the retrieved upstream file before migration.
+`licenses/gallery-upstream.json` records per-file source hashes and explicit adaptations for
+`ListView`, `CommandPalette`/`SearchPanel`, `FilterChip`, `ViewPanel`/`SortPanel`/`ColumnsPanel`,
+`ActionPanel` and PageHeader surface composition. Application derivatives retain
+AGPL-3.0-or-later + ANL §4 attribution already displayed in Project Info and Viewer.
+
+The local `EllipsisWithTooltip` and `LinearDivider` adapters derive from `packages/ui`
+(MIT, Copyright (c) Afilmory Team). Panel surfaces also adapt the upstream MIT dropdown
+primitive's material/border/shadow styling; product composition retains the application license.
+Radix Dialog, Popover, Tooltip and Vaul are exact-version registry dependencies stored by the
+normal local package installation. All application source is in this repository; there is no
+runtime source download, source import from an external clone, or submodule.
+
+`src/styles/photo-tokens.css` consolidates the existing MIT UIKit color definitions and
+OFL Geist font declarations. It is scoped to Project Gallery and Viewer. The additional
+locally embedded MingCute glyphs retain the existing Apache-2.0 notice. The reference document
+remains CC BY 4.0 as credited in the Phase 2 notice.
+
+DESIGN.md takes precedence over the referenced legacy implementations: neutral/light-dark
+pairs, Lucide imports, off-role blur, arbitrary z-index, pointer-only slider behavior, and
+spatial CSS tweens were not carried into the new components. The Vaul drawer shell uses
+Motion springs in place of Vaul's default CSS easing. Source provenance records for the
+existing Viewer CSS were updated only for the reviewed token and minimap status changes.

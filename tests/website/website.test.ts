@@ -342,7 +342,7 @@ test('project information, filters, chronological sort, list persistence, and sh
   await expect(page.getByRole('dialog')).toContainText('Fixture location');
   await page.getByRole('button', { name: '关闭面板' }).click();
   await page.getByRole('button', { name: '搜索和筛选' }).click();
-  await page.getByLabel('相机', { exact: true }).selectOption('NIKON Z6');
+  await page.getByRole('button', { name: '相机：NIKON Z6', exact: true }).click();
   await page.getByRole('button', { name: '查看 1 张照片' }).click();
   await expect(page.locator('.gallery-live [data-gallery-index]')).toHaveCount(1);
   await open(page); await loaded(page); await expect(page.locator('.viewer-counter')).toHaveText('1 / 1');
@@ -351,7 +351,7 @@ test('project information, filters, chronological sort, list persistence, and sh
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: '清除筛选' }).click();
   await page.getByRole('button', { name: '显示设置' }).click();
-  await page.getByLabel('照片排序').selectOption('asc'); await page.getByLabel('瀑布流列数').selectOption('2');
+  await page.getByRole('radio', { name: '拍摄时间：从旧到新' }).click(); await chooseColumns(page, 2);
   await page.getByRole('button', { name: '关闭面板' }).click();
   await open(page); await loaded(page); await expectFallbackSource(page, '/originals/ordinary.jpg');
   await page.getByRole('button', { name: '下一张照片' }).click(); await loaded(page); await expectFallbackSource(page, '/originals/hdr.jpg');
@@ -393,7 +393,7 @@ test('map has an accessible fallback and obeys current filters; missing GPS prod
   await expectFallbackSource(page, '/originals/portrait.jpg');
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '关闭面板' }).click();
-  await page.getByRole('button', { name: '搜索和筛选' }).click(); await page.getByLabel('标签', { exact: true }).selectOption('风景');
+  await page.getByRole('button', { name: '搜索和筛选' }).click(); await page.getByRole('button', { name: '标签：风景', exact: true }).click();
   await page.getByRole('button', { name: '查看 1 张照片' }).click(); await page.getByRole('button', { name: '地图探索' }).click();
   await expect(page.getByRole('heading', { name: '没有可显示的位置' })).toBeVisible();
 });
@@ -537,10 +537,11 @@ test('filtered/sorted share URL restores the same sequence; Forward then Close d
   const ctx = await context({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
   const page = await projectPage(ctx);
   await page.getByRole('button', { name: '搜索和筛选' }).click();
+  await page.locator('.date-filter summary').click();
   await page.getByLabel('开始日期').fill('2024-03-01');
   await page.getByRole('button', { name: '查看 2 张照片' }).click();
   await page.getByRole('button', { name: '显示设置' }).click();
-  await page.getByLabel('照片排序').selectOption('asc');
+  await page.getByRole('radio', { name: '拍摄时间：从旧到新' }).click();
   await page.getByRole('button', { name: '关闭面板' }).click();
   await open(page); await loaded(page);
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 2');
@@ -568,11 +569,13 @@ test('filtered/sorted share URL restores the same sequence; Forward then Close d
 });
 
 // Inspect visible circle pixels in the real WebGL canvas, without exposing application test hooks.
-async function mapCircles(page: Page, shade: number) {
+async function mapCircles(page: Page, kind: 'cluster' | 'photo') {
   const { default: sharp } = await import('sharp');
   const { data, info } = await sharp(await page.locator('.photo-map canvas').screenshot()).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const color = await page.locator('[aria-label="地图探索"][data-active]').evaluate(el => getComputedStyle(el).color);
+  const rgb = color.match(/[\d.]+/g)!.slice(0, 3).map(Number);
   const visited = new Set<number>(), circles: { x: number; y: number; area: number }[] = [];
-  const matches = (i: number) => i >= 0 && i < info.width * info.height && data[i * 3] === shade && data[i * 3 + 1] === shade && data[i * 3 + 2] === shade;
+  const matches = (i: number) => i >= 0 && i < info.width * info.height && data[i * 3] === rgb[0] && data[i * 3 + 1] === rgb[1] && data[i * 3 + 2] === rgb[2];
   for (let i = 0; i < info.width * info.height; i++) {
     if (visited.has(i) || !matches(i)) continue;
     const queue = [i]; visited.add(i); let x = 0, y = 0;
@@ -580,7 +583,7 @@ async function mapCircles(page: Page, shade: number) {
       const pixel = queue[j]!; x += pixel % info.width; y += Math.floor(pixel / info.width);
       for (const next of [pixel - 1, pixel + 1, pixel - info.width, pixel + info.width]) if (!visited.has(next) && matches(next)) { visited.add(next); queue.push(next); }
     }
-    if (queue.length > 70 && (shade !== 255 || queue.length < 220)) circles.push({ x: x / queue.length, y: y / queue.length, area: queue.length });
+    if (queue.length > 70 && (kind === 'cluster' ? queue.length > 800 : queue.length < 220)) circles.push({ x: x / queue.length, y: y / queue.length, area: queue.length });
   }
   return circles;
 }
@@ -592,36 +595,52 @@ test('real MapLibre renders fixture points, expands a cluster, opens a point, an
   // Deterministic local style. Empty glyph fixture avoids dependence on external font services;
   // production CARTO tiles and count labels are checked separately with real photos.
   await page.route('**/dark-matter-gl-style/style.json', route => route.fulfill({ json: {
-    version: 8, glyphs: `${server.url}/fixture-font/{fontstack}/{range}.pbf`, sources: {},
-    layers: [{ id: 'fixture-background', type: 'background', paint: { 'background-color': '#102030' } }],
+    version: 8, glyphs: `${server.url}/fixture-font/{fontstack}/{range}.pbf`,
+    sources: { attribution: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, attribution: '<a href="https://example.com/">Fixture attribution</a>' } },
+    layers: [{ id: 'fixture-background', type: 'background', paint: { 'background-color': '#102030' } }, { id: 'attribution', type: 'circle', source: 'attribution' }],
   } }));
   await page.route('**/fixture-font/**', route => route.fulfill({ contentType: 'application/x-protobuf', body: Buffer.alloc(0) }));
   await page.getByRole('button', { name: '地图探索' }).click();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
   await expect(page.locator('.map-photo-list button')).toHaveCount(3);
-  const clusters = await mapCircles(page, 221); assert.equal(clusters.length, 1);
-  assert.equal((await mapCircles(page, 255)).length, 1);
+  const attribution = page.locator('.maplibregl-ctrl-attrib');
+  await expect(attribution).toBeVisible();
+  if (await attribution.getAttribute('open') === null) await attribution.locator('summary').click();
+  await expect(attribution.getByRole('link', { name: 'Fixture attribution' })).toBeVisible();
+  const attributionColors = await attribution.evaluate(element => {
+    const surface = getComputedStyle(element), link = getComputedStyle(element.querySelector('a')!);
+    return { background: surface.backgroundColor, color: link.color, font: surface.fontFamily };
+  });
+  assert.notEqual(attributionColors.background, 'rgb(255, 255, 255)', 'lazy MapLibre compact CSS must not override the dark attribution surface');
+  assert.equal(attributionColors.color, 'rgba(255, 255, 255, 0.85)', 'attribution links remain legible on the dark map');
+  assert.match(attributionColors.font, /Geist/);
+  await attribution.locator('summary').click();
+  await expect(attribution.getByRole('link')).toBeHidden();
+  await attribution.locator('summary').click();
+  await expect(attribution.getByRole('link')).toBeVisible();
+  const clusters = await mapCircles(page, 'cluster'); assert.equal(clusters.length, 1);
+  assert.equal((await mapCircles(page, 'photo')).length, 1);
   await page.locator('.photo-map canvas').click({ position: { x: clusters[0]!.x, y: clusters[0]!.y } });
-  await expect.poll(async () => (await mapCircles(page, 221)).length).toBe(0);
-  await expect.poll(async () => (await mapCircles(page, 255)).length).toBe(2);
-  const points = await mapCircles(page, 255);
+  await expect.poll(async () => (await mapCircles(page, 'cluster')).length).toBe(0);
+  await expect.poll(async () => (await mapCircles(page, 'photo')).length).toBe(2);
+  const points = await mapCircles(page, 'photo');
   await page.locator('.photo-map canvas').click({ position: { x: points[0]!.x, y: points[0]!.y } });
   await loaded(page);
   await expect(page.locator('.viewer-counter')).toContainText('/ 4');
   await page.goBack(); await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
-  assert.equal((await mapCircles(page, 221)).length, 0, 'expanded view survives returning from Viewer');
+  assert.equal((await mapCircles(page, 'cluster')).length, 0, 'expanded view survives returning from Viewer');
   await page.goForward(); await loaded(page);
   await page.getByRole('button', { name: '关闭照片' }).click();
   await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '关闭面板' }).click();
   await page.getByRole('button', { name: '搜索和筛选' }).click();
-  await page.getByLabel('相机', { exact: true }).selectOption('NIKON Z6');
+  await page.getByRole('button', { name: '相机：NIKON Z6', exact: true }).click();
   await page.getByRole('button', { name: '查看 1 张照片' }).click();
   await page.getByRole('button', { name: '地图探索' }).click();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
-  assert.equal((await mapCircles(page, 221)).length, 0);
-  const filtered = await mapCircles(page, 255); assert.equal(filtered.length, 1);
+  assert.equal((await mapCircles(page, 'cluster')).length, 0);
+  const filtered = await mapCircles(page, 'photo'); assert.equal(filtered.length, 1);
   await page.locator('.photo-map canvas').click({ position: { x: filtered[0]!.x, y: filtered[0]!.y } }); await loaded(page);
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 1');
   assert.deepEqual(errors, []);
@@ -749,3 +768,9 @@ test('Swiper thumbnail and keyboard navigation preserve the Project history entr
   await page.keyboard.press('Escape'); await expect(page.locator('.photo-dialog')).toHaveCount(0);
   assert.equal(await page.evaluate(() => window.scrollY), before);
 });
+
+async function chooseColumns(page: Page, count: number) {
+  const slider = page.getByRole('slider', { name: '瀑布流列数' });
+  await slider.press('Home');
+  for (let index = 0; index < count; index++) await slider.press('ArrowRight');
+}

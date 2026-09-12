@@ -96,16 +96,16 @@
 .viewer-histogram-status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px; color: var(--color-text-secondary); font-size: 12px; background: var(--color-material-ultra-thin); backdrop-filter: blur(var(--viewer-blur-panel)); }
 .histogram-note { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 11px; color: var(--color-text-secondary); }
 .histogram-legend { display: inline-flex; gap: 6px; font-family: var(--viewer-font-mono); }
-.histogram-legend > :nth-child(1) { color: rgb(255 105 97); }
-.histogram-legend > :nth-child(2) { color: rgb(52 199 89); }
-.histogram-legend > :nth-child(3) { color: rgb(64 156 255); }
+.histogram-legend > :nth-child(1) { color: var(--color-red); }
+.histogram-legend > :nth-child(2) { color: var(--color-green); }
+.histogram-legend > :nth-child(3) { color: var(--color-histogram-blue); }
 .viewer-minimap { position: relative; height: 160px; width: 100%; overflow: hidden; border-radius: 8px; border: 1px solid var(--viewer-border); background: var(--color-material-ultra-thin); backdrop-filter: blur(var(--viewer-blur-panel)); }
 .viewer-minimap-canvas, .viewer-minimap-link { position: absolute; inset: 0; }
 .viewer-minimap-link { z-index: 10; transition: background-color .2s; }
 .viewer-minimap-link:hover { background: var(--viewer-wash); }
 .viewer-minimap-link:focus-visible { outline-offset: -3px; }
 .viewer-minimap-marker { position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; translate: -50% -50%; border-radius: 999px; background: var(--color-accent); box-shadow: 0 0 0 2px var(--color-text), 0 0 0 6px var(--viewer-border); pointer-events: none; }
-.viewer-minimap-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: var(--color-material-ultra-thin); backdrop-filter: blur(var(--viewer-blur-scrim)); color: var(--color-text-secondary); font-size: 12px; }
+.viewer-minimap-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: var(--color-material-ultra-thin); backdrop-filter: blur(var(--viewer-blur-control)); color: var(--color-text-secondary); font-size: 12px; }
 .viewer-minimap-status span { font-family: var(--viewer-font-mono); }
 .viewer-minimap-attribution { position: absolute; bottom: 0; right: 0; z-index: 20; padding: 1px 4px; color: var(--color-text-secondary); background: var(--color-material-ultra-thick); backdrop-filter: blur(var(--viewer-blur-control)); font-size: 10px; }
 .metadata-map-link { font-size: 12px; color: var(--color-text-secondary); text-underline-offset: 3px; }

@@ -1,3 +1,4 @@
+import { EllipsisWithTooltip } from './ui/EllipsisWithTooltip';
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -31,10 +32,13 @@ export default function PhotoMap({ photos, onOpen, initialViewport, onViewport }
       map.on('load', () => {
         if (!map) return;
         const current = map;
+        const tokens = getComputedStyle(container.current!);
+        const accent = tokens.getPropertyValue('--color-accent').trim();
+        const background = tokens.getPropertyValue('--color-background').trim();
         current.addSource('photos', { type: 'geojson', cluster: true, clusterRadius: 45, data: { type: 'FeatureCollection', features: located.map(p => ({ type: 'Feature', properties: { id: p.id }, geometry: { type: 'Point', coordinates: [p.location!.longitude, p.location!.latitude] } })) } });
-        current.addLayer({ id: 'clusters', type: 'circle', source: 'photos', filter: ['has', 'point_count'], paint: { 'circle-color': '#dddddd', 'circle-radius': 23, 'circle-stroke-width': 5, 'circle-stroke-color': '#ffffff33' } });
-        current.addLayer({ id: 'counts', type: 'symbol', source: 'photos', filter: ['has', 'point_count'], layout: { 'text-field': '{point_count_abbreviated}', 'text-size': 12 }, paint: { 'text-color': '#171717' } });
-        current.addLayer({ id: 'photo', type: 'circle', source: 'photos', filter: ['!', ['has', 'point_count']], paint: { 'circle-color': '#ffffff', 'circle-radius': 8, 'circle-stroke-width': 5, 'circle-stroke-color': '#ffffff44' } });
+        current.addLayer({ id: 'clusters', type: 'circle', source: 'photos', filter: ['has', 'point_count'], paint: { 'circle-color': accent, 'circle-radius': 23, 'circle-stroke-width': 5, 'circle-stroke-color': accent, 'circle-stroke-opacity': .2 } });
+        current.addLayer({ id: 'counts', type: 'symbol', source: 'photos', filter: ['has', 'point_count'], layout: { 'text-field': '{point_count_abbreviated}', 'text-size': 12 }, paint: { 'text-color': background } });
+        current.addLayer({ id: 'photo', type: 'circle', source: 'photos', filter: ['!', ['has', 'point_count']], paint: { 'circle-color': accent, 'circle-radius': 8, 'circle-stroke-width': 5, 'circle-stroke-color': accent, 'circle-stroke-opacity': .3 } });
         current.on('click', 'photo', event => { const photo = located.find(p => p.id === event.features?.[0]?.properties.id); if (photo) open.current(photo); });
         current.on('click', 'clusters', async event => {
           const feature = event.features?.[0]; if (!feature || feature.geometry.type !== 'Point') return;
@@ -50,5 +54,5 @@ export default function PhotoMap({ photos, onOpen, initialViewport, onViewport }
     // The panel gets a new instance when its filtered result changes.
   }, [photos, attempt]);
   if (!located.length) return <div className="gallery-empty"><h3>没有可显示的位置</h3><p>当前照片没有 GPS 坐标。</p></div>;
-  return <><div className="photo-map" ref={container} aria-label="照片位置地图" aria-busy={!ready && !error} data-map-state={error ? 'error' : ready ? 'ready' : 'loading'} />{error && <p className="map-error" role="status">底图暂时不可用，你仍可从下方打开照片。<button onClick={() => setAttempt(n => n + 1)}>重试地图</button></p>}<p className="muted">{located.length} 张照片有位置记录</p><ul className="map-photo-list">{located.map(p => <li key={p.id}><button onClick={() => onOpen(p)}><img src={p.thumbnail} alt=""/><span>{p.title}<small>{p.location?.locationName || p.location?.city || `${p.location!.latitude.toFixed(3)}, ${p.location!.longitude.toFixed(3)}`}</small></span></button></li>)}</ul></>;
+  return <><div className="photo-map" ref={container} aria-label="照片位置地图" aria-busy={!ready && !error} data-map-state={error ? 'error' : ready ? 'ready' : 'loading'} />{error && <p className="map-error" role="status">底图暂时不可用，你仍可从下方打开照片。<button onClick={() => setAttempt(n => n + 1)}>重试地图</button></p>}<p className="muted">{located.length} 张照片有位置记录</p><ul className="map-photo-list">{located.map(p => <li key={p.id}><button onClick={() => onOpen(p)}><img src={p.thumbnail} alt=""/><span><EllipsisWithTooltip>{p.title}</EllipsisWithTooltip><small><EllipsisWithTooltip>{p.location?.locationName || p.location?.city || `${p.location!.latitude.toFixed(3)}, ${p.location!.longitude.toFixed(3)}`}</EllipsisWithTooltip></small></span></button></li>)}</ul></>;
 }

@@ -125,7 +125,7 @@
     },
     {
       "local": "src/components/viewer/PhotoViewer.css",
-      "sha256": "ac232124f70b94fa03c1edd033aa549b2a1f2f308be30f27ea6312733dffd98c",
+      "sha256": "7766c3af74d19486b8a1872938e103d2f245c5dbba7d905f880e24dd30e791c3",
       "adapted": true,
       "upstream": [
         {
@@ -140,7 +140,8 @@
           "path": "packages/ui/src/divider/LinearDivider.tsx",
           "sha256": "b97e2f889ab96ed672a8da343c1ea4263c16993d5c479638255abe152261284b"
         }
-      ]
+      ],
+      "phase4Adaptation": "Share photo-tokens.css with Gallery; use semantic RGB legend tokens and control-role blur on minimap status. No Viewer gesture or rendering logic changed."
     },
     {
       "local": "src/components/viewer/GalleryThumbnail.tsx",
@@ -166,14 +167,15 @@
     },
     {
       "local": "src/components/viewer/ViewerTokens.css",
-      "sha256": "d1b95cfc2ce1bf7ba863568de40394e164985b1be169d3c516d40c78f13da467",
+      "sha256": "7b3323f8044cf2ee4487452d70311e9005770b81b47b2aa04178bf65b0da5621",
       "adapted": true,
       "upstream": [
         {
           "path": "apps/web/src/styles/tailwind.css",
           "sha256": "30215bc99d18bcbdc7642ab9b1f623a3dddb4f57448035825c151627f4ccfe0b"
         }
-      ]
+      ],
+      "phase4Adaptation": "Share photo-tokens.css with Gallery; use semantic RGB legend tokens and control-role blur on minimap status. No Viewer gesture or rendering logic changed."
     },
     {
       "local": "src/components/viewer/color.ts",

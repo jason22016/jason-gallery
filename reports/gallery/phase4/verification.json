@@ -1,0 +1,108 @@
+{
+  "commands": [
+    {
+      "name": "check",
+      "command": [
+        "pnpm",
+        "check"
+      ],
+      "startedAt": "2026-09-12T16:10:42.806276+00:00",
+      "finishedAt": "2026-09-12T16:10:47.432290+00:00",
+      "exitCode": 0,
+      "log": "check.log"
+    },
+    {
+      "name": "upstream",
+      "command": [
+        "pnpm",
+        "check:upstream"
+      ],
+      "startedAt": "2026-09-12T16:10:47.432667+00:00",
+      "finishedAt": "2026-09-12T16:10:47.831286+00:00",
+      "exitCode": 0,
+      "log": "upstream.log"
+    },
+    {
+      "name": "viewer",
+      "command": [
+        "pnpm",
+        "test:viewer"
+      ],
+      "startedAt": "2026-09-12T16:10:47.831588+00:00",
+      "finishedAt": "2026-09-12T16:12:12.489318+00:00",
+      "exitCode": 0,
+      "log": "viewer.log"
+    },
+    {
+      "name": "website",
+      "command": [
+        "pnpm",
+        "test:website"
+      ],
+      "startedAt": "2026-09-12T16:12:12.489781+00:00",
+      "finishedAt": "2026-09-12T16:15:29.517869+00:00",
+      "exitCode": 0,
+      "log": "website.log"
+    },
+    {
+      "name": "build",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "startedAt": "2026-09-12T16:15:29.518562+00:00",
+      "finishedAt": "2026-09-12T16:15:31.586910+00:00",
+      "exitCode": 0,
+      "log": "build.log"
+    }
+  ],
+  "supplementalCommands": [
+    {
+      "name": "check-after-map",
+      "command": [
+        "pnpm",
+        "check"
+      ],
+      "startedAt": "2026-09-12T16:22:52.868290+00:00",
+      "finishedAt": "2026-09-12T16:22:57.609953+00:00",
+      "exitCode": 0,
+      "log": "check-after-map.log"
+    },
+    {
+      "name": "upstream-after-map",
+      "command": [
+        "pnpm",
+        "check:upstream"
+      ],
+      "startedAt": "2026-09-12T16:22:57.610384+00:00",
+      "finishedAt": "2026-09-12T16:22:58.015489+00:00",
+      "exitCode": 0,
+      "log": "upstream-after-map.log"
+    },
+    {
+      "name": "build-after-map",
+      "command": [
+        "pnpm",
+        "build"
+      ],
+      "startedAt": "2026-09-12T16:22:58.015789+00:00",
+      "finishedAt": "2026-09-12T16:23:00.051331+00:00",
+      "exitCode": 0,
+      "log": "build-after-map.log"
+    },
+    {
+      "name": "map-attribution",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--test",
+        "--test-name-pattern=real MapLibre",
+        "tests/website/website.test.ts"
+      ],
+      "exitCode": 0,
+      "log": "map-attribution.log",
+      "result": "1/1 passed; attribution readability and collapse/expand, cluster expansion, photo selection and viewport restoration"
+    }
+  ]
+}

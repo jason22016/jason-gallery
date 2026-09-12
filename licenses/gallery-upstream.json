@@ -33,7 +33,7 @@
     },
     {
       "local": "src/components/gallery/MasonryPhotoItem.tsx",
-      "localSha256": "02ff18e829450ec9a672362fcf323d2624f1d15b8760f6598c66df13c9ee3aa6",
+      "localSha256": "40b667f6db9d82a9666a7e01c5c0ece723dec7ea247fed4cdef693e0d3db62b7",
       "license": "AGPL-3.0-or-later + ANL §4",
       "upstream": [
         {
@@ -44,7 +44,8 @@
           "path": "apps/web/src/modules/media/HDRBadge.tsx",
           "sha256": "3f9b188bc28472d23cee59b2ce84cb187e62c39732acbc755a1c7b78b1eda7bd"
         }
-      ]
+      ],
+      "phase4Adaptation": "DESIGN.md semantic tokens, local overflow tooltips, and spring-only spatial motion."
     },
     {
       "local": "src/components/gallery/media/useLivePhoto.ts",
@@ -85,7 +86,7 @@
     },
     {
       "local": "src/components/gallery/PageHeader.tsx",
-      "localSha256": "3bb5274935c9275ec958b8250ea513fcb4ec08596c5361a35e90452966ebdb99",
+      "localSha256": "de8548882fcb060141474c1d9d1c9c71fcf32c858dfa627a24aa0e5040c42e88",
       "license": "AGPL-3.0-or-later + ANL §4",
       "upstream": [
         {
@@ -100,7 +101,8 @@
           "path": "apps/web/src/modules/gallery/PageHeader/PageHeaderRight.tsx",
           "sha256": "02ee3cd41659c52b19c28fdeb418a8c94e8af51e03834db413b18669e8ae2557"
         }
-      ]
+      ],
+      "phase4Adaptation": "DESIGN.md semantic tokens, local overflow tooltips, and spring-only spatial motion."
     },
     {
       "local": "src/components/gallery/ViewModeSegment.tsx",
@@ -141,7 +143,7 @@
     },
     {
       "local": "src/styles/gallery.css",
-      "localSha256": "9fee2156a594d464672efae9af51ba152b18346772794683e8f2149a53c5077b",
+      "localSha256": "1d189d5871cbf8cbe2f4079a54ca736538f1c068d844ee21c71d3c93983403a3",
       "license": "AGPL-3.0-or-later + ANL §4",
       "upstream": [
         {
@@ -156,7 +158,137 @@
           "path": "apps/web/src/modules/gallery/PageHeader/ViewModeSegment.tsx",
           "sha256": "dfc3a8d21b893560e638ed1abd1fc50629eb97eafc6429e0143893b52628d3c3"
         }
+      ],
+      "phase4Adaptation": "DESIGN.md semantic tokens, local overflow tooltips, and spring-only spatial motion."
+    },
+    {
+      "local": "src/components/gallery/ListView.tsx",
+      "localSha256": "7945613fbb0c0e601c6dd8fe58c0c8a4ce3ebbc37a7a50617bd6e2af714f0096",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "adaptation": "Migrated PhotoCard structure, 176px desktop height, 224px crop, 8px gap, mobile aspect-ratio media and metadata order. Window virtualizer adapter preserves Jason scroll and trigger contracts. Correct DESIGN deviations: semantic material, radius, icons, blur, spring scaling, full-text tooltip and keyboard behavior.",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/gallery/ListView.tsx",
+          "sha256": "82d4a0d242f4b022409eaa27c30f1d3d9d6a7c0f8480aab6d36e0df835f11444"
+        }
       ]
+    },
+    {
+      "local": "src/components/gallery/SearchPanel.tsx",
+      "localSha256": "9257de5dfb483ba5c39d3ef6f1db7c90832fd3e1a6b70e0695a48e2069e231d5",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "adaptation": "Migrated command rows, filter category/icon/active hierarchy, keyboard selection and controls. Project-local props replace photoLoader/Jotai/router/i18n. Existing selectPhotos and URL filter semantics retained; no upstream fuzzy-photo filter algorithm, multi-tag logic or rating introduced.",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/cmdk/CommandPalette.tsx",
+          "sha256": "9df7a6547e5609106706f25d375be19dd974062af900e191662aa40d9aadc839"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/FilterChip.tsx",
+      "localSha256": "7496b6fb9059aae1c7a0782549fde0aebcca67352dd7827d8ebf52c35e254c70",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "adaptation": "Migrated pill layout and snappy layout/scale spring; semantic tokens, accessible 28px removal, local icon and tooltip adapters.",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/gallery/ActiveFiltersHero/FilterChip.tsx",
+          "sha256": "b2fd0e7d4cf5c784425757af8e1bf36477d2ee51507b541bbb3f27d492d734c3"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/ViewPanel.tsx",
+      "localSha256": "f96a5363eef7f715182dc5c90b0c0208f5cf09fb5fbf37a969268bf495a3f659",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "adaptation": "Migrated sort rows and combined view sections/dividers. Preserved project order and full automatic/1–8 column range. Native accessible range replaces upstream pointer-only slider while retaining draft/commit behavior; monochrome semantic track and accent thumb correct legacy neutral/green colors.",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/gallery/panels/ViewPanel.tsx",
+          "sha256": "7998ec3ef934b11b0e8c2b81f7a4725fc013e7e926ee28ccca476088f15a199c"
+        },
+        {
+          "path": "apps/web/src/modules/gallery/panels/SortPanel.tsx",
+          "sha256": "2a80638918073521e46a98fe62748a8f69e5832f76b9c9f067bd71bf9f66a63f"
+        },
+        {
+          "path": "apps/web/src/modules/gallery/panels/ColumnsPanel.tsx",
+          "sha256": "a542ef26043c134717591880fd04504f6138846aa3e9aaea771236dda81730b2"
+        },
+        {
+          "path": "apps/web/src/components/ui/slider.tsx",
+          "sha256": "d37b123985781c633b673472f5e3ae74faab959400160257141284d1689bd71a"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/Panel.tsx",
+      "localSha256": "3eb63f65ffcd46665700ec4f47aa03273bcbdc52a2675111dd77734f4dfb7e76",
+      "license": "AGPL-3.0-or-later + ANL §4",
+      "adaptation": "Migrated responsive ActionPanel/Vaul structure and desktop floating-menu surface. Radix Popover supplies dialog semantics for a settings form, focus and collision placement. Radix Dialog for centered panels. Vaul CSS tweens disabled; shared Motion springs and drag control drive drawer movement. Local scroll lock, focus restoration, visual viewport and reduced-motion adapters.",
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/gallery/ActionPanel.tsx",
+          "sha256": "f37a7f8fc21356489e9d3bd0518002714c701c60fe83f12921cc2fd7262b8d0c"
+        },
+        {
+          "path": "apps/web/src/modules/gallery/PageHeader/PageHeaderRight.tsx",
+          "sha256": "02ee3cd41659c52b19c28fdeb418a8c94e8af51e03834db413b18669e8ae2557"
+        },
+        {
+          "path": "packages/ui/src/dropdown-menu.tsx",
+          "sha256": "0f7135d7d2dbe1309917df92d9d745c8666da3e3c3e6b7c785836e76fde04b45"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/ui/EllipsisWithTooltip.tsx",
+      "localSha256": "e7741210c769a4acd5398dae025429fbac98ce5cc30e9f336d4ea4cfc1b7c09e",
+      "license": "MIT",
+      "adaptation": "Migrated overflow/ResizeObserver detection and Radix tooltip wrapper; semantic CSS replaces Tailwind, spring entry respects reduced motion and z=70.",
+      "upstream": [
+        {
+          "path": "packages/ui/src/typography/EllipsisWithTooltip.tsx",
+          "sha256": "3849aa0a2e601e81b53f279de21a2912d6b30eeeedf938feb55a461d3f8c07cb"
+        },
+        {
+          "path": "packages/ui/src/tooltip/index.tsx",
+          "sha256": "2ef711cf5bcf5dc7ade32f65b8dc9b92a745919caad9100090bed321884f9eac"
+        }
+      ]
+    },
+    {
+      "local": "src/components/gallery/ui/LinearDivider.tsx",
+      "localSha256": "9c068aaacfa80064b2afb077c9b8ebee80bf8dfa5588dba8f0a439f13fdf5ae2",
+      "license": "MIT",
+      "adaptation": "Local .5px fading gradient CSS adapter.",
+      "upstream": [
+        {
+          "path": "packages/ui/src/divider/LinearDivider.tsx",
+          "sha256": "b97e2f889ab96ed672a8da343c1ea4263c16993d5c479638255abe152261284b"
+        }
+      ]
+    },
+    {
+      "local": "src/styles/photo-tokens.css",
+      "localSha256": "e4205748d5984f2853680053678cfccea995b07abd7dc59dfac6d160ef19b59e",
+      "license": "MIT",
+      "adaptation": "Consolidates already localized UIKit dark tokens, Geist and mono stacks into one file shared by Gallery and Viewer. DESIGN default accent #007aff, existing photo-derived accent override, blur roles 40/12/4, shadows and status colors. No homepage selector.",
+      "upstream": [
+        {
+          "path": "apps/web/src/styles/tailwind.css",
+          "sha256": "30215bc99d18bcbdc7642ab9b1f623a3dddb4f57448035825c151627f4ccfe0b"
+        }
+      ]
+    }
+  ],
+  "phase4VerifiedAt": "2026-09-13",
+  "assets": [
+    {
+      "local": "src/components/gallery/GalleryIcons.css",
+      "sha256": "b2cbc372ce0c33387cdbcbea6310cd8bb24372be7803c14bd9172b1b856745bb",
+      "source": "@iconify-json/mingcute 1.2.8",
+      "license": "Apache-2.0"
     }
   ]
 }

@@ -6,7 +6,7 @@ import { viewerPhotos, type ViewerPhoto } from '../viewer/photos';
 export interface GalleryPhoto extends ViewerPhoto {
   readonly aspectRatio: number;
   readonly video?: PhotoManifestItem['video'];
-  readonly capture: { focalLength: string; aperture: string; shutter: string; iso: string };
+  readonly capture: { focalLength: string; aperture: string; shutter: string; iso: string; exposureBias?: string };
 }
 
 export function galleryPhotos(project: ResolvedProject): readonly GalleryPhoto[] {
@@ -22,6 +22,7 @@ export function galleryPhotos(project: ResolvedProject): readonly GalleryPhoto[]
         aperture: aperture(exif?.FNumber),
         shutter: unit(exif?.ExposureTime, 's'),
         iso: exif?.ISO ? `ISO ${exif.ISO}` : '',
+        exposureBias: unit(exif?.ExposureCompensation, 'EV'),
       },
     };
   });
