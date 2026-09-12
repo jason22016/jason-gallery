@@ -1,4 +1,14 @@
 {
   "schemaVersion": 1,
-  "sources": []
+  "sources": [
+    {
+      "sourceId": "jason-photos",
+      "name": "Jason photos",
+      "owner": "jason22016",
+      "repo": "jason-photos",
+      "branch": "main",
+      "path": "images",
+      "enabled": true
+    }
+  ]
 }
