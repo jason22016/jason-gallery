@@ -130,6 +130,8 @@ test('pinch and zoom block slide/dismiss gestures, reset on navigation, and canc
   await expect.poll(() => page.locator('.viewer-fallback').evaluate(el => new DOMMatrixReadOnly(getComputedStyle(el).transform).m11)).toBe(1);
   await expect.poll(() => page.locator('.swiper').evaluate(el => (el as HTMLElement & { swiper: { animating: boolean } }).swiper.animating)).toBe(false);
   await touch(cdp, 'touchStart', 100, 300); await touch(cdp, 'touchCancel');
+  // Let Chromium retire the canceled native touch sequence before starting another.
+  await page.waitForTimeout(150);
   await drag(cdp, [80, 350], [300, 350]);
   await expect(page.locator('.viewer-counter')).toHaveText('179 / 180');
 });

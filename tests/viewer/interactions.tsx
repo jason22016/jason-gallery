@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { rgbaToThumbHash } from 'thumbhash';
 import '../../src/styles/global.css';
 import '../../src/styles/gallery.css';
 import PhotoViewer from '../../src/components/viewer/PhotoViewer';
 import type { ViewerPhoto } from '../../src/components/viewer/photos';
-const hash = '1fe6f510b88888878888888a8008888888f';
+const hash = [...rgbaToThumbHash(1, 1, new Uint8Array([90, 120, 145, 255]))].map(byte => byte.toString(16).padStart(2, '0')).join('');
 const photos: ViewerPhoto[] = Array.from({ length: 180 }, (_, i) => ({
   id: `photo-${i}`, src: `/viewer-${i % 2 ? 'landscape' : 'portrait'}.jpg?photo=${i}`, thumbnail: '/ordinary.jpg', thumbHash: hash,
   width: i % 2 ? 960 : 640, height: i % 2 ? 640 : 960, alt: `Photo ${i}`, title: `Photo ${i}`, filename: `photo-${i}.jpg`,

@@ -1,0 +1,46 @@
+{
+  "name": "tailwindcss-uikit-colors",
+  "version": "1.0.0",
+  "description": "",
+  "exports": {
+    "./tailwind": "./src/tailwind.ts",
+    "./media.css": "./src/media.css",
+    "./selector.css": "./src/selector.css",
+    ".": "./src/tailwind.ts",
+    "./macos": "./src/macos/tailwind.ts",
+    "./macos/media.css": "./src/macos/media.css",
+    "./macos/selector.css": "./src/macos/selector.css",
+    "./src/macos/tailwind": "./src/macos/tailwind.ts",
+    "./src/macos/media.css": "./src/macos/media.css",
+    "./src/macos/selector.css": "./src/macos/selector.css",
+    "./v4/ios.css": "./src/v4/ios.css",
+    "./v4/macos.css": "./src/v4/macos.css"
+  },
+  "main": "./src/tailwind.ts",
+  "keywords": [
+    "tailwindcss",
+    "uikit",
+    "colors",
+    "apple",
+    "ios",
+    "macos"
+  ],
+  "author": "Innei",
+  "license": "MIT",
+  "dependencies": {
+    "apple-uikit-colors": "1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.3",
+    "prettier": "3.5.3",
+    "tailwindcss": "^3.4.11",
+    "tsdown": "0.10.0",
+    "tsx": "4.19.3"
+  },
+  "scripts": {
+    "build": "tsx build.ts",
+    "build:css": "tsx build-css.ts",
+    "build:tailwind": "tsx generate-tailwind-config.ts",
+    "build:v4": "tsx build-tailwind4-css.ts"
+  }
+}

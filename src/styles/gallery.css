@@ -71,52 +71,11 @@
 .map-photo-list span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .map-photo-list small { display: block; color: #888; margin-top: 5px; }
 .map-error { font-size: 12px; color: #bbb; }
-.photo-dialog { position: fixed; inset: 0; padding: 0; margin: 0; border: 0; width: 100%; max-width: none; height: 100dvh; max-height: none; overflow: hidden; background: #181818; color: #eee; }
-.photo-dialog::backdrop { background: #181818; }
-.viewer-backdrop { position: absolute; inset: -80px; background-position: center; background-size: cover; filter: blur(64px) brightness(.42); pointer-events: none; }
-.viewer-shell { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); height: 100%; }
-.viewer-shell.with-inspector { grid-template-columns: minmax(0, 1fr) 320px; }
-.viewer-stage { position: relative; min-width: 0; min-height: 0; height: 100%; }
-.viewer-toolbar { position: absolute; top: env(safe-area-inset-top); left: 16px; right: 16px; z-index: 12; height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 8px; pointer-events: none; }
-.viewer-toolbar > * { pointer-events: auto; }
-.viewer-counter { font-size: 11px; font-variant-numeric: tabular-nums; color: #ddd; background: #0004; border-radius: 20px; padding: 5px 9px; white-space: nowrap; }
-.viewer-actions { display: flex; align-items: center; gap: 7px; }
-.photo-dialog .icon-button { width: 34px; height: 34px; border-radius: 50%; background: #15151560; color: #ddd; }
-.photo-dialog .icon-button:hover { background: #151515b0; color: #fff; }
-.viewer-media { position: relative; height: 100%; width: 100%; overflow: hidden; }
-.viewer-preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
-.viewer-fallback { width: 100%; height: 100%; object-fit: contain; display: block; user-select: none; }
-.fallback-stage { position: absolute; inset: 0; overflow: hidden; touch-action: none; }
-.photo-dialog .viewer-previous, .photo-dialog .viewer-next { position: absolute; top: calc(50% - 38px); z-index: 10; transform: translateY(-50%); }
-.viewer-previous { left: 16px; }
-.viewer-next { right: 16px; }
-.viewer-inspector { position: relative; overflow-y: auto; overflow-anchor: none; background: #24242455; backdrop-filter: blur(24px); padding: env(safe-area-inset-top) 16px 24px; scrollbar-width: thin; scrollbar-color: #ffffff22 transparent; }
-.viewer-inspector > header { display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 1; background: #333333b0; backdrop-filter: blur(12px); margin-inline: -16px; padding-inline: 16px; }
-.viewer-inspector > header span { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-.metadata-section { margin-bottom: 24px; }
-.metadata-section h3 { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
-.metadata-section:has(.metadata-rows:empty) { display: none; }
 .metadata-rows { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 7px 16px; margin: 0; font-size: 12px; line-height: 1.5; }
 .metadata-rows > div { display: contents; }
 .metadata-rows dt { color: #aaa; }
 .metadata-rows dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
-.exposure-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; }
-.exposure-grid span { display: flex; align-items: center; gap: 7px; }
-.exposure-grid svg { color: #aaa; }
-.photo-caption { font-size: 12px; line-height: 1.7; color: #ccc; white-space: pre-line; overflow-wrap: anywhere; }
-.histogram { display: block; width: 100%; height: 100px; border-radius: 5px; background: #0003; }
-.histogram-note { margin-top: 6px; font-size: 10px; color: #999; }
-.metadata-map-link { display: inline-block; font-size: 12px; color: #bbb; padding-top: 12px; }
-.viewer-status, .viewer-message { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); background: #111e; color: #ddd; border-radius: 24px; padding: 10px 16px; font-size: 12px; display: flex; align-items: center; gap: 10px; z-index: 15; max-width: 85%; overflow-wrap: anywhere; }
-.viewer-status { pointer-events: none; white-space: nowrap; }
-.viewer-message { bottom: 90px; }
-.loading-dot { width: 13px; height: 13px; border: 1px solid #555; border-top-color: #eee; border-radius: 50%; animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.viewer-error { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(85%, 320px); background: #171717e8; padding: 24px; text-align: center; border: 1px solid #ffffff15; border-radius: 12px; }
-.viewer-error button { margin-top: 16px; }
-.viewer-error a { display: block; margin-top: 16px; font-size: 12px; color: #aaa; }
-.hdr-status { position: absolute; bottom: 16px; left: 16px; padding: 5px 8px; border-radius: 5px; font-size: 10px; background: #111a; pointer-events: none; }
-@media (max-width: 1000px) { .static-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .viewer-actions { gap: 3px; } }
+@media (max-width: 1000px) { .static-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 767px), (pointer: coarse) {
   .gallery-header { padding-inline: 6px; gap: 3px; }
   .gallery-header h1 { font-size: 13px; }
@@ -137,7 +96,7 @@
 }
 @media (max-width: 359px) { .gallery-count { display: none; } .gallery-header h1 { font-size: 12px; } .gallery-page .gallery-header .icon-button { width: 27px; } }
 
-/* Follow the device in both the static gallery and the hydrated viewer. */
+/* The gallery follows the device; Viewer owns its dark material system. */
 @media (prefers-color-scheme: light) {
   .gallery-page { background: #fff; color: #282828; color-scheme: light; }
   .gallery-page button { background: #00000006; border-color: #00000014; }
@@ -158,18 +117,5 @@
   .gallery-page .primary-button { color: #fff; background: #282828; }
   .gallery-page .primary-button:hover { background: #444; }
   .photo-map { background: #eee; }
-  .photo-dialog, .photo-dialog::backdrop { background: #f5f5f5; color: #282828; }
-  .viewer-backdrop { filter: blur(64px) brightness(1.15); }
-  .viewer-backdrop::after { content: ''; position: absolute; inset: 0; background: #ffffffb0; }
-  .viewer-counter { color: #333; background: #ffffffc0; }
-  .photo-dialog .icon-button { color: #333; background: #ffffffc0; }
-  .photo-dialog .icon-button:hover { color: #111; background: #fffffff0; }
-  .viewer-inspector { background: #ffffffb0; scrollbar-color: #00000022 transparent; }
-  .viewer-inspector > header { background: #ffffffe0; }
-  .metadata-rows dt, .exposure-grid svg, .histogram-note, .metadata-map-link, .photo-caption { color: #666; }
-  .viewer-status, .viewer-message { background: #fffffff0; color: #333; }
-  .loading-dot { border-color: #bbb; border-top-color: #333; }
-  .viewer-error { background: #fffffff0; border-color: #00000015; }
-  .viewer-error a { color: #666; }
-  .hdr-status { background: #ffffffd0; color: #333; }
+  .metadata-rows dt { color: #666; }
 }

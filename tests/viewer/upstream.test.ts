@@ -44,3 +44,15 @@ test('all localized interaction files match their reviewed upstream/adaptation r
   assert.deepEqual(result.errors, []);
   assert.equal(result.count, 23);
 });
+
+test('localized Phase 2 components and assets match the recorded source provenance', async () => {
+  const { createHash } = await import('node:crypto');
+  const record = JSON.parse(await readFile('licenses/viewer-visual-upstream.json', 'utf8')) as {
+    files: { local: string; sha256: string; adapted: boolean; upstream: { sha256: string }[] }[];
+    assets: { local: string; sha256: string }[];
+  };
+  for (const file of [...record.files, ...record.assets]) {
+    assert.equal(createHash('sha256').update(await readFile(file.local)).digest('hex'), file.sha256, file.local);
+  }
+  for (const file of record.files.filter(file => !file.adapted)) assert.equal(file.sha256, file.upstream[0]!.sha256);
+});

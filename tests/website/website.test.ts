@@ -260,7 +260,9 @@ test('mobile masonry layout, touch controls, single-photo boundaries and viewpor
     const box = await page.getByRole('dialog').boundingBox();
     assert(box && Math.abs(box.height - size.height) < 2 && Math.abs(box.width - size.width) < 2);
     const close = await page.getByRole('button', { name: '关闭照片' }).boundingBox();
-    assert(close && close.height >= 44 && close.width >= 44);
+    assert(close && close.height === 32 && close.width === 32, 'DESIGN.md uses 32px chrome controls');
+    const hitPoint = { x: close.x + close.width / 2, y: close.y - 4 };
+    assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label'), hitPoint), '关闭照片', 'Invisible padding retains a 44px mobile touch target');
     const media = await page.locator('.viewer-media').boundingBox(); assert(media && media.height > 100);
   }
   await page.getByRole('button', { name: '关闭照片' }).tap();
@@ -689,7 +691,7 @@ test('HDR active requires successful reconstruction; capability changes, malform
   await expect(page.locator('.hdr-status')).toHaveText('HDR source');
 });
 
-test('device appearance applies to home, static gallery, panels and viewer and updates live', async t => {
+test('device appearance updates the gallery while Viewer remains dark-only', async t => {
   const ctx = await context({ colorScheme: 'light' }); t.after(() => ctx.close());
   const page = await ctx.newPage();
   await page.goto(server.url);
@@ -701,12 +703,13 @@ test('device appearance applies to home, static gallery, panels and viewer and u
   await page.locator('[data-viewer-ready="true"]').waitFor({ state: 'attached' });
   assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
   await open(page); await loaded(page);
-  assert.equal(await page.locator('.viewer-backdrop-base').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(245, 245, 245)');
-  assert.equal(await page.locator('.viewer-inspector .photo-caption').evaluate(el => getComputedStyle(el).color), 'rgb(102, 102, 102)');
-  assert.equal(await page.locator('.viewer-inspector').evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(255, 255, 255, 0.69)');
+  assert.equal(await page.locator('.viewer-backdrop-base').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(40, 40, 40)');
+  assert.equal(await page.locator('.viewer-inspector .photo-caption').evaluate(el => getComputedStyle(el).color), 'rgba(255, 255, 255, 0.5)');
+  assert.equal(await page.locator('.viewer-inspector').evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(40, 40, 40, 0.6)');
+  assert.equal(await page.locator('.photo-dialog').evaluate(el => getComputedStyle(el).colorScheme), 'dark');
   await page.screenshot({ path: '.cache/website-viewer-light.png' });
   await page.emulateMedia({ colorScheme: 'dark' });
-  assert.equal(await page.locator('.viewer-backdrop-base').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(24, 24, 24)');
+  assert.equal(await page.locator('.viewer-backdrop-base').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(40, 40, 40)');
   assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).colorScheme), 'dark');
   const staticCtx = await browser.newContext({ javaScriptEnabled: false, colorScheme: 'light' });
   t.after(() => staticCtx.close());

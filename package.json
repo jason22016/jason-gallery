@@ -13,7 +13,7 @@
     "check": "tsc --noEmit",
     "photos": "node --import tsx scripts/photos/sync.ts",
     "test:smoke": "node --import tsx scripts/photos/network-smoke.ts && node --import tsx scripts/photos/smoke.ts",
-    "test:viewer": "node --import tsx tests/viewer/prepare.ts && vite build --config tests/viewer/vite.config.ts && node --import tsx tests/viewer/check-bundle.ts && node --import tsx --test tests/viewer/*.test.ts",
+    "test:viewer": "node --import tsx tests/viewer/prepare.ts && vite build --config tests/viewer/vite.config.ts && node --import tsx tests/viewer/check-bundle.ts && node --import tsx --test --test-concurrency=1 tests/viewer/*.test.ts",
     "viewer:dev": "node --import tsx tests/viewer/prepare.ts && vite --config tests/viewer/vite.config.ts",
     "test:projects": "node --import tsx --test tests/projects/*.test.ts",
     "test:website": "node --import tsx --test --test-concurrency=1 tests/website/*.test.ts",

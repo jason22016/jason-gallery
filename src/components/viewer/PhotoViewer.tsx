@@ -3,12 +3,16 @@
 // Jason adapter: project/history owner, native dialog, existing media renderer and metadata.
 import 'swiper/css';
 import './PhotoViewer.css';
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { LazyMotion, domAnimation, m, useReducedMotion, AnimatePresence } from 'motion/react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { LazyMotion, domAnimation, m, useReducedMotion, useTransform, AnimatePresence } from 'motion/react';
 import { Spring } from '@afilmory/utils';
 import { SharedElementTransitionPreview, useViewerTransitions, useViewerMobileInteractions, computeViewerMediaFrame,
   projectDismissedViewerMediaFrame, DEFAULT_MOBILE_VIEWER_MEDIA_TRANSFORM_ORIGIN, type AnimationFrameRect } from '@afilmory/viewer-motion';
-import { X, ChevronLeft, ChevronRight, Share2, PanelRightClose, PanelRightOpen, Info, ExternalLink, ZoomIn, ZoomOut, RotateCcw, ArrowUp, ArrowDown } from 'lucide-react';
+import { ViewerIcon } from './ViewerIcon';
+import { ActionButton } from './ActionButton';
+import { ViewerBackdrop } from './ViewerBackdrop';
+import { DesktopInspector } from './DesktopInspector';
+import { deriveAccentFromSources } from './color';
 import type { Swiper as SwiperType } from 'swiper';
 import { Navigation, Virtual } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -21,8 +25,6 @@ import { resolvePhotoViewerEntryState, shouldHideCurrentViewerImage } from './en
 import { Thumbhash } from './Thumbhash';
 import { useMobile } from '../../hooks/useMobile';
 import { lockPageScroll } from '../gallery/modal';
-import MetadataPanel from './MetadataPanel';
-import { ViewerAttribution } from './ViewerAttribution';
 export { PhotoMedia } from './PhotoMedia';
 
 export interface ViewerProps {
@@ -54,7 +56,21 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
   const [visualReady, setVisualReady] = useState(false);
   const [currentBlobSrc, setCurrentBlobSrc] = useState<string | null>(null);
   const photo = photos[index]!;
-  const frameLayout = useMemo(() => ({ desktopSidebarWidthRem: inspector ? 20 : 0, desktopThumbnailStripHeight: 64, mobileThumbnailStripHeight: 48 }), [inspector]);
+  const [accent, setAccent] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    void deriveAccentFromSources({ thumbHash: photo.thumbHash, thumbnailUrl: photo.thumbnail }).then(color => { if (active) setAccent(color); });
+    return () => { active = false; };
+  }, [photo.thumbHash, photo.thumbnail]);
+  const frameLayout = useMemo(() => ({
+    get desktopSidebarWidthRem() {
+      const width = dialog.current?.querySelector<HTMLElement>('.viewer-inspector-slot')?.getBoundingClientRect().width ?? (inspector ? 320 : 0);
+      const rootFontSize = typeof document === 'undefined' ? 16 : parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      return width / rootFontSize;
+    },
+    get desktopThumbnailStripHeight() { return dialog.current?.querySelector<HTMLElement>('.viewer-thumbnail-bar')?.offsetHeight || 64; },
+    get mobileThumbnailStripHeight() { return dialog.current?.querySelector<HTMLElement>('.viewer-thumbnail-bar')?.offsetHeight || 48; },
+  }), [inspector]);
   useLayoutEffect(() => {
     const element = dialog.current!;
     const unlock = lockPageScroll(); element.showModal();
@@ -78,13 +94,15 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
         viewportRect: dialog.current?.getBoundingClientRect() ?? null }));
       setClosing(true);
     } });
+  const opaqueBackdropOpacity = useTransform(() => Math.min(1, gestures.backdropOpacity.get() + Math.max(0, Math.min(1, gestures.inspectorProgress.get())) * .08));
   const detailsVisible = mobile ? gestures.isInspectorVisible : inspector;
   const canSwipe = !zoomed && !multiplePointers && !closing && !(mobile && (gestures.isVerticalGestureActive || detailsVisible));
   useEffect(() => { setInspector(!mobile); }, [mobile]);
   useLayoutEffect(() => { dialog.current?.querySelector<HTMLElement>('.viewer-inspector')?.scrollTo(0, 0); }, [photo.id, detailsVisible]);
+  useLayoutEffect(() => { setControlsReady(false); setCurrentBlobSrc(null); }, [photo.id]);
   useEffect(() => {
     if (swiperRef.current && swiperRef.current.activeIndex !== index) swiperRef.current.slideTo(index, reduced ? 0 : 300);
-    setZoomed(false); setControlsReady(false); setCurrentBlobSrc(null); setMessage(''); setExitFrame(null);
+    setZoomed(false); setMessage(''); setExitFrame(null);
     if (mobile) gestures.reset();
     const focused = document.activeElement;
     if (!dialog.current?.contains(focused) || (focused instanceof HTMLButtonElement && focused.disabled)) dialog.current?.querySelector<HTMLButtonElement>('.viewer-close')?.focus();
@@ -97,7 +115,13 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
   }, [closing, photos.length, reduced]);
   const previous = () => { if (!closing && index > 0) swiperRef.current?.slidePrev(reduced ? 0 : 300); };
   const next = () => { if (!closing && index < photos.length - 1) swiperRef.current?.slideNext(reduced ? 0 : 300); };
-  const toggleInspector = () => { if (mobile) gestures.toggleInspector(); else setInspector(value => !value); };
+  const toggleInspector = () => {
+    if (mobile) gestures.toggleInspector();
+    else {
+      if (inspector && dialog.current?.querySelector('.viewer-inspector')?.contains(document.activeElement)) dialog.current?.querySelector<HTMLButtonElement>('[aria-label="照片信息"]')?.focus();
+      setInspector(value => !value);
+    }
+  };
   const closeInspector = () => { gestures.closeInspector(); dialog.current?.querySelector<HTMLButtonElement>('.viewer-close')?.focus(); };
   const share = async () => {
     const url = location.href;
@@ -157,13 +181,10 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
     return () => { document.removeEventListener('pointerup', release, true); document.removeEventListener('pointercancel', release, true); };
   }, []);
   return <dialog ref={dialog} className="photo-dialog" data-mobile={mobile} data-closing={closing || undefined}
-    aria-labelledby={titleId} aria-describedby={helpId}
+    aria-labelledby={titleId} aria-describedby={helpId} style={{ '--color-accent': accent ?? undefined } as CSSProperties}
     onCancel={event => { event.preventDefault(); if (detailsVisible && mobile) closeInspector(); else requestClose(); }}
 >
-    <m.div className="viewer-backdrop-presence" initial={reduced ? false : { opacity: 0 }} animate={{ opacity: closing ? 0 : 1 }} transition={reduced ? { duration: 0 } : Spring.presets.snappy}>
-      <m.div className="viewer-backdrop-base" style={{ opacity: mobile ? gestures.backdropOpacity : 1 }}/>
-      <m.div className="viewer-backdrop" style={{ backgroundImage: `url("${photo.thumbnail}")`, opacity: mobile ? gestures.backdropOpacity : 1 }}/>
-    </m.div>
+    <ViewerBackdrop photo={photo} closing={closing} reduced={reduced} opacity={mobile ? gestures.backdropOpacity : 1} baseOpacity={mobile ? opaqueBackdropOpacity : 1}/>
     <div ref={transitions.containerRef} className={`viewer-shell ${!mobile && detailsVisible ? 'with-inspector' : ''}`} style={{ pointerEvents: blocked ? 'none' : 'auto' }}>
       <div className="viewer-stage" {...(mobile ? gestures.bindStage() : {})}
         onPointerDownCapture={event => { pointers.current.add(event.pointerId); if (pointers.current.size > 1) { setMultiplePointers(true); if (swiperRef.current) swiperRef.current.allowTouchMove = false; } }}>
@@ -175,13 +196,13 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
                 <h2 id={titleId} className="sr-only">{projectTitle} — {photo.title}</h2>
                 <span className="viewer-counter" aria-live="polite">{index + 1} / {photos.length}</span>
                 <div className="viewer-actions">
-                  <button className="icon-button" aria-label="放大" title="放大" disabled={!controlsReady} onClick={() => engine.current?.zoomIn(!reduced)}><ZoomIn size={18}/></button>
-                  <button className="icon-button" aria-label="缩小" title="缩小" disabled={!controlsReady} onClick={() => engine.current?.zoomOut(!reduced)}><ZoomOut size={18}/></button>
-                  <button className="icon-button" aria-label="适应屏幕" title="适应屏幕" disabled={!controlsReady} onClick={() => engine.current?.resetView()}><RotateCcw size={17}/></button>
-                  <a className="icon-button" href={photo.src} target="_blank" rel="noreferrer" aria-label="打开原图" title="打开原图"><ExternalLink size={17}/></a>
-                  <button className="icon-button" aria-label="分享照片" title="分享照片" onClick={share}><Share2 size={17}/></button>
-                  <button className="icon-button" aria-label="照片信息" title="照片信息 (I)" aria-expanded={detailsVisible} onClick={toggleInspector}>{mobile ? <Info size={18}/> : <PanelRightOpen size={18}/>}</button>
-                  <button type="button" className="icon-button viewer-close" onClick={requestClose} autoFocus aria-label="关闭照片" title="关闭 (Esc)"><X size={20}/></button>
+                  <ActionButton className="viewer-secondary-action" aria-label="放大" title="放大" disabled={!controlsReady} onClick={() => engine.current?.zoomIn(!reduced)}><ViewerIcon name="zoom-in-line" size={18}/></ActionButton>
+                  <ActionButton className="viewer-secondary-action" aria-label="缩小" title="缩小" disabled={!controlsReady} onClick={() => engine.current?.zoomOut(!reduced)}><ViewerIcon name="zoom-out-line" size={18}/></ActionButton>
+                  <ActionButton className="viewer-secondary-action" aria-label="适应屏幕" title="适应屏幕" disabled={!controlsReady} onClick={() => engine.current?.resetView()}><ViewerIcon name="refresh-2-line" size={17}/></ActionButton>
+                  <a className="icon-button viewer-action-button viewer-secondary-action" href={photo.src} target="_blank" rel="noreferrer" aria-label="打开原图" title="打开原图"><ViewerIcon name="external-link-line" size={17}/></a>
+                  <ActionButton className="icon-button" aria-label="分享照片" title="分享照片" onClick={share}><ViewerIcon name="share-2-line" size={17}/></ActionButton>
+                  <ActionButton className="viewer-info-button" active={detailsVisible} aria-label="照片信息" title="照片信息 (I)" aria-expanded={detailsVisible} onClick={toggleInspector}>{mobile ? <ViewerIcon name="information-line" size={18}/> : <ViewerIcon name="layout-right-line" size={18}/>}</ActionButton>
+                  <ActionButton type="button" className="icon-button viewer-close" onClick={requestClose} autoFocus aria-label="关闭照片" title="关闭 (Esc)"><ViewerIcon name="close-line" size={20}/></ActionButton>
                 </div>
               </m.div>
             </div>
@@ -216,11 +237,11 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
                 })}
               </Swiper>}
               {mobile && <m.div className="viewer-gesture-hint" aria-hidden="true" style={{ opacity: gestures.stageHintOpacity, y: gestures.stageHintY }}>
-                <ArrowUp size={14}/><span>信息</span><Info size={14}/><span className="hint-divider"/><ArrowDown size={14}/><span>关闭</span><X size={14}/>
+                <ViewerIcon name="arrow-up-line" size={14}/><span>信息</span><ViewerIcon name="information-line" size={14}/><span className="hint-divider"/><ViewerIcon name="arrow-down-line" size={14}/><span>关闭</span><ViewerIcon name="close-line" size={14}/>
               </m.div>}
             </div>
-            {!mobile && <><button className="icon-button viewer-previous" onClick={previous} disabled={index === 0 || closing} aria-label="上一张照片"><ChevronLeft size={22}/></button>
-              <button className="icon-button viewer-next" onClick={next} disabled={index === photos.length - 1 || closing} aria-label="下一张照片"><ChevronRight size={22}/></button></>}
+            {!mobile && <><ActionButton className="viewer-previous" onClick={previous} disabled={index === 0 || closing} aria-label="上一张照片"><ViewerIcon name="left-line" size={20}/></ActionButton>
+              <ActionButton className="viewer-next" onClick={next} disabled={index === photos.length - 1 || closing} aria-label="下一张照片"><ViewerIcon name="right-line" size={20}/></ActionButton></>}
             {message && <p className="viewer-message" role="status">{message}</p>}
           </div>
           <m.div className="viewer-thumbnails-motion" data-viewer-interactive inert={mobile && detailsVisible} style={mobile ? { opacity: gestures.thumbnailsOpacity, y: gestures.thumbnailsY } : undefined}>
@@ -229,7 +250,8 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
         </m.div>
       </div>
       {mobile ? <MobilePhotoInspectorSheet currentPhoto={photo} isInteractive={detailsVisible && !closing} progress={gestures.inspectorProgress} onClose={closeInspector}/>
-        : detailsVisible && <aside className="viewer-inspector" aria-label="照片信息" style={{ opacity: chromeVisible ? 1 : 0 }}><header><span><Info size={14}/> 照片信息</span><button className="icon-button" onClick={toggleInspector} aria-label="收起照片信息"><PanelRightClose size={18}/></button></header><MetadataPanel key={photo.id} photo={photo}/><ViewerAttribution/></aside>}
+        : <DesktopInspector photo={photo} open={detailsVisible} visible={chromeVisible} reduced={reduced} onClose={toggleInspector}/>}
+
       <p id={helpId} className="sr-only">左右方向键切换，Home 和 End 跳至首尾，Escape 关闭。I 显示信息。双击或双指缩放，放大后拖动平移。</p>
     </div>
     {transitions.entryTransition && !reduced && <SharedElementTransitionPreview key={`entry-${transitions.entryTransition.itemId}`} transition={transitions.entryTransition} onReady={transitions.handleEntryTransitionReady} onComplete={transitions.handleEntryTransitionComplete} renderPlaceholder={hash => <Thumbhash thumbHash={hash}/>}/>}

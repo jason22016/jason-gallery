@@ -185,9 +185,10 @@ export const GalleryThumbnail: FC<{
                 {!isMobile ? (
                   <HoverCard openDelay={100} closeDelay={0}>
                     <HoverCardTrigger asChild>
-                      <button
+                      <m.button
                         type="button"
                         className={clsxm('viewer-thumbnail-button', isCurrent && 'selected')}
+                        initial={false} animate={{ scale: isCurrent ? 1.1 : 1 }} transition={reduced ? { duration: 0 } : Spring.presets.snappy}
                         data-filmstrip-id={photo.id}
                         tabIndex={isCurrent ? 0 : -1}
                         aria-label={`跳至照片：${photo.title}`}
@@ -202,7 +203,7 @@ export const GalleryThumbnail: FC<{
                           alt={photo.title}
                           className="viewer-thumbnail-image"
                         />
-                      </button>
+                      </m.button>
                     </HoverCardTrigger>
 
                     <HoverCardContent
@@ -232,7 +233,7 @@ export const GalleryThumbnail: FC<{
                         {(photo.title || photo.date) && (
                           <div className="viewer-thumbnail-hover-caption">
                             {photo.title && (
-                              <div className="viewer-thumbnail-hover-title">{photo.title}</div>
+                              <div className="viewer-thumbnail-hover-title" title={photo.title}>{photo.title}</div>
                             )}
                             {photo.date && (
                               <div className="viewer-thumbnail-hover-date">
@@ -245,9 +246,10 @@ export const GalleryThumbnail: FC<{
                     </HoverCardContent>
                   </HoverCard>
                 ) : (
-                  <button
+                  <m.button
                     type="button"
                     className={clsxm('viewer-thumbnail-button', isCurrent && 'selected')}
+                        initial={false} animate={{ scale: isCurrent ? 1.1 : 1 }} transition={reduced ? { duration: 0 } : Spring.presets.snappy}
                         data-filmstrip-id={photo.id}
                         tabIndex={isCurrent ? 0 : -1}
                         aria-label={`跳至照片：${photo.title}`}
@@ -262,7 +264,7 @@ export const GalleryThumbnail: FC<{
                       alt={photo.title}
                       className="viewer-thumbnail-image"
                     />
-                  </button>
+                  </m.button>
                 )}
               </div>
             )

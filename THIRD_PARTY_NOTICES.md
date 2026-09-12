@@ -47,3 +47,51 @@ retain their existing notices and source records in `licenses/README.md` and
 Radix HoverCard 1.1.23 are pinned registry dependencies with their distributed
 licenses. There is no runtime dependency on an Afilmory checkout, GitHub package,
 submodule or downloaded source.
+
+## Phase 2 — Viewer Visual & Inspector Parity
+
+Upstream HEAD was reverified on 2026-09-12 as
+`1f65cde6672e5231599182620116ac904e39f548`.
+The complete normative design document is localized at
+`docs/viewer/AFILMORY_DESIGN.md`. All application source below is
+**AGPL-3.0-or-later + ANL §4**, with the same Afilmory Team copyright and
+full license above, except the explicitly identified MIT UI primitives.
+
+| Local file | Upstream source | Migration / adaptation |
+| --- | --- | --- |
+| `src/components/viewer/HistogramChart.tsx` | `apps/web/src/modules/metadata/HistogramChart.tsx` | Migrates 128 bins, Rec.709 luminance, DPR canvas, cached gradient strips, grid and screen-composited RGB renderer. Uses semantic material tokens, the normative Spring preset, ResizeObserver, reduced motion, accessible Chinese loading/error/legend text and thumbnail sampling. No full-resolution/HDR renderer changes. |
+| `src/components/viewer/ExifSection.tsx` | `apps/web/src/modules/metadata/ExifSection.tsx`; `formatExifData.tsx` (Row) | Section/row structure translated to scoped CSS, semantic `dl/dt/dd`, 12px values per DESIGN.md. Long values wrap without losing information. |
+| `src/components/viewer/MetadataPanel.tsx` | `apps/web/src/modules/metadata/ExifPanel.tsx` | Section ordering, capture chips, tags, tone grid and film recipe order. Retains Jason metadata fetch/cache, source units, descriptions, all recipe extras and raw technical fields. |
+| `src/components/viewer/DesktopInspector.tsx` | `apps/web/src/modules/inspector/InspectorPanel.tsx`; `metadata/ExifPanel.tsx` | 320px panel, material gradient/glow, faint layered shadows, header and smooth spring entry/exit. Native scroll viewport; animated width; exit subtree inert. Jason has no cloud comments tab. |
+| `src/components/viewer/ViewerBackdrop.tsx` | `apps/web/src/modules/viewer/PhotoViewer.tsx` (backdrop/thumbhash presence blocks) | Keyed concurrent ThumbHash fades over opaque material. Native hexadecimal hash decoding; decoded thumbnail fallback holds the prior background while loading; late loads cancelled. Jason uses a 60% hash wash. The opaque base stays solid during inspector presentation; dismiss opacity still follows the original gesture. |
+| `src/components/viewer/MiniMap.tsx` | `apps/web/src/modules/metadata/MiniMap.tsx` | Same 160px, zoom-15, noninteractive MapLibre map and centered marker. Reuses installed MapLibre directly instead of react-map-gl/router; local style JSON; initializes when scrolled into view, handles resize/failure/unmount, accepts valid zero coordinates, retains OSM/CARTO attribution and external OSM links. |
+| `src/components/viewer/MapLibreStyle.json` | `apps/web/src/components/ui/map/MapLibreStyle.json` | Byte-for-byte local copy of the built-in Dark Matter style. Remote URLs deliver map data, glyphs and sprite assets, never application source. |
+| `src/components/viewer/CaptureIcons.tsx` | `apps/web/src/icons/index.tsx` | Direct copy of the first five capture-parameter icons, retaining embedded source credits. Tabler (Paweł Kuna, MIT), Carbon (IBM, Apache-2.0), Material Symbols (Google, Apache-2.0), Streamline (Streamline, CC BY 4.0: https://creativecommons.org/licenses/by/4.0/). |
+| `src/components/viewer/color.ts` | `apps/web/src/lib/color.ts` | Copies average-color extraction and 2.2–4.5 contrast clamp; uses Jason's validated hexadecimal ThumbHash decoder. |
+| `src/components/viewer/ActionButton.tsx` | `packages/ui/src/button/ActionButton.tsx` (MIT) | Preserves props/structure; utility styles translated to scoped CSS. Accent focus ring follows DESIGN.md instead of the legacy blue focus helper. |
+| `src/components/viewer/PhotoViewer.css`, `ViewerTokens.css` | `PhotoViewer.css`, `ExifPanel.tsx`, `InspectorPanel.tsx`, `GalleryThumbnail.tsx`, `apps/web/src/styles/tailwind.css`, `packages/ui/src/container/LinearBorderContainer.tsx`, `packages/ui/src/divider/LinearDivider.tsx` (last two MIT) | Local semantic CSS; dark-only chrome, normative blur/radius/layering, fading 0.5px structural edges, faint accent shadows. No unassigned blur sizes, light theme branch or spatial CSS tweens. |
+
+Phase 1's previously localized `PhotoViewer`, `MobilePhotoInspectorSheet`,
+`GalleryThumbnail`, `HoverCard` and `Thumbhash` remain in use. The thumbnail
+selection scale now uses Spring, mobile chrome has 32px circles with invisible
+44px hit targets, and the existing shared-frame calculator reads the actual
+strip height/sidebar width to include safe areas and an Inspector mid-animation.
+The Swiper/gesture/history engine and all HDR/WebGL rendering source are unchanged.
+Updated local hashes and separate Phase 2 provenance are recorded in
+`licenses/viewer-interaction-upstream.json` and `licenses/viewer-visual-upstream.json`.
+
+### Additional localized assets
+
+- `ViewerTokens.css`: dark macOS values from `tailwindcss-uikit-colors@1.0.0`,
+  `src/v4/macos.css`, by Innei. The distributed readme states “2025 © Innei,
+  Released under the MIT License.” Package metadata and the standard MIT grant
+  are retained in `licenses/UIKIT-PACKAGE.json` and `licenses/UIKIT-LICENSE`.
+- `ViewerIcons.css`: selected, unmodified MingCute SVG bodies from
+  `@iconify-json/mingcute@1.2.8`, baked into CSS masks for the upstream
+  `i-mingcute-*` icon system. MingCute Design, Apache-2.0;
+  `licenses/MINGCUTE-LICENSE`, source https://github.com/Richard9394/MingCute.
+  No runtime icon fetch or extra lucide dependency.
+- `src/assets/fonts/geist-*-wght-normal.woff2`: Geist Latin and Latin Extended
+  variable fonts, copied from `@fontsource-variable/geist@5.3.0`.
+  SIL Open Font License 1.1 retained in `licenses/GEIST-OFL.txt`.
+  Loaded locally and applied only to Viewer/Inspector.

@@ -1,0 +1,226 @@
+{
+  "repository": "https://github.com/Afilmory/Afilmory",
+  "commit": "1f65cde6672e5231599182620116ac904e39f548",
+  "verifiedAt": "2026-09-12",
+  "designAuthority": "docs/viewer/AFILMORY_DESIGN.md",
+  "adaptations": "THIRD_PARTY_NOTICES.md#phase-2--viewer-visual--inspector-parity",
+  "files": [
+    {
+      "local": "src/components/viewer/ActionButton.tsx",
+      "sha256": "98164526d5c055defba7b0db290e30faf9e26e6e16c302c1a8312f6d8ab8fd51",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "packages/ui/src/button/ActionButton.tsx",
+          "sha256": "a7617c690912d43bfb608999fb0351af8889a496c7113b1b5707b478304c43a2"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/CaptureIcons.tsx",
+      "sha256": "2716ab3d00fc572c6c94e708f2997f20882d19524429e1a694137edad193b9f9",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/icons/index.tsx",
+          "sha256": "6c54fff89866fc6c239e72ed0bf36befb11b6a7a4da1d1ee6a6bd5ae73d663cb"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/DesktopInspector.tsx",
+      "sha256": "d1dee085150967bd01720bd954a11ffdb772914205d64b68183167503072d466",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/inspector/InspectorPanel.tsx",
+          "sha256": "8c82380683b5e42d8bc5128d969a8b5a29e2456c78bfa59ac51b4086ac88ba8b"
+        },
+        {
+          "path": "apps/web/src/modules/metadata/ExifPanel.tsx",
+          "sha256": "f15831360257e61074a1bb9d2f2a042c13cc953628b6762a4b9c7b168b62d570"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/ExifSection.tsx",
+      "sha256": "94e66ec2d95067efc5d7d0191278a3bbecd65b3b36439850c0b10a88be6c579f",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/metadata/ExifSection.tsx",
+          "sha256": "970ec23ed6868440f865b10abb2f51ce29581fed74eab4231efd88c5a847d85e"
+        },
+        {
+          "path": "apps/web/src/modules/metadata/formatExifData.tsx",
+          "sha256": "9679130a85978330500d96c5c3733e6708242bace583773f7038f1064a824f23"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/HistogramChart.tsx",
+      "sha256": "648c65bbe6b606f7e7722dcfff682c01a9e9fa324019b61627d0570a4c529c8e",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/metadata/HistogramChart.tsx",
+          "sha256": "2a661b9b35b306ddbdc0c7028f72146a19b444b030c396e0574b732e5d16f44d"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/MetadataPanel.tsx",
+      "sha256": "0e78900dfe253c699309504bc63a77bb4bad8134edd2a0589631474609532e44",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/metadata/ExifPanel.tsx",
+          "sha256": "f15831360257e61074a1bb9d2f2a042c13cc953628b6762a4b9c7b168b62d570"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/MiniMap.tsx",
+      "sha256": "b15cd5de6fb7689116a2e0bdb82f47a1fde5ef9d498dbb88be8b686306197fc8",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/metadata/MiniMap.tsx",
+          "sha256": "d3c92803a0b48619f68d06d80b759f634c88a742b5a978d0defdec93ea52c7d2"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/MapLibreStyle.json",
+      "sha256": "3344490d706f118411f56cd73c8eb515a6d97f2d8f0b8a6b9d86d47e841a642e",
+      "adapted": false,
+      "upstream": [
+        {
+          "path": "apps/web/src/components/ui/map/MapLibreStyle.json",
+          "sha256": "3344490d706f118411f56cd73c8eb515a6d97f2d8f0b8a6b9d86d47e841a642e"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/ViewerBackdrop.tsx",
+      "sha256": "8c562ec5b506d3e0ef29de1c60ceb83146eb0a3ec233a7cbc8322966427b8b23",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/viewer/PhotoViewer.tsx",
+          "sha256": "012063d75551a288540ee764fc168a50b898c74750914626bfef3ad8c89d53b3"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/PhotoViewer.tsx",
+      "sha256": "d2d4a606671dd0e4af2158719e5f91720a73d2941d7a85c99b5db428749179c4",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/viewer/PhotoViewer.tsx",
+          "sha256": "012063d75551a288540ee764fc168a50b898c74750914626bfef3ad8c89d53b3"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/PhotoViewer.css",
+      "sha256": "ac232124f70b94fa03c1edd033aa549b2a1f2f308be30f27ea6312733dffd98c",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/viewer/PhotoViewer.css",
+          "sha256": "367f5b7586549ce44fbdb7b67606c9f5495b2d1fa10b0cce5490f72666b76c05"
+        },
+        {
+          "path": "packages/ui/src/container/LinearBorderContainer.tsx",
+          "sha256": "74eee1d28ceee778bce1dcfc245cbd73b2476c07616569369ddcb39ac5a3ce5b"
+        },
+        {
+          "path": "packages/ui/src/divider/LinearDivider.tsx",
+          "sha256": "b97e2f889ab96ed672a8da343c1ea4263c16993d5c479638255abe152261284b"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/GalleryThumbnail.tsx",
+      "sha256": "0ff5ed20507fcc077c64994fa0e401108f95651f3a61cd8b1106d9ec3a1c6b3e",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/viewer/GalleryThumbnail.tsx",
+          "sha256": "be10c4732dfdf5172b4ea88799bae8ad9ef1e4019fd461a52611c22aef55a5c4"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/MobilePhotoInspectorSheet.tsx",
+      "sha256": "eeadf41a8218b3ac62113589c8b4f71fd1a906163c9b4c537344861358be4590",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/modules/viewer/MobilePhotoInspectorSheet.tsx",
+          "sha256": "e5867bf779ec8b9fc0e408d14cd967fa63f95e8e68a6bfe8a8b895da52f2a5a3"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/ViewerTokens.css",
+      "sha256": "d1b95cfc2ce1bf7ba863568de40394e164985b1be169d3c516d40c78f13da467",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/styles/tailwind.css",
+          "sha256": "30215bc99d18bcbdc7642ab9b1f623a3dddb4f57448035825c151627f4ccfe0b"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/color.ts",
+      "sha256": "8068958a5ccc6b8227922fa8bc9f83e58fcfdf75953ef86592a9910048255b8b",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "apps/web/src/lib/color.ts",
+          "sha256": "1477dc2ad8f172669163511badfc5875b62d751349a89e0bc7e04b595099aa81"
+        }
+      ]
+    },
+    {
+      "local": "src/components/viewer/Thumbhash.tsx",
+      "sha256": "8f3e417967d3a996f07a99ad114974eee9f575cbd745020a3d6bf8438795d1ce",
+      "adapted": true,
+      "upstream": [
+        {
+          "path": "packages/ui/src/thumbhash/index.tsx",
+          "sha256": "912649d4a992c627fa5f12db857a7b0f7d814a5c45c2d7aac86923644a94b67a"
+        }
+      ]
+    },
+    {
+      "local": "docs/viewer/AFILMORY_DESIGN.md",
+      "sha256": "12643e2c980ac021da63ffafaf76c6f2d06d8c479c7da25832da7bbb68b265ab",
+      "adapted": false,
+      "upstream": [
+        {
+          "path": "DESIGN.md",
+          "sha256": "12643e2c980ac021da63ffafaf76c6f2d06d8c479c7da25832da7bbb68b265ab"
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "local": "src/components/viewer/ViewerIcons.css",
+      "sha256": "8ff4bdd1b5454a4231d4e8f6355d9cebd0544ee3d3770c13a5ee571137d54653"
+    },
+    {
+      "local": "src/assets/fonts/geist-latin-ext-wght-normal.woff2",
+      "sha256": "824f485b5d26e2f2da3c2b236132ece1bc8e4e43373452950bb0e40548b4313f"
+    },
+    {
+      "local": "src/assets/fonts/geist-latin-wght-normal.woff2",
+      "sha256": "19f9c92546aa300c312235e3125af1b81394d8db9a4bc4a425cd5b641d2d54e1"
+    }
+  ]
+}

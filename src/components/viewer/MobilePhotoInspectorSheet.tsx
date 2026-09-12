@@ -4,7 +4,8 @@
 import { createInspectorSheetPresentation, resolveInspectorSheetHeight, useWindowViewport } from '@afilmory/viewer-motion';
 import { m, useTransform, type MotionValue } from 'motion/react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { X, Info } from 'lucide-react';
+import { ViewerIcon } from './ViewerIcon';
+import { ActionButton } from './ActionButton';
 import MetadataPanel from './MetadataPanel';
 import { ViewerAttribution } from './ViewerAttribution';
 import type { ViewerPhoto } from './photos';
@@ -44,10 +45,10 @@ export function MobilePhotoInspectorSheet({ currentPhoto, isInteractive, progres
     <m.div ref={sheetRef} className="viewer-inspector inspector-sheet-surface" role="region" aria-label="照片信息"
       style={{ height: sheetHeight, scale: sheetScale, transformOrigin: '50% 100%', pointerEvents: isInteractive ? 'auto' : 'none' }}>
       <div className="inspector-sheet-glow"/>
-      <header><div className="inspector-sheet-handle"/><span><Info size={16}/> 照片信息</span>
-        <button className="icon-button" type="button" onClick={handleClose} aria-label="收起照片信息"><X size={20}/></button>
+      <header><div className="inspector-sheet-handle"/><span className="inspector-header-label"><ViewerIcon name="information-line"/> 照片信息</span>
+        <ActionButton type="button" onClick={handleClose} aria-label="收起照片信息"><ViewerIcon name="close-line" size={18}/></ActionButton>
       </header>
-      <div className="inspector-sheet-content">{isInteractive && <><MetadataPanel key={currentPhoto.id} photo={currentPhoto}/><ViewerAttribution/></>}</div>
+      <div className="inspector-sheet-content">{isInteractive && <><MetadataPanel photo={currentPhoto}/><ViewerAttribution/></>}</div>
     </m.div>
   </m.div>;
 }

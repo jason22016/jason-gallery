@@ -119,7 +119,7 @@
       "local": "src/components/viewer/PhotoViewer.tsx",
       "upstream": "apps/web/src/modules/viewer/PhotoViewer.tsx",
       "upstreamSha256": "012063d75551a288540ee764fc168a50b898c74750914626bfef3ad8c89d53b3",
-      "sha256": "cc2ece3450adbdef66c0cf6491e92c49524d6fbfa365c3dd57f84535833bd505",
+      "sha256": "d2d4a606671dd0e4af2158719e5f91720a73d2941d7a85c99b5db428749179c4",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adapted": true
     },
@@ -127,7 +127,7 @@
       "local": "src/components/viewer/GalleryThumbnail.tsx",
       "upstream": "apps/web/src/modules/viewer/GalleryThumbnail.tsx",
       "upstreamSha256": "be10c4732dfdf5172b4ea88799bae8ad9ef1e4019fd461a52611c22aef55a5c4",
-      "sha256": "458265332f90612211a84d2aa42451bbef913bc00f9bc1e7cb8196573380959f",
+      "sha256": "0ff5ed20507fcc077c64994fa0e401108f95651f3a61cd8b1106d9ec3a1c6b3e",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adapted": true
     },
@@ -135,7 +135,7 @@
       "local": "src/components/viewer/MobilePhotoInspectorSheet.tsx",
       "upstream": "apps/web/src/modules/viewer/MobilePhotoInspectorSheet.tsx",
       "upstreamSha256": "e5867bf779ec8b9fc0e408d14cd967fa63f95e8e68a6bfe8a8b895da52f2a5a3",
-      "sha256": "ee41466871dab5b814806c5315efdc4dd3887f6aadb76d779953cbd2b456ba92",
+      "sha256": "eeadf41a8218b3ac62113589c8b4f71fd1a906163c9b4c537344861358be4590",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adapted": true
     },
@@ -151,7 +151,7 @@
       "local": "src/components/viewer/PhotoViewer.css",
       "upstream": "apps/web/src/modules/viewer/PhotoViewer.css",
       "upstreamSha256": "367f5b7586549ce44fbdb7b67606c9f5495b2d1fa10b0cce5490f72666b76c05",
-      "sha256": "4166defff242a394cc7c3d3138dfd02e378349062d15c7bb621e0b4e5b345d9f",
+      "sha256": "ac232124f70b94fa03c1edd033aa549b2a1f2f308be30f27ea6312733dffd98c",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adapted": true
     },
@@ -183,7 +183,7 @@
       "local": "src/components/viewer/Thumbhash.tsx",
       "upstream": "packages/ui/src/thumbhash/index.tsx",
       "upstreamSha256": "912649d4a992c627fa5f12db857a7b0f7d814a5c45c2d7aac86923644a94b67a",
-      "sha256": "7283315615edf5af5ab846ad746c45fe57e290a981be66e0cc9c2c31bce62f02",
+      "sha256": "8f3e417967d3a996f07a99ad114974eee9f575cbd745020a3d6bf8438795d1ce",
       "license": "MIT",
       "adapted": true
     }
