@@ -9,7 +9,9 @@ const { title, description = 'Photography projects by Jason.', gallery = false }
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content={gallery ? '#161616' : '#ffffff'} />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#161616" media="(prefers-color-scheme: dark)" />
     <title>{title ? `${title} — Jason Gallery` : 'Jason Gallery — Photography'}</title>
   </head>
   <body class={gallery ? 'gallery-page' : 'portfolio-page'}>

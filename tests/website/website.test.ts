@@ -682,3 +682,29 @@ test('HDR active requires successful reconstruction; capability changes, malform
   await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', 'webgpu');
   await expect(page.locator('.hdr-status')).toHaveText('HDR source');
 });
+
+test('device appearance applies to home, static gallery, panels and viewer and updates live', async t => {
+  const ctx = await context({ colorScheme: 'light' }); t.after(() => ctx.close());
+  const page = await ctx.newPage();
+  await page.goto(server.url);
+  assert.equal(await page.locator('html').evaluate(el => getComputedStyle(el).colorScheme), 'light');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  assert.equal(await page.locator('html').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(22, 22, 22)');
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto(`${server.url}/projects/fixture-beta/`);
+  await page.locator('[data-viewer-ready="true"]').waitFor({ state: 'attached' });
+  assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
+  await open(page); await loaded(page);
+  assert.equal(await page.locator('.photo-dialog').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(245, 245, 245)');
+  assert.equal(await page.locator('.viewer-inspector .photo-caption').evaluate(el => getComputedStyle(el).color), 'rgb(102, 102, 102)');
+  assert.equal(await page.locator('.viewer-inspector').evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(255, 255, 255, 0.69)');
+  await page.screenshot({ path: '.cache/website-viewer-light.png' });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  assert.equal(await page.locator('.photo-dialog').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(24, 24, 24)');
+  assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).colorScheme), 'dark');
+  const staticCtx = await browser.newContext({ javaScriptEnabled: false, colorScheme: 'light' });
+  t.after(() => staticCtx.close());
+  const staticPage = await staticCtx.newPage();
+  await staticPage.goto(`${server.url}/projects/fixture-beta/`);
+  assert.equal(await staticPage.locator('body').evaluate(el => getComputedStyle(el).colorScheme), 'light');
+});

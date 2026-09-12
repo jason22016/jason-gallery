@@ -148,6 +148,11 @@ test('selected source sync retains unselected artifacts and atomically rejects r
   assert.equal(await fs.readFile(path.join(output,'sources/second/photos-manifest.json'),'utf8'),retained);
   const collection=await verifyCollection(output);assert.equal(collection.snapshot.sources.find(s=>s.sourceId==='second')!.commit,'2'.repeat(40));assert.equal(collection.sources.find(s=>s.sourceId==='second')!.retained,true);
   const index=loadPhotoIndex(path.join(output,'photo-index.json'));
+  const newlyAdded = index.listPhotos().find(p => p.originalUrl.endsWith('/new.jpg'))!;
+  assert.ok(newlyAdded, 'The applied photo library contains the newly processed photo');
+  assert.equal(added.sync.applied, true);
+  assert.deepEqual(added.sync.sourceIds, ['jason-photos']);
+  assert.deepEqual(added.sync.sources.flatMap((s: any) => s.changes.filter((c: any) => c.kind === 'added').map((c: any) => c.reference)), [newlyAdded.id], 'Persisted sync changes identify precisely the new library photo');
   const photo=index.listPhotos().find(p=>p.originalUrl.includes('/jason-photos/'))!;
   await fs.writeFile(path.join(projects,'protected.json'),JSON.stringify({schemaVersion:1,id:'protected',slug:'protected',title:'Protected',status:'draft',photos:[{photoId:photo.id}],coverPhotoId:photo.id,order:0}));
   const stable=await fs.realpath(output);

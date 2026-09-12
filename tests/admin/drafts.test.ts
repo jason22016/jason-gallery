@@ -26,7 +26,7 @@ test('dirty Project replacement guards new/other targets; cancel, failure and co
       if (url.pathname === '/api/state') return route.fulfill({ json: state });
       if (url.pathname === '/api/tasks') return route.fulfill({ json: { pending: false, tasks: [] } });
       assert.equal(url.pathname, '/api/save'); saves.push(route.request().postDataJSON());
-      return route.fulfill({ status: saveStatus, json: saveStatus === 200 ? { status: 'saved', head: 'b'.repeat(40) } : { message: saveStatus === 409 ? '版本冲突' : '保存失败，请重试' } });
+      return route.fulfill({ status: saveStatus, json: saveStatus === 200 ? { status: 'saved', head: (saves.length === 1 ? 'b' : 'c').repeat(40) } : { message: saveStatus === 409 ? '版本冲突' : '保存失败，请重试' } });
     });
     await page.route('**/thumbnails/*', async route => route.fulfill({ contentType: 'image/jpeg', body: await fs.readFile(path.join(fixtureRoot, new URL(route.request().url()).pathname)) }));
     const nav = (name: string) => page.getByRole('navigation').getByRole('button', { name, exact: true }).click();
@@ -104,7 +104,7 @@ test('Project picker preserves draft context, appends locally and saves the fina
       if (url.pathname === '/api/state') return route.fulfill({ json: state });
       if (url.pathname === '/api/tasks') return route.fulfill({ json: { pending: false, tasks: [] } });
       assert.equal(url.pathname, '/api/save'); saves.push(route.request().postDataJSON());
-      return route.fulfill({ status: saveStatus, json: saveStatus === 200 ? { status: 'saved', head: 'b'.repeat(40) } : { message: saveStatus === 409 ? '版本冲突' : '保存失败，请重试' } });
+      return route.fulfill({ status: saveStatus, json: saveStatus === 200 ? { status: 'saved', head: (saves.length === 1 ? 'b' : 'c').repeat(40) } : { message: saveStatus === 409 ? '版本冲突' : '保存失败，请重试' } });
     });
     await page.route('**/thumbnails/*', async route => route.fulfill({ contentType: 'image/jpeg', body: await fs.readFile(path.join(fixtureRoot, new URL(route.request().url()).pathname)) }));
     const nav = (name: string) => page.getByRole('navigation').getByRole('button', { name, exact: true }).click();
@@ -148,6 +148,14 @@ test('Project picker preserves draft context, appends locally and saves the fina
     assert.equal(saves[0].project.location, '未保存地点');
     assert.deepEqual(saves[0].project.photos, [...before, { photoId: id('FRAME_016.jpg') }, { photoId: id('FRAME_015.jpg') }]);
     assert.equal(saves[0].project.coverPhotoId, id('FRAME_016.jpg'));
+    await page.getByRole('button', { name: '名称倒序', exact: true }).click();
+    assert.equal(saves.length, 1, 'Bulk sorting stays local until saved');
+    await page.getByRole('button', { name: '保存 Project', exact: true }).click();
+    await page.getByText('已保存到 GitHub', { exact: true }).waitFor();
+    assert.deepEqual(saves[1].project.photos.map((p: any) => p.photoId),
+      ['FRAME_016.jpg', 'FRAME_015.jpg', 'FRAME_013.jpg', 'FRAME_011.jpg', 'FRAME_004.jpg', 'FRAME_001.jpg'].map(id));
+    assert.equal(saves[1].project.coverPhotoId, id('FRAME_016.jpg'));
+
     // Leaving the picker through global navigation clears context and pending selection.
     await pick(); await select('FRAME_018.jpg'); await nav('照片');
     assert.equal(await page.getByRole('heading', { name: '正在为「Project A」选择照片', exact: true }).count(), 0);
@@ -158,7 +166,7 @@ test('Project picker preserves draft context, appends locally and saves the fina
     await page.getByRole('dialog').getByRole('button', { name: /Project B/ }).click();
     await page.getByRole('heading', { name: 'Project B', exact: true }).waitFor();
     assert.equal(await page.locator('.sequence-row').count(), 5);
-    assert.equal(saves.length, 1);
+    assert.equal(saves.length, 2);
     assert.deepEqual(failures, []);
   } finally { await browser.close(); await host.close(); }
 });

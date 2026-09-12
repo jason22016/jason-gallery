@@ -40,3 +40,9 @@ ul, ol { list-style: none; padding: 0; margin: 0; }
 @media (max-width: 899px) { .project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; } .shell { margin-inline: 24px; } }
 @media (max-width: 599px) { .project-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; } .shell { margin-inline: 20px; } .site-header { height: 122px; padding-top: 26px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0s !important; animation-duration: 0s !important; } }
+
+:root { color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; color: #eee; background: #161616; }
+  .thumbnail { background: #282828; }
+}

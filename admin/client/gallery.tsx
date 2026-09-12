@@ -4,10 +4,10 @@ import { Thumbnail, ThumbnailStatus } from './thumbnail';
 import { Tasks } from './tasks';
 import { DeleteDialog, type DeleteTarget } from './delete-dialog';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronRight, CircleAlert, Clock3, CloudUpload, FolderOpen, GitBranch, Image, Images, Layers3, Moon, Plus, RefreshCw, Search, Settings2, Sun, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronRight, CircleAlert, Clock3, CloudUpload, FolderOpen, GitBranch, Image, Images, Layers3, LayoutGrid, List, Moon, Plus, RefreshCw, Search, Settings2, Sun, X } from 'lucide-react';
 import { SourceSchema, SourcesSchema, type PhotoSource } from '../../src/photo-engine/source-schema';
 import { ProjectSchema, type Project } from '../../src/projects/schema';
-import type { PreviewData, PreviewPhoto } from './model';
+import { appendProjectPhotos, projectMembership, sortProjectPhotos, type PreviewData, type PreviewPhoto } from './model';
 
 type Page = 'photos' | 'projects' | 'sources' | 'tasks';
 type ProjectSwitch = { next: Project | null; dirty: boolean; clearSelection: boolean };
@@ -40,8 +40,15 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
   const [serverImpacts, setServerImpacts] = useState<any[] | null>(null);
   const [impactError, setImpactError] = useState('');
   const [photoTab, setPhotoTab] = useState<'manage' | 'sync'>('manage');
+  const [photoView, setPhotoView] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState<Page>('photos');
-  const [dark, setDark] = useState(true);
+  const [dark, setDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-color-scheme: dark)');
+    const followDevice = () => setDark(preference.matches);
+    preference.addEventListener('change', followDevice);
+    return () => preference.removeEventListener('change', followDevice);
+  }, []);
   const [sources, setSources] = useState(initial.sources);
   const [projects, setProjects] = useState(initial.projects);
   const [project, setProject] = useState<Project | null>(null);
@@ -49,6 +56,7 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
   const [originalSource, setOriginalSource] = useState<PhotoSource | null>(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [projectFilter, setProjectFilter] = useState('all');
   const [selected, setSelected] = useState<string[]>([]);
   const [state, setState] = useState<ArtifactState>(!management || management.media.state === 'ready' ? 'ready' : management.media.state === 'expired' || management.media.state === 'stale' ? 'expired' : 'failed');
   const [notice, setNotice] = useState('');
@@ -66,7 +74,17 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
   const sourceName = (id: string) => sources.find(s => s.sourceId === id)?.name ?? id;
   const photo = (id: string) => photos.find(p => p.photo.id === (media?.aliases?.[id] ?? id));
   const available = photos.filter(p => sources.find(s => s.sourceId === p.sourceId)?.enabled);
-  const shown = available.filter(p => (filter === 'all' || p.sourceId === filter) && (p.photo.title ?? '').toLowerCase().includes(search.toLowerCase()));
+  const editingProjects = project ? [...projects.filter(p => p.id !== project.id), project] : projects;
+  const membership = projectMembership(editingProjects, media?.aliases);
+  const shown = available.filter(p => (filter === 'all' || p.sourceId === filter)
+    && (p.photo.title ?? '').toLowerCase().includes(search.toLowerCase())
+    && (projectFilter === 'all' || (projectFilter === 'unassigned'
+      ? !membership.has(p.photo.id) : membership.get(p.photo.id)?.has(projectFilter.slice(8)))));
+  const shownIds = new Set(shown.map(p => p.photo.id));
+  const allShownSelected = shown.length > 0 && shown.every(p => selected.includes(p.photo.id));
+  const hiddenSelectionCount = selected.filter(id => !shownIds.has(id)).length;
+  const toggleShown = () => setSelected(ids => allShownSelected
+    ? ids.filter(id => !shownIds.has(id)) : [...new Set([...ids, ...shownIds])]);
   const toggle = (id: string) => setSelected(s => s.includes(id) ? s.filter(v => v !== id) : [...s, id]);
   const navigate = (next: Page) => {
     setPage(next); setError(''); setPhotoTargetId(null); if (next === 'photos') setPhotoTab('manage');
@@ -75,13 +93,9 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
   function openSync() { navigate('photos'); setPhotoTab('sync'); }
   function addToCurrentProject() {
     if (!project) return;
-    const existing = new Set(project.photos.map(p => media?.aliases?.[p.photoId] ?? p.photoId));
-    const additions = selected.filter(id => {
-      const canonical = media?.aliases?.[id] ?? id;
-      if (existing.has(canonical)) return false;
-      existing.add(canonical); return true;
-    }).map(photoId => ({ photoId }));
-    if (additions.length) changeProject({ photos: [...project.photos, ...additions], coverPhotoId: project.coverPhotoId || additions[0]!.photoId });
+    const next = appendProjectPhotos(project.photos, selected, media?.aliases);
+    const additions = next.slice(project.photos.length);
+    if (additions.length) changeProject({ photos: next, coverPhotoId: project.coverPhotoId || additions[0]!.photoId });
     setSelected([]); setAddTarget(false); navigate('projects');
     setNotice(additions.length ? '照片已加入当前编排，尚未保存。完成排序和封面设置后，请点击“保存 Project”。' : '所选照片已在当前 Project 中，未重复添加。');
   }
@@ -90,6 +104,7 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
     if (nextHead) { setHead(nextHead); setSaveProof(undefined); }
     if (deleteTarget.kind === 'project') {
       setProjects(ps => ps.filter(p => p.id !== deleteTarget.project.id));
+      setProjectFilter('all');
       setProject(null); setDirty(false); setProjectSwitch(null); setAddTarget(false);
       setNotice(management ? 'Project 已删除并提交 GitHub。网站尚未发布，原图已保留。' : 'Project 已从本次预览删除。');
     } else {
@@ -196,12 +211,12 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
       {page === 'photos' && <>
         {photoTarget && <section className="panel" aria-label="Project 选图上下文"><div className="panel-title"><div><h2>正在为「{photoTargetName}」选择照片</h2><p>加入照片仅更新未保存的编排，点击“保存 Project”后才会提交 GitHub。</p></div><button className="secondary" onClick={() => navigate('projects')}><ArrowLeft size={15} />返回 {photoTargetName}</button></div></section>}
         <div className="tabs" role="tablist" aria-label="照片库视图"><button role="tab" aria-selected={photoTab === 'manage'} className={photoTab === 'manage' ? 'current' : ''} onClick={() => setPhotoTab('manage')}>照片管理</button><button role="tab" aria-selected={photoTab === 'sync'} className={photoTab === 'sync' ? 'current' : ''} onClick={() => setPhotoTab('sync')}>同步照片</button></div>
-        {photoTab === 'sync' ? <SyncPanel pending={pending?.mode === 'sync' ? pending : undefined} setPending={setPending} sources={sources} head={head} connected={!!management} dirty={dirty || !!source} refreshPhotos={refreshPhotos} /> : <>
+        {photoTab === 'sync' ? <SyncPanel library={{ ready: state === 'ready', runId: media?.runId, photos: available, aliases: media?.aliases }} addPhotos={ids => { setSelected(ids); setFilter('all'); setProjectFilter('all'); setSearch(''); setPhotoTargetId(null); setPhotoTab('manage'); setAddTarget(true); setNotice(''); }} pending={pending?.mode === 'sync' ? pending : undefined} setPending={setPending} sources={sources} head={head} connected={!!management} dirty={dirty || !!source} refreshPhotos={refreshPhotos} /> : <>
         <div className="tabs" role="group" aria-label="照片来源筛选"><button className={filter === 'all' ? 'current' : ''} onClick={() => setFilter('all')}>所有照片 <span>{available.length}</span></button>{sources.filter(s => s.enabled).map(s => <button key={s.sourceId} className={filter === s.sourceId ? 'current' : ''} onClick={() => setFilter(s.sourceId)}>{s.name}<span>{available.filter(p => p.sourceId === s.sourceId).length}</span></button>)}</div>
-        <div className="toolbar"><label className="search"><Search size={16} /><input aria-label="搜索照片" placeholder="搜索照片名称…" value={search} onChange={e => setSearch(e.target.value)} /></label><div className="toolbar-right"><span className="muted">{state === 'ready' ? `${shown.length} 张照片 · 按文件名` : '产物不可用于选图'}</span>{!management && <label className="scenario"><Settings2 size={14} /><select aria-label="预览产物状态" value={state} onChange={e => { setState(e.target.value as ArtifactState); setSelected([]); }}><option value="ready">预览：可用产物</option><option value="empty">预览：无产物</option><option value="expired">预览：产物过期</option><option value="failed">预览：同步失败</option></select></label>}</div></div>
-        {state !== 'ready' ? <div className="empty panel"><CircleAlert size={30} /><h2>{management ? (media?.state === 'expired' ? '照片产物已过期' : media?.state === 'stale' ? '照片产物需要更新' : media?.state === 'empty' ? '还没有可用的照片产物' : media?.state === 'sync_failed' ? '上次同步未完成' : '照片产物暂不可用') : state === 'expired' ? '照片产物已过期' : state === 'failed' ? '上次同步未完成' : '还没有可用的照片产物'}</h2><p>{management ? media?.reason : state === 'failed' ? '示例失败：日常观察来源无法读取（HTTP 403）。请检查仓库配置后重试。' : state === 'expired' ? '照片产物超过保留期，需要重新同步后才能继续选图。' : '保存照片源后，先运行一次同步，照片就会出现在这里。'}</p><button className="primary" onClick={() => management && !['expired', 'stale', 'empty', 'sync_failed', 'format'].includes(media?.state) ? refreshPhotos() : openSync()}><RefreshCw size={15} />{management && !['expired', 'stale', 'empty', 'sync_failed', 'format'].includes(media?.state) ? '重试读取' : '前往同步照片'}</button></div> : shown.length ? <div className="photo-grid">{shown.map(p => <PhotoCard key={p.photo.id} item={p} source={sourceName(p.sourceId)} selected={selected.includes(p.photo.id)} toggle={() => toggle(p.photo.id)} />)}</div> : <div className="empty panel"><Search /><h2>没有符合条件的照片</h2><button onClick={() => { setFilter('all'); setSearch(''); }}>清除筛选</button></div>}
+        <div className="toolbar photo-toolbar"><label className="search"><Search size={16} /><input aria-label="搜索照片" placeholder="搜索照片名称…" value={search} onChange={e => setSearch(e.target.value)} /></label><label className="project-filter">Project 筛选<select aria-label="按 Project 筛选照片" value={projectFilter} onChange={e => { setProjectFilter(e.target.value); setSelected([]); }}><option value="all">所有 Project · 全部照片</option><option value="unassigned">未加入任何 Project</option>{editingProjects.map(p => <option key={p.id} value={`project:${p.id}`}>{p.title || '新的 Project'}{p.status === 'draft' ? ' · 草稿' : ''}</option>)}</select></label><div className="toolbar-right"><div className="photo-view-switch" role="group" aria-label="照片显示方式"><button aria-pressed={photoView === 'grid'} onClick={() => setPhotoView('grid')}><LayoutGrid size={15} />图像</button><button aria-pressed={photoView === 'list'} onClick={() => setPhotoView('list')}><List size={15} />列表</button></div><button className="secondary" disabled={state !== 'ready' || shown.length === 0} onClick={toggleShown}>{allShownSelected ? '取消全选筛选结果' : '全选筛选结果'}</button><span className="muted">{state === 'ready' ? `${shown.length} 张照片 · 按文件名` : '产物不可用于选图'}</span>{!management && <label className="scenario"><Settings2 size={14} /><select aria-label="预览产物状态" value={state} onChange={e => { setState(e.target.value as ArtifactState); setSelected([]); }}><option value="ready">预览：可用产物</option><option value="empty">预览：无产物</option><option value="expired">预览：产物过期</option><option value="failed">预览：同步失败</option></select></label>}</div></div>
+        {state !== 'ready' ? <div className="empty panel"><CircleAlert size={30} /><h2>{management ? (media?.state === 'expired' ? '照片产物已过期' : media?.state === 'stale' ? '照片产物需要更新' : media?.state === 'empty' ? '还没有可用的照片产物' : media?.state === 'sync_failed' ? '上次同步未完成' : '照片产物暂不可用') : state === 'expired' ? '照片产物已过期' : state === 'failed' ? '上次同步未完成' : '还没有可用的照片产物'}</h2><p>{management ? media?.reason : state === 'failed' ? '示例失败：日常观察来源无法读取（HTTP 403）。请检查仓库配置后重试。' : state === 'expired' ? '照片产物超过保留期，需要重新同步后才能继续选图。' : '保存照片源后，先运行一次同步，照片就会出现在这里。'}</p><button className="primary" onClick={() => management && !['expired', 'stale', 'empty', 'sync_failed', 'format'].includes(media?.state) ? refreshPhotos() : openSync()}><RefreshCw size={15} />{management && !['expired', 'stale', 'empty', 'sync_failed', 'format'].includes(media?.state) ? '重试读取' : '前往同步照片'}</button></div> : shown.length ? <div className={photoView === 'list' ? 'photo-table' : 'photo-grid'}>{shown.map(p => <PhotoCard key={p.photo.id} item={p} source={sourceName(p.sourceId)} selected={selected.includes(p.photo.id)} toggle={() => toggle(p.photo.id)} />)}</div> : <div className="empty panel"><Search /><h2>没有符合条件的照片</h2><button onClick={() => { setFilter('all'); setProjectFilter('all'); setSearch(''); }}>清除筛选</button></div>}
         <div className="grid-footer"><span>{management ? `已验证照片产物 · 有效至 ${new Date(media?.expiresAt).toLocaleDateString()}` : initial.imageMode}</span><span>照片源只读</span></div>
-        {selected.length > 0 && state === 'ready' && <div className="selection-bar"><span className="selection-count">{selected.length}</span><span>张照片已选中</span><button onClick={() => setSelected([])}>取消选择</button><button className="primary" onClick={() => photoTarget ? addToCurrentProject() : setAddTarget(true)}>加入 {photoTarget ? photoTargetName : 'Project'} <ArrowRight size={15} /></button></div>}
+        {selected.length > 0 && state === 'ready' && <div className="selection-bar"><span className="selection-count">{selected.length}</span><span>张照片已选中{hiddenSelectionCount > 0 && `（含筛选外 ${hiddenSelectionCount} 张）`}</span><button onClick={() => setSelected([])}>取消选择</button><button className="primary" onClick={() => photoTarget ? addToCurrentProject() : setAddTarget(true)}>加入 {photoTarget ? photoTargetName : 'Project'} <ArrowRight size={15} /></button></div>}
       </>}
       </>}
       {page === 'projects' && (!project ? <div className="project-cards">{projects.map(p => <button className="project-card panel" key={p.id} onClick={() => edit(p)}><Thumbnail src={photo(p.coverPhotoId)?.photo.thumbnailUrl} alt={p.title} /><div><span>{badge(p.status === 'draft' ? '草稿' : '待网站发布', p.status === 'draft' ? '' : 'green')}</span><h2>{p.title}</h2><p>{p.photos.length} 张照片 · {p.slug}</p></div><ArrowRight size={20} /></button>)}</div> : <>
@@ -209,6 +224,7 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
         <div className="project-delete-action">{projects.some(p => p.id === project.id) && <button className="danger" onClick={() => setDeleteTarget({ kind: 'project', project: projects.find(p => p.id === project.id)! })}>删除 Project</button>}</div>
         <div className="editor-layout"><aside className="panel project-form"><div className="panel-title"><h2>Project 信息</h2>{badge(project.status === 'draft' ? '草稿' : '待网站发布')}</div><label>标题<input value={project.title} onChange={e => changeProject({ title: e.target.value })} placeholder="为这组作品起个名字" /></label><label>网址标识 · slug<input disabled={!!management && projects.some(p => p.id === project.id)} value={project.slug} onChange={e => changeProject({ slug: e.target.value })} placeholder="between-places" /></label><label>简短介绍<textarea rows={3} value={project.summary ?? ''} onChange={e => changeProject({ summary: e.target.value })} /></label><label>地点<input value={project.location ?? ''} onChange={e => changeProject({ location: e.target.value })} /></label><label>状态<select aria-label="Project 状态" value={project.status} onChange={e => changeProject({ status: e.target.value as Project['status'] })}><option value="draft">Draft · 草稿</option><option value="published">Published · 下次发布时公开</option></select></label><p className="field-hint">保存 published 状态后，仍需单独发布网站才会上线。</p><div className="form-note"><GitBranch size={16} /><span>只保存 Project 内容与照片引用。<br />照片信息沿用原有产物。</span></div></aside>
           <section className="panel sequence"><div className="panel-title"><div><h2>照片编排 <span className="muted">{project.photos.length}</span></h2><p>第一眼的封面，与之后的观看顺序。</p></div><button className="secondary" onClick={() => { setSelected([]); navigate('photos'); setPhotoTargetId(project.id); setNotice(''); }}><Plus size={15} />添加照片</button></div>
+            <div className="sequence-sort" role="group" aria-label="按照片名称排序"><span className="muted">按照片名称</span><button className="secondary" disabled={project.photos.length < 2} onClick={() => changeProject({ photos: sortProjectPhotos(project.photos, photos, 'asc', media?.aliases) })}><ArrowUp size={14} />名称正序</button><button className="secondary" disabled={project.photos.length < 2} onClick={() => changeProject({ photos: sortProjectPhotos(project.photos, photos, 'desc', media?.aliases) })}><ArrowDown size={14} />名称倒序</button><span className="muted">排序后请保存 Project</span></div>
             {project.photos.length === 0 && <div className="empty"><Images /><p>从照片库中选择照片，开始编排。</p></div>}
             <div className="sequence-list">{project.photos.map((p, i) => { const item = photo(p.photoId); return <div className="sequence-row" key={p.photoId}><span className="sequence-number">{String(i + 1).padStart(2, '0')}</span><Thumbnail src={item?.photo.thumbnailUrl} alt={item?.photo.title} /><div className="sequence-info"><strong>{item?.photo.title}</strong><small>{item && sourceName(item.sourceId)}</small>{project.coverPhotoId === p.photoId ? badge('封面', 'green') : <button className="text-button" onClick={() => changeProject({ coverPhotoId: p.photoId })}>设为封面</button>}</div><div className="sequence-controls"><button aria-label={`上移照片 ${i + 1}`} disabled={i === 0} onClick={() => move(i, -1)}><ArrowUp size={15} /></button><button aria-label={`下移照片 ${i + 1}`} disabled={i === project.photos.length - 1} onClick={() => move(i, 1)}><ArrowDown size={15} /></button><button aria-label={`移除照片 ${i + 1}`} onClick={() => { const remaining = project.photos.filter(r => r.photoId !== p.photoId); changeProject({ photos: remaining, coverPhotoId: project.coverPhotoId === p.photoId ? remaining[0]?.photoId ?? '' : project.coverPhotoId }); }}><X size={15} /></button></div></div>; })}</div>
           </section></div></>)}
@@ -222,7 +238,7 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
     </main>
     {deleteTarget && <DeleteDialog target={deleteTarget} head={head} connected={!!management} sources={sources} dirty={dirty} close={() => setDeleteTarget(null)} deleted={finishDelete} localImpacts={deleteTarget.kind === 'source' ? projects.flatMap(p => { const count = p.photos.filter(r => photo(r.photoId)?.sourceId === deleteTarget.source.sourceId).length; return count ? [{ projectId: p.id, title: p.title, status: p.status, count }] : []; }) : []} />}
     {source && <Modal title={originalSource ? '编辑照片源' : '新增照片源'} close={() => { setSource(null); setError(''); }}><div className="source-form" inert={busy}><p className="muted">照片从 GitHub 只读同步，凭据在服务端配置。</p>{([['name', '显示名称'], ['sourceId', '稳定来源 ID'], ['owner', 'GitHub 用户 / 组织'], ['repo', '仓库名称'], ['branch', '分支'], ['path', '图片目录']] as const).map(([key, label]) => <label key={key}>{label}<input value={source[key]} disabled={key === 'sourceId' && !!originalSource} onChange={e => setSource({ ...source, [key]: e.target.value })} /></label>)}<label className="checkbox-label"><input type="checkbox" checked={source.enabled} onChange={e => setSource({ ...source, enabled: e.target.checked })} />启用此照片源</label><div className={impacts.length ? 'impact error' : 'impact'}><strong>Project 引用影响</strong>{impacts.length ? <><p>此修改将使以下 Project 的照片引用失效：</p>{impacts.map(p => <p key={'projectId' in p ? p.projectId : p.id}>{p.title} · {p.status} · {'count' in p ? p.count : p.photos.filter((r: any) => photo(r.photoId)?.sourceId === originalSource!.sourceId).length} 张</p>)}<p>请先迁移或移除这些引用，不能静默替换。</p></> : <p>{management ? impactError || (serverImpacts === null ? '正在检查 Project 引用影响…' : '服务端未发现失效的 Project 引用。') : '当前修改未发现失效的预览 Project 引用。'}</p>}</div>{error && <p role="alert" className="error">{error}</p>}<div className="dialog-actions"><button className="secondary" onClick={() => { setSource(null); setError(''); }}>取消</button><button className="primary" disabled={busy || impacts.length > 0 || !!management && (serverImpacts === null || !!impactError)} onClick={saveSource}>{management ? '保存配置到 GitHub' : '保存配置到预览'}</button></div></div></Modal>}
-    {addTarget && <Modal title={`将 ${selected.length} 张照片加入 Project`} close={() => setAddTarget(false)}><div className="choose-project">{project && <button className="panel" onClick={addToCurrentProject}>继续编辑：{project.title || '新的 Project'}<ArrowRight size={16} /></button>}{projects.filter(p => p.id !== project?.id).map(p => <button className="panel" key={p.id} onClick={() => { const ids = [...new Set([...p.photos.map(r => r.photoId), ...selected])]; edit({ ...p, photos: ids.map(photoId => p.photos.find(r => r.photoId === photoId) ?? { photoId }) }, true, true); }}>{p.title}{badge(p.status)}<ArrowRight size={16} /></button>)}<button className="primary" onClick={() => newProject()}><Plus size={16} />新建 Project</button></div></Modal>}
+    {addTarget && <Modal title={`将 ${selected.length} 张照片加入 Project`} close={() => setAddTarget(false)}><div className="choose-project">{project && <button className="panel" onClick={addToCurrentProject}>继续编辑：{project.title || '新的 Project'}<ArrowRight size={16} /></button>}{projects.filter(p => p.id !== project?.id).map(p => <button className="panel" key={p.id} onClick={() => { edit({ ...p, photos: appendProjectPhotos(p.photos, selected, media?.aliases) }, true, true); }}>{p.title}{badge(p.status)}<ArrowRight size={16} /></button>)}<button className="primary" onClick={() => newProject()}><Plus size={16} />新建 Project</button></div></Modal>}
     {projectSwitch && <Modal title="当前 Project 有未保存修改" close={() => { if (!busy) setProjectSwitch(null); }}><div className="publish-info" inert={busy}>
       <p>“{project?.title || '新的 Project'}”尚未保存。切换后，这些编辑将被替换。</p>
       {error && <p role="alert" className="error">{error}</p>}
