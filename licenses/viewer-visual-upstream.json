@@ -82,7 +82,7 @@
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",
-      "sha256": "f5fdc5981247990476e8437a7ab414d8e4caffc8e502d9f24ee3836de2c0aebf",
+      "sha256": "2714ce09c2f248f1b1e65e3729e874452833207221b2a602ac641b4242724097",
       "adapted": true,
       "upstream": [
         {
@@ -90,7 +90,8 @@
           "sha256": "d3c92803a0b48619f68d06d80b759f634c88a742b5a978d0defdec93ea52c7d2"
         }
       ],
-      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome",
+      "mapPhase6Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-6--final-audit-and-stabilization"
     },
     {
       "local": "src/components/viewer/MapLibreStyle.json",

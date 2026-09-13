@@ -623,3 +623,54 @@ test('mobile drawer follows the handle and dismisses after a downward drag', asy
   assert(await panel.evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42) > 0);
   await page.mouse.up(); await expect(panel).toHaveCount(0);
 });
+
+test('coincident photos expand to keyboard markers and rapid map close/reopen removes stale portals and canvases', async t => {
+  const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  const located = photos.slice(0, 8).map(photo => ({ ...photo, video: undefined,
+    location: { longitude: 114.17, latitude: 22.3 } }));
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/photos.json', route => route.fulfill({ json: located }));
+  await installMapFixture(page, server.url);
+  await ready(page, '?panel=map');
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+  await expect(page.locator('.cluster-marker[data-point-count="8"]')).toHaveCount(1);
+  await page.locator('.cluster-marker').focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('.photo-marker-pin')).toHaveCount(8);
+  for (const pin of await page.locator('.photo-marker-pin').all()) {
+    await pin.focus(); await page.keyboard.press('Enter');
+    await expect(pin).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-card-kind="selected"]')).toHaveCount(1);
+  }
+  for (let cycle = 0; cycle < 3; cycle++) {
+    await page.getByRole('button', { name: '返回项目相册', exact: true }).click();
+    await expect(page.locator('.photo-map canvas, [data-card-kind]')).toHaveCount(0);
+    await page.getByRole('button', { name: '地图探索', exact: true }).click();
+    await expect(page.locator('.photo-map canvas')).toHaveCount(1);
+  }
+  await page.getByRole('button', { name: '返回项目相册', exact: true }).click();
+  await expect(page.locator('.photo-marker-pin, .cluster-marker, .photo-map canvas, [data-card-kind]')).toHaveCount(0);
+  assert.deepEqual(errors, []);
+});
+
+test('widely separated GPS photos fit together and filtering to zero, one and many does not leave stale map markers', async t => {
+  const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  const locations = [[-179, -33], [179, 50], [0, 0]];
+  const located = photos.slice(0, 3).map((photo, index) => ({ ...photo, video: undefined,
+    location: { longitude: locations[index]![0]!, latitude: locations[index]![1]! } }));
+  await page.route('**/photos.json', route => route.fulfill({ json: located }));
+  await installMapFixture(page, server.url);
+  await ready(page, '?panel=map');
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  await expect(page.locator('.photo-marker-pin')).toHaveCount(3);
+  const filter = async (query: string) => page.evaluate(query => {
+    history.pushState(history.state, '', `?panel=map&query=${query}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, query);
+  await filter('missing-gps-photo');
+  await expect(page.getByRole('heading', { name: '没有可显示的位置' })).toBeVisible();
+  await expect(page.locator('.photo-map canvas, .photo-marker-pin, .cluster-marker')).toHaveCount(0);
+  await filter('照片 0');
+  await expect(page.locator('.photo-marker-pin')).toHaveCount(1);
+  await filter('');
+  await expect(page.locator('.photo-marker-pin')).toHaveCount(3);
+});

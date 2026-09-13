@@ -1,0 +1,22 @@
+✔ cluster size is bounded; date aggregation ignores invalid data and preserves recorded capture days (16.531834ms)
+✔ native leaves are bounded, tile duplicates reuse a marker and pending/cached previews deduplicate requests (0.843458ms)
+✔ zoom/filter invalidation and cluster removal discard pending leaves and stale expansion, even when an ID is reused (0.244167ms)
+✔ late mosaic cannot replace six preview photos, and latest click expands with the native zoom and coordinates (0.200292ms)
+✔ leaf failures remain local, retry on demand, and stale rejections cannot revive a preview or fallback (0.217708ms)
+✔ a late mosaic failure cannot flag a successful preview, and a mosaic success cannot clear a six-leaf failure (0.175167ms)
+✔ Project map bounds validate GPS including zero, southern coordinates, and the filtered subset (0.862083ms)
+✔ MiniMap and PhotoMap style instances cannot mutate the shared configuration (4.151458ms)
+✔ map URLs separate Viewer photo, retain Project/filter/view/hash and do not mutate their source (0.556666ms)
+✔ map selection resolves only within visible Project photos, using valid GPS including zero at upstream zoom 15 (0.736667ms)
+✔ selected photo marker uses a map-anchored card instead of forcing a portal hover card open (0.73375ms)
+✔ unselected photo marker keeps ordinary hover preview behavior (0.068416ms)
+✔ map previews load only a lazy thumbnail and never fall back to a missing or original-equal source (4.705875ms)
+✔ photo markers deduplicate tiled/world copies, retain instances across selection and remove every retired instance once (14.36325ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 258.964875

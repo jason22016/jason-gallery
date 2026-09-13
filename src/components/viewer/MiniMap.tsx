@@ -14,11 +14,12 @@ export function MiniMap({ latitude, longitude }: { latitude: number; longitude: 
   useEffect(() => {
     if (!valid || !container.current) return;
     let active = true;
+    let failed = false;
     let map: MapInstance | undefined;
     let observer: ResizeObserver | undefined;
     let timeout: number | undefined;
     setState('loading');
-    const fail = () => { if (active) setState('error'); };
+    const fail = () => { if (active) { failed = true; clearTimeout(timeout); setState('error'); } };
     const initialize = () => {
       timeout = window.setTimeout(fail, 15000);
       void import('maplibre-gl').then(({ Map }) => {
@@ -27,7 +28,7 @@ export function MiniMap({ latitude, longitude }: { latitude: number; longitude: 
         style: getMapStyle(), interactive: false, attributionControl: false });
       map.on('error', fail);
       map.getCanvas().addEventListener('webglcontextlost', fail);
-      map.once('idle', () => { if (active) { clearTimeout(timeout); setState('ready'); } });
+      map.once('idle', () => { if (active && !failed) { clearTimeout(timeout); setState('ready'); } });
       observer = new ResizeObserver(() => map?.resize());
       observer.observe(container.current);
       }).catch(fail);
@@ -36,7 +37,7 @@ export function MiniMap({ latitude, longitude }: { latitude: number; longitude: 
       if (entries.some(entry => entry.isIntersecting)) { visibility.disconnect(); initialize(); }
     });
     visibility.observe(container.current);
-    return () => { active = false; clearTimeout(timeout); visibility.disconnect(); observer?.disconnect(); map?.remove(); };
+    return () => { active = false; clearTimeout(timeout); visibility.disconnect(); observer?.disconnect(); map?.getCanvas().removeEventListener('webglcontextlost', fail); map?.remove(); };
   }, [latitude, longitude, valid]);
   if (!valid) return null;
   return <div className="viewer-minimap" data-map-state={state} aria-busy={state === 'loading'}>

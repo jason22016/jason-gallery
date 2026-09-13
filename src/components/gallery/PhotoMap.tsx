@@ -20,7 +20,7 @@ import { MapLoadingState } from './map/MapLoadingState';
 import { MapPhotoList } from './map/MapPhotoList';
 import { Icon } from './ui/Icon';
 
-export default function PhotoMap({ photos, projectTitle, onOpen, onSelect, onClearSelection, selectedPhotoId, initialViewport, onViewport }: { photos: readonly ViewerPhoto[]; projectTitle: string; onOpen: (photo: ViewerPhoto, element?: HTMLElement) => void; onSelect: (photo: ViewerPhoto) => void; onClearSelection: () => void; selectedPhotoId: string | null; initialViewport?: MapViewport; onViewport?: (viewport: MapViewport) => void }) {
+export default function PhotoMap({ photos, projectTitle, onOpen, onSelect, onClearSelection, selectedPhotoId, initialViewport, onViewport, restoreFocusPhotoId }: { photos: readonly ViewerPhoto[]; projectTitle: string; onOpen: (photo: ViewerPhoto, element?: HTMLElement) => void; onSelect: (photo: ViewerPhoto) => void; onClearSelection: () => void; selectedPhotoId: string | null; initialViewport?: MapViewport; onViewport?: (viewport: MapViewport) => void; restoreFocusPhotoId?: string | null }) {
   const container = useRef<HTMLDivElement>(null);
   const mobile = useMobile();
   const [error, setError] = useState(false);
@@ -37,6 +37,13 @@ export default function PhotoMap({ photos, projectTitle, onOpen, onSelect, onCle
   const currentProps = useRef({ located, byId, selectedPhotoId, onViewport });
   currentProps.current = { located, byId, selectedPhotoId, onViewport };
   const updateSelection = useRef<(() => void) | null>(null);
+  const focusRestored = useRef(false);
+  useEffect(() => {
+    if (!ready || error || focusRestored.current || !restoreFocusPhotoId) return;
+    const entry = markers.find(marker => marker.photo.id === restoreFocusPhotoId);
+    const button = entry?.element.querySelector<HTMLButtonElement>('button');
+    if (button) { focusRestored.current = true; button.focus({ preventScroll: true }); }
+  }, [ready, error, markers, restoreFocusPhotoId]);
   useEffect(() => {
     if (!container.current || !located.length) return;
     let map: maplibregl.Map | undefined;
@@ -76,6 +83,7 @@ export default function PhotoMap({ photos, projectTitle, onOpen, onSelect, onCle
             const element = document.createElement('div');
             element.className = 'cluster-marker-host'; element.dataset.clusterId = String(candidate.clusterId);
             const marker = new maplibregl.Marker({ element, anchor: 'center' }).setLngLat(candidate.coordinates).addTo(current);
+            element.removeAttribute('role'); element.removeAttribute('aria-label');
             return { ...candidate, element, marker, photos: [], previewFailed: false };
           }, setClusters, options => current.easeTo(options), failed);
         clusterRegistry.current = nativeClusters;
@@ -86,6 +94,7 @@ export default function PhotoMap({ photos, projectTitle, onOpen, onSelect, onCle
           element.className = 'photo-marker-host';
           element.dataset.photoId = candidate.photo.id;
           const marker = new maplibregl.Marker({ element, anchor: 'center' }).setLngLat(candidate.coordinates).addTo(current);
+          element.removeAttribute('role'); element.removeAttribute('aria-label');
           return { ...candidate, element, marker };
         });
         const syncMarkers = () => {

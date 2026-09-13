@@ -225,7 +225,7 @@
 .gallery-drawer .keyboard-hint, .gallery-drawer .search-input-row > kbd { display: none; }
 .gallery-drawer .search-footer { justify-content: flex-end; }
 .gallery-drawer .search-input-row input { font-size: 16px; }
-.photo-map { height: min(50dvh, 450px); border-radius: 16px; overflow: hidden; border: 1px solid var(--gallery-border); background: var(--color-material-opaque); margin-bottom: 16px; }
+.photo-map { overflow: hidden; background: var(--color-material-opaque); }
 .photo-map .maplibregl-canvas-container { isolation: isolate; }
 .photo-map .photo-marker-host { width: 40px; height: 40px; z-index: 10; }
 .photo-map .photo-marker-host:hover, .photo-map .photo-marker-host:focus-within { z-index: 20; }

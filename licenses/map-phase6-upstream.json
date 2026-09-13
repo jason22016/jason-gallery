@@ -1,0 +1,135 @@
+{
+  "repository": "https://github.com/Afilmory/Afilmory",
+  "commit": "1f65cde6672e5231599182620116ac904e39f548",
+  "verifiedAt": "2026-09-13",
+  "license": "AGPL-3.0-or-later + ANL §4 (application); MIT (packages/ui)",
+  "adaptations": "THIRD_PARTY_NOTICES.md#map-phase-6--final-audit-and-stabilization",
+  "references": [
+    {
+      "path": "DESIGN.md",
+      "sha256": "12643e2c980ac021da63ffafaf76c6f2d06d8c479c7da25832da7bbb68b265ab"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/ClusterPhotoGrid.tsx",
+      "sha256": "51396b76b5e40f5da28197b939ac1d5c0d8f85071d6259b2ca7057f971aff990"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/GenericMap.tsx",
+      "sha256": "6363486a1129ad4cc8ad632e8d8f5e650782d07ae32a3fe342a2933cab0750f2"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/MapBackButton.tsx",
+      "sha256": "9ade158433ed638e1e43bd88de0cf260b500be2875de687680a209fb75c7c720"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/MapInfoPanel.tsx",
+      "sha256": "282715f7fde43fed75da64893ce1117b7f6b1a2dce72f0fb6808711639ce6a71"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/MapLibre.tsx",
+      "sha256": "12f598477cc479a496bc7a84867c76fdedb6e073a15d06d26275e9f1185afe19"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/MapLibreStyle.json",
+      "sha256": "3344490d706f118411f56cd73c8eb515a6d97f2d8f0b8a6b9d86d47e841a642e"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/MapLoadingState.tsx",
+      "sha256": "3ca5f706eb2a1e5132205a4a3186ee5235f00e1b441d1a41f413734775d8a76d"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/index.ts",
+      "sha256": "62afc04d5e1fd24413142da0a75d28d4791350ec272a2c2070ec0eaeb0a663bb"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/ClusterMarker.tsx",
+      "sha256": "d7d910cdf021f60fff142a20446f91569f57cf999332857e1896cb749e71fda3"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/GeoJsonLayer.tsx",
+      "sha256": "f31a0c5fea9f81d267042a8aa2ca0f728beb26ca663d34e15319daa641376408"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/MapControls.tsx",
+      "sha256": "ee5b961adbce918c67a0b15de99997ec3d3c955b0c2858461e3df7e49ce95dfa"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/PhotoMarkerPin.tsx",
+      "sha256": "4c68cce37fb873a0a2e248068fa6b451a510dec56e80c130359363b47c8ca829"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/clustering.test.ts",
+      "sha256": "af535c111b56176370cd46adae84e9beab5b4d0f33a7a3ec50027d8123c0d956"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/clustering.ts",
+      "sha256": "f1b6808622a264a882167bda608044470b2dd1d0e8cbdde691f6e45fef874d10"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/index.ts",
+      "sha256": "126a5c3410427d097136b2aa5ebff36b350d282b222b3371a3e1b367a50e549e"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/photo-marker-card-behavior.test.ts",
+      "sha256": "714a292c4c3afb290b4ac83ab79399b8d7234a7c81025984514f56c6a4937631"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/photo-marker-card-behavior.ts",
+      "sha256": "70ad1c038d9594e45729d04996b7aebf251da19942fdd867f95d9e17af545b6f"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/types.ts",
+      "sha256": "da2b89af5cbe26bd3657cbc7c53b26af1b159fbf2010f2da1f6ad07430aed448"
+    },
+    {
+      "path": "apps/web/src/lib/map-utils.ts",
+      "sha256": "9a20a6686f73214ff0fcb7bcdef9d63e2e0fc9151179c39d04fb61e1a8aca4e2"
+    },
+    {
+      "path": "apps/web/src/lib/map/style.ts",
+      "sha256": "193146f83d49a512a84edccffb5c8215cb945a25d2c95a13ac2ea1e5b7698346"
+    },
+    {
+      "path": "apps/web/src/modules/map/MapLibreAdapter.tsx",
+      "sha256": "5988eadf0b118a057a7071c74c094f8dc1f46564f60aaf6ba50a65b04fa5e8e6"
+    },
+    {
+      "path": "apps/web/src/modules/map/MapProvider.tsx",
+      "sha256": "52783f54437f5ce708740154b0b453e896532d85e0d5d56a1f17ce23dd225a1f"
+    },
+    {
+      "path": "apps/web/src/modules/map/MapSection.tsx",
+      "sha256": "e9a02b37babcfd32a2b06c4956a7cf9642719f058198b22796863188bb580111"
+    },
+    {
+      "path": "apps/web/src/modules/metadata/MiniMap.tsx",
+      "sha256": "d3c92803a0b48619f68d06d80b759f634c88a742b5a978d0defdec93ea52c7d2"
+    }
+  ],
+  "files": [
+    {
+      "local": "src/components/gallery/PhotoMap.tsx",
+      "sha256": "14648bc9cefd1bb5d9368ac6be617b4e40fdd3a74470e5c11f48927d76556e08"
+    },
+    {
+      "local": "src/components/gallery/ProjectGallery.tsx",
+      "sha256": "54091915aaca6cf51151f0533955032cb80cc2dee1616ac513006601a3872b68"
+    },
+    {
+      "local": "src/components/viewer/MiniMap.tsx",
+      "sha256": "2714ce09c2f248f1b1e65e3729e874452833207221b2a602ac641b4242724097"
+    },
+    {
+      "local": "src/styles/gallery.css",
+      "sha256": "c553aaa74c073dd07d0737a5ea95b71be204e7d9ec80c7811eb7a8a774f8186c"
+    },
+    {
+      "local": "tests/website/gallery.test.ts",
+      "sha256": "8c3286b1a1f2bb1645a563434e5cadab6f5b99cff79ac9aa7dcbadd9b44d089d"
+    },
+    {
+      "local": "tests/website/website.test.ts",
+      "sha256": "9d603e33fcb012e710ee6173e94e19aacb8a5911833ccd815104cfbc535f5b08"
+    }
+  ]
+}

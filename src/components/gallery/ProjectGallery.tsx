@@ -26,6 +26,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
   const opener = useRef<HTMLElement | null>(null);
   const scrollPosition = useRef(0);
   const mapViewport = useRef<{ key: string; viewport: MapViewport } | null>(null);
+  const mapFocusPhoto = useRef<string | null>(null);
   const ownHistoryEntry = useRef(false);
   const historyOwner = useRef(crypto.randomUUID());
   const [filters, setFilters] = useState<Filters>(emptyFilters);
@@ -82,7 +83,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
       if (id && !photos.some(p => p.id === id)) {
         setPhotoURL(null); setNotice('此照片不在当前项目中。'); setSelected(null); return;
       }
-      if (id && !selectPhotos(photos, nextFilters, 'project').some(photo => photo.id === id)) {
+      if (id && nextPanel !== 'map' && !selectPhotos(photos, nextFilters, 'project').some(photo => photo.id === id)) {
         setFilters(emptyFilters);
         const url = new URL(location.href);
         for (const key of Object.keys(emptyFilters)) url.searchParams.delete(key);
@@ -125,6 +126,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
     history.pushState({ ...history.state, galleryViewer: null }, '', mapPhotoURL(new URL(location.href), photo.id));
     ownHistoryEntry.current = false;
     mapViewport.current = null;
+    mapFocusPhoto.current = null;
     setMapPhotoId(photo.id);
     setPanel('map');
     setPanelRequest(value => value + 1);
@@ -165,7 +167,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
     history.replaceState(history.state, '', url);
   };
   const changeFilters = (value: Filters) => { setFilters(value); replaceContext(value, sort, panel === 'map'); };
-  const closePanel = () => { setPanel(null); replaceContext(filters, sort); };
+  const closePanel = () => { mapFocusPhoto.current = null; setPanel(null); replaceContext(filters, sort); };
   const hasFilters = Object.values(filters).some(Boolean);
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
@@ -200,7 +202,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
         else { setPanel(action); replaceContext(filters, sort, action === 'map'); }
       }} />}
       {panel === 'settings' && <ViewPanel sort={sort} columns={columns} view={view} onView={saveView} onSort={value => { setSort(value); replaceContext(filters, value); }} />}
-      {panel === 'map' && (PhotoMap ? <PhotoMap photos={visible} projectTitle={project.title} onSelect={selectMapPhoto} onClearSelection={clearMapSelection} selectedPhotoId={selectedMapPhoto?.id ?? null} initialViewport={mapViewport.current?.key === mapKey ? mapViewport.current.viewport : mapPhotoViewport(selectedMapPhoto)} onViewport={viewport => { mapViewport.current = { key: mapKey, viewport }; }} onOpen={photo => open(photo, root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null)} /> : mapError ? <div className="map-experience"><div className="map-right-chrome"><section className="map-fallback"><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><MapPhotoList photos={visible.filter(photo => validLocation(photo.location))} onOpen={photo => open(photo, null)} /></section></div></div> : <MapLoadingState />)}
+      {panel === 'map' && (PhotoMap ? <PhotoMap photos={visible} projectTitle={project.title} onSelect={selectMapPhoto} onClearSelection={clearMapSelection} selectedPhotoId={selectedMapPhoto?.id ?? null} initialViewport={mapViewport.current?.key === mapKey ? mapViewport.current.viewport : mapPhotoViewport(selectedMapPhoto)} onViewport={viewport => { mapViewport.current = { key: mapKey, viewport }; }} restoreFocusPhotoId={mapFocusPhoto.current} onOpen={(photo, element) => { mapFocusPhoto.current = element ? photo.id : null; open(photo, element ?? root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null); }} /> : mapError ? <div className="map-experience"><div className="map-right-chrome"><section className="map-fallback"><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><MapPhotoList photos={visible.filter(photo => validLocation(photo.location))} onOpen={photo => open(photo, null)} /></section></div></div> : <MapLoadingState />)}
     </Panel>}
     {selectedPhoto && (Viewer ? <Viewer photos={sequence} projectTitle={project.title} index={sequence.findIndex(p => p.id === selected)} trigger={opener.current} onIndex={index => { const photo = sequence[index]; if (photo) { setSelected(photo.id); setPhotoURL(photo.id); } }} onClose={close} /> : <Panel title="打开照片" onClose={close}><p role={loadError ? 'alert' : 'status'}>{loadError || '正在加载看图组件…'}</p>{loadError && <button onClick={() => setLoadError('')}>重试</button>}<a className="text-link" href={selectedPhoto.src} target="_blank" rel="noreferrer">打开原图 ↗</a></Panel>)}
   </div></LazyMotion></MapNavigationContext.Provider>;

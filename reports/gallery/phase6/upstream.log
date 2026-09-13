@@ -1,0 +1,4 @@
+$ node --import tsx scripts/upstream/check-viewer.ts
+Pinned Afilmory: 1f65cde6672e5231599182620116ac904e39f548; 16 viewer source files
+Reviewed adaptation: packages/afilmory/webgl-viewer/src/ImageViewer.tsx: Preserve WebGL context-loss fallback; signal renderer restarts; wait for completed first GPU frame and compositor handoff.
+PASS: viewer core matches pinned upstream; reviewed wrapper adaptations unchanged

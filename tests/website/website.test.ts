@@ -616,6 +616,7 @@ test('real MapLibre renders photo markers, expands a native cluster, selects a p
   await expect(attribution.getByRole('link')).toBeVisible();
   const clusters = await mapCircles(page, 'cluster'); assert.equal(clusters.length, 1);
   assert.equal((await mapCircles(page, 'photo')).length, 1);
+  await expect(page.getByRole('button', { name: 'Map marker', exact: true })).toHaveCount(0);
   await page.locator('.cluster-marker').click();
   await expect.poll(async () => (await mapCircles(page, 'cluster')).length).toBe(0);
   await expect.poll(async () => (await mapCircles(page, 'photo')).length).toBe(2);
@@ -1026,6 +1027,7 @@ test('map cards open the existing Viewer in filter/sort order and preserve map U
   await page.getByRole('button', { name: '关闭照片' }).click(); await assertMapSelection(page, id);
   await expect(page).toHaveURL(mapURL);
   assert.deepEqual(await mapCircles(page, 'photo'), positions);
+  await expect(page.locator('.photo-marker-pin[aria-pressed="true"]')).toBeFocused();
   await page.goForward(); await loaded(page);
   await expect(page.locator('.swiper-slide-active')).toHaveAttribute('data-photo-id', near);
   await page.goBack(); await assertMapSelection(page, id);
@@ -1036,6 +1038,7 @@ test('map cards open the existing Viewer in filter/sort order and preserve map U
   await expect(page.locator('.swiper-slide-active')).toHaveAttribute('data-photo-id', near);
   assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), id);
   await page.keyboard.press('Escape'); await assertMapSelection(page, id);
+  await expect(page.locator(`.photo-marker-host[data-photo-id="${near}"] .photo-marker-pin`)).toBeFocused();
   const imageLink = page.locator('[data-card-kind="selected"] .photo-marker-card-image');
   await imageLink.focus(); await page.keyboard.press('Tab');
   await expect(page.locator('[data-card-kind="selected"] .photo-marker-card-title')).toBeFocused();
@@ -1323,4 +1326,66 @@ test('mobile MiniMap fallback still enters the map and direct Viewer Back/Forwar
   await openMapPhotoList(page); await page.locator('.map-photo-list button').tap(); await loaded(page);
   await page.getByRole('button', { name: '关闭照片' }).tap();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
+});
+
+test('map Viewer deep-link outside filters preserves map selection and context through refresh, Close and history', async t => {
+  const ctx = await context({ reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  const id = fixture.photos[0]!.photoId;
+  const hidden = fixture.photos[2]!.photoId;
+  const query = `?panel=map&mapPhoto=${id}&photo=${hidden}&tag=城市&sort=desc&view=list&columns=3#gallery`;
+  await page.goto(`${server.url}/projects/fixture-alpha/${query}`); await loaded(page);
+  await page.reload(); await loaded(page);
+  assert.equal(new URL(page.url()).searchParams.get('tag'), '城市');
+  assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), id);
+  await page.getByRole('button', { name: '关闭照片' }).click(); await assertMapSelection(page, id);
+  await expect(page.locator('.map-photo-list button')).toHaveCount(1);
+  const mapURL = page.url();
+  for (const key of ['panel', 'mapPhoto', 'tag', 'sort', 'view', 'columns']) {
+    assert.equal(new URL(mapURL).searchParams.get(key), new URL(`https://fixture.test/${query}`).searchParams.get(key));
+  }
+  await page.locator('[data-card-kind="selected"] .photo-marker-card-title').click(); await loaded(page);
+  await page.goBack(); await assertMapSelection(page, id);
+  await page.goForward(); await loaded(page);
+  await page.getByRole('button', { name: '关闭照片' }).click(); await assertMapSelection(page, id);
+  await expect(page).toHaveURL(mapURL);
+});
+
+test('MiniMap sprite failure remains an error after idle and still supports the Project map link', async t => {
+  const ctx = await context({ reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  await page.route('**/sprite*.json', route => route.fulfill({ status: 503, body: 'unavailable' }));
+  const id = fixture.photos[0]!.photoId;
+  await page.goto(`${server.url}/projects/fixture-zeta/?photo=${id}`); await loaded(page);
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
+  const mini = page.locator('.viewer-minimap');
+  await mini.scrollIntoViewIfNeeded();
+  await expect(mini).toHaveAttribute('data-map-state', 'error');
+  await page.waitForTimeout(1000);
+  await expect(mini).toHaveAttribute('data-map-state', 'error');
+  await expect(mini).toHaveAttribute('aria-busy', 'false');
+  await expect(mini.locator('.viewer-minimap-marker')).toHaveCount(0);
+  await page.locator('.viewer-minimap-link').click();
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
+});
+
+test('a real vector label glyph failure degrades labels while retaining map markers, photo list and Viewer entry', async t => {
+  const ctx = await context({ reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  // MVT place layer: one Point with class=hamlet and name=Audit label.
+  const labelTile = Buffer.from('GkMKBXBsYWNlEg8SBAAAAQEYASIFCYAggCAaBWNsYXNzGgRuYW1lIggKBmhhbWxldCINCgtBdWRpdCBsYWJlbCiAIHgC', 'base64');
+  await page.route('**/empty/**/*.pbf', route => route.fulfill({ contentType: 'application/x-protobuf', body: labelTile }));
+  let glyphRequests = 0;
+  await page.route('**/fonts/**/*.pbf', route => { glyphRequests++; return route.fulfill({ status: 503, body: 'unavailable' }); });
+  const id = fixture.photos[0]!.photoId;
+  await page.goto(`${server.url}/projects/fixture-zeta/?panel=map&mapPhoto=${id}&tag=城市`);
+  await expect.poll(() => glyphRequests, { timeout: browserReadyTimeout(15_000) }).toBeGreaterThan(0);
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+  await expect(page.locator('.photo-marker-pin[aria-pressed="true"]')).toHaveCount(1);
+  await openMapPhotoList(page);
+  await expect(page.locator('.map-photo-list button')).toHaveCount(1);
+  await page.locator('.map-photo-list button').click(); await loaded(page);
+  await page.getByRole('button', { name: '关闭照片' }).click();
+  assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), id);
+  assert.equal(new URL(page.url()).searchParams.get('tag'), '城市');
 });

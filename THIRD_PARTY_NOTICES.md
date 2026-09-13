@@ -312,3 +312,17 @@ The already migrated `LinearBlur`, semantic material tokens, `Spring`,
 `LinearBlur`; the map has no scrolling fixed header that needs another fade band.
 No new dependency, independent map route, Viewer rewrite or photo system was added.
 Source and adapted-file hashes are in [licenses/map-phase5-upstream.json](licenses/map-phase5-upstream.json).
+
+## Map Phase 6 — Final Audit and Stabilization
+
+Afilmory current main and every file under the requested map directories were
+rechecked on 2026-09-13 at `1f65cde6672e5231599182620116ac904e39f548`.
+The complete DESIGN.md and built-in MapLibre style still match the recorded
+upstream baseline. Existing application licensing and visible attribution remain.
+Local changes preserve MiniMap error state through later idle events and remove
+its canvas listener explicitly, retain the Photo Card Viewer trigger and restore
+keyboard focus to its map marker, preserve filters for a map-context Viewer deep
+link outside the filtered set, remove redundant MapLibre host button semantics
+around the actual photo/cluster buttons, and remove obsolete half-height map CSS.
+Current adaptation hashes are recorded in `licenses/map-phase6-upstream.json`;
+the actively checked Viewer visual record updates the MiniMap hash only.

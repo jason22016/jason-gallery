@@ -1,0 +1,128 @@
+$ node --import tsx --test --test-concurrency=1 tests/website/*.test.ts
+✔ cluster size is bounded; date aggregation ignores invalid data and preserves recorded capture days (13.596959ms)
+✔ native leaves are bounded, tile duplicates reuse a marker and pending/cached previews deduplicate requests (0.61125ms)
+✔ zoom/filter invalidation and cluster removal discard pending leaves and stale expansion, even when an ID is reused (0.254375ms)
+✔ late mosaic cannot replace six preview photos, and latest click expands with the native zoom and coordinates (0.210041ms)
+✔ leaf failures remain local, retry on demand, and stale rejections cannot revive a preview or fallback (0.192625ms)
+✔ a late mosaic failure cannot flag a successful preview, and a mosaic success cannot clear a six-leaf failure (0.164042ms)
+✔ native cluster mosaic and focus preview use actual leaves, bounded thumbnails, total count and whole-cluster dates (17564.79075ms)
+✔ touch cluster tap expands immediately without a preview and reduced motion disables the pulse (3369.8895ms)
+✔ 480-photo native map bounds HTML markers to the viewport and releases motion subscriptions on close (19437.63225ms)
+✔ 480-photo masonry virtualizes, keeps ratio/gutters and stable total height through load, resize and scrolling (2276.171333ms)
+✔ manual widths, filter/sort, segment URL persistence and Viewer shared-element entry stay project-scoped (8723.942ms)
+✔ hover metadata, full-card gradient, 1.05 reveal, compact rules, keyboard and reduced motion (2880.213041ms)
+✔ 48px progressive header and safe-area mobile actions remain usable at narrow widths (8007.546791ms)
+✔ Live/Motion/MOV play after 200ms hover, reset on leave/end and preserve card geometry (11038.101292ms)
+✔ video failure settles, while mobile/reduced motion never autoplay (2507.490083ms)
+✔ leaving masonry during video loading cancels requests and releases video/Blob resources (980.887416ms)
+✔ segmented indicator actually travels between controls and reduced motion places it immediately (2200.342417ms)
+✔ desktop ListView virtualizes all 480 photos and preserves crop, order, metadata and Viewer trigger (2850.230209ms)
+✔ mobile ListView uses ratio-first vertical cards and remeasures on resize without image-load jumps (1417.491125ms)
+✔ search keyboard, chips, dates and URL state keep the original filter semantics (6640.307666ms)
+✔ settings branches to an anchored desktop dropdown and mobile spring drawer with focus and safe bounds (3848.297375ms)
+✔ mobile search remains inside a short viewport, traps focus, and restores its trigger after dismissal (2794.184291ms)
+✔ mobile drawer follows the handle and dismisses after a downward drag (2357.068208ms)
+✔ coincident photos expand to keyboard markers and rapid map close/reopen removes stale portals and canvases (8706.388625ms)
+✔ widely separated GPS photos fit together and filtering to zero, one and many does not leave stale map markers (6492.262667ms)
+✔ Project map bounds validate GPS including zero, southern coordinates, and the filtered subset (0.80375ms)
+✔ MiniMap and PhotoMap style instances cannot mutate the shared configuration (3.099292ms)
+✔ map URLs separate Viewer photo, retain Project/filter/view/hash and do not mutate their source (0.540875ms)
+✔ map selection resolves only within visible Project photos, using valid GPS including zero at upstream zoom 15 (0.609708ms)
+✔ capture time preserves EXIF wall clock and offsets; build clock and malformed dates are not capture evidence (1.684792ms)
+✔ capture display omits fractions and offsets without shifting the recorded wall clock (0.144125ms)
+✔ native EXIF GPS works without reverse geocoding; zero, signed hemispheres, invalid/missing pairs and units stay honest (0.752583ms)
+✔ projection and date filters/sort use recorded dates, actual focal length and native coordinates without mutating the engine (2.679167ms)
+17:46:11 [types] Generated 76ms
+17:46:11 [jason-gallery-projects] Validated Projects: 1 published, 0 draft
+17:46:11 [build] output: "static"
+17:46:11 [build] mode: "static"
+17:46:11 [build] directory: /Users/lijiasheng/Documents/ChatGPT/jason-gallery/.cache/multi-source-website/release-8qFbkS/dist/
+17:46:11 [build] Collecting build info...
+17:46:11 [build] ✓ Completed in 94ms.
+17:46:11 [build] Building static entrypoints...
+17:46:11 [vite] ✓ built in 112ms
+17:46:11 [WARN] [vite] [plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+17:46:11 [vite] ✓ built in 297ms
+17:46:11 [build] Rearranging server assets...
+
+ generating static routes 
+17:46:11   ├─ /404.html (+7ms) 
+17:46:11   ├─ /health.txt (+1ms) 
+17:46:11   ├─ /projects/mixed/photos/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f58aaa6f80fae8822ed3bfa6c10df8ff98dcfbdfd22145089988015746c21d92.json (+1ms) 
+17:46:11   ├─ /projects/mixed/photos/travel--396af30e5daf04dcfc901fd3ea217a0b809b8f85220223e5e9a56b690f23fb90--f58aaa6f80fae8822ed3bfa6c10df8ff98dcfbdfd22145089988015746c21d92.json (+1ms) 
+17:46:11   ├─ /projects/mixed/index.html (+8ms) 
+17:46:11   ├─ /index.html (+3ms) 
+17:46:11 ✓ Completed in 43ms.
+
+17:46:11 [build] ✓ Completed in 471ms.
+17:46:11 [build] 3 page(s) built in 567ms
+17:46:11 [build] Complete!
+✔ cross-source Gallery, metadata, Viewer sharing and map use the same qualified photo identity (16295.997959ms)
+✔ selected photo marker uses a map-anchored card instead of forcing a portal hover card open (0.691792ms)
+✔ unselected photo marker keeps ordinary hover preview behavior (0.44525ms)
+✔ map previews load only a lazy thumbnail and never fall back to a missing or original-equal source (4.572084ms)
+✔ photo markers deduplicate tiled/world copies, retain instances across selection and remove every retired instance once (10.667208ms)
+Website browser: 151.0.7922.34
+✔ production routes, published order, cover, project fields and Gallery order work without JavaScript (5746.346833ms)
+✔ draft/unknown routes return custom 404 and draft data never enters HTML or JavaScript; worker is isolated (199.07ms)
+✔ lazy Viewer, selection, buttons, keyboard limits, focus trap/restoration and GPU-to-img fallback (6543.879334ms)
+✔ loading is visible; switching/closing while requests are pending cannot revive an old photo (4893.880542ms)
+✔ failed GPU module download still opens the unmodified original image (1480.565791ms)
+✔ thumbnail error, original error and successful retry remain usable (3770.604ms)
+✔ real Afilmory WebGPU initialization failure falls back to WebGL in the Astro production bundle (3458.440166ms)
+✔ mobile masonry layout, touch controls, single-photo boundaries and viewport resizing (2255.515125ms)
+✔ desktop fixture screenshots and ordinary browsing have no uncaught runtime errors (2583.967166ms)
+✔ empty public catalog builds a useful home page, even when draft content exists (1087.041792ms)
+✔ Light home: responsive cover geometry, hover/focus overlay, and two deliberate touch taps (636.975916ms)
+✔ project information, filters, chronological sort, list persistence, and shared viewer sequence (13078.478542ms)
+✔ photo URLs support direct entry, refresh, Back/Forward, invalid IDs and project-scoped metadata (1864.342041ms)
+✔ map has an accessible fallback and obeys current filters; missing GPS produces an empty state (7524.564083ms)
+✔ fallback zoom disables swipe navigation, resets, and the mobile inspector remains operable (2309.023208ms)
+Native touch close events: [
+  { type: 'pointerdown', target: '收起照片信息' },
+  { type: 'touchstart', target: '收起照片信息' },
+  { type: 'pointerup', target: '收起照片信息' },
+  { type: 'touchend', target: '收起照片信息' },
+  { type: 'click', target: '收起照片信息' }
+]
+✔ native touch gestures switch photos, reveal the inspector, dismiss, and ignore homepage scrolls (7038.249834ms)
+✔ native hexadecimal ThumbHash produces the correct preview colours before the JPEG loads (1135.153708ms)
+✔ metadata stays lazy, preserves units/offsets and zero values, retries, and clears stale details on navigation (2268.461709ms)
+✔ filtered/sorted share URL restores the same sequence; Forward then Close does not add duplicate history (5966.059667ms)
+✔ real MapLibre renders photo markers, expands a native cluster, selects a point and restores the filtered map (13150.325417ms)
+✔ map network failure with WebGL available and lazy module failure retain selectable photos (6975.595ms)
+✔ WebGL context loss after a loaded HDR source reaches the normal image fallback (4233.457292ms)
+✔ HDR active requires successful reconstruction; capability changes, malformed gain and next photo clear it (13926.317167ms)
+✔ home follows the device while Project Gallery and Viewer keep DESIGN.md dark materials (2389.830708ms)
+✔ Swiper thumbnail and keyboard navigation preserve the Project history entry, scroll offset and opener focus (3103.849583ms)
+✔ Phase 5 map controls zoom, reset rotation, geolocate and retain the canvas and URL (5679.55975ms)
+✔ Phase 5 Project information follows filtered GPS bounds and returns to the gallery context (6809.084458ms)
+✔ Phase 5 mobile map safely rejects geolocation and remains usable in a short drawer (2148.162417ms)
+✔ Phase 5 map loading timeout, retry and context loss preserve the photo fallback (4346.895167ms)
+✔ map cards separate delayed hover/focus previews from persistent selection and safely render metadata (10913.197708ms)
+✔ map cards open the existing Viewer in filter/sort order and preserve map URL, viewport and Back/Forward (13639.801625ms)
+✔ map cards support touch selection and image-to-Viewer with viewport bounds and missing metadata (5608.291959ms)
+✔ photo marker materials, thumbnail, keyboard selection and history preserve the same map and marker instances (3532.238125ms)
+✔ touch photo markers select without opening Viewer and reduced motion keeps the active ring static (1579.192833ms)
+✔ photo marker spring hover, focus and press scales use upstream gestures and respond to reduced motion (7807.875875ms)
+✔ failed marker thumbnails retain thumbhash and camera without requesting originals (1931.443083ms)
+✔ initial map viewport survives marker selection and fallback Viewer without requiring a pan (6534.064083ms)
+✔ MiniMap and text link enter the Project map, preserve filters/history, restore selection on refresh and refocus a different photo (20326.185ms)
+✔ selected map preserves user viewport through Viewer and ordinary panel reopening; MiniMap explicitly refocuses (15801.446ms)
+✔ invalid, other-Project, no-GPS and filtered-out mapPhoto safely clear selection without clearing filters (3159.946167ms)
+✔ mobile MiniMap fallback still enters the map and direct Viewer Back/Forward retains separate map state (2703.935208ms)
+✔ map Viewer deep-link outside filters preserves map selection and context through refresh, Close and history (9493.727375ms)
+✔ MiniMap sprite failure remains an error after idle and still supports the Project map link (2904.241125ms)
+✔ a real vector label glyph failure degrades labels while retaining map markers, photo list and Viewer entry (3991.621625ms)
+ℹ tests 82
+ℹ suites 0
+ℹ pass 82
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 379575.40075
