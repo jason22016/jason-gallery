@@ -334,14 +334,14 @@ test('hover metadata, full-card gradient, 1.05 reveal, compact rules, keyboard a
   await expect(page.getByRole('button', { name: '列表视图' })).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('48px progressive header and safe-area mobile actions remain usable at narrow widths', async t => {
+test('single-row mobile header exposes map and retains views in settings at narrow widths', async t => {
   const { ctx, page } = await pageFor({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); t.after(() => ctx.close()); await ready(page);
   await expect(page.locator('.gallery-header-content')).toHaveCSS('height', '48px');
   await expect(page.locator('.gallery-header')).toHaveCSS('z-index', '30');
   assert.equal(await page.locator('.linear-blur-layer').count(), 8);
   for (const width of [320,390,768,1023]) {
     await page.setViewportSize({ width, height: 844 });
-    for (const name of ['搜索和筛选','显示设置','项目信息']) {
+    for (const name of ['搜索和筛选','地图探索','显示设置','项目信息']) {
       const button = page.getByRole('button', { name, exact: true });
       await expect.poll(async () => {
         const box = await button.boundingBox();
@@ -349,18 +349,29 @@ test('48px progressive header and safe-area mobile actions remain usable at narr
       }, { message: `${name} must stay inside the ${width} × 844 viewport after resize` }).toBe(true);
     }
     await expect(page.locator('.gallery-header .view-segment')).toHaveCount(0);
+    const heading = await page.locator('.gallery-header h1').boundingBox();
+    assert(heading && heading.width >= 32 && heading.y + heading.height <= 48, 'title stays visible in the single row');
+    const first = await cards(page).first().boundingBox();
+    assert(first && first.y >= 52, 'photos start below the single-row header');
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   }
   await page.getByRole('button', { name: '显示设置' }).tap();
-  await page.getByRole('button', { name: '列表视图' }).tap();
+  await page.getByRole('dialog', { name: '显示设置' }).getByRole('button', { name: '列表视图' }).tap();
   await page.getByRole('button', { name: '关闭面板', exact: true }).tap();
   await expect(page.locator('.list-card').first()).toBeVisible();
-  await page.getByRole('button', { name: '搜索和筛选' }).tap();
-  await page.locator('.palette-actions summary').tap();
+  await page.reload();
+  await expect(page.locator('.list-card').first()).toBeVisible();
+  await page.getByRole('button', { name: '显示设置' }).tap();
+  await page.getByRole('dialog', { name: '显示设置' }).getByRole('button', { name: '瀑布流' }).tap();
+  await page.getByRole('button', { name: '关闭面板', exact: true }).tap();
+  await expect(cards(page).first()).toBeVisible();
   await page.getByRole('button', { name: '地图探索', exact: true }).tap();
   await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '没有可显示的位置' })).toBeVisible();
   await page.getByRole('button', { name: /^(关闭面板|返回项目相册)$/, exact: true }).tap();
+  await expect(page.getByRole('button', { name: '地图探索', exact: true })).toHaveAttribute('aria-expanded', 'false');
   await page.setViewportSize({ width: 1024, height: 844 });
+  await expect(page.locator('.gallery-header-content')).toHaveCSS('height', '48px');
   await expect(page.locator('.gallery-header .view-segment')).toBeVisible();
   await expect(page.getByRole('button', { name: '地图探索', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '瀑布流' }).click();

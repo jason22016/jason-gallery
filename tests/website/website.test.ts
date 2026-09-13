@@ -403,6 +403,45 @@ test('project information, filters, chronological sort, list persistence, and sh
   await expect(page.getByRole('heading', { name: '没有符合条件的照片' })).toBeVisible();
 });
 
+test('single-row mobile Project header opens GPS map and retains view and column settings', async t => {
+  for (const width of [320, 390]) {
+    const ctx = await context({ viewport: { width, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }, 'native');
+    t.after(() => ctx.close());
+    const page = await ctx.newPage(); await mapFixture(page);
+    const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+    await page.goto(`${server.url}/projects/fixture-alpha/`);
+    await page.locator('[data-viewer-ready="true"]').waitFor({ state: 'attached' });
+    const header = page.locator('.gallery-live .gallery-header');
+    await expect(header.locator('.gallery-header-content')).toHaveCSS('height', '48px');
+    await expect(header.getByRole('button', { name: '地图探索', exact: true })).toBeVisible();
+    await expect(header.locator('.view-segment')).toHaveCount(0);
+    await header.getByRole('button', { name: '显示设置', exact: true }).tap();
+    await page.getByRole('dialog', { name: '显示设置' }).getByRole('button', { name: '列表视图', exact: true }).tap();
+    await page.getByRole('button', { name: '关闭面板', exact: true }).tap();
+    await expect(page.locator('.list-card')).toHaveCount(4);
+    await page.reload();
+    await expect(page.locator('.list-card')).toHaveCount(4);
+    await header.getByRole('button', { name: '显示设置', exact: true }).tap();
+    const settings = page.getByRole('dialog', { name: '显示设置' });
+    await expect(settings.getByRole('button', { name: '列表视图', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await settings.getByRole('button', { name: '瀑布流', exact: true }).tap();
+    await chooseColumns(page, 1);
+    assert.equal(new URL(page.url()).searchParams.get('columns'), '1');
+    await page.getByRole('button', { name: '关闭面板', exact: true }).tap();
+    await expect.poll(async () => page.locator('.masonry-photo').evaluateAll(nodes => new Set(nodes.map(node => Math.round(node.getBoundingClientRect().x))).size)).toBe(1);
+    const trigger = header.getByRole('button', { name: '地图探索', exact: true });
+    await trigger.tap();
+    await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
+    await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+    await expect(page.locator('.map-photo-list > li')).toHaveCount(3);
+    await page.getByRole('button', { name: '返回项目相册', exact: true }).tap();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.screenshot({ path: path.join(root, `mobile-project-header-${width}.png`) });
+    assert.deepEqual(errors, []);
+  }
+});
+
 test('photo URLs support direct entry, refresh, Back/Forward, invalid IDs and project-scoped metadata', async t => {
   const ctx = await context({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
   const page = await projectPage(ctx); await open(page, 1); await loaded(page);

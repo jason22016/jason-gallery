@@ -22,7 +22,7 @@ export function PageHeader({ title, count, view, onView, panel, onPanel, hasFilt
         {!mobile && <ViewModeSegment view={view} onChange={onView} />}
         <div className="gallery-action-cluster" role="group" aria-label="图库操作">
           <FloatingActionButton icon="search" label="搜索和筛选" active={hasFilters || panel === 'search'} aria-haspopup="dialog" aria-expanded={panel === 'search'} onClick={event => onPanel('search', event.currentTarget)} />
-          {!mobile && <FloatingActionButton icon="map-pin" label="地图探索" active={panel === 'map'} aria-haspopup="dialog" aria-expanded={panel === 'map'} onClick={event => onPanel('map', event.currentTarget)} />}
+          <FloatingActionButton icon="map-pin" label="地图探索" active={panel === 'map'} aria-haspopup="dialog" aria-expanded={panel === 'map'} onClick={event => onPanel('map', event.currentTarget)} />
           <FloatingActionButton icon="settings-3" label="显示设置" active={customized || panel === 'settings'} aria-haspopup="dialog" aria-expanded={panel === 'settings'} onClick={event => onPanel('settings', event.currentTarget)} />
           <FloatingActionButton icon="information" label="项目信息" active={panel === 'info'} aria-haspopup="dialog" aria-expanded={panel === 'info'} onClick={event => onPanel('info', event.currentTarget)} />
         </div>
