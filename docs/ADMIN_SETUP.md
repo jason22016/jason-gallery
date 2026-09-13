@@ -39,6 +39,7 @@ pnpm exec wrangler deploy --config admin/wrangler.jsonc --dry-run
 
 ## 操作与边界
 
+- **Project 展示顺序**：在 Project 信息中修改“展示顺序”并保存，数字越小越靠前，相同数字按 slug 排列。后台列表和加入 Project 的选择列表沿用前台排序规则；新建 Project 默认排在已有 Project 最后。支持负数和小数，空值不能保存。保存后仍需发布网站才会更新主站顺序，只改排序无需重新同步照片。
 - **未保存编辑**：从照片库加入新/其他 Project、切换编辑对象或放弃当前修改前，统一提供保留编辑、显式放弃、保存后继续。校验失败、网络失败或版本冲突时不切换，编辑和选图仍保留。继续向当前 Project 加图不会替换其编辑。
 - **保存**：来源配置或单个 Project JSON 写到网站 `main`；只能写 `config/photo-sources.json` / `src/content/projects/<slug>.json`。前端发送 expected head，服务端先检查，复用共享引用校验验证全部 draft/published（无需构造/冻结页面照片对象），再创建以该 head 为唯一父提交的 Git commit，并非强制更新 main ref。中途出现并发提交也会拒绝，不重试覆盖。冲突保留编辑并提供检查/放弃后重新加载入口。已有 Project 的 slug 固定，其他 schema 字段原样保留。
 - **来源影响**：仓库、分支、目录变更或停用/移除来源前检查全部 draft/published 引用；存在引用则拒绝。来源 identity / canonical reference、固定默认来源 legacy alias 都沿用 Phase 6；含双连字符的原生文件名也不会被当成 canonical 引用。先调整 Project 引用，再修改来源；新增源保存后需同步才能选图。

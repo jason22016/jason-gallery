@@ -1,5 +1,6 @@
 import type { loadPhotoIndex, PhotoManifestItem } from '../photo-engine/index';
 import { ProjectSchema, type Project } from './schema';
+import { compareProjectOrder } from './order';
 
 export type DeepReadonly<T> = T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T;
 export type ResolvedProject = DeepReadonly<Omit<Project, 'photos'> & {
@@ -53,7 +54,7 @@ function freezeDeep<T>(value: T): DeepReadonly<T> {
 }
 
 function createIndex(projects: ResolvedProject[]): ProjectIndex {
-  projects.sort((a, b) => a.order < b.order ? -1 : a.order > b.order ? 1 : a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0);
+  projects.sort(compareProjectOrder);
   const list = Object.freeze(projects);
   const byId = new Map(list.map(project => [project.id, project]));
   const bySlug = new Map(list.map(project => [project.slug, project]));
