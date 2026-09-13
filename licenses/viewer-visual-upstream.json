@@ -70,7 +70,7 @@
     },
     {
       "local": "src/components/viewer/MetadataPanel.tsx",
-      "sha256": "76fae2e9174f133c27698ae6f794482f749a1f8800e72e6bd3c5ac9a49ca03e1",
+      "sha256": "8fd1c2e7dfa75a653aa1ed9f48dbe4ca4b8d3b73da2a858745f725ee79a7dc28",
       "adapted": true,
       "upstream": [
         {
@@ -82,7 +82,7 @@
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",
-      "sha256": "b15cd5de6fb7689116a2e0bdb82f47a1fde5ef9d498dbb88be8b686306197fc8",
+      "sha256": "b00f728db278a932b3901f5ba4c86c6c8cfa81a94adbdca378f2ed90922fdeb6",
       "adapted": true,
       "upstream": [
         {

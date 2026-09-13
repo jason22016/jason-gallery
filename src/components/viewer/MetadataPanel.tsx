@@ -6,6 +6,7 @@ import { formatBytes, type PhotoDetails, type ViewerPhoto } from './photos';
 import { ExifSection, Rows } from './ExifSection';
 import { HistogramChart } from './HistogramChart';
 import { MiniMap } from './MiniMap';
+import { MapPhotoLink } from '../gallery/MapNavigation';
 import { CarbonIsoOutline, TablerAperture, MaterialSymbolsShutterSpeed, MaterialSymbolsExposure,
   StreamlineImageAccessoriesLensesPhotosCameraShutterPicturePhotographyPicturesPhotoLens } from './CaptureIcons';
 const cache = new Map<string, PhotoDetails>();
@@ -56,7 +57,7 @@ export default function MetadataPanel({ photo }: { photo: ViewerPhoto }) {
     {exif?.FujiRecipe && <ExifSection title="胶片模拟配方"><Rows values={recipeEntries(exif.FujiRecipe).map(([key, value]) => [({ FilmMode: '胶片模式', GrainEffectRoughness: '颗粒强度', GrainEffectSize: '颗粒大小', ColorChromeEffect: '色彩效果', ColorChromeFxBlue: '蓝色效果', WhiteBalance: '白平衡', WhiteBalanceFineTune: '白平衡微调', DynamicRange: '动态范围', HighlightTone: '高光色调', ShadowTone: '阴影色调', Saturation: '饱和度', Sharpness: '锐度', NoiseReduction: '降噪', Clarity: '清晰度', ColorTemperature: '色温', DevelopmentDynamicRange: '显影动态范围', DynamicRangeSetting: '动态范围设置' } as Record<string, string>)[key] || key, value])}/></ExifSection>}
     {photo.location && <ExifSection title="拍摄位置"><Rows values={[
       ['国家', photo.location.country], ['城市', photo.location.city], ['地点', photo.location.locationName], ['纬度', unit(photo.location.latitude, '°')], ['经度', unit(photo.location.longitude, '°')], ['海拔', altitude(exif)],
-    ]}/><MiniMap latitude={photo.location.latitude} longitude={photo.location.longitude}/><a className="metadata-map-link" href={`https://www.openstreetmap.org/?mlat=${photo.location.latitude}&mlon=${photo.location.longitude}#map=14/${photo.location.latitude}/${photo.location.longitude}`} target="_blank" rel="noreferrer">在地图中查看 ↗</a></ExifSection>}
+    ]}/><MiniMap latitude={photo.location.latitude} longitude={photo.location.longitude}/><MapPhotoLink className="metadata-map-link">在地图中查看</MapPhotoLink>{' '}<a className="metadata-map-link" href={`https://www.openstreetmap.org/?mlat=${photo.location.latitude}&mlon=${photo.location.longitude}#map=15/${photo.location.latitude}/${photo.location.longitude}`} target="_blank" rel="noreferrer">在 OpenStreetMap 中打开 ↗</a></ExifSection>}
     {exif && <ExifSection title="技术参数"><Rows values={[
       ['亮度', exif.BrightnessValue], ['曝光补偿', unit(exif.ExposureCompensation, 'EV')], ['快门速度', unit(exif.ShutterSpeedValue, 's')], ['光圈值', aperture(exif.ApertureValue)], ['感光方式', exif.SensingMethod], ['焦平面 X 分辨率（原始值）', exif.FocalPlaneXResolution], ['焦平面 Y 分辨率（原始值）', exif.FocalPlaneYResolution], ['版权', exif.Copyright],
     ]}/></ExifSection>}

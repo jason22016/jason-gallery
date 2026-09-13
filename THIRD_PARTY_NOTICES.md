@@ -183,3 +183,34 @@ header now follows upstream's top action group and desktop-only view segment/map
 mobile view and map actions remain in Settings/Search. The desktop Inspector starts collapsed
 per DESIGN.md §8.1, taking precedence over upstream's default-open state. Only these reviewed
 Gallery/Viewer adaptations have updated provenance hashes.
+
+## Map Phase 1 — MiniMap to Project Map
+
+Current `Afilmory/afilmory` main was checked on 2026-09-13 at
+`1f65cde6672e5231599182620116ac904e39f548`. The full upstream `DESIGN.md`
+was read before modification and matches `docs/viewer/AFILMORY_DESIGN.md`.
+Copyright (c) 2025 Afilmory Team; application derivatives retain
+**AGPL-3.0-or-later + ANL §4** and the existing complete
+[license](licenses/AFILMORY-LICENSE), Project/Viewer attribution and source links.
+
+- `gallery/map-state.ts` adapts `modules/map/MapSection.tsx`'s URL photo ID →
+  validated GPS → initial view at zoom 15. Jason resolves only visible Project
+  photos and uses its existing validated location adapter, including valid zero
+  coordinates, instead of the global photo loader and EXIF-only conversion.
+- `gallery/MapNavigation.tsx`, `viewer/MiniMap.tsx` and `viewer/MetadataPanel.tsx`
+  adapt the upstream MiniMap's photo-specific internal map link. A colocated
+  context and native same-document anchor navigation replace React Router and
+  the upstream new-tab default. Native modified-click navigation remains usable.
+  P0 map style, lazy initialization, resize, error fallback and provider credits
+  are preserved. OpenStreetMap remains a secondary external link.
+- `gallery/ProjectGallery.tsx` and `gallery/PhotoMap.tsx` adapt the controlled
+  `selectedMarkerId` / `initialViewState` pattern of MapSection and GenericMap.
+  Jason retains direct MapLibre, native History, Project filters, viewport memory,
+  marker-to-Viewer behavior and all existing clustering/controls/error handling.
+  The independent `mapPhoto` state is exposed to the map and accessible photo list;
+  photo marker visuals and hover cards remain deferred.
+
+No production dependency, CSS, Viewer motion engine or upstream map clustering
+algorithm was added or changed. Reference and adapted-file SHA-256 values are in
+[licenses/map-phase1-upstream.json](licenses/map-phase1-upstream.json).
+The existing visual provenance record updates only the two changed metadata files.

@@ -1,0 +1,58 @@
+{
+  "repository": "https://github.com/Afilmory/afilmory",
+  "commit": "1f65cde6672e5231599182620116ac904e39f548",
+  "verifiedAt": "2026-09-13",
+  "designAuthority": {
+    "path": "docs/viewer/AFILMORY_DESIGN.md",
+    "sha256": "12643e2c980ac021da63ffafaf76c6f2d06d8c479c7da25832da7bbb68b265ab"
+  },
+  "adaptations": "THIRD_PARTY_NOTICES.md#map-phase-1--minimap-to-project-map",
+  "references": [
+    {
+      "path": "apps/web/src/modules/metadata/MiniMap.tsx",
+      "sha256": "d3c92803a0b48619f68d06d80b759f634c88a742b5a978d0defdec93ea52c7d2"
+    },
+    {
+      "path": "apps/web/src/modules/map/MapSection.tsx",
+      "sha256": "e9a02b37babcfd32a2b06c4956a7cf9642719f058198b22796863188bb580111"
+    },
+    {
+      "path": "apps/web/src/lib/map-utils.ts",
+      "sha256": "9a20a6686f73214ff0fcb7bcdef9d63e2e0fc9151179c39d04fb61e1a8aca4e2"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/GenericMap.tsx",
+      "sha256": "6363486a1129ad4cc8ad632e8d8f5e650782d07ae32a3fe342a2933cab0750f2"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/MapLibre.tsx",
+      "sha256": "12f598477cc479a496bc7a84867c76fdedb6e073a15d06d26275e9f1185afe19"
+    }
+  ],
+  "files": [
+    {
+      "local": "src/components/gallery/map-state.ts",
+      "sha256": "09877367763c08ec12085945602bde40b6ed6cf68c0bf8cb399ea73d95fe78f3"
+    },
+    {
+      "local": "src/components/gallery/MapNavigation.tsx",
+      "sha256": "8c5e265f10dc7f50f50ec3723f6cc9a9954d9c39df7afba4768e5b182c38347e"
+    },
+    {
+      "local": "src/components/gallery/ProjectGallery.tsx",
+      "sha256": "6331224edb5b3bdaf3b427e1037ab0effd26e6b833793ec4111345cab3f9a913"
+    },
+    {
+      "local": "src/components/gallery/PhotoMap.tsx",
+      "sha256": "0e122f9ffcc34dfcbb64699c04435e6c387fbd885c51694de3560fe3485f01b2"
+    },
+    {
+      "local": "src/components/viewer/MiniMap.tsx",
+      "sha256": "b00f728db278a932b3901f5ba4c86c6c8cfa81a94adbdca378f2ed90922fdeb6"
+    },
+    {
+      "local": "src/components/viewer/MetadataPanel.tsx",
+      "sha256": "8fd1c2e7dfa75a653aa1ed9f48dbe4ca4b8d3b73da2a858745f725ee79a7dc28"
+    }
+  ]
+}

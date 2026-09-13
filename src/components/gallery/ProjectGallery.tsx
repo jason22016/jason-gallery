@@ -8,7 +8,8 @@ import { SearchPanel } from './SearchPanel';
 import { ViewPanel } from './ViewPanel';
 import { FilterChip } from './FilterChip';
 import { Icon } from './ui/Icon';
-import type { MapViewport } from './PhotoMap';
+import { mapPhotoURL, mapPhotoViewport, resolveMapPhoto, type MapViewport } from './map-state';
+import { MapNavigationContext } from './MapNavigation';
 import type { ViewerProps } from '../viewer/PhotoViewer';
 import { emptyFilters, selectPhotos, type Filters, type GalleryProject, type Sort, type ViewerPhoto } from '../viewer/photos';
 import Panel from './Panel';
@@ -21,7 +22,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
   const panelAnchor = useRef<HTMLElement | null>(null);
   const opener = useRef<HTMLElement | null>(null);
   const scrollPosition = useRef(0);
-  const mapViewport = useRef<{ key: string; viewport: MapViewport } | null>(null);
+  const mapViewport = useRef<{ key: string; photoId: string | null; viewport: MapViewport } | null>(null);
   const ownHistoryEntry = useRef(false);
   const historyOwner = useRef(crypto.randomUUID());
   const [filters, setFilters] = useState<Filters>(emptyFilters);
@@ -30,6 +31,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
   const [columns, setColumns] = useState(0);
   const [panelRequest, setPanelRequest] = useState(0);
   const [panel, setPanel] = useState<'info' | 'search' | 'settings' | 'map' | null>(null);
+  const [mapPhotoId, setMapPhotoId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [Viewer, setViewer] = useState<ComponentType<ViewerProps> | null>(null);
   const [PhotoMap, setPhotoMap] = useState<MapComponent | null>(null);
@@ -38,6 +40,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
   const [notice, setNotice] = useState('');
   const visible = useMemo(() => selectPhotos(photos, filters, sort), [photos, filters, sort]);
   const mapKey = visible.map(photo => photo.id).join(',');
+  const selectedMapPhoto = resolveMapPhoto(visible, mapPhotoId);
   const selectedPhoto = photos.find(p => p.id === selected);
   const sequence = selectedPhoto && !visible.some(p => p.id === selected) ? [...photos] : visible;
   const setPhotoURL = useCallback((id: string | null, push = false) => {
@@ -62,7 +65,15 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
       for (const key of Object.keys(nextFilters) as (keyof Filters)[]) nextFilters[key] = params.get(key) || '';
       setFilters(nextFilters);
       setSort(params.get('sort') === 'asc' ? 'asc' : params.get('sort') === 'desc' ? 'desc' : 'project');
-      setPanel(params.get('panel') === 'map' ? 'map' : null);
+      const nextPanel = params.get('panel') === 'map' ? 'map' : null;
+      setPanel(nextPanel);
+      const mapPhoto = nextPanel ? resolveMapPhoto(selectPhotos(photos, nextFilters, 'project'), params.get('mapPhoto')) : null;
+      setMapPhotoId(mapPhoto?.id ?? null);
+      if (params.has('mapPhoto') && !mapPhoto) {
+        const url = new URL(location.href);
+        url.searchParams.delete('mapPhoto');
+        history.replaceState(history.state, '', url);
+      }
       const id = params.get('photo');
       ownHistoryEntry.current = history.state?.galleryViewer === historyOwner.current;
       if (id && !photos.some(p => p.id === id)) {
@@ -77,7 +88,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
       }
       if (id) scrollPosition.current = window.scrollY;
       if (!id) {
-        requestAnimationFrame(() => { window.scrollTo(0, scrollPosition.current); opener.current?.isConnected && opener.current.focus({ preventScroll: true }); });
+        if (nextPanel !== 'map') requestAnimationFrame(() => { window.scrollTo(0, scrollPosition.current); opener.current?.isConnected && opener.current.focus({ preventScroll: true }); });
         ownHistoryEntry.current = false;
       }
       setSelected(id);
@@ -106,6 +117,16 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
     else { setSelected(null); setPhotoURL(null); }
     requestAnimationFrame(() => { window.scrollTo(0, scrollPosition.current); opener.current?.isConnected && opener.current.focus({ preventScroll: true }); });
   }, [setPhotoURL]);
+  const showPhotoOnMap = (photo: ViewerPhoto) => {
+    if (!resolveMapPhoto(visible, photo.id)) return;
+    history.pushState({ ...history.state, galleryViewer: null }, '', mapPhotoURL(new URL(location.href), photo.id));
+    ownHistoryEntry.current = false;
+    mapViewport.current = null;
+    setMapPhotoId(photo.id);
+    setPanel('map');
+    setPanelRequest(value => value + 1);
+    setSelected(null);
+  };
   const items = useMemo(() => visible.map((photo, index) => ({ photo: photo as GalleryPhoto, index, onOpen: open })), [visible, open]);
   const saveView = (nextView: typeof view, nextColumns = columns) => {
     setView(nextView); setColumns(nextColumns);
@@ -122,9 +143,13 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
     }
     if (nextSort !== 'project') url.searchParams.set('sort', nextSort); else url.searchParams.delete('sort');
     if (map) url.searchParams.set('panel', 'map'); else url.searchParams.delete('panel');
+    if (!map || !resolveMapPhoto(selectPhotos(photos, nextFilters, nextSort), mapPhotoId)) {
+      url.searchParams.delete('mapPhoto');
+      setMapPhotoId(null);
+    }
     history.replaceState(history.state, '', url);
   };
-  const changeFilters = (value: Filters) => { setFilters(value); replaceContext(value, sort); };
+  const changeFilters = (value: Filters) => { setFilters(value); replaceContext(value, sort, panel === 'map'); };
   const closePanel = () => { setPanel(null); replaceContext(filters, sort); };
   const hasFilters = Object.values(filters).some(Boolean);
   useEffect(() => {
@@ -140,7 +165,11 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
     window.addEventListener('keydown', shortcut);
     return () => window.removeEventListener('keydown', shortcut);
   }, [selected, panel, filters, sort]);
-  return <LazyMotion features={domMax}><div ref={root} className="gallery-live" data-viewer-ready="true">
+  const mapNavigation = selectedPhoto && resolveMapPhoto(visible, selectedPhoto.id) ? {
+    href: mapPhotoURL(new URL(location.href), selectedPhoto.id).href,
+    navigate: () => showPhotoOnMap(selectedPhoto),
+  } : null;
+  return <MapNavigationContext.Provider value={mapNavigation}><LazyMotion features={domMax}><div ref={root} className="gallery-live" data-viewer-ready="true">
     <PageHeader title={project.title} count={visible.length} view={view} onView={saveView} panel={panel}
       onPanel={(next, anchor) => { setPanelRequest(value => value + 1); panelAnchor.current = anchor; setPanel(next); replaceContext(filters, sort, next === 'map'); }}
       hasFilters={hasFilters} customized={columns !== 0 || sort !== 'project'} />
@@ -156,8 +185,8 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
         else { setPanel(action); replaceContext(filters, sort, action === 'map'); }
       }} />}
       {panel === 'settings' && <ViewPanel sort={sort} columns={columns} view={view} onView={saveView} onSort={value => { setSort(value); replaceContext(filters, value); }} />}
-      {panel === 'map' && (PhotoMap ? <PhotoMap photos={visible} initialViewport={mapViewport.current?.key === mapKey ? mapViewport.current.viewport : undefined} onViewport={viewport => { mapViewport.current = { key: mapKey, viewport }; }} onOpen={photo => open(photo, root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null)} /> : mapError ? <div><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><ul className="map-photo-list">{visible.filter(photo => photo.location).map(photo => <li key={photo.id}><button onClick={() => open(photo, null)}>{photo.title}</button></li>)}</ul></div> : <p role="status">正在加载地图…</p>)}
+      {panel === 'map' && (PhotoMap ? <PhotoMap photos={visible} selectedPhotoId={selectedMapPhoto?.id ?? null} initialViewport={mapViewport.current?.key === mapKey && (!selectedMapPhoto || mapViewport.current.photoId === mapPhotoId) ? mapViewport.current.viewport : mapPhotoViewport(selectedMapPhoto)} onViewport={viewport => { mapViewport.current = { key: mapKey, photoId: mapPhotoId, viewport }; }} onOpen={photo => open(photo, root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null)} /> : mapError ? <div><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><ul className="map-photo-list">{visible.filter(photo => photo.location).map(photo => <li key={photo.id}><button onClick={() => open(photo, null)}>{photo.title}</button></li>)}</ul></div> : <p role="status">正在加载地图…</p>)}
     </Panel>}
     {selectedPhoto && (Viewer ? <Viewer photos={sequence} projectTitle={project.title} index={sequence.findIndex(p => p.id === selected)} trigger={opener.current} onIndex={index => { const photo = sequence[index]; if (photo) { setSelected(photo.id); setPhotoURL(photo.id); } }} onClose={close} /> : <Panel title="打开照片" onClose={close}><p role={loadError ? 'alert' : 'status'}>{loadError || '正在加载看图组件…'}</p>{loadError && <button onClick={() => setLoadError('')}>重试</button>}<a className="text-link" href={selectedPhoto.src} target="_blank" rel="noreferrer">打开原图 ↗</a></Panel>)}
-  </div></LazyMotion>;
+  </div></LazyMotion></MapNavigationContext.Provider>;
 }

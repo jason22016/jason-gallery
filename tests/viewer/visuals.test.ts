@@ -154,7 +154,7 @@ test('metadata sections preserve recipe extras and zero GPS; histogram resizes a
   assert.equal(dimensions.width, dimensions.css * 2);
   await page.locator('.viewer-minimap').scrollIntoViewIfNeeded();
   await expect(page.locator('.viewer-minimap')).toHaveAttribute('data-map-state', 'error');
-  await expect(page.locator('.viewer-minimap-link')).toHaveAttribute('href', /mlat=0&mlon=0/);
+  await expect(page.getByRole('link', { name: '在 OpenStreetMap 中打开 ↗' })).toHaveAttribute('href', /mlat=0&mlon=0/);
   await expect(page.locator('.viewer-minimap-status')).toContainText('底图暂时不可用');
   await page.route('**/ordinary.jpg?background=1', route => route.abort());
   await page.keyboard.press('ArrowRight');

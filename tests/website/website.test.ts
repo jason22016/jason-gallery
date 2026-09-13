@@ -185,7 +185,7 @@ test('loading is visible; switching/closing while requests are pending cannot re
   t.after(() => release());
   await page.route('**/originals/portrait.jpg', async route => { await pending; await route.continue().catch(() => {}); });
   await open(page);
-  await expect(page.locator('.viewer-status')).toContainText('正在加载照片…');
+  await expect(page.locator('.viewer-loading-heading')).toContainText('加载中');
   await page.keyboard.press('ArrowRight'); await loaded(page);
   release();
   await expectFallbackSource(page, '/originals/hdr.jpg');
@@ -197,7 +197,7 @@ test('loading is visible; switching/closing while requests are pending cannot re
   await page.unroute('**/originals/portrait.jpg');
   await page.route('**/originals/portrait.jpg', async route => { await closedRequest; await route.continue().catch(() => {}); });
   await open(page);
-  await expect(page.locator('.viewer-status')).toContainText('正在加载照片…');
+  await expect(page.locator('.viewer-loading-heading')).toContainText('加载中');
   await page.keyboard.press('Escape');
   releaseClosed();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -787,3 +787,146 @@ async function chooseColumns(page: Page, count: number) {
   await slider.press('Home');
   for (let index = 0; index < count; index++) await slider.press('ArrowRight');
 }
+
+async function mapFixture(page: Page) {
+  await page.route('**/dark-matter-gl-style/style.json', route => route.fulfill({ json: {
+    version: 8, glyphs: `${server.url}/fixture-font/{fontstack}/{range}.pbf`, sources: {},
+    layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#102030' } }],
+  } }));
+  await page.route('**/fixture-font/**', route => route.fulfill({ contentType: 'application/x-protobuf', body: Buffer.alloc(0) }));
+  await page.route('**/tiles.json', route => route.fulfill({ json: { tilejson: '3.0.0', tiles: [`${server.url}/empty/{z}/{x}/{y}.pbf`], minzoom: 0, maxzoom: 14 } }));
+  await page.route('**/empty/**/*.pbf', route => route.fulfill({ contentType: 'application/x-protobuf', body: Buffer.alloc(0) }));
+  await page.route('**/sprite*.json', route => route.fulfill({ json: {} }));
+  await page.route('**/sprite*.png', async route => route.fulfill({ contentType: 'image/png', body: await (await import('sharp')).default({ create: { width: 1, height: 1, channels: 4, background: '#00000000' } }).png().toBuffer() }));
+}
+
+async function assertMapSelection(page: Page, id: string) {
+  await expect(page.locator('.photo-dialog')).toHaveCount(0);
+  await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
+  await expect(page.locator('.map-photo-list [aria-current="location"]')).toHaveCount(1);
+  assert.equal(new URL(page.url()).searchParams.get('photo'), null);
+  assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), id);
+  const points = await mapCircles(page, 'photo');
+  const canvas = (await page.locator('.photo-map canvas').boundingBox())!;
+  assert(points.some(point => Math.abs(point.x - canvas.width / 2) < 2 && Math.abs(point.y - canvas.height / 2) < 2), 'selected GPS must be at the actual WebGL canvas center');
+  // The two nearby fixture coordinates differ by .001 longitude: measure zoom in rendered pixels.
+  if (points.length === 2) assert(Math.abs(Math.abs(points[1]!.x - points[0]!.x) - 512 * 2 ** 15 * .001 / 360) < 2, 'single-photo entry uses upstream zoom 15');
+}
+
+test('MiniMap and text link enter the Project map, preserve filters/history, restore selection on refresh and refocus a different photo', async t => {
+  const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto(`${server.url}/projects/fixture-alpha/?start=2024-03-01&sort=desc&view=list&columns=3`);
+  await page.locator('[data-viewer-ready="true"]').waitFor();
+  const base = page.url();
+  await open(page); await loaded(page);
+  const portrait = fixture.photos[0]!.photoId;
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
+  const mini = page.locator('.viewer-minimap');
+  await mini.scrollIntoViewIfNeeded();
+  await expect(mini).toHaveAttribute('data-map-state', 'ready');
+  const target = await page.locator('.viewer-minimap-link').getAttribute('href');
+  assert.equal(await page.getByRole('link', { name: '在地图中查看', exact: true }).last().getAttribute('href'), target);
+  await expect(page.getByRole('link', { name: '在 OpenStreetMap 中打开 ↗' })).toHaveAttribute('target', '_blank');
+  const before = await page.evaluate(() => history.length);
+  await page.locator('.viewer-minimap-link').click();
+  await assertMapSelection(page, portrait);
+  assert.equal(await page.evaluate(() => history.length), before + 1);
+  assert.equal(await page.evaluate(() => history.state.galleryViewer), null);
+  for (const [key, value] of new URL(base).searchParams) assert.equal(new URL(page.url()).searchParams.get(key), value);
+  await expect(page.locator('.map-photo-list button')).toHaveCount(2);
+  const mapURL = page.url();
+  await page.goBack(); await loaded(page);
+  assert.equal(new URL(page.url()).searchParams.get('photo'), portrait);
+  await page.goForward(); await assertMapSelection(page, portrait);
+  await page.goBack(); await loaded(page);
+  await page.getByRole('button', { name: '关闭照片' }).click();
+  await expect(page).toHaveURL(base);
+  await page.goForward(); await loaded(page);
+  await page.keyboard.press('ArrowRight'); await loaded(page);
+  const near = fixture.manifest.data.find(photo => photo.s3Key === 'map-near.jpg')!.id;
+  await expect(page).toHaveURL(new RegExp(`photo=${near}`));
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
+  await page.getByRole('link', { name: '在地图中查看', exact: true }).last().click();
+  await assertMapSelection(page, near);
+  await page.reload(); await assertMapSelection(page, near);
+  const direct = await ctx.newPage(); await mapFixture(direct); await direct.goto(mapURL);
+  await assertMapSelection(direct, portrait);
+  await direct.reload(); await assertMapSelection(direct, portrait);
+  assert.deepEqual(errors, []);
+});
+
+test('selected map preserves user viewport through Viewer and ordinary panel reopening; MiniMap explicitly refocuses', async t => {
+  const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  const id = fixture.photos[0]!.photoId;
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map&mapPhoto=${id}`);
+  await assertMapSelection(page, id);
+  const canvas = page.locator('.photo-map canvas'); const box = (await canvas.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, { steps: 15 }); await page.mouse.up();
+  await page.waitForTimeout(500);
+  const moved = await mapCircles(page, 'photo');
+  assert(moved.every(point => Math.abs(point.x - box.width / 2) > 30));
+  await page.locator('.map-photo-list button').first().click(); await loaded(page);
+  await page.getByRole('button', { name: '关闭照片' }).click();
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  assert.deepEqual(await mapCircles(page, 'photo'), moved);
+  await page.getByRole('button', { name: '关闭面板' }).click();
+  assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), null);
+  await page.getByRole('button', { name: '地图探索' }).click();
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  assert.deepEqual(await mapCircles(page, 'photo'), moved);
+  await page.locator('.map-photo-list button').first().click(); await loaded(page);
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
+  await page.locator('.viewer-minimap-link').click();
+  await assertMapSelection(page, id);
+});
+
+test('invalid, other-Project, no-GPS and filtered-out mapPhoto safely clear selection without clearing filters', async t => {
+  const ctx = await context({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  const page = await ctx.newPage(); const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  const other = fixture.manifest.data.find(photo => photo.s3Key === 'map-near.jpg')!.id;
+  for (const id of ['missing', other, fixture.photos[2]!.photoId, fixture.photos[0]!.photoId]) {
+    await page.goto(`${server.url}/projects/fixture-beta/?panel=map&mapPhoto=${id}&tag=风景&sort=asc`);
+    await expect(page.getByRole('heading', { name: '没有可显示的位置' })).toBeVisible();
+    assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), null);
+    assert.equal(new URL(page.url()).searchParams.get('panel'), 'map');
+    assert.equal(new URL(page.url()).searchParams.get('tag'), '风景');
+    assert.equal(new URL(page.url()).searchParams.get('sort'), 'asc');
+  }
+  await page.goto(`${server.url}/projects/fixture-beta/?panel=map&mapPhoto=missing`);
+  await expect(page.locator('.map-photo-list button')).toHaveCount(1);
+  await expect(page.locator('.map-photo-list [aria-current]')).toHaveCount(0);
+  assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), null);
+  await page.goto(`${server.url}/projects/fixture-beta/?photo=${fixture.photos[2]!.photoId}`); await loaded(page);
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
+  await expect(page.locator('.metadata-content')).toBeVisible();
+  await expect(page.locator('.viewer-minimap')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: '在地图中查看', exact: true })).toHaveCount(0);
+  assert.deepEqual(errors, []);
+});
+
+test('mobile MiniMap fallback still enters the map and direct Viewer Back/Forward retains separate map state', async t => {
+  const ctx = await context({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  const page = await ctx.newPage();
+  const id = fixture.photos[0]!.photoId;
+  await page.goto(`${server.url}/projects/fixture-beta/?photo=${id}&tag=城市`); await loaded(page);
+  await page.getByRole('button', { name: '照片信息', exact: true }).tap();
+  await page.locator('.viewer-minimap').scrollIntoViewIfNeeded();
+  await expect(page.locator('.viewer-minimap')).toHaveAttribute('data-map-state', 'error');
+  await page.locator('.viewer-minimap-link').tap();
+  await expect(page.locator('.photo-dialog')).toHaveCount(0);
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
+  await expect(page.locator('.map-photo-list [aria-current="location"]')).toHaveCount(1);
+  assert.equal(new URL(page.url()).searchParams.get('tag'), '城市');
+  await page.goBack(); await loaded(page);
+  await page.goForward(); await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
+  await page.reload(); await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
+  await page.locator('.map-photo-list button').tap(); await loaded(page);
+  await page.getByRole('button', { name: '关闭照片' }).tap();
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
+});

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Map as MapInstance, StyleSpecification } from 'maplibre-gl';
 import mapStyle from './MapLibreStyle.json';
 import { validLocation } from './metadata';
+import { MapPhotoLink } from '../gallery/MapNavigation';
 
 export function MiniMap({ latitude, longitude }: { latitude: number; longitude: number }) {
   const container = useRef<HTMLDivElement>(null);
@@ -38,12 +39,11 @@ export function MiniMap({ latitude, longitude }: { latitude: number; longitude: 
     return () => { active = false; clearTimeout(timeout); visibility.disconnect(); observer?.disconnect(); map?.remove(); };
   }, [latitude, longitude, valid]);
   if (!valid) return null;
-  const href = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=15/${latitude}/${longitude}`;
   return <div className="viewer-minimap" data-map-state={state} aria-busy={state === 'loading'}>
     <div className="viewer-minimap-canvas" ref={container} aria-hidden="true"/>
     {state === 'ready' && <div className="viewer-minimap-marker" aria-hidden="true"/>}
     {state !== 'ready' && <div className="viewer-minimap-status" role="status">{state === 'loading' ? '地图加载中…' : '底图暂时不可用'}<span>{latitude.toFixed(4)}, {longitude.toFixed(4)}</span></div>}
-    <a className="viewer-minimap-link" href={href} target="_blank" rel="noreferrer" aria-label="在 OpenStreetMap 查看拍摄位置"/>
+    <MapPhotoLink className="viewer-minimap-link"/>
     <div className="viewer-minimap-attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a> · <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">© CARTO</a></div>
   </div>;
 }

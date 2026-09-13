@@ -4,8 +4,8 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { validLocation } from '../viewer/metadata';
 import type { ViewerPhoto } from '../viewer/photos';
-export interface MapViewport { center: [number, number]; zoom: number; bearing: number; pitch: number }
-export default function PhotoMap({ photos, onOpen, initialViewport, onViewport }: { photos: readonly ViewerPhoto[]; onOpen: (photo: ViewerPhoto) => void; initialViewport?: MapViewport; onViewport?: (viewport: MapViewport) => void }) {
+import type { MapViewport } from './map-state';
+export default function PhotoMap({ photos, onOpen, selectedPhotoId, initialViewport, onViewport }: { photos: readonly ViewerPhoto[]; onOpen: (photo: ViewerPhoto) => void; selectedPhotoId: string | null; initialViewport?: MapViewport; onViewport?: (viewport: MapViewport) => void }) {
   const container = useRef<HTMLDivElement>(null);
   const [error, setError] = useState(false);
   const [ready, setReady] = useState(false);
@@ -52,7 +52,7 @@ export default function PhotoMap({ photos, onOpen, initialViewport, onViewport }
     } catch { failed(); }
     return () => { active = false; clearTimeout(timeout); map?.remove(); };
     // The panel gets a new instance when its filtered result changes.
-  }, [photos, attempt]);
+  }, [photos, selectedPhotoId, attempt]);
   if (!located.length) return <div className="gallery-empty"><h3>没有可显示的位置</h3><p>当前照片没有 GPS 坐标。</p></div>;
-  return <><div className="photo-map" ref={container} aria-label="照片位置地图" aria-busy={!ready && !error} data-map-state={error ? 'error' : ready ? 'ready' : 'loading'} />{error && <p className="map-error" role="status">底图暂时不可用，你仍可从下方打开照片。<button onClick={() => setAttempt(n => n + 1)}>重试地图</button></p>}<p className="muted">{located.length} 张照片有位置记录</p><ul className="map-photo-list">{located.map(p => <li key={p.id}><button onClick={() => onOpen(p)}><img src={p.thumbnail} alt=""/><span><EllipsisWithTooltip>{p.title}</EllipsisWithTooltip><small><EllipsisWithTooltip>{p.location?.locationName || p.location?.city || `${p.location!.latitude.toFixed(3)}, ${p.location!.longitude.toFixed(3)}`}</EllipsisWithTooltip></small></span></button></li>)}</ul></>;
+  return <><div className="photo-map" ref={container} aria-label="照片位置地图" data-selected-photo={selectedPhotoId ?? undefined} aria-busy={!ready && !error} data-map-state={error ? 'error' : ready ? 'ready' : 'loading'} />{error && <p className="map-error" role="status">底图暂时不可用，你仍可从下方打开照片。<button onClick={() => setAttempt(n => n + 1)}>重试地图</button></p>}<p className="muted">{located.length} 张照片有位置记录</p><ul className="map-photo-list">{located.map(p => <li key={p.id}><button aria-current={p.id === selectedPhotoId ? 'location' : undefined} onClick={() => onOpen(p)}><img src={p.thumbnail} alt=""/><span><EllipsisWithTooltip>{p.title}</EllipsisWithTooltip><small><EllipsisWithTooltip>{p.location?.locationName || p.location?.city || `${p.location!.latitude.toFixed(3)}, ${p.location!.longitude.toFixed(3)}`}</EllipsisWithTooltip></small></span></button></li>)}</ul></>;
 }
