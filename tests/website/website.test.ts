@@ -1,3 +1,4 @@
+import { installMapFixture, openMapPhotoList } from './map-fixture';
 import { expectFallbackSource } from './viewer-assertions';
 import { browserBundleForAudit } from '../viewer/bundle-audit';
 import assert from 'node:assert/strict';
@@ -397,10 +398,10 @@ test('map has an accessible fallback and obeys current filters; missing GPS prod
   await page.route('**/*cartocdn.com/**', route => route.abort());
   await page.getByRole('button', { name: '地图探索' }).click();
   await expect(page.locator('.map-photo-list button')).toHaveCount(1);
-  await page.locator('.map-photo-list button').click(); await loaded(page);
+  await openMapPhotoList(page); await page.locator('.map-photo-list button').click(); await loaded(page);
   await expectFallbackSource(page, '/originals/portrait.jpg');
   await page.keyboard.press('Escape'); await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '关闭面板' }).click();
+  await page.getByRole('button', { name: /^(关闭面板|返回项目相册)$/ }).click();
   await page.getByRole('button', { name: '搜索和筛选' }).click(); await page.getByRole('button', { name: '标签：风景', exact: true }).click();
   await page.getByRole('button', { name: '查看 1 张照片' }).click(); await page.getByRole('button', { name: '地图探索' }).click();
   await expect(page.getByRole('heading', { name: '没有可显示的位置' })).toBeVisible();
@@ -553,7 +554,7 @@ test('filtered/sorted share URL restores the same sequence; Forward then Close d
   await page.getByRole('button', { name: '查看 2 张照片' }).click();
   await page.getByRole('button', { name: '显示设置' }).click();
   await page.getByRole('radio', { name: '拍摄时间：从旧到新' }).click();
-  await page.getByRole('button', { name: '关闭面板' }).click();
+  await page.getByRole('button', { name: /^(关闭面板|返回项目相册)$/ }).click();
   await open(page); await loaded(page);
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 2');
   await page.keyboard.press('ArrowRight'); await loaded(page);
@@ -592,11 +593,7 @@ test('real MapLibre renders photo markers, expands a native cluster, selects a p
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   // Deterministic local style. Empty glyph fixture avoids dependence on external font services;
   // production CARTO tiles and count labels are checked separately with real photos.
-  await page.route('**/dark-matter-gl-style/style.json', route => route.fulfill({ json: {
-    version: 8, glyphs: `${server.url}/fixture-font/{fontstack}/{range}.pbf`,
-    sources: { attribution: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, attribution: '<a href="https://example.com/">Fixture attribution</a>' } },
-    layers: [{ id: 'fixture-background', type: 'background', paint: { 'background-color': '#102030' } }, { id: 'attribution', type: 'circle', source: 'attribution' }],
-  } }));
+  await installMapFixture(page, server.url);
   await page.route('**/fixture-font/**', route => route.fulfill({ contentType: 'application/x-protobuf', body: Buffer.alloc(0) }));
   await page.route('**/fonts/**/*.pbf', route => route.fulfill({ contentType: 'application/x-protobuf', body: Buffer.alloc(0) }));
   await page.getByRole('button', { name: '地图探索' }).click();
@@ -632,7 +629,7 @@ test('real MapLibre renders photo markers, expands a native cluster, selects a p
   await expect(page.locator('.photo-marker-pin[aria-pressed="true"]')).toHaveCount(0);
   await page.goForward();
   await expect(page.locator('.photo-marker-pin[aria-pressed="true"]')).toHaveCount(1);
-  await page.locator('.map-photo-list button').first().click(); await loaded(page);
+  await openMapPhotoList(page); await page.locator('.map-photo-list button').first().click(); await loaded(page);
   await expect(page.locator('.viewer-counter')).toContainText('/ 4');
   await page.goBack(); await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
@@ -640,7 +637,7 @@ test('real MapLibre renders photo markers, expands a native cluster, selects a p
   await page.goForward(); await loaded(page);
   await page.getByRole('button', { name: '关闭照片' }).click();
   await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '关闭面板' }).click();
+  await page.getByRole('button', { name: /^(关闭面板|返回项目相册)$/ }).click();
   await page.getByRole('button', { name: '搜索和筛选' }).click();
   await page.getByRole('button', { name: '相机：NIKON Z6', exact: true }).click();
   await page.getByRole('button', { name: '查看 1 张照片' }).click();
@@ -650,7 +647,7 @@ test('real MapLibre renders photo markers, expands a native cluster, selects a p
   const filtered = await mapCircles(page, 'photo'); assert.equal(filtered.length, 1);
   await page.locator('.photo-marker-pin').click();
   await expect(page.locator('.photo-dialog')).toHaveCount(0);
-  await page.locator('.map-photo-list button').click(); await loaded(page);
+  await openMapPhotoList(page); await page.locator('.map-photo-list button').click(); await loaded(page);
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 1');
   assert.deepEqual(errors, []);
 });
@@ -658,13 +655,13 @@ test('real MapLibre renders photo markers, expands a native cluster, selects a p
 test('map network failure with WebGL available and lazy module failure retain selectable photos', async t => {
   const ctx = await context({ reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
   const page = await projectPage(ctx);
-  await page.route('**/dark-matter-gl-style/style.json', route => route.abort());
+  await page.route('**/tiles.json', route => route.abort());
   await page.getByRole('button', { name: '地图探索' }).click();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'error');
-  await page.locator('.map-photo-list button').click(); await loaded(page);
+  await openMapPhotoList(page); await page.locator('.map-photo-list button').click(); await loaded(page);
   await page.getByRole('button', { name: '关闭照片' }).click();
   await expect(page.locator('.map-photo-list button')).toHaveCount(1);
-  await page.getByRole('button', { name: '关闭面板' }).click();
+  await page.getByRole('button', { name: /^(关闭面板|返回项目相册)$/ }).click();
   const fresh = await projectPage(ctx);
   await fresh.route(/\/_astro\/PhotoMap\.[^/]+\.js/, route => route.abort());
   await fresh.getByRole('button', { name: '地图探索' }).click();
@@ -787,15 +784,7 @@ async function chooseColumns(page: Page, count: number) {
 }
 
 async function mapFixture(page: Page) {
-  await page.route('**/dark-matter-gl-style/style.json', route => route.fulfill({ json: {
-    version: 8, glyphs: `${server.url}/fixture-font/{fontstack}/{range}.pbf`, sources: {},
-    layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#102030' } }],
-  } }));
-  await page.route('**/fixture-font/**', route => route.fulfill({ contentType: 'application/x-protobuf', body: Buffer.alloc(0) }));
-  await page.route('**/tiles.json', route => route.fulfill({ json: { tilejson: '3.0.0', tiles: [`${server.url}/empty/{z}/{x}/{y}.pbf`], minzoom: 0, maxzoom: 14 } }));
-  await page.route('**/empty/**/*.pbf', route => route.fulfill({ contentType: 'application/x-protobuf', body: Buffer.alloc(0) }));
-  await page.route('**/sprite*.json', route => route.fulfill({ json: {} }));
-  await page.route('**/sprite*.png', async route => route.fulfill({ contentType: 'image/png', body: await (await import('sharp')).default({ create: { width: 1, height: 1, channels: 4, background: '#00000000' } }).png().toBuffer() }));
+  await installMapFixture(page, server.url);
 }
 
 async function assertMapSelection(page: Page, id: string) {
@@ -812,6 +801,133 @@ async function assertMapSelection(page: Page, id: string) {
   // The two nearby fixture coordinates differ by .001 longitude: measure zoom in rendered pixels.
   if (points.length === 2) assert(Math.abs(Math.abs(points[1]!.x - points[0]!.x) - 512 * 2 ** 15 * .001 / 360) < 2, 'single-photo entry uses upstream zoom 15');
 }
+
+test('Phase 5 map controls zoom, reset rotation, geolocate and retain the canvas and URL', async t => {
+  const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce', geolocation: { latitude: 22.3, longitude: 114.17 }, permissions: ['geolocation'] }, 'native');
+  t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  const id = fixture.photos[0]!.photoId;
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map&mapPhoto=${id}&start=2024-03-01&sort=asc&view=list#gallery`);
+  await assertMapSelection(page, id);
+  const originalURL = page.url();
+  await page.evaluate(() => { (window as any).phase5Canvas = document.querySelector('.photo-map canvas'); });
+  const distance = async () => {
+    const points = await mapCircles(page, 'photo');
+    return points.length === 2 ? Math.hypot(points[0]!.x - points[1]!.x, points[0]!.y - points[1]!.y) : 0;
+  };
+  const before = await distance();
+  await page.getByRole('button', { name: '放大地图', exact: true }).click();
+  await expect.poll(async () => Math.abs(await distance() - before * 2)).toBeLessThan(2);
+  await page.getByRole('button', { name: '缩小地图', exact: true }).click();
+  await expect.poll(async () => Math.abs(await distance() - before)).toBeLessThan(2);
+  const baseline = await mapCircles(page, 'photo');
+  const baselineY = Math.abs(baseline[0]!.y - baseline[1]!.y);
+  const box = (await page.locator('.photo-map canvas').boundingBox())!;
+  await page.mouse.move(box.width / 2, box.height / 2);
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.move(box.width / 2 + 100, box.height / 2 + 40, { steps: 10 });
+  await page.mouse.up({ button: 'right' });
+  await expect.poll(async () => {
+    const points = await mapCircles(page, 'photo');
+    return points.length === 2 ? Math.abs(Math.abs(points[0]!.y - points[1]!.y) - baselineY) : 0;
+  }).toBeGreaterThan(2);
+  await page.getByRole('button', { name: '重置地图方向和倾斜' }).click();
+  await expect.poll(async () => {
+    const points = await mapCircles(page, 'photo');
+    return points.length === 2 ? Math.abs(Math.abs(points[0]!.y - points[1]!.y) - baselineY) : 100;
+  }).toBeLessThan(2);
+  await page.getByRole('button', { name: '定位当前位置' }).click();
+  await expect.poll(async () => Math.abs(await distance() - before / 2)).toBeLessThan(2);
+  await expect(page.getByRole('button', { name: '定位当前位置' })).toBeEnabled();
+  assert(await page.evaluate(() => (window as any).phase5Canvas === document.querySelector('.photo-map canvas')));
+  await expect(page).toHaveURL(originalURL);
+});
+
+test('Phase 5 Project information follows filtered GPS bounds and returns to the gallery context', async t => {
+  const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map&sort=asc&view=list#gallery`);
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  const info = page.getByRole('complementary', { name: '项目地图信息' });
+  await expect(info.locator('h3')).toHaveText('Fixture — shared photographs');
+  await expect(info.locator('[data-map-photo-count]')).toHaveAttribute('data-map-photo-count', '3');
+  await info.getByRole('button', { name: '展开拍摄范围' }).click();
+  for (const [key, value] of Object.entries({ minLat: '22.300000°', maxLat: '22.340000°', minLng: '114.170000°', maxLng: '114.220000°' })) {
+    await expect(info.locator(`[data-map-bound="${key}"]`)).toHaveText(value);
+  }
+  await expect(info.locator('.map-coverage')).toContainText('24.6 km²');
+  const mapBox = (await page.locator('.photo-map').boundingBox())!;
+  assert.equal(mapBox.width, 1440); assert.equal(mapBox.height, 900);
+  await page.screenshot({ path: path.join(repo, '.cache/map-phase5-desktop.png') });
+  await page.evaluate(() => { history.pushState(history.state, '', '?panel=map&tag=城市&sort=asc&view=list#gallery'); window.dispatchEvent(new PopStateEvent('popstate')); });
+  await expect(info.locator('[data-map-photo-count]')).toHaveAttribute('data-map-photo-count', '1');
+  await expect(info.locator('[data-map-bound="maxLat"]')).toHaveText('22.300000°');
+  await expect(info.locator('.map-coverage')).toContainText('0.0 km²');
+  await page.getByRole('button', { name: '返回项目相册' }).click();
+  await expect(page.locator('.map-panel')).toHaveCount(0);
+  const url = new URL(page.url());
+  assert.equal(url.searchParams.get('panel'), null); assert.equal(url.searchParams.get('mapPhoto'), null);
+  assert.equal(url.searchParams.get('tag'), '城市'); assert.equal(url.searchParams.get('sort'), 'asc'); assert.equal(url.searchParams.get('view'), 'list');
+  assert.equal(url.hash, '#gallery');
+  await page.goBack(); await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  await page.goForward(); await expect(page.locator('.map-panel')).toHaveCount(0);
+});
+
+test('Phase 5 mobile map safely rejects geolocation and remains usable in a short drawer', async t => {
+  const ctx = await context({ viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  await ctx.addInitScript({ content: `Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition(success, fail) { fail({ code: 1, message: 'denied' }); } } });` });
+  const page = await ctx.newPage(); await mapFixture(page);
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map`);
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  await page.getByRole('button', { name: '定位当前位置' }).tap();
+  await expect(page.locator('.map-geolocation-status')).toContainText('定位权限');
+  await expect(page.getByRole('button', { name: '定位当前位置' })).toBeEnabled();
+  await page.getByRole('button', { name: '放大地图' }).tap();
+  await page.getByRole('button', { name: '重置地图方向和倾斜' }).tap();
+  await page.getByRole('button', { name: '展开拍摄范围' }).tap();
+  const map = (await page.locator('.photo-map').boundingBox())!;
+  assert(map.height > 480 && map.width === 320);
+  for (const element of await page.locator('.map-back button, .map-control-glass button, .map-info-panel').all()) {
+    const box = (await element.boundingBox())!;
+    assert(box.x >= 0 && box.y >= 0 && box.x + box.width <= 320 && box.y + box.height <= 568);
+  }
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await page.screenshot({ path: path.join(repo, '.cache/map-phase5-mobile.png') });
+  await page.getByRole('button', { name: '返回项目相册' }).tap();
+  await expect(page.locator('.map-panel')).toHaveCount(0);
+  assert.deepEqual(errors, []);
+});
+
+test('Phase 5 map loading timeout, retry and context loss preserve the photo fallback', async t => {
+  const ctx = await context({ reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; }); t.after(() => release());
+  await page.route('**/tiles.json', async route => { await held; await route.fallback().catch(() => {}); });
+  await page.goto(`${server.url}/projects/fixture-alpha/`);
+  await page.clock.install();
+  await page.getByRole('button', { name: '地图探索' }).click();
+  await expect(page.locator('.map-loading')).toBeVisible();
+  await expect(page.getByRole('button', { name: '放大地图' })).toBeDisabled();
+  await page.clock.fastForward(16000);
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'error');
+  await expect(page.locator('.map-fallback .map-photo-list button')).toHaveCount(3);
+  await page.getByRole('button', { name: '展开拍摄范围' }).click();
+  await page.clock.fastForward(1000);
+  const infoBox = (await page.locator('.map-info-panel').boundingBox())!;
+  const fallbackBox = (await page.locator('.map-fallback').boundingBox())!;
+  assert(infoBox.y + infoBox.height <= fallbackBox.y, 'expanded coordinates and the error photo list remain separate and operable');
+  release();
+  await page.getByRole('button', { name: '重试地图' }).click();
+  await page.clock.resume();
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  await expect(page.getByRole('button', { name: '放大地图' })).toBeEnabled();
+  await page.locator('.photo-map canvas').evaluate(canvas => canvas.dispatchEvent(new Event('webglcontextlost', { cancelable: true })));
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'error');
+  await expect(page.locator('.map-fallback .map-photo-list button').first()).toBeVisible();
+  await page.locator('.map-fallback .map-photo-list button').first().click(); await loaded(page);
+});
 
 test('map cards separate delayed hover/focus previews from persistent selection and safely render metadata', async t => {
   const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
@@ -848,7 +964,7 @@ test('map cards separate delayed hover/focus previews from persistent selection 
   await expect(selectedCard).toHaveCSS('backdrop-filter', 'blur(40px)');
   await expect(selectedCard).toHaveCSS('border-radius', '16px');
   assert((await selectedCard.boundingBox())!.y + (await selectedCard.boundingBox())!.height < (await selected.boundingBox())!.y, 'selected card anchors above its pin');
-  const panelClose = page.getByRole('button', { name: '关闭面板', exact: true });
+  const panelClose = page.getByRole('button', { name: /^(关闭面板|返回项目相册)$/, exact: true });
   await panelClose.focus(); await page.keyboard.press('Shift+Tab');
   await expect(selectedCard.locator('.photo-marker-card-title')).toBeFocused();
   await page.keyboard.press('Tab'); await expect(panelClose).toBeFocused();
@@ -961,8 +1077,10 @@ test('map cards support touch selection and image-to-Viewer with viewport bounds
   await expect(card.locator('[data-card-field="coordinates"]')).toHaveText('22.3400°N, 114.2200°E');
   await page.setViewportSize({ width: 390, height: 420 });
   await expect(card).toHaveAttribute('data-side', 'top');
-  const shortBox = (await card.boundingBox())!;
-  assert(shortBox.y >= 15 && shortBox.y + shortBox.height <= 405);
+  await expect.poll(async () => {
+    const shortBox = (await card.boundingBox())!;
+    return shortBox.y >= 15 && shortBox.y + shortBox.height <= 405;
+  }, { message: 'the anchored card follows the resized MapLibre canvas inside the short viewport' }).toBe(true);
 });
 
 test('photo marker materials, thumbnail, keyboard selection and history preserve the same map and marker instances', async t => {
@@ -1084,7 +1202,7 @@ test('initial map viewport survives marker selection and fallback Viewer without
   assert.equal(points.length, 1); assert.equal(clusters.length, 1);
   await page.locator('.photo-marker-pin').click();
   await expect(page.locator('.photo-marker-pin')).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('.map-photo-list button').first().click(); await loaded(page);
+  await openMapPhotoList(page); await page.locator('.map-photo-list button').first().click(); await loaded(page);
   await page.getByRole('button', { name: '关闭照片' }).click();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
   assert.deepEqual(await mapCircles(page, 'photo'), points);
@@ -1147,16 +1265,16 @@ test('selected map preserves user viewport through Viewer and ordinary panel reo
   await page.waitForTimeout(500);
   const moved = await mapCircles(page, 'photo');
   assert(moved.every(point => Math.abs(point.x - box.width / 2) > 30));
-  await page.locator('.map-photo-list button').first().click(); await loaded(page);
+  await openMapPhotoList(page); await page.locator('.map-photo-list button').first().click(); await loaded(page);
   await page.getByRole('button', { name: '关闭照片' }).click();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
   assert.deepEqual(await mapCircles(page, 'photo'), moved);
-  await page.getByRole('button', { name: '关闭面板' }).click();
+  await page.getByRole('button', { name: /^(关闭面板|返回项目相册)$/ }).click();
   assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), null);
   await page.getByRole('button', { name: '地图探索' }).click();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
   assert.deepEqual(await mapCircles(page, 'photo'), moved);
-  await page.locator('.map-photo-list button').first().click(); await loaded(page);
+  await openMapPhotoList(page); await page.locator('.map-photo-list button').first().click(); await loaded(page);
   await page.getByRole('button', { name: '照片信息', exact: true }).click();
   await page.locator('.viewer-minimap-link').click();
   await assertMapSelection(page, id);
@@ -1202,7 +1320,7 @@ test('mobile MiniMap fallback still enters the map and direct Viewer Back/Forwar
   await page.goBack(); await loaded(page);
   await page.goForward(); await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
   await page.reload(); await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
-  await page.locator('.map-photo-list button').tap(); await loaded(page);
+  await openMapPhotoList(page); await page.locator('.map-photo-list button').tap(); await loaded(page);
   await page.getByRole('button', { name: '关闭照片' }).tap();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
 });

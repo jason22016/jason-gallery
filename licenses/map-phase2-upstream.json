@@ -65,14 +65,16 @@
     },
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "8fd410638a79ad4dc4496801586781fcda86122b7d63cfac8d28a26fe882391e",
+      "sha256": "2dd911fe3958fa9ae1a4b06ecc24676dd5c6f63ab33fd1bedbde53186ecb017a",
       "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards",
-      "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview"
+      "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
     },
     {
       "local": "src/components/gallery/ProjectGallery.tsx",
-      "sha256": "9b13d5f1ddf7e6aa019fa50c45ae80f267e586102e8b5f8e072ef670304c8656",
-      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards"
+      "sha256": "5305c91b3045a5fde07eb10b618b0879149fa5082a026f61937d949dd7e423a1",
+      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
     },
     {
       "local": "src/styles/gallery.css",

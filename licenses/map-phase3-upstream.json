@@ -77,16 +77,19 @@
     },
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "8fd410638a79ad4dc4496801586781fcda86122b7d63cfac8d28a26fe882391e",
-      "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview"
+      "sha256": "2dd911fe3958fa9ae1a4b06ecc24676dd5c6f63ab33fd1bedbde53186ecb017a",
+      "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
     },
     {
       "local": "src/components/gallery/ProjectGallery.tsx",
-      "sha256": "9b13d5f1ddf7e6aa019fa50c45ae80f267e586102e8b5f8e072ef670304c8656"
+      "sha256": "5305c91b3045a5fde07eb10b618b0879149fa5082a026f61937d949dd7e423a1",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
     },
     {
       "local": "src/components/gallery/GalleryIcons.css",
-      "sha256": "ee136250e7ab2af6a0a601fb74e7dd32ce1a7b13291fc79b181fe4db95a92f5e"
+      "sha256": "ede5d6e249061adf8bc87a0ab462077b4d7899441bec5b9a1645423de380c6c7",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
     },
     {
       "local": "src/components/viewer/photos.ts",
@@ -110,13 +113,15 @@
     },
     {
       "local": "tests/website/website.test.ts",
-      "sha256": "fd11bbf0e29833d30a13f5a825ae07b8fe46badbaf30c0e9e0bd2427d2cc081e",
-      "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview"
+      "sha256": "09810073cb92a64b7479847d67749d167cde2e2ee6c737eb06b51f55ce17a07f",
+      "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
     },
     {
       "local": "tests/website/gallery.test.ts",
-      "sha256": "318446f381775b5398af00322790e06217e965acd8373ee9bd92df8515d19f99",
-      "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview"
+      "sha256": "cb56e2ed380d8d6d97a8137b117bbce7d48f8afc8da73e5cb948dd7d05313ed5",
+      "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
     },
     {
       "local": "tests/website/photo-marker-image.test.ts",

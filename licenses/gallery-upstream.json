@@ -225,7 +225,7 @@
     },
     {
       "local": "src/components/gallery/Panel.tsx",
-      "localSha256": "3eb63f65ffcd46665700ec4f47aa03273bcbdc52a2675111dd77734f4dfb7e76",
+      "localSha256": "124c0bafce879382c9a4338471c5e360ad54f7094064a2df9fb34ce13b279f91",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adaptation": "Migrated responsive ActionPanel/Vaul structure and desktop floating-menu surface. Radix Popover supplies dialog semantics for a settings form, focus and collision placement. Radix Dialog for centered panels. Vaul CSS tweens disabled; shared Motion springs and drag control drive drawer movement. Local scroll lock, focus restoration, visual viewport and reduced-motion adapters.",
       "upstream": [
@@ -241,7 +241,8 @@
           "path": "packages/ui/src/dropdown-menu.tsx",
           "sha256": "0f7135d7d2dbe1309917df92d9d745c8666da3e3c3e6b7c785836e76fde04b45"
         }
-      ]
+      ],
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
     },
     {
       "local": "src/components/gallery/ui/EllipsisWithTooltip.tsx",

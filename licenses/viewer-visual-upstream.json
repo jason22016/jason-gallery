@@ -82,14 +82,15 @@
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",
-      "sha256": "b00f728db278a932b3901f5ba4c86c6c8cfa81a94adbdca378f2ed90922fdeb6",
+      "sha256": "f5fdc5981247990476e8437a7ab414d8e4caffc8e502d9f24ee3836de2c0aebf",
       "adapted": true,
       "upstream": [
         {
           "path": "apps/web/src/modules/metadata/MiniMap.tsx",
           "sha256": "d3c92803a0b48619f68d06d80b759f634c88a742b5a978d0defdec93ea52c7d2"
         }
-      ]
+      ],
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
     },
     {
       "local": "src/components/viewer/MapLibreStyle.json",

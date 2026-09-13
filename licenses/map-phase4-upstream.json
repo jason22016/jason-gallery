@@ -58,7 +58,8 @@
   "files": [
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "8fd410638a79ad4dc4496801586781fcda86122b7d63cfac8d28a26fe882391e"
+      "sha256": "2dd911fe3958fa9ae1a4b06ecc24676dd5c6f63ab33fd1bedbde53186ecb017a",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
     },
     {
       "local": "src/components/gallery/map/ClusterMarker.tsx",
@@ -86,11 +87,13 @@
     },
     {
       "local": "tests/website/gallery.test.ts",
-      "sha256": "318446f381775b5398af00322790e06217e965acd8373ee9bd92df8515d19f99"
+      "sha256": "cb56e2ed380d8d6d97a8137b117bbce7d48f8afc8da73e5cb948dd7d05313ed5",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
     },
     {
       "local": "tests/website/website.test.ts",
-      "sha256": "fd11bbf0e29833d30a13f5a825ae07b8fe46badbaf30c0e9e0bd2427d2cc081e"
+      "sha256": "09810073cb92a64b7479847d67749d167cde2e2ee6c737eb06b51f55ce17a07f",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
     }
   ]
 }

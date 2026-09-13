@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-13",
+  "upstreamCommit": "1f65cde6672e5231599182620116ac904e39f548",
+  "checks": {
+    "pnpm check": "passed",
+    "pnpm build": "passed",
+    "pnpm check:upstream": "passed",
+    "pnpm test:website": {
+      "passed": 77,
+      "failed": 0
+    },
+    "pnpm test:viewer": {
+      "passed": 55,
+      "failed": 0
+    },
+    "sourceRecords": 33
+  },
+  "browser": "Chromium 151.0.7922.34 (software WebGL)",
+  "livePreview": {
+    "desktop1440x900": "ready; 52 located photos; no page errors",
+    "mobile390x844": "ready; 52 located photos; no page errors",
+    "mobile320x568Error": "tile network failure; separate scrollable bounds and photo fallback; no page errors"
+  }
+}

@@ -1,0 +1,157 @@
+{
+  "repository": "https://github.com/Afilmory/Afilmory",
+  "commit": "1f65cde6672e5231599182620116ac904e39f548",
+  "verifiedAt": "2026-09-13",
+  "license": "AGPL-3.0-or-later + ANL §4 (application); MIT (packages/ui)",
+  "designAuthority": {
+    "path": "docs/viewer/AFILMORY_DESIGN.md",
+    "sha256": "12643e2c980ac021da63ffafaf76c6f2d06d8c479c7da25832da7bbb68b265ab"
+  },
+  "adaptations": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome",
+  "references": [
+    {
+      "path": "DESIGN.md",
+      "sha256": "12643e2c980ac021da63ffafaf76c6f2d06d8c479c7da25832da7bbb68b265ab",
+      "gitBlobSha": "fbdbf83b72ce2b725fb482a62528b99f501e90d6"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/GenericMap.tsx",
+      "sha256": "6363486a1129ad4cc8ad632e8d8f5e650782d07ae32a3fe342a2933cab0750f2",
+      "gitBlobSha": "106afc7a6c66d7bf69e8fc7abf76966aeae873f6"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/MapBackButton.tsx",
+      "sha256": "9ade158433ed638e1e43bd88de0cf260b500be2875de687680a209fb75c7c720",
+      "gitBlobSha": "e5da01cc2cacb93b9fbaf3f2bd8ad2f468f11782"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/MapInfoPanel.tsx",
+      "sha256": "282715f7fde43fed75da64893ce1117b7f6b1a2dce72f0fb6808711639ce6a71",
+      "gitBlobSha": "8f8092b6e60fd814653e26f04a468127af251d38"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/MapLibre.tsx",
+      "sha256": "12f598477cc479a496bc7a84867c76fdedb6e073a15d06d26275e9f1185afe19",
+      "gitBlobSha": "9ac626f8d4af1d7a7215d85d9db1f7b4d13a5572"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/MapLoadingState.tsx",
+      "sha256": "3ca5f706eb2a1e5132205a4a3186ee5235f00e1b441d1a41f413734775d8a76d",
+      "gitBlobSha": "7a450240d49af0b0eb9b6e12655d715f7b1c50e3"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/MapControls.tsx",
+      "sha256": "ee5b961adbce918c67a0b15de99997ec3d3c955b0c2858461e3df7e49ce95dfa",
+      "gitBlobSha": "0276e9587f618afc6ff46b8104923c7c5d1e9325"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/types.ts",
+      "sha256": "da2b89af5cbe26bd3657cbc7c53b26af1b159fbf2010f2da1f6ad07430aed448",
+      "gitBlobSha": "574455cbbcc037b4a62751b5c9e47397f9d1c24d"
+    },
+    {
+      "path": "apps/web/src/modules/map/MapSection.tsx",
+      "sha256": "e9a02b37babcfd32a2b06c4956a7cf9642719f058198b22796863188bb580111",
+      "gitBlobSha": "35979d0ab6d91b0ead7a94ca89318cd7e8f3a4c9"
+    },
+    {
+      "path": "apps/web/src/lib/map-utils.ts",
+      "sha256": "9a20a6686f73214ff0fcb7bcdef9d63e2e0fc9151179c39d04fb61e1a8aca4e2",
+      "gitBlobSha": "9e3149648c6e7a4ed68252953a2e5f28608ab2f6"
+    },
+    {
+      "path": "packages/ui/src/button/GlassButton.tsx",
+      "sha256": "97e536fa4a105bbeaea24d36e564027f6b4c0ae0dc5471d4f00553211646173c",
+      "gitBlobSha": "c6ee4286c71dc470d16ecad67093e3693ece5f4e"
+    },
+    {
+      "path": "packages/ui/src/progressive-blur/index.tsx",
+      "sha256": "a66afa85abdb4eadc3bd6bb00fd2ac796f172723a55db1c143761b0ef59e03fc",
+      "gitBlobSha": "29cdbcdd28a3af13c806185a4504ba6948a0941d"
+    },
+    {
+      "path": "packages/utils/src/spring.ts",
+      "sha256": "e76ac4b40ffd369794200f0af704475c10e8b98ae00162a6f591396e65060614",
+      "gitBlobSha": "e767a12b1af1f720389daac2cea0bc64d02ce944"
+    },
+    {
+      "path": "apps/web/src/lib/map/style.ts",
+      "sha256": "193146f83d49a512a84edccffb5c8215cb945a25d2c95a13ac2ea1e5b7698346",
+      "gitBlobSha": "3536d15ff674f911ab8a2ad2bccb1009d20a8d47"
+    }
+  ],
+  "files": [
+    {
+      "local": "src/components/gallery/map/MapBackButton.tsx",
+      "sha256": "1844884e6f6db46d2d3f84597dc008918dd6839ec56ea84149b84fbfcce3351b"
+    },
+    {
+      "local": "src/components/gallery/map/MapControls.tsx",
+      "sha256": "5fca8597fbe1f0c85253160265043edeee2ef34b3a4fb28ad4f1ce03772e9997"
+    },
+    {
+      "local": "src/components/gallery/map/MapExperience.css",
+      "sha256": "3cc40de852cfece905b3435972df3804a4a0be8d3bc1c970e7d063d92ffb225b"
+    },
+    {
+      "local": "src/components/gallery/map/MapInfoPanel.tsx",
+      "sha256": "d815643dc5d0180e910a990d43eebc57f0fdf97baf6ebc2bd1edfa257b78813a"
+    },
+    {
+      "local": "src/components/gallery/map/MapLoadingState.tsx",
+      "sha256": "6e26471d2f70926e3b9b447570beec0e41afb8d168318fed03e4583a9383f22a"
+    },
+    {
+      "local": "src/components/gallery/map/MapPhotoList.tsx",
+      "sha256": "371680406273f3bb5c63ff41e5af3e0870981a8d5779dc96bc365a9a05fee269"
+    },
+    {
+      "local": "src/components/gallery/map/map-bounds.ts",
+      "sha256": "ec01ad61b768137e8fa8048c98c4f30d4861d8c7f4d2fe7ad7ec448ff3a0eec0"
+    },
+    {
+      "local": "src/components/gallery/map/map-style.ts",
+      "sha256": "ecc91099ebc9382e211d1d50b06bce22d4aef39e7ede769961f7fc681de224cc"
+    },
+    {
+      "local": "src/components/gallery/GalleryIcons.css",
+      "sha256": "ede5d6e249061adf8bc87a0ab462077b4d7899441bec5b9a1645423de380c6c7"
+    },
+    {
+      "local": "src/components/gallery/Panel.tsx",
+      "sha256": "124c0bafce879382c9a4338471c5e360ad54f7094064a2df9fb34ce13b279f91"
+    },
+    {
+      "local": "src/components/gallery/PhotoMap.tsx",
+      "sha256": "2dd911fe3958fa9ae1a4b06ecc24676dd5c6f63ab33fd1bedbde53186ecb017a"
+    },
+    {
+      "local": "src/components/gallery/ProjectGallery.tsx",
+      "sha256": "5305c91b3045a5fde07eb10b618b0879149fa5082a026f61937d949dd7e423a1"
+    },
+    {
+      "local": "src/components/viewer/MiniMap.tsx",
+      "sha256": "f5fdc5981247990476e8437a7ab414d8e4caffc8e502d9f24ee3836de2c0aebf"
+    },
+    {
+      "local": "tests/website/gallery.test.ts",
+      "sha256": "cb56e2ed380d8d6d97a8137b117bbce7d48f8afc8da73e5cb948dd7d05313ed5"
+    },
+    {
+      "local": "tests/website/website.test.ts",
+      "sha256": "09810073cb92a64b7479847d67749d167cde2e2ee6c737eb06b51f55ce17a07f"
+    },
+    {
+      "local": "tests/website/map-fixture.ts",
+      "sha256": "9296593287b0eccc6cb26a9296c554ba9bc4c2ab6e16f785ca78aa62e520924a"
+    },
+    {
+      "local": "tests/website/map-info.test.ts",
+      "sha256": "a590a6490da8b37589db74497fb7a63bd8a4def4125e224578028b2c0f0f70d0"
+    },
+    {
+      "local": "tests/website/multi-source.test.ts",
+      "sha256": "c3a02378408a15ef0c8d2db101a6fbb0075e12deb49013724705fed86c9f2b33"
+    }
+  ]
+}

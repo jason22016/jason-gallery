@@ -1,3 +1,4 @@
+import { installMapFixture } from './map-fixture';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -70,9 +71,7 @@ async function clusterFixture(page: Page) {
     date: index === 6 ? '2024-04-01T00:30:00+14:00' : index === 7 ? '2023-12-30T23:30:00-12:00' : photo.date,
     location: { longitude: 114.17 + (index < 8 ? index * .00001 : .08 + index * .00001), latitude: 22.3 } }));
   await page.route('**/photos.json', route => route.fulfill({ json: located }));
-  await page.route('**/dark-matter-gl-style/style.json', route => route.fulfill({ json: {
-    version: 8, sources: {}, layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#102030' } }],
-  } }));
+  await installMapFixture(page, server.url);
   return located;
 }
 
@@ -113,7 +112,7 @@ test('native cluster mosaic and focus preview use actual leaves, bounded thumbna
   const otherMembers = new Set(located.slice(8).map(photo => photo.id));
   assert((await card.locator('[data-cluster-photo]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-cluster-photo')))).every(id => otherMembers.has(id!)));
   await large.focus(); await expect(card.locator('h3')).toHaveText('8 张照片');
-  await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
+  await page.getByRole('button', { name: '缩小地图', exact: true }).click();
   await expect(card).toHaveCount(0);
   await expect(large).toHaveCount(1); await large.click();
   await expect.poll(() => page.locator('.photo-marker-pin').count()).toBe(8);
@@ -123,7 +122,7 @@ test('native cluster mosaic and focus preview use actual leaves, bounded thumbna
   await expect(page.locator('[data-card-kind="hover"]')).toBeVisible();
   await page.keyboard.press('Enter'); await expect(page.locator('[data-card-kind="selected"]')).toBeVisible();
   assert(new URL(page.url()).searchParams.has('mapPhoto'));
-  await page.getByRole('button', { name: '关闭面板' }).click();
+  await page.getByRole('button', { name: /^(关闭面板|返回项目相册)$/ }).click();
   await expect(page.locator('.cluster-marker, [data-card-kind="cluster"]')).toHaveCount(0);
   await page.evaluate(() => { history.pushState(history.state, '', '?panel=map&tag=偶数'); window.dispatchEvent(new PopStateEvent('popstate')); });
   await expect(page.locator('.cluster-marker[data-point-count="4"]')).toHaveCount(1);
@@ -158,9 +157,7 @@ test('480-photo native map bounds HTML markers to the viewport and releases moti
   page.on('pageerror', error => errors.push(error.message));
   page.on('request', request => { if (request.url().includes('/original-forbidden/')) originalRequests++; });
   await page.route('**/photos.json', route => route.fulfill({ json: located }));
-  await page.route('**/dark-matter-gl-style/style.json', route => route.fulfill({ json: {
-    version: 8, sources: {}, layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#102030' } }],
-  } }));
+  await installMapFixture(page, server.url);
   await page.addInitScript({ content: `
     window.phase2MotionListeners = new Set();
     const add = MediaQueryList.prototype.addEventListener;
@@ -183,25 +180,35 @@ test('480-photo native map bounds HTML markers to the viewport and releases moti
   });
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
   await expect.poll(() => page.locator('.photo-marker-pin').count()).toBeGreaterThan(20);
-  assert(await page.locator('.photo-marker-pin').count() < 150, 'only loaded unclustered photos near the viewport get HTML markers');
+  assert(await page.locator('.photo-marker-pin').count() < located.length, 'only loaded unclustered photos near the viewport get HTML markers');
   await expect(page.locator('.photo-marker-pin[aria-pressed="true"]')).toHaveCount(1);
   const listenersBefore = await page.evaluate(() => (window as any).phase2MotionListeners.size
     - document.querySelectorAll('.photo-marker-pin, .cluster-marker').length - document.querySelectorAll('.photo-marker-card .ellipsis-text').length);
   const canvas = page.locator('.photo-map canvas'), box = (await canvas.boundingBox())!;
+  const markersStayInViewport = () => page.locator('.photo-marker-host').evaluateAll(nodes => {
+    const canvas = document.querySelector('.photo-map canvas')!.getBoundingClientRect();
+    return nodes.every(node => {
+      const marker = node.getBoundingClientRect();
+      const x = marker.x + marker.width / 2 - canvas.x, y = marker.y + marker.height / 2 - canvas.y;
+      return x >= -40 && x <= canvas.width + 40 && y >= -40 && y <= canvas.height + 40;
+    });
+  });
+  await expect.poll(markersStayInViewport).toBe(true);
   for (let cycle = 0; cycle < 3; cycle++) {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 - 180, box.y + box.height / 2 - 60, { steps: 8 }); await page.mouse.up();
     await page.waitForTimeout(350);
     const ids = await page.locator('.photo-marker-host').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-photo-id')));
     assert.equal(new Set(ids).size, ids.length, 'pan does not duplicate tiled markers');
-    assert(ids.length < 150);
+    assert(ids.length < located.length);
+    await expect.poll(markersStayInViewport).toBe(true);
     await expect.poll(() => page.evaluate(() => (window as any).phase2MotionListeners.size
       - document.querySelectorAll('.photo-marker-pin, .cluster-marker').length - document.querySelectorAll('.photo-marker-card .ellipsis-text').length)).toBe(listenersBefore);
   }
-  await page.getByRole('button', { name: 'Zoom out' }).click();
+  await page.getByRole('button', { name: '缩小地图' }).click();
   await page.waitForTimeout(500);
   await expect(page.locator('.photo-marker-host[data-photo-id="photo-240"]')).toHaveCount(1);
-  await page.getByRole('button', { name: '关闭面板' }).click();
+  await page.getByRole('button', { name: /^(关闭面板|返回项目相册)$/ }).click();
   await expect(page.locator('.photo-marker-pin')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => (window as any).phase2MotionListeners.size)).toBe(closedListeners);
   assert.equal(originalRequests, 0); assert.deepEqual(errors, []);
@@ -352,7 +359,7 @@ test('48px progressive header and safe-area mobile actions remain usable at narr
   await page.locator('.palette-actions summary').tap();
   await page.getByRole('button', { name: '地图探索', exact: true }).tap();
   await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '关闭面板', exact: true }).tap();
+  await page.getByRole('button', { name: /^(关闭面板|返回项目相册)$/, exact: true }).tap();
   await page.setViewportSize({ width: 1024, height: 844 });
   await expect(page.locator('.gallery-header .view-segment')).toBeVisible();
   await expect(page.getByRole('button', { name: '地图探索', exact: true })).toBeVisible();

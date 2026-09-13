@@ -2,8 +2,8 @@
 // 1f65cde6672e5231599182620116ac904e39f548; AGPL-3.0-or-later + ANL §4. See THIRD_PARTY_NOTICES.md.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef, useState } from 'react';
-import type { Map as MapInstance, StyleSpecification } from 'maplibre-gl';
-import mapStyle from './MapLibreStyle.json';
+import type { Map as MapInstance } from 'maplibre-gl';
+import { getMapStyle } from '../gallery/map/map-style';
 import { validLocation } from './metadata';
 import { MapPhotoLink } from '../gallery/MapNavigation';
 
@@ -24,7 +24,7 @@ export function MiniMap({ latitude, longitude }: { latitude: number; longitude: 
       void import('maplibre-gl').then(({ Map }) => {
       if (!active || !container.current) return;
       map = new Map({ container: container.current, center: [longitude, latitude], zoom: 15,
-        style: structuredClone(mapStyle) as StyleSpecification, interactive: false, attributionControl: false });
+        style: getMapStyle(), interactive: false, attributionControl: false });
       map.on('error', fail);
       map.getCanvas().addEventListener('webglcontextlost', fail);
       map.once('idle', () => { if (active) { clearTimeout(timeout); setState('ready'); } });

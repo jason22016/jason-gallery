@@ -1,5 +1,6 @@
 import { expectFallbackSource } from './viewer-assertions';
 import test from 'node:test';
+import { installMapFixture, openMapPhotoList } from './map-fixture';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -64,7 +65,7 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
   const page = await context.newPage();
   const errors:string[]=[]; page.on('pageerror',error=>errors.push(error.message));
   for (const [i,p] of photos.entries()) await page.route(p.originalUrl,route=>route.fulfill({contentType:'image/jpeg',path:path.join(root,`${config.sources[i]!.sourceId}.jpg`)}));
-  await page.route('**/dark-matter-gl-style/style.json',route=>route.fulfill({json:{version:8,glyphs:`${server.url}/fixture-font/{fontstack}/{range}.pbf`,sources:{},layers:[{id:'background',type:'background',paint:{'background-color':'#102030'}}]}}));
+  await installMapFixture(page, server.url);
   await page.route('**/fixture-font/**',route=>route.fulfill({contentType:'application/x-protobuf',body:Buffer.alloc(0)}));
   await page.goto(server.url); await page.getByRole('link',{name:/Mixed sources fixture/}).first().click();
   await expect(page.locator('.gallery-live [data-gallery-index]')).toHaveCount(2);
@@ -84,6 +85,7 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
   await page.getByRole('button',{name:'地图探索'}).click();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state','ready');
   await expect(page.locator('.map-photo-list button')).toHaveCount(2);
+  await openMapPhotoList(page);
   await page.locator('.map-photo-list button').nth(1).click();
   await expectFallbackSource(page, photos[1]!.originalUrl);
   assert.equal(new URL(page.url()).searchParams.get('photo'),photos[1]!.id);

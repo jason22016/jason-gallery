@@ -14,6 +14,9 @@ import type { ViewerProps } from '../viewer/PhotoViewer';
 import { emptyFilters, selectPhotos, type Filters, type GalleryProject, type Sort, type ViewerPhoto } from '../viewer/photos';
 import Panel from './Panel';
 import { ViewerAttribution } from '../viewer/ViewerAttribution';
+import { MapLoadingState } from './map/MapLoadingState';
+import { MapPhotoList } from './map/MapPhotoList';
+import { validLocation } from '../viewer/metadata';
 
 type MapComponent = typeof import('./PhotoMap').default;
 const settingsKey = 'jason-gallery:view:v1';
@@ -190,14 +193,14 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
     {visible.length === 0 ? <div className="gallery-empty"><Icon name="search" /><h2>没有符合条件的照片</h2><p>试试其他关键词，或清除筛选。</p><button onClick={() => changeFilters(emptyFilters)}>清除筛选</button></div> : view === 'masonry' ? (
       <MasonryView items={items} columns={columns} />
     ) : <ListView items={items} />}
-    {panel && !selected && <Panel key={`${panel}-${panelRequest}`} anchor={panelAnchor.current} kind={panel === 'settings' ? 'settings' : panel === 'search' ? 'search' : 'dialog'} title={{ info: '项目信息', search: '搜索和筛选', settings: '显示设置', map: '地图探索' }[panel]} onClose={closePanel} wide={panel === 'map'}>
+    {panel && !selected && <Panel key={`${panel}-${panelRequest}`} anchor={panelAnchor.current} kind={panel === 'settings' ? 'settings' : panel === 'search' ? 'search' : panel === 'map' ? 'map' : 'dialog'} title={{ info: '项目信息', search: '搜索和筛选', settings: '显示设置', map: '地图探索' }[panel]} onClose={closePanel} wide={panel === 'map'}>
       {panel === 'info' && <><h3 className="project-panel-title">{project.title}</h3>{project.summary && <p>{project.summary}</p>}<dl className="metadata-rows project-details">{project.location && <><dt>地点</dt><dd>{project.location}</dd></>}{project.period && <><dt>日期</dt><dd>{project.period.start}{project.period.end && project.period.end !== project.period.start && ` — ${project.period.end}`}</dd></>}<dt>照片</dt><dd>{photos.length}</dd></dl>{project.description && <p className="project-description">{project.description}</p>}<ul className="tags">{project.tags?.map(tag => <li key={tag}>{tag}</li>)}</ul><ViewerAttribution /></>}
       {panel === 'search' && <SearchPanel photos={photos} filters={filters} count={visible.length} onChange={changeFilters} onAction={action => {
         if (action === 'masonry' || action === 'list') { saveView(action); closePanel(); }
         else { setPanel(action); replaceContext(filters, sort, action === 'map'); }
       }} />}
       {panel === 'settings' && <ViewPanel sort={sort} columns={columns} view={view} onView={saveView} onSort={value => { setSort(value); replaceContext(filters, value); }} />}
-      {panel === 'map' && (PhotoMap ? <PhotoMap photos={visible} onSelect={selectMapPhoto} onClearSelection={clearMapSelection} selectedPhotoId={selectedMapPhoto?.id ?? null} initialViewport={mapViewport.current?.key === mapKey ? mapViewport.current.viewport : mapPhotoViewport(selectedMapPhoto)} onViewport={viewport => { mapViewport.current = { key: mapKey, viewport }; }} onOpen={photo => open(photo, root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null)} /> : mapError ? <div><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><ul className="map-photo-list">{visible.filter(photo => photo.location).map(photo => <li key={photo.id}><button onClick={() => open(photo, null)}>{photo.title}</button></li>)}</ul></div> : <p role="status">正在加载地图…</p>)}
+      {panel === 'map' && (PhotoMap ? <PhotoMap photos={visible} projectTitle={project.title} onSelect={selectMapPhoto} onClearSelection={clearMapSelection} selectedPhotoId={selectedMapPhoto?.id ?? null} initialViewport={mapViewport.current?.key === mapKey ? mapViewport.current.viewport : mapPhotoViewport(selectedMapPhoto)} onViewport={viewport => { mapViewport.current = { key: mapKey, viewport }; }} onOpen={photo => open(photo, root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null)} /> : mapError ? <div className="map-experience"><div className="map-right-chrome"><section className="map-fallback"><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><MapPhotoList photos={visible.filter(photo => validLocation(photo.location))} onOpen={photo => open(photo, null)} /></section></div></div> : <MapLoadingState />)}
     </Panel>}
     {selectedPhoto && (Viewer ? <Viewer photos={sequence} projectTitle={project.title} index={sequence.findIndex(p => p.id === selected)} trigger={opener.current} onIndex={index => { const photo = sequence[index]; if (photo) { setSelected(photo.id); setPhotoURL(photo.id); } }} onClose={close} /> : <Panel title="打开照片" onClose={close}><p role={loadError ? 'alert' : 'status'}>{loadError || '正在加载看图组件…'}</p>{loadError && <button onClick={() => setLoadError('')}>重试</button>}<a className="text-link" href={selectedPhoto.src} target="_blank" rel="noreferrer">打开原图 ↗</a></Panel>)}
   </div></LazyMotion></MapNavigationContext.Provider>;

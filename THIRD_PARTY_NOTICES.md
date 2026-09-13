@@ -286,3 +286,29 @@ and the existing visible Project/Viewer attribution and source links.
 No dependency, Viewer, MiniMap, map controls, info panel, fullscreen or overall
 layout changes are included. Upstream/source and adapted-file hashes are in
 [licenses/map-phase4-upstream.json](licenses/map-phase4-upstream.json).
+
+## Map Phase 5 — Immersive Project Map Chrome
+
+Afilmory main was verified on 2026-09-13 at
+`1f65cde6672e5231599182620116ac904e39f548`. The complete `DESIGN.md`
+was read before implementation and matches `docs/viewer/AFILMORY_DESIGN.md`.
+Copyright (c) 2025 Afilmory Team. Application derivatives retain
+**AGPL-3.0-or-later + ANL §4** and [the full license](licenses/AFILMORY-LICENSE).
+The existing visible Project/Viewer attribution and source links remain in place.
+
+| Local file | Upstream source / pattern | Adaptation |
+| --- | --- | --- |
+| `gallery/Panel.tsx`; `gallery/map/MapExperience.css`; `gallery/PhotoMap.tsx` | `apps/web/src/modules/map/MapSection.tsx`; `MapLibre.tsx`; `GenericMap.tsx` | Reuses the full-area map with floating top-left back, top-right information and bottom-left controls. Jason keeps its Radix Dialog / Vaul Drawer, scroll lock, focus boundary, native MapLibre lifecycle and Project history. Desktop fills the viewport; mobile keeps the drawer handle, safe area and visual-viewport sizing. Entry uses the existing Spring presets and reactive reduced-motion preference, overriding legacy upstream tweens. |
+| `gallery/map/MapControls.tsx` | `apps/web/src/components/ui/map/shared/MapControls.tsx` | Retains the grouped zoom controls, separate compass and geolocation glass groups, camera operations and location options (high accuracy, 10-second timeout, 60-second cache). A native Map instance replaces react-map-gl context. Zoom clamps to map limits; denied, unsupported or thrown location requests fail safely with a status message. Request identity prevents stale callbacks after retry, error or close. Reduced motion also disables native camera animations. |
+| `gallery/map/MapInfoPanel.tsx`; `map-bounds.ts` | `apps/web/src/components/ui/map/MapInfoPanel.tsx`; `apps/web/src/lib/map-utils.ts` | Retains the icon/header/count, expandable Southwest/Northeast coordinate cards and exact approximate coverage formula (latitude span × longitude span × 111²). The Project title and filtered valid-GPS photos replace global photo-loader semantics. Coordinates are validated by the existing Jason helper, including zero and signed coordinates. |
+| `gallery/map/MapBackButton.tsx` | `apps/web/src/components/ui/map/MapBackButton.tsx`; MIT `packages/ui/src/button/GlassButton.tsx` | Reuses upstream arrow placement, circular glass and smooth 1.1/.95 spring gestures. Uses the already migrated MIT `viewer/ActionButton.tsx` rather than introducing a duplicate button primitive. Invokes the existing Panel dismiss/history owner instead of navigating to the SPA root. |
+| `gallery/map/MapLoadingState.tsx`; `MapPhotoList.tsx`; `gallery/ProjectGallery.tsx` | `apps/web/src/components/ui/map/MapLoadingState.tsx`; existing Jason fallback | Retains the centered location icon/title/description and spring entry with semantic colors. Preserves module failure, native MapLibre error, context loss, timeout, retry and no-GPS state. The existing lightweight photo list is normally collapsible and opens automatically on failure. Reuses existing EllipsisWithTooltip and lazy thumbnails. |
+| `gallery/map/map-style.ts`; `viewer/MiniMap.tsx` | `apps/web/src/lib/map/style.ts`; existing migrated `apps/web/src/components/ui/map/MapLibreStyle.json` | Adapts the upstream shared getMapStyle entry point to Jason's existing built-in style. Both map sizes now request independent clones of the same unchanged, already verified Dark Matter configuration. No provider, pipeline or clustering change. |
+| `gallery/map/MapExperience.css`; `GalleryIcons.css` | `DESIGN.md` §§2–8, 12; original MingCute icons | Reuses existing semantic material/accent/text/fill tokens, paired blur presets, faint shared shadows, LinearDivider, radius hierarchy and focus styles. Upstream map chrome's hard shadows, arbitrary blur, z-40/z-50 intra-surface layering, neutral ramps and raw white/black styling are adapted to the normative DESIGN rules. Adds the original `add-line`, `minimize-line`, `navigation-line`, `location-line` and `down-line` SVGs from Iconify's MingCute set (Apache-2.0); retains `licenses/MINGCUTE-LICENSE`. |
+
+The already migrated `LinearBlur`, semantic material tokens, `Spring`,
+`ActionButton`, `EllipsisWithTooltip`, `LinearDivider`, `useMobile` and
+`useReducedMotion` were inspected. Existing page edge fades continue to use
+`LinearBlur`; the map has no scrolling fixed header that needs another fade band.
+No new dependency, independent map route, Viewer rewrite or photo system was added.
+Source and adapted-file hashes are in [licenses/map-phase5-upstream.json](licenses/map-phase5-upstream.json).
