@@ -179,6 +179,8 @@ Project JSON 和上游来源/补丁提交 Git；Manifest、缩略图、缓存属
 
 实现和验收结果见 [UI_REDESIGN_REPORT.md](UI_REDESIGN_REPORT.md)；Metadata / Map 补齐与验收见 [PHASE4_REPORT.md](PHASE4_REPORT.md)。
 
+2026-09-13 看图加载调整：Viewer 组件及样式随 Project Gallery 一起预加载，首次点击直接挂载 Viewer，不再显示独立的组件加载弹窗。GPU 引擎、原图和详细元数据仍按需加载；以下动态加载 Viewer 与加载弹窗交接的描述为调整前行为。
+
 - **首页**：白色底、灰色 Jason Gallery 字标和绿色句点；5:6 封面网格，>=1200px 四列、900–1199px 三列、600–899px 两列、<600px 单列。标题与 `period.start` 在桌面 hover/focus 时用 200ms 遮罩展示，日期缺失则隐藏。触屏第一次点击显示、第二次点击同一封面跳转，移动超过 10px 不触发跳转，点击外部/按 Escape 收起。所有封面保留原生链接，无 JS 时单击导航。
 - **Project 浏览**：48px 深色顶栏、4px 间距 Masonic 瀑布流、列表、搜索/日期/相机/镜头/标签筛选。默认保留项目编排顺序，可临时按拍摄时间排序，未知时间排在最后。视图/列数在 `jason-gallery:view:v1` 保存，排序和筛选编码在当前项目 URL 中，以便分享、刷新与历史恢复；不写入 Project。项目信息收进面板。React island 与静态回退同处一页，hydration 完成才隐藏原图链接回退。
 - **显示数据**：`viewerPhotos()` 只投影当前公开项目必需的字段，新增缩略图、ThumbHash、标题/文件名、日期、标签、相机/镜头、基本曝光、格式/大小和照片坐标。详细 EXIF/影调从构建产物 `/projects/<slug>/photos/<id>.json` 按需读取；此路由只生成公开项目引用的照片，EXIF 使用展示字段白名单，不输出存储键、人物区域或完整 Manifest。不改变原始 Manifest 或 Project schema。

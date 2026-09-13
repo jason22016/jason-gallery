@@ -154,13 +154,14 @@
 .photo-dialog[data-mobile='true'] .swiper-slide { touch-action: pan-x; }
 
 .viewer-status, .viewer-message { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); color: var(--color-text); background: var(--color-material-ultra-thick); backdrop-filter: blur(var(--viewer-blur-panel)); border: 1px solid var(--viewer-border); border-radius: 999px; padding: 8px 12px; font-size: 12px; display: flex; align-items: center; gap: 8px; z-index: 20; max-width: 85%; overflow-wrap: anywhere; }
-.viewer-status { bottom: max(16px, env(safe-area-inset-bottom)); right: max(16px, env(safe-area-inset-right)); left: auto; transform: none; margin: 0; padding: 12px 16px; gap: 12px; border-radius: 16px; font-size: 14px; line-height: 1.5; pointer-events: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.viewer-status { bottom: max(16px, env(safe-area-inset-bottom)); right: max(16px, env(safe-area-inset-right)); left: auto; transform: none; margin: 0; padding: 8px 10px; gap: 8px; border-radius: 12px; font-size: 12px; line-height: 1.4; pointer-events: none; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .viewer-loading-details { display: flex; flex-direction: column; gap: 2px; }
-.viewer-loading-heading { display: flex; align-items: baseline; gap: 10px; }
+.viewer-loading-heading { display: flex; align-items: baseline; gap: 8px; }
 .viewer-loading-heading strong { font-weight: 600; }
 .viewer-loading-heading > span, .viewer-loading-bytes { color: var(--color-text-secondary); }
+.viewer-loading-bytes { font-size: 11px; }
 .viewer-message { bottom: 90px; }
-.viewer-status .loading-dot { width: 18px; height: 18px; flex-shrink: 0; border: 2px solid var(--color-fill); border-top-color: var(--color-text); border-radius: 999px; animation: viewer-loading-spin 1s linear infinite; }
+.viewer-status .loading-dot { width: 14px; height: 14px; flex-shrink: 0; border: 2px solid var(--color-fill); border-top-color: var(--color-text); border-radius: 999px; animation: viewer-loading-spin 1s linear infinite; }
 @keyframes viewer-loading-spin { to { transform: rotate(360deg); } }
 .viewer-error { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(85%, 320px); background: var(--color-material-thick); backdrop-filter: blur(var(--viewer-blur-panel)); padding: 24px; text-align: center; border: 1px solid var(--viewer-border); border-radius: 12px; box-shadow: var(--viewer-shadow); }
 .viewer-error button { margin-top: 16px; }

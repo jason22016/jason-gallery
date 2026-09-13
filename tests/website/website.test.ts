@@ -127,8 +127,16 @@ test('draft/unknown routes return custom 404 and draft data never enters HTML or
   }
 });
 
-test('lazy Viewer, selection, buttons, keyboard limits, focus trap/restoration and GPU-to-img fallback', async t => {
+test('preloaded Viewer, selection, buttons, keyboard limits, focus trap/restoration and GPU-to-img fallback', async t => {
   const ctx = await context(); t.after(() => ctx.close());
+  await ctx.addInitScript({ content: `
+    window.testViewerComponentLoadingShown = false;
+    new MutationObserver(records => {
+      for (const record of records) for (const node of record.addedNodes) {
+        if (node.textContent?.includes('正在加载看图组件')) window.testViewerComponentLoadingShown = true;
+      }
+    }).observe(document, { childList: true, subtree: true });
+  ` });
   const page = await ctx.newPage();
   const originals: string[] = [];
   const engineRequests: string[] = [];
@@ -142,6 +150,7 @@ test('lazy Viewer, selection, buttons, keyboard limits, focus trap/restoration a
   for (const field of ['exif', 's3Key', 'toneAnalysis', 'thumbnailUrl', 'lastModified']) assert(!props!.includes(`"${field}"`), `Viewer props contain unnecessary ${field}`);
   assert.equal(await page.evaluate(() => 'fixtureInjection' in window), false);
   await open(page, 1); await loaded(page);
+  assert.equal(await page.evaluate(() => (window as unknown as { testViewerComponentLoadingShown: boolean }).testViewerComponentLoadingShown), false, 'first opening must not flash a component-loading dialog');
   await expect(page.locator('.viewer-counter')).toHaveText('2 / 3');
   await expectFallbackSource(page, '/originals/hdr.jpg');
   await expect(page.locator('.hdr-status')).toHaveText('HDR source');
@@ -343,6 +352,8 @@ test('project information, filters, chronological sort, list persistence, and sh
   const ctx = await context(); t.after(() => ctx.close()); const page = await projectPage(ctx);
   await page.getByRole('button', { name: '项目信息', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('Fixture location');
+  await expect(page.getByRole('dialog').locator('.viewer-attribution')).toContainText('Powered by Afilmory');
+  await expect(page.getByRole('dialog').getByRole('link', { name: 'Jason Gallery', exact: true })).toHaveAttribute('href', 'https://github.com/jason22016/jason-gallery');
   const licenseHref = await page.getByRole('dialog').getByRole('link', { name: 'AGPL-3.0-or-later + ANL §4', exact: true }).getAttribute('href');
   assert.match(licenseHref!, /^\/_astro\/afilmory\.[^/]+\.txt$/, 'License must be a bundled release asset');
   const licenseResponse = await fetch(new URL(licenseHref!, server.url));
@@ -413,6 +424,7 @@ test('fallback zoom disables swipe navigation, resets, and the mobile inspector 
   await page.getByRole('button', { name: '照片信息', exact: true }).tap();
   await expect(page.locator('.mobile-inspector-sheet:not([inert])')).toBeVisible();
   await expect(page.locator('.mobile-inspector-sheet:not([inert])')).toContainText('Fixture artist');
+  await expect(page.locator('.mobile-inspector-sheet .viewer-attribution')).toHaveCount(0);
   assert.equal(await page.locator('.mobile-inspector-sheet:not([inert])').evaluate(el => el.scrollTop), 0);
   await page.getByRole('button', { name: '收起照片信息' }).tap(); await expect(page.locator('.mobile-inspector-sheet:not([inert])')).toHaveCount(0);
   await page.locator('.fallback-stage').dblclick({ position: { x: 150, y: 250 } });
@@ -522,6 +534,7 @@ test('metadata stays lazy, preserves units/offsets and zero values, retries, and
   assert.equal(requests, 0, 'Collapsed Inspector must not fetch metadata');
   await page.getByRole('button', { name: '照片信息', exact: true }).click();
   await expect(page.locator('.metadata-content')).toContainText('详细信息暂时不可用');
+  await expect(page.locator('.inspector-desktop-content .viewer-attribution')).toHaveCount(0);
   await page.unroute(detailsURL);
   await page.locator('.metadata-content').getByRole('button', { name: '重试', exact: true }).click();
   await expect(page.locator('.metadata-content')).toContainText('Fixture artist');

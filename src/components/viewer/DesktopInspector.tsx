@@ -6,7 +6,6 @@ import { useLayoutEffect, useRef } from 'react';
 import MetadataPanel from './MetadataPanel';
 import { ActionButton } from './ActionButton';
 import { ViewerIcon } from './ViewerIcon';
-import { ViewerAttribution } from './ViewerAttribution';
 import type { ViewerPhoto } from './photos';
 
 type Props = { photo: ViewerPhoto; open: boolean; visible: boolean; reduced: boolean; onClose: () => void };
@@ -26,6 +25,6 @@ function InspectorSurface({ photo, visible, reduced, onClose }: Props) {
     exit={{ opacity: 0, x: reduced ? 0 : 100 }} transition={reduced ? { duration: 0 } : Spring.presets.smooth}>
     <div className="inspector-glow" aria-hidden="true"/>
     <header><span className="inspector-header-label"><ViewerIcon name="information-line"/> 照片信息</span><ActionButton onClick={onClose} aria-label="收起照片信息" title="收起照片信息 (I)"><ViewerIcon name="layout-right-line"/></ActionButton></header>
-    <div ref={content} className="inspector-desktop-content"><MetadataPanel photo={photo}/><ViewerAttribution/></div>
+    <div ref={content} className="inspector-desktop-content"><MetadataPanel photo={photo}/></div>
   </m.aside>;
 }

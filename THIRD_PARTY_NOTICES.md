@@ -13,8 +13,14 @@ owners' separate rights.
 
 Application code from `apps/web` is Project Code under **AGPL-3.0-or-later
 with ANL §4 additional terms**. It is not represented as MIT. Reusable
-`viewer-motion` and UI library source remains MIT Library Code. The Viewer
+`viewer-motion` and UI library source remains MIT Library Code. The Project
 information panel displays the upstream attribution, source and license links.
+
+As of 2026-09-13, the complete UI notice is centralized in each Project's
+information panel (including the no-JavaScript view). Desktop and mobile photo
+inspectors no longer repeat it. ANL §4.1 permits the notice in an About dialog/page
+or an equivalent persistent help/about location; references below to Viewer
+attribution describe the earlier placement.
 Changes below were made on 2026-09-12. Exact upstream/local hashes are in
 [licenses/viewer-interaction-upstream.json](licenses/viewer-interaction-upstream.json).
 

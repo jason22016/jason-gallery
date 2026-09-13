@@ -7,7 +7,6 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ViewerIcon } from './ViewerIcon';
 import { ActionButton } from './ActionButton';
 import MetadataPanel from './MetadataPanel';
-import { ViewerAttribution } from './ViewerAttribution';
 import type { ViewerPhoto } from './photos';
 export function MobilePhotoInspectorSheet({ currentPhoto, isInteractive, progress, onClose,
   createPresentation = createInspectorSheetPresentation, resolveHeight = resolveInspectorSheetHeight,
@@ -48,7 +47,7 @@ export function MobilePhotoInspectorSheet({ currentPhoto, isInteractive, progres
       <header><div className="inspector-sheet-handle"/><span className="inspector-header-label"><ViewerIcon name="information-line"/> 照片信息</span>
         <ActionButton type="button" onClick={handleClose} aria-label="收起照片信息"><ViewerIcon name="close-line" size={18}/></ActionButton>
       </header>
-      <div className="inspector-sheet-content">{isInteractive && <><MetadataPanel photo={currentPhoto}/><ViewerAttribution/></>}</div>
+      <div className="inspector-sheet-content">{isInteractive && <MetadataPanel photo={currentPhoto}/>}</div>
     </m.div>
   </m.div>;
 }

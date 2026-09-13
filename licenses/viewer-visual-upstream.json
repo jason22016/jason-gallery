@@ -29,7 +29,7 @@
     },
     {
       "local": "src/components/viewer/DesktopInspector.tsx",
-      "sha256": "d1dee085150967bd01720bd954a11ffdb772914205d64b68183167503072d466",
+      "sha256": "9edeef1698026960ee1e1ed143775b432e622993c463f6d830eecb7e4d23d738",
       "adapted": true,
       "upstream": [
         {
@@ -128,7 +128,7 @@
     },
     {
       "local": "src/components/viewer/PhotoViewer.css",
-      "sha256": "041995e77e16e8b8ab4d3c2e4d655f3046054b2870457c8277ff39e991a72f5b",
+      "sha256": "be469cac196a477ba0130b8dbef24c75e2072e34efb7982e8893b6791d8ffb50",
       "adapted": true,
       "upstream": [
         {
@@ -160,7 +160,7 @@
     },
     {
       "local": "src/components/viewer/MobilePhotoInspectorSheet.tsx",
-      "sha256": "eeadf41a8218b3ac62113589c8b4f71fd1a906163c9b4c537344861358be4590",
+      "sha256": "62987a3361905ad84a3abf9076cf177d5fcc99529b04c38d337748e27e88d273",
       "adapted": true,
       "upstream": [
         {

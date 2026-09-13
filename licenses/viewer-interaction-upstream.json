@@ -135,7 +135,7 @@
       "local": "src/components/viewer/MobilePhotoInspectorSheet.tsx",
       "upstream": "apps/web/src/modules/viewer/MobilePhotoInspectorSheet.tsx",
       "upstreamSha256": "e5867bf779ec8b9fc0e408d14cd967fa63f95e8e68a6bfe8a8b895da52f2a5a3",
-      "sha256": "eeadf41a8218b3ac62113589c8b4f71fd1a906163c9b4c537344861358be4590",
+      "sha256": "62987a3361905ad84a3abf9076cf177d5fcc99529b04c38d337748e27e88d273",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adapted": true
     },
@@ -151,7 +151,7 @@
       "local": "src/components/viewer/PhotoViewer.css",
       "upstream": "apps/web/src/modules/viewer/PhotoViewer.css",
       "upstreamSha256": "367f5b7586549ce44fbdb7b67606c9f5495b2d1fa10b0cce5490f72666b76c05",
-      "sha256": "041995e77e16e8b8ab4d3c2e4d655f3046054b2870457c8277ff39e991a72f5b",
+      "sha256": "be469cac196a477ba0130b8dbef24c75e2072e34efb7982e8893b6791d8ffb50",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adapted": true,
       "phase4Adaptation": "Share photo-tokens.css with Gallery; use semantic RGB legend tokens and control-role blur on minimap status. No Viewer gesture or rendering logic changed.",
