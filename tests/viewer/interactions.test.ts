@@ -224,8 +224,42 @@ test('reduced motion uses Swiper at zero duration and usable immediate Sheet/dis
   await page.getByRole('button', { name: '照片信息', exact: true }).tap();
   await expect.poll(async () => (await transform(page, '.mobile-inspector-sheet')).y).toBe(0);
   await page.keyboard.press('Escape');
-  await expect(page.locator('.mobile-inspector-sheet')).toHaveAttribute('inert', '');
-  await drag(cdp, [190, 260], [190, 540]);
+  // The counter updates before the new photo finishes GPU → native fallback.
+  // A touch begun on that temporary canvas loses its target when it unmounts.
+  await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loaded');
+  // inert follows React visibility; Motion transforms and Swiper's passive
+  // effect can still be catching up. Require a neutral, hittable stage across
+  // rendered frames before starting a new native touch sequence.
+  await expect.poll(() => page.evaluate(async () => {
+    const states: boolean[] = [];
+    for (let frame = 0; frame < 2; frame++) {
+      const sheet = document.querySelector<HTMLElement>('.mobile-inspector-sheet')!;
+      const content = document.querySelector('.viewer-drag-content')!;
+      const matrix = new DOMMatrixReadOnly(getComputedStyle(content).transform);
+      const swiper = (document.querySelector('.swiper') as HTMLElement & {
+        swiper: { animating: boolean; allowTouchMove: boolean; touchEventsData: { isTouched: boolean } };
+      }).swiper;
+      const target = document.elementFromPoint(190, 260);
+      states.push(sheet.inert && sheet.getAttribute('aria-hidden') === 'true'
+        && Number(getComputedStyle(sheet).opacity) === 0
+        && matrix.m42 === 0 && matrix.m22 === 1
+        && !swiper.animating && swiper.allowTouchMove && !swiper.touchEventsData.isTouched
+        && !!target?.closest('.viewer-gesture-stage')
+        && !target.closest('button, a, [role="button"], [data-viewer-interactive], [inert]'));
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    }
+    return states.every(Boolean);
+  })).toBe(true);
+  await touch(cdp, 'touchStart', 190, 260);
+  // One move per rendered frame prevents a burst of CDP packets from outrunning
+  // gesture/render updates. Travel well past the distance threshold, independent
+  // of release velocity, and prove recognition while the finger is still down.
+  for (let step = 1; step <= 16; step++) {
+    await touch(cdp, 'touchMove', 190, 260 + step * 25);
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
+  }
+  await expect.poll(async () => (await transform(page, '.viewer-drag-content')).y).toBeGreaterThan(300);
+  await touch(cdp, 'touchEnd');
   await expect(page.locator('.photo-dialog')).toHaveCount(0);
 });
 

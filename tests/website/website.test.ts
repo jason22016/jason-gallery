@@ -1111,9 +1111,16 @@ test('map cards open the existing Viewer in filter/sort order and preserve map U
   assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), id);
   await page.keyboard.press('Escape'); await assertMapSelection(page, id);
   await expect(page.locator(`.photo-marker-host[data-photo-id="${near}"] .photo-marker-pin`)).toBeFocused();
+  // Exercise the delayed focus-driven reopen instead of racing its 400ms timer.
+  await expect(hover).toBeVisible();
   const imageLink = page.locator('[data-card-kind="selected"] .photo-marker-card-image');
   await imageLink.focus(); await page.keyboard.press('Tab');
   await expect(page.locator('[data-card-kind="selected"] .photo-marker-card-title')).toBeFocused();
+  // Returning focus to the nearby pin can reopen its Radix hover card. Keyboard
+  // focus changes do not move the mouse out of that card; clicking underneath it
+  // keeps the hover alive. Leave both trigger/content and wait for portal removal.
+  await page.mouse.move(0, 0);
+  await expect(hover).toHaveCount(0);
   await page.locator('[data-card-kind="selected"] .photo-marker-card-close').click();
   await expect(page.locator('[data-card-kind="selected"]')).toHaveCount(0);
   assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), null);
