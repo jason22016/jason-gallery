@@ -1,9 +1,9 @@
 ---
-interface Props { src: string; alt: string; width: number; height: number; eager?: boolean; }
-const { src, alt, width, height, eager = false } = Astro.props;
+interface Props { src: string; alt: string; width: number; height: number; eager?: boolean; imageStyle?: Record<string, string>; }
+const { src, alt, width, height, eager = false, imageStyle } = Astro.props;
 ---
 <gallery-thumbnail class="thumbnail" style={`--photo-ratio: ${width} / ${height}`}>
-  <img src={src} alt={alt} width={width} height={height} loading={eager ? 'eager' : 'lazy'} decoding="async" fetchpriority={eager ? 'high' : 'auto'} />
+  <img src={src} alt={alt} width={width} height={height} style={imageStyle} loading={eager ? 'eager' : 'lazy'} decoding="async" fetchpriority={eager ? 'high' : 'auto'} />
   <span class="thumbnail-error" role="status" hidden>Preview unavailable</span>
 </gallery-thumbnail>
 <script>

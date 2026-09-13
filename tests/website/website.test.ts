@@ -12,6 +12,7 @@ import { buildFixture, dist, repo, root, run } from './fixture';
 import { serve } from './server';
 import { colorFixtures } from '../viewer/color-fixtures';
 import { browserReadyTimeout, softwareGPUOptions } from '../browser';
+import { coverGeometry } from '../../src/projects/cover';
 
 const expect = baseExpect.configure({ timeout: browserReadyTimeout(5_000) });
 
@@ -106,6 +107,25 @@ test('production routes, published order, cover, project fields and Gallery orde
   await expect(page.locator('.tags')).toContainText('test-only');
   await page.locator('[data-gallery-index]').first().click();
   await expect(page).toHaveURL(/\/originals\/portrait.jpg$/);
+});
+
+test('saved cover crops render at the same position and zoom without JavaScript on desktop and mobile', async t => {
+  const project = fixture.projects.find(p => p.slug === 'fixture-zeta')!;
+  const photo = fixture.manifest.data.find(p => p.id === project.coverPhotoId)!;
+  const expected = coverGeometry(photo.width, photo.height, project.coverCrop);
+  for (const width of [1280, 390]) {
+    const ctx = await context({ javaScriptEnabled: false, viewport: { width, height: 900 } }); t.after(() => ctx.close());
+    const page = await ctx.newPage(); await page.goto(server.url);
+    const card = page.locator('[data-project-slug="fixture-zeta"] .thumbnail');
+    const frame = await card.boundingBox(), image = await card.locator('img').boundingBox();
+    assert(frame && image);
+    assert(Math.abs(frame.width / frame.height - 5 / 6) < 0.001);
+    assert(Math.abs(image.width / frame.width - expected.width) < 0.001);
+    assert(Math.abs(image.height / frame.height - expected.height) < 0.001);
+    assert(Math.abs((image.x - frame.x) / frame.width - expected.left) < 0.001);
+    assert(Math.abs((image.y - frame.y) / frame.height - expected.top) < 0.001);
+    await expect(card.locator('img')).toHaveCSS('object-fit', 'fill');
+  }
 });
 
 test('draft/unknown routes return custom 404 and draft data never enters HTML or JavaScript; worker is isolated', async t => {

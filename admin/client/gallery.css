@@ -25,3 +25,21 @@
 @media(max-width:700px){.photo-table .photo-card{gap:10px;padding:8px;min-height:62px}.photo-table .photo-card img{width:48px;height:40px}.photo-table .photo-info strong{font-size:11px}}
 
 .sync-additions{border-top:1px solid var(--line);padding-top:20px;margin-top:20px;display:flex;flex-direction:column;align-items:flex-start;gap:12px;overflow-wrap:anywhere}.sync-additions .primary{max-width:100%}
+
+.cover-frame{position:relative;aspect-ratio:5/6;overflow:hidden;background:var(--input);flex-shrink:0}
+.project-card>.cover-frame{padding:0;border-radius:0}
+.project-cover-preview{display:flex;align-items:center;gap:20px;padding-bottom:22px;margin-bottom:22px;border-bottom:1px solid var(--line)}
+.project-cover-preview>.cover-frame{width:120px;border-radius:6px}
+.project-cover-preview p{margin:7px 0 14px}
+.cover-editor{padding:20px 24px;display:flex;flex-direction:column;gap:18px}
+.cover-crop-area{width:min(100%,300px);align-self:center;cursor:grab;touch-action:none;user-select:none}
+.cover-crop-area:active{cursor:grabbing}
+.cover-crop-area img{pointer-events:none;display:block}
+.cover-grid{position:absolute;inset:0;pointer-events:none;border:1px solid #fff9;background:linear-gradient(to right,transparent calc(33.333% - .5px),#fff5 33.333%,transparent calc(33.333% + .5px),transparent calc(66.667% - .5px),#fff5 66.667%,transparent calc(66.667% + .5px)),linear-gradient(to bottom,transparent calc(33.333% - .5px),#fff5 33.333%,transparent calc(33.333% + .5px),transparent calc(66.667% - .5px),#fff5 66.667%,transparent calc(66.667% + .5px))}
+.cover-zoom{display:flex;align-items:center;gap:12px}
+.cover-zoom label{flex:1;min-width:0}
+.cover-zoom input{width:100%;padding:0;accent-color:var(--accent)}
+.cover-zoom output{min-width:42px;font-size:12px;font-variant-numeric:tabular-nums}
+.cover-editor .dialog-actions{flex-wrap:wrap}
+.cover-editor .dialog-actions>.text-button{margin-right:auto}
+@media(max-width:700px){.cover-editor{padding:18px}.project-cover-preview{gap:14px}.project-cover-preview>.cover-frame{width:100px}.cover-crop-area{width:min(100%,260px)}}

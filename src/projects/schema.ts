@@ -32,6 +32,11 @@ export const ProjectSchema = z.strictObject({
   description: z.string().optional(),
   location: z.string().optional(),
   coverPhotoId: photoId,
+  coverCrop: z.strictObject({
+    x: z.number().finite().min(0).max(1),
+    y: z.number().finite().min(0).max(1),
+    zoom: z.number().finite().min(1).max(5),
+  }).optional(),
   photos: z.array(z.strictObject({
     photoId,
     caption: z.string().optional(),

@@ -23,7 +23,7 @@ test('20 signed saves advance HEAD and read back exact draft content, with four 
   const { f, project, state, save } = await setup();
   let expectedHead = state.head, saveProof = state.saveProof;
   for (let i = 1; i <= 20; i++) {
-    const edited = { ...project, description: `Controlled isolated save ${i}` };
+    const edited = { ...project, description: `Controlled isolated save ${i}`, coverCrop: { x: i / 20, y: 0.75, zoom: 2 } };
     const before = f.network.length;
     const response = await save({ kind: 'project', expectedHead, project: edited, saveProof });
     assert.equal(response.status, 200, await response.clone().text());

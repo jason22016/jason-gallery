@@ -1,13 +1,14 @@
 ---
 import type { ResolvedProject } from '../projects';
 import Thumbnail from './ui/Thumbnail.astro';
+import { coverImageStyle } from '../projects/cover';
 interface Props { project: ResolvedProject; index: number; }
 const { project, index } = Astro.props;
 const coverEntry = project.photos.find(entry => entry.photoId === project.coverPhotoId)!;
 ---
 <li class="project-card" data-project-slug={project.slug}>
   <a class="project-link" href={`/projects/${project.slug}/`} aria-label={`查看项目：${project.title}`}>
-    <Thumbnail src={project.cover.thumbnailUrl} alt={coverEntry.alt ?? project.title} width={project.cover.width} height={project.cover.height} eager={index < 4} />
+    <Thumbnail src={project.cover.thumbnailUrl} alt={coverEntry.alt ?? project.title} width={project.cover.width} height={project.cover.height} eager={index < 4} imageStyle={project.coverCrop ? coverImageStyle(project.cover.width, project.cover.height, project.coverCrop) : undefined} />
     <div class="project-overlay"><h2>{project.title}</h2>{project.period && <time datetime={project.period.start}>{project.period.start}</time>}</div>
   </a>
 </li>

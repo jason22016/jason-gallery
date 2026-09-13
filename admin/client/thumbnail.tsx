@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { subscribeThumbnail, observeThumbnails, thumbnailFailures, retryThumbnails, markThumbnailBroken, type ImageState } from './thumbnail-loader';
-export function Thumbnail({src,alt,style,loading='lazy'}:{src?:string;alt?:string;style?:CSSProperties;loading?:'lazy'|'eager'}) {
+export function Thumbnail({src,alt,style,loading='lazy',onLoad}:{src?:string;alt?:string;style?:CSSProperties;loading?:'lazy'|'eager';onLoad?:()=>void}) {
   const ref=useRef<HTMLImageElement>(null),[state,setState]=useState<ImageState>({});
   useEffect(()=>{
     setState({}); if(!src)return;
@@ -12,7 +12,7 @@ export function Thumbnail({src,alt,style,loading='lazy'}:{src?:string;alt?:strin
     if(ref.current)observer.observe(ref.current);
     return()=>{observer.disconnect();release?.();};
   },[src,loading]);
-  return <img ref={ref} src={state.url} onError={()=>{if(src&&state.url)markThumbnailBroken(src);}} alt={state.error?`${alt??'照片'}：${state.error}`:alt} style={style} data-thumbnail-status={state.error?'error':state.url?'ready':'loading'} />;
+  return <img ref={ref} src={state.url} onLoad={onLoad} onError={()=>{if(src&&state.url)markThumbnailBroken(src);}} alt={state.error?`${alt??'照片'}：${state.error}`:alt} style={style} data-thumbnail-status={state.error?'error':state.url?'ready':'loading'} />;
 }
 export function ThumbnailStatus() {
   const [,update]=useState(0);

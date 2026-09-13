@@ -77,7 +77,7 @@ export async function buildFixture() {
     period: { start: '2024-02-29', end: '2024-03-01' }, order: -2, status: 'published',
   };
   const projects: Project[] = [
-    { ...base, id: 'fixture-zeta', slug: 'fixture-zeta', title: 'Fixture — single image', order: 4, photos: [photos[0]!], coverPhotoId: photos[0]!.photoId },
+    { ...base, id: 'fixture-zeta', slug: 'fixture-zeta', title: 'Fixture — single image', order: 4, photos: [photos[0]!], coverPhotoId: photos[0]!.photoId, coverCrop: { x: 0.25, y: 0.75, zoom: 2 } },
     { ...base, id: 'fixture-alpha', slug: 'fixture-alpha', title: 'Fixture — shared photographs', order: 4, photos: [photos[0]!, { photoId: id('map-near.jpg') }, { photoId: id('map-far.jpg') }, photos[2]!]  },
     base,
     { ...base, id: 'secret-draft', slug: 'secret-draft', title: 'DRAFT WEBSITE SECRET', summary: 'PRIVATE PROJECT SUMMARY', order: -100, status: 'draft', coverPhotoId: id('private.jpg'), photos: [{ photoId: id('private.jpg'), caption: 'PRIVATE PROJECT CAPTION' }] },

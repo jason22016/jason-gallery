@@ -63,6 +63,60 @@ test('cross-source selection, Project validation, cover and ordering remain isol
   await page.close();
 });
 
+test('cover crop previews dragging and zoom, cancels safely, persists after save, and resets on cover replacement', async () => {
+  for (const width of [1280, 390]) {
+    const page = await open(width);
+    await nav(page, 'Project');
+    await page.getByRole('button', { name: /在路上，慢一点/ }).click();
+    const preview = page.locator('.project-cover-preview img');
+    const original = await preview.getAttribute('style');
+    await page.getByRole('button', { name: '调整封面', exact: true }).click();
+    const area = page.getByRole('group', { name: '封面裁剪区域', exact: true });
+    const slider = page.getByRole('slider', { name: '封面缩放' });
+    const apply = page.getByRole('button', { name: '应用封面裁剪' });
+    await slider.waitFor();
+    await page.waitForFunction(() => !document.querySelector<HTMLButtonElement>('dialog .primary')?.disabled);
+    const box = await area.boundingBox(); assert(box);
+    assert(Math.abs(box.width / box.height - 5 / 6) < 0.001);
+    await slider.fill('2');
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.65, { steps: 4 });
+    await page.mouse.up();
+    const edited = await area.locator('img').getAttribute('style');
+    assert.notEqual(edited, original);
+    await page.getByRole('button', { name: '取消', exact: true }).click();
+    assert.equal(await preview.getAttribute('style'), original);
+    await page.getByRole('button', { name: '调整封面', exact: true }).click();
+    assert.equal(await slider.inputValue(), '1');
+    await page.waitForFunction(() => !document.querySelector<HTMLButtonElement>('dialog .primary')?.disabled);
+    await slider.fill('2'); await area.focus(); await area.press('ArrowLeft'); await area.press('ArrowUp');
+    await area.hover(); await page.mouse.wheel(0, -100);
+    await page.waitForFunction(() => Number(document.querySelector<HTMLInputElement>('input[type=range]')?.value) > 2);
+    const chosen = await area.locator('img').getAttribute('style');
+    await apply.click();
+    assert.equal(await preview.getAttribute('style'), chosen);
+    await page.getByRole('button', { name: '保存 Project', exact: true }).click();
+    await page.getByRole('button', { name: '全部 Project', exact: true }).click();
+    assert.equal(await page.locator('.project-card img').getAttribute('style'), chosen);
+    await page.getByRole('button', { name: /在路上，慢一点/ }).click();
+    await page.getByRole('button', { name: '调整封面', exact: true }).click();
+    assert(Number(await slider.inputValue()) > 2);
+    assert.equal(await area.locator('img').getAttribute('style'), chosen);
+    await page.getByRole('button', { name: '重置位置与缩放', exact: true }).click();
+    assert.equal(await slider.inputValue(), '1');
+    assert.equal(await area.locator('img').getAttribute('style'), original);
+    await page.getByRole('button', { name: '取消', exact: true }).click();
+    assert.equal(await preview.getAttribute('style'), chosen);
+    await page.locator('.sequence-row').nth(1).getByRole('button', { name: '设为封面', exact: true }).click();
+    await page.getByRole('button', { name: '调整封面', exact: true }).click();
+    assert.equal(await slider.inputValue(), '1', 'replacement photo starts at its default framing');
+    await page.getByRole('button', { name: '取消', exact: true }).click();
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.close();
+  }
+});
+
 test('source schema, reference impact, new source and disabled source controls', async () => {
   const page = await open();
   await nav(page, '照片源');
