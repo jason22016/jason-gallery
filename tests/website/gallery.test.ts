@@ -66,6 +66,62 @@ async function ready(page: Page, query = '') {
   await expect(page.locator('.masonry-photo').first().locator('img')).toHaveCSS('opacity', '1');
 }
 const cards = (page: Page) => page.locator('.masonry-photo');
+
+test('480-photo native map bounds HTML markers to the viewport and releases motion subscriptions on close', async t => {
+  const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  const located = photos.map((photo, index) => ({ ...photo, video: undefined, src: `/original-forbidden/${index}.jpg`,
+    location: { longitude: 114.17 + (index % 24) * .0016, latitude: 22.3 + Math.floor(index / 24) * .0016 } }));
+  let originalRequests = 0;
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('request', request => { if (request.url().includes('/original-forbidden/')) originalRequests++; });
+  await page.route('**/photos.json', route => route.fulfill({ json: located }));
+  await page.route('**/dark-matter-gl-style/style.json', route => route.fulfill({ json: {
+    version: 8, sources: {}, layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#102030' } }],
+  } }));
+  await page.addInitScript({ content: `
+    window.phase2MotionListeners = new Set();
+    const add = MediaQueryList.prototype.addEventListener;
+    const remove = MediaQueryList.prototype.removeEventListener;
+    MediaQueryList.prototype.addEventListener = function(type, listener, ...args) {
+      if (type === 'change' && this.media.includes('prefers-reduced-motion')) window.phase2MotionListeners.add(listener);
+      return Reflect.apply(add, this, [type, listener, ...args]);
+    };
+    MediaQueryList.prototype.removeEventListener = function(type, listener, ...args) {
+      if (type === 'change' && this.media.includes('prefers-reduced-motion')) window.phase2MotionListeners.delete(listener);
+      return Reflect.apply(remove, this, [type, listener, ...args]);
+    };
+  ` });
+  await ready(page);
+  await page.waitForTimeout(500);
+  const closedListeners = await page.evaluate(() => (window as any).phase2MotionListeners.size);
+  await page.evaluate(() => {
+    history.pushState(history.state, '', '?panel=map&mapPhoto=photo-240');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+  await expect.poll(() => page.locator('.photo-marker-pin').count()).toBeGreaterThan(20);
+  assert(await page.locator('.photo-marker-pin').count() < 150, 'only loaded unclustered photos near the viewport get HTML markers');
+  await expect(page.locator('.photo-marker-pin[aria-pressed="true"]')).toHaveCount(1);
+  const listenersBefore = await page.evaluate(() => (window as any).phase2MotionListeners.size - document.querySelectorAll('.photo-marker-pin').length);
+  const canvas = page.locator('.photo-map canvas'), box = (await canvas.boundingBox())!;
+  for (let cycle = 0; cycle < 3; cycle++) {
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 - 180, box.y + box.height / 2 - 60, { steps: 8 }); await page.mouse.up();
+    await page.waitForTimeout(350);
+    const ids = await page.locator('.photo-marker-host').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-photo-id')));
+    assert.equal(new Set(ids).size, ids.length, 'pan does not duplicate tiled markers');
+    assert(ids.length < 150);
+    await expect.poll(() => page.evaluate(() => (window as any).phase2MotionListeners.size - document.querySelectorAll('.photo-marker-pin').length)).toBe(listenersBefore);
+  }
+  await page.getByRole('button', { name: 'Zoom out' }).click();
+  await page.waitForTimeout(500);
+  await expect(page.locator('.photo-marker-host[data-photo-id="photo-240"]')).toHaveCount(1);
+  await page.getByRole('button', { name: '关闭面板' }).click();
+  await expect(page.locator('.photo-marker-pin')).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => (window as any).phase2MotionListeners.size)).toBe(closedListeners);
+  assert.equal(originalRequests, 0); assert.deepEqual(errors, []);
+});
 async function geometry(page: Page) {
   return cards(page).evaluateAll(nodes => nodes.map(node => {
     const b = node.getBoundingClientRect();

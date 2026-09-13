@@ -40,11 +40,13 @@
     },
     {
       "local": "src/components/gallery/ProjectGallery.tsx",
-      "sha256": "6331224edb5b3bdaf3b427e1037ab0effd26e6b833793ec4111345cab3f9a913"
+      "sha256": "5f651c5814987579b03df41b6662eca0ca84006e5e39a95368ebc1e53d9bfabd",
+      "phase2Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin"
     },
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "0e122f9ffcc34dfcbb64699c04435e6c387fbd885c51694de3560fe3485f01b2"
+      "sha256": "264c1048e8b1c830736403ee0a5eaedd80650b70886d7aeb2272c99a3b4392f2",
+      "phase2Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin"
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",

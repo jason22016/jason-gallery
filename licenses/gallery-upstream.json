@@ -143,7 +143,7 @@
     },
     {
       "local": "src/styles/gallery.css",
-      "localSha256": "5ac11f56106c4e3ba6f60a7d75378bc7d0c083c0c27fcad032774535f9d4093f",
+      "localSha256": "047b406ea007050462d9ab64a9cd0f350ed000dce229867070097fa2582e90f7",
       "license": "AGPL-3.0-or-later + ANL §4",
       "upstream": [
         {
@@ -159,7 +159,8 @@
           "sha256": "dfc3a8d21b893560e638ed1abd1fc50629eb97eafc6429e0143893b52628d3c3"
         }
       ],
-      "phase4Adaptation": "DESIGN.md semantic tokens, local overflow tooltips, and spring-only spatial motion."
+      "phase4Adaptation": "DESIGN.md semantic tokens, local overflow tooltips, and spring-only spatial motion.",
+      "mapPhase2Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin"
     },
     {
       "local": "src/components/gallery/ListView.tsx",

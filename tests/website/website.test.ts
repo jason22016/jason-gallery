@@ -581,6 +581,10 @@ test('filtered/sorted share URL restores the same sequence; Forward then Close d
 
 // Inspect visible circle pixels in the real WebGL canvas, without exposing application test hooks.
 async function mapCircles(page: Page, kind: 'cluster' | 'photo') {
+  if (kind === 'photo') return page.locator('.photo-marker-pin').evaluateAll(nodes => nodes.map(node => {
+    const box = node.getBoundingClientRect(), canvas = document.querySelector('.photo-map canvas')!.getBoundingClientRect();
+    return { x: box.x + box.width / 2 - canvas.x, y: box.y + box.height / 2 - canvas.y, area: box.width * box.height };
+  }));
   const { default: sharp } = await import('sharp');
   const { data, info } = await sharp(await page.locator('.photo-map canvas').screenshot()).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   const color = await page.locator('[aria-label="地图探索"][data-active]').evaluate(el => getComputedStyle(el).color);
@@ -594,12 +598,12 @@ async function mapCircles(page: Page, kind: 'cluster' | 'photo') {
       const pixel = queue[j]!; x += pixel % info.width; y += Math.floor(pixel / info.width);
       for (const next of [pixel - 1, pixel + 1, pixel - info.width, pixel + info.width]) if (!visited.has(next) && matches(next)) { visited.add(next); queue.push(next); }
     }
-    if (queue.length > 70 && (kind === 'cluster' ? queue.length > 800 : queue.length < 220)) circles.push({ x: x / queue.length, y: y / queue.length, area: queue.length });
+    if (queue.length > 800) circles.push({ x: x / queue.length, y: y / queue.length, area: queue.length });
   }
   return circles;
 }
 
-test('real MapLibre renders fixture points, expands a cluster, opens a point, and restores the filtered map', async t => {
+test('real MapLibre renders photo markers, expands a native cluster, selects a point and restores the filtered map', async t => {
   const ctx = await context({ reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
   const page = await projectPage(ctx, 'fixture-alpha');
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
@@ -634,9 +638,17 @@ test('real MapLibre renders fixture points, expands a cluster, opens a point, an
   await page.locator('.photo-map canvas').click({ position: { x: clusters[0]!.x, y: clusters[0]!.y } });
   await expect.poll(async () => (await mapCircles(page, 'cluster')).length).toBe(0);
   await expect.poll(async () => (await mapCircles(page, 'photo')).length).toBe(2);
-  const points = await mapCircles(page, 'photo');
-  await page.locator('.photo-map canvas').click({ position: { x: points[0]!.x, y: points[0]!.y } });
-  await loaded(page);
+  const marker = page.locator('.photo-marker-pin').first();
+  const id = await marker.locator('..').getAttribute('data-photo-id');
+  await marker.click();
+  await expect(page.locator('.photo-marker-pin[aria-pressed="true"]')).toHaveCount(1);
+  assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), id);
+  await expect(page.locator('.photo-dialog')).toHaveCount(0);
+  await page.goBack();
+  await expect(page.locator('.photo-marker-pin[aria-pressed="true"]')).toHaveCount(0);
+  await page.goForward();
+  await expect(page.locator('.photo-marker-pin[aria-pressed="true"]')).toHaveCount(1);
+  await page.locator('.map-photo-list button').first().click(); await loaded(page);
   await expect(page.locator('.viewer-counter')).toContainText('/ 4');
   await page.goBack(); await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
@@ -652,7 +664,9 @@ test('real MapLibre renders fixture points, expands a cluster, opens a point, an
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
   assert.equal((await mapCircles(page, 'cluster')).length, 0);
   const filtered = await mapCircles(page, 'photo'); assert.equal(filtered.length, 1);
-  await page.locator('.photo-map canvas').click({ position: { x: filtered[0]!.x, y: filtered[0]!.y } }); await loaded(page);
+  await page.locator('.photo-marker-pin').click();
+  await expect(page.locator('.photo-dialog')).toHaveCount(0);
+  await page.locator('.map-photo-list button').click(); await loaded(page);
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 1');
   assert.deepEqual(errors, []);
 });
@@ -803,7 +817,7 @@ async function mapFixture(page: Page) {
 async function assertMapSelection(page: Page, id: string) {
   await expect(page.locator('.photo-dialog')).toHaveCount(0);
   await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
-  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
   await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
   await expect(page.locator('.map-photo-list [aria-current="location"]')).toHaveCount(1);
   assert.equal(new URL(page.url()).searchParams.get('photo'), null);
@@ -814,6 +828,131 @@ async function assertMapSelection(page: Page, id: string) {
   // The two nearby fixture coordinates differ by .001 longitude: measure zoom in rendered pixels.
   if (points.length === 2) assert(Math.abs(Math.abs(points[1]!.x - points[0]!.x) - 512 * 2 ** 15 * .001 / 360) < 2, 'single-photo entry uses upstream zoom 15');
 }
+
+test('photo marker materials, thumbnail, keyboard selection and history preserve the same map and marker instances', async t => {
+  const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  const errors: string[] = [], originals: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('request', request => { if (request.url().includes('/originals/')) originals.push(request.url()); });
+  const id = fixture.photos[0]!.photoId;
+  const near = fixture.manifest.data.find(photo => photo.s3Key === 'map-near.jpg')!.id;
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map&mapPhoto=${id}&start=2024-03-01&sort=desc&view=list`);
+  await assertMapSelection(page, id);
+  const selected = page.locator(`.photo-marker-host[data-photo-id="${id}"] .photo-marker-pin`);
+  const neighbor = page.locator(`.photo-marker-host[data-photo-id="${near}"] .photo-marker-pin`);
+  await expect(neighbor).toBeVisible();
+  await expect.poll(() => selected.locator('.photo-marker-image img').last().evaluate(element => (element as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  const image = fixture.manifest.data.find(photo => photo.id === id)!;
+  await expect(selected.locator('.photo-marker-image img').last()).toHaveAttribute('src', image.thumbnailUrl);
+  const visual = await neighbor.evaluate(element => {
+    const material = getComputedStyle(element.querySelector('.photo-marker-material')!);
+    const background = getComputedStyle(element.querySelector('.photo-marker-image')!);
+    return { width: element.clientWidth, height: element.clientHeight, radius: material.borderRadius,
+      border: material.borderTopWidth, blur: material.backdropFilter, opacity: background.opacity,
+      icon: !!element.querySelector('.i-mingcute-camera-line'), transition: material.transitionDuration };
+  });
+  assert.equal(visual.width, 40); assert.equal(visual.height, 40); assert.equal(visual.radius, '50%');
+  assert.equal(visual.blur, 'blur(12px)'); assert.equal(visual.opacity, '0.4'); assert(visual.icon);
+  assert(Number.parseFloat(visual.border) <= 1); assert.equal(visual.transition, '0s');
+  await expect(selected.locator('.photo-marker-selection')).toHaveCSS('animation-name', 'none');
+  await expect(selected.locator('..')).toHaveCSS('z-index', '30');
+  await expect(neighbor.locator('..')).toHaveCSS('z-index', '10');
+  await page.evaluate(() => {
+    (window as any).phase2Canvas = document.querySelector('.photo-map canvas');
+    (window as any).phase2Pins = [...document.querySelectorAll('.photo-marker-pin')];
+  });
+  const base = new URL(page.url());
+  for (let cycle = 0; cycle < 6; cycle++) {
+    const button = cycle % 2 === 0 ? neighbor : selected;
+    await button.focus(); await expect(button).toBeFocused();
+    await expect(button).toHaveCSS('outline-width', '2px');
+    await page.keyboard.press(cycle % 2 ? 'Space' : 'Enter');
+    const next = cycle % 2 === 0 ? near : id;
+    await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', next);
+    await expect(page.locator('.photo-marker-pin[aria-pressed="true"]')).toHaveCount(1);
+    assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), next);
+  }
+  const historyLength = await page.evaluate(() => history.length);
+  await selected.click();
+  assert.equal(await page.evaluate(() => history.length), historyLength, 'selecting the same marker does not duplicate history');
+  await page.goBack(); await expect(neighbor).toHaveAttribute('aria-pressed', 'true');
+  await page.goForward(); await expect(selected).toHaveAttribute('aria-pressed', 'true');
+  assert(await page.evaluate(() => (window as any).phase2Canvas === document.querySelector('.photo-map canvas')));
+  assert(await page.evaluate(() => (window as any).phase2Pins.every((pin: Element) => pin.isConnected)), 'selection and history retain marker instances');
+  await expect(page.locator('.photo-dialog')).toHaveCount(0);
+  for (const key of ['start', 'sort', 'view']) assert.equal(new URL(page.url()).searchParams.get(key), base.searchParams.get(key));
+  assert.deepEqual(originals, []); assert.deepEqual(errors, []);
+  await page.locator('.photo-map').screenshot({ path: path.join(repo, '.cache/map-phase2-selected.png') });
+});
+
+test('touch photo markers select without opening Viewer and reduced motion keeps the active ring static', async t => {
+  const ctx = await context({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  const id = fixture.photos[0]!.photoId;
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map&mapPhoto=${id}`);
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  const neighbor = page.locator('.photo-marker-pin[aria-pressed="false"]').first();
+  const next = await neighbor.locator('..').getAttribute('data-photo-id');
+  await neighbor.tap();
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', next!);
+  await expect(page.locator('.photo-dialog')).toHaveCount(0);
+  await expect(page.locator('.photo-marker-selection')).toHaveCSS('animation-name', 'none');
+  await page.goBack(); await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
+});
+
+test('photo marker spring hover, focus and press scales use upstream gestures and respond to reduced motion', async t => {
+  const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'no-preference' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  const id = fixture.photos[0]!.photoId;
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map&mapPhoto=${id}`);
+  await assertMapSelection(page, id);
+  const neighbor = page.locator('.photo-marker-pin[aria-pressed="false"]').first();
+  const scale = () => neighbor.evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).a);
+  await expect.poll(scale).toBe(1);
+  await neighbor.hover(); await expect.poll(async () => Math.abs(await scale() - 1.1)).toBeLessThan(.01);
+  await page.mouse.down(); await expect.poll(async () => Math.abs(await scale() - .9)).toBeLessThan(.01);
+  await page.mouse.up();
+  const selected = page.locator('.photo-marker-pin[aria-pressed="true"]');
+  await expect(selected.locator('.photo-marker-selection')).toHaveCSS('animation-duration', '2s');
+  await page.mouse.move(0, 0);
+  await selected.focus();
+  await expect.poll(() => selected.evaluate(element => Math.abs(new DOMMatrixReadOnly(getComputedStyle(element).transform).a - 1.1))).toBeLessThan(.01);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(selected.locator('.photo-marker-selection')).toHaveCSS('animation-name', 'none');
+  await expect.poll(() => selected.evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).a)).toBe(1);
+});
+
+test('failed marker thumbnails retain thumbhash and camera without requesting originals', async t => {
+  const ctx = await context({ reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  const originals: string[] = [];
+  page.on('request', request => { if (request.url().includes('/originals/')) originals.push(request.url()); });
+  await page.route('**/thumbnails/**', route => route.abort());
+  const id = fixture.photos[0]!.photoId;
+  await page.goto(`${server.url}/projects/fixture-zeta/?panel=map&mapPhoto=${id}`);
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+  await expect(page.locator('.photo-marker-image img:not([src^="data:"])')).toHaveCount(0);
+  await expect(page.locator('.photo-marker-image img[src^="data:"]')).toHaveCount(1);
+  await expect(page.locator('.photo-marker-pin .i-mingcute-camera-line')).toBeVisible();
+  assert.deepEqual(originals, []);
+});
+
+test('initial map viewport survives marker selection and fallback Viewer without requiring a pan', async t => {
+  const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map`);
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+  const points = await mapCircles(page, 'photo'), clusters = await mapCircles(page, 'cluster');
+  assert.equal(points.length, 1); assert.equal(clusters.length, 1);
+  await page.locator('.photo-marker-pin').click();
+  await expect(page.locator('.photo-marker-pin')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('.map-photo-list button').first().click(); await loaded(page);
+  await page.getByRole('button', { name: '关闭照片' }).click();
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+  assert.deepEqual(await mapCircles(page, 'photo'), points);
+  assert.deepEqual(await mapCircles(page, 'cluster'), clusters);
+});
 
 test('MiniMap and text link enter the Project map, preserve filters/history, restore selection on refresh and refocus a different photo', async t => {
   const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());

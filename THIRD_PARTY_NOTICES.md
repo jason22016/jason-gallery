@@ -214,3 +214,24 @@ No production dependency, CSS, Viewer motion engine or upstream map clustering
 algorithm was added or changed. Reference and adapted-file SHA-256 values are in
 [licenses/map-phase1-upstream.json](licenses/map-phase1-upstream.json).
 The existing visual provenance record updates only the two changed metadata files.
+
+## Map Phase 2 — Photo Marker Pin
+
+Current `Afilmory/Afilmory` main was verified on 2026-09-13 at
+`1f65cde6672e5231599182620116ac904e39f548`. `DESIGN.md` was read first and
+matches the existing `docs/viewer/AFILMORY_DESIGN.md`. Copyright (c) 2025
+Afilmory Team; application derivatives retain **AGPL-3.0-or-later + ANL §4**,
+the complete [license](licenses/AFILMORY-LICENSE), and existing visible
+Project/Viewer attribution and source links.
+
+| Local file | Upstream source / pattern | Adaptation |
+| --- | --- | --- |
+| `src/components/gallery/map/PhotoMarkerPin.tsx` | `apps/web/src/components/ui/map/shared/PhotoMarkerPin.tsx`; `shared/types.ts`; `packages/ui/src/lazy-image/index.tsx` | Migrates the pin subtree: scale-in, 1.1 hover, 0.9 press, selection ring, circular thumbnail, material, glass overlay, MingCute camera and inner depth layer. Uses an accessible native button, controlled selected state, keyboard focus, reduced motion, and native lazy images with Jason's validated hexadecimal Thumbhash. No cards or original-image fallback. |
+| `src/styles/gallery.css` (photo-marker rules) | PhotoMarkerPin utility styles; `DESIGN.md` §§2–4, 6–7, 12 | Plain CSS adapter: 40px circles, 40% image opacity, 12px control blur, hairline, existing material/accent tokens, faint shared shadows, selected outer 8px ring with a 2s opacity pulse. The legacy green wash, neutral ramp, light/dark pairs and heavy shadows are replaced by normative semantic materials. Uses existing `Spring.presets.snappy` instead of the legacy inline stiffness/damping; reduced motion disables scale gestures and pulse. |
+| `src/components/gallery/PhotoMap.tsx`; `ProjectGallery.tsx` | `components/ui/map/MapLibre.tsx` controlled `selectedMarkerId` / `onMarkerClick`; `shared/clustering.ts` selected-photo independence | Retains native MapLibre clustering and expansion zoom. Only unclustered visible photos and the independent selected photo receive native HTML Markers, with React portals retaining the existing LazyMotion context. Excludes selected ID from the native source to avoid hiding or double-counting it; selection changes retain the map, viewport and marker instances while the source updates. Native History updates `mapPhoto` without opening Viewer. |
+| `src/components/gallery/map/photo-marker-registry.ts` | Jason-specific native MapLibre bridge | New keyed lifecycle adapter: deduplicates source tile/world copies, reuses active instances, updates coordinates/selection, and removes retired markers on pan/zoom or teardown. No react-map-gl dependency. |
+
+`photo-marker-card-behavior.ts`, map utilities, LazyImage, GlassButton and photo
+accent extraction were also studied. HoverCard and anchored selected Card code
+remain excluded for P3. Reference and adapted-file SHA-256 values are recorded in
+[licenses/map-phase2-upstream.json](licenses/map-phase2-upstream.json).

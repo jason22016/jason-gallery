@@ -1,0 +1,78 @@
+{
+  "repository": "https://github.com/Afilmory/Afilmory",
+  "commit": "1f65cde6672e5231599182620116ac904e39f548",
+  "verifiedAt": "2026-09-13",
+  "designAuthority": {
+    "path": "docs/viewer/AFILMORY_DESIGN.md",
+    "sha256": "12643e2c980ac021da63ffafaf76c6f2d06d8c479c7da25832da7bbb68b265ab"
+  },
+  "adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin",
+  "references": [
+    {
+      "path": "apps/web/src/components/ui/map/shared/PhotoMarkerPin.tsx",
+      "sha256": "4c68cce37fb873a0a2e248068fa6b451a510dec56e80c130359363b47c8ca829"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/types.ts",
+      "sha256": "da2b89af5cbe26bd3657cbc7c53b26af1b159fbf2010f2da1f6ad07430aed448"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/photo-marker-card-behavior.ts",
+      "sha256": "70ad1c038d9594e45729d04996b7aebf251da19942fdd867f95d9e17af545b6f"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/MapLibre.tsx",
+      "sha256": "12f598477cc479a496bc7a84867c76fdedb6e073a15d06d26275e9f1185afe19"
+    },
+    {
+      "path": "apps/web/src/lib/map-utils.ts",
+      "sha256": "9a20a6686f73214ff0fcb7bcdef9d63e2e0fc9151179c39d04fb61e1a8aca4e2"
+    },
+    {
+      "path": "packages/utils/src/spring.ts",
+      "sha256": "e76ac4b40ffd369794200f0af704475c10e8b98ae00162a6f591396e65060614"
+    },
+    {
+      "path": "packages/utils/src/cn.ts",
+      "sha256": "a02fc7b13eea89b791f7ec2f7e1fb5d879c6d583fad85d74ace702688eedfaa6"
+    },
+    {
+      "path": "apps/web/src/lib/color.ts",
+      "sha256": "1477dc2ad8f172669163511badfc5875b62d751349a89e0bc7e04b595099aa81"
+    },
+    {
+      "path": "packages/ui/src/button/GlassButton.tsx",
+      "sha256": "97e536fa4a105bbeaea24d36e564027f6b4c0ae0dc5471d4f00553211646173c"
+    },
+    {
+      "path": "packages/ui/src/lazy-image/index.tsx",
+      "sha256": "5e6a3cbcfd46f58dafc979e014e0b2f04cedecba7c85e0b1baec165cc416c142"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/clustering.ts",
+      "sha256": "f1b6808622a264a882167bda608044470b2dd1d0e8cbdde691f6e45fef874d10"
+    }
+  ],
+  "files": [
+    {
+      "local": "src/components/gallery/map/PhotoMarkerPin.tsx",
+      "sha256": "68758502bdde5aa3b25a97178f070e18af2e2d3cc45a3f41b8d55ea6fddb42c0"
+    },
+    {
+      "local": "src/components/gallery/map/photo-marker-registry.ts",
+      "sha256": "953096b46219bb5e7b6e2c9ef196c4a74e448f3ca65559795283a834976318ca"
+    },
+    {
+      "local": "src/components/gallery/PhotoMap.tsx",
+      "sha256": "264c1048e8b1c830736403ee0a5eaedd80650b70886d7aeb2272c99a3b4392f2"
+    },
+    {
+      "local": "src/components/gallery/ProjectGallery.tsx",
+      "sha256": "5f651c5814987579b03df41b6662eca0ca84006e5e39a95368ebc1e53d9bfabd"
+    },
+    {
+      "local": "src/styles/gallery.css",
+      "sha256": "047b406ea007050462d9ab64a9cd0f350ed000dce229867070097fa2582e90f7"
+    }
+  ]
+}
