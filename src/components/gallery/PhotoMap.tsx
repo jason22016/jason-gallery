@@ -8,9 +8,11 @@ import type { ViewerPhoto } from '../viewer/photos';
 import type { MapViewport } from './map-state';
 import { PhotoMarkerPin } from './map/PhotoMarkerPin';
 import { PhotoMarkerRegistry, type MarkerCandidate, type PhotoMarkerEntry } from './map/photo-marker-registry';
+import { useMobile } from '../../hooks/useMobile';
 
-export default function PhotoMap({ photos, onOpen, onSelect, selectedPhotoId, initialViewport, onViewport }: { photos: readonly ViewerPhoto[]; onOpen: (photo: ViewerPhoto) => void; onSelect: (photo: ViewerPhoto) => void; selectedPhotoId: string | null; initialViewport?: MapViewport; onViewport?: (viewport: MapViewport) => void }) {
+export default function PhotoMap({ photos, onOpen, onSelect, onClearSelection, selectedPhotoId, initialViewport, onViewport }: { photos: readonly ViewerPhoto[]; onOpen: (photo: ViewerPhoto, element?: HTMLElement) => void; onSelect: (photo: ViewerPhoto) => void; onClearSelection: () => void; selectedPhotoId: string | null; initialViewport?: MapViewport; onViewport?: (viewport: MapViewport) => void }) {
   const container = useRef<HTMLDivElement>(null);
+  const mobile = useMobile();
   const [error, setError] = useState(false);
   const [ready, setReady] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -108,7 +110,7 @@ export default function PhotoMap({ photos, onOpen, onSelect, selectedPhotoId, in
   useEffect(() => { updateSelection.current?.(); }, [selectedPhotoId]);
   if (!located.length) return <div className="gallery-empty"><h3>没有可显示的位置</h3><p>当前照片没有 GPS 坐标。</p></div>;
   return <><div className="photo-map" ref={container} aria-label="照片位置地图" data-selected-photo={selectedPhotoId ?? undefined} aria-busy={!ready && !error} data-map-state={error ? 'error' : ready ? 'ready' : 'loading'} />
-    {markers.map(entry => createPortal(<PhotoMarkerPin photo={{ id: entry.photo.id, title: entry.photo.title, thumbHash: entry.photo.thumbHash, thumbnail: entry.photo.thumbnail !== entry.photo.src ? entry.photo.thumbnail : '' }}
-      isSelected={entry.photo.id === selectedPhotoId} onClick={() => onSelect(entry.photo)} />, entry.element, entry.photo.id))}
+    {markers.map(entry => createPortal(<PhotoMarkerPin photo={entry.photo}
+      isSelected={entry.photo.id === selectedPhotoId} enableHover={!mobile} onClick={() => onSelect(entry.photo)} onClose={onClearSelection} onOpen={onOpen} />, entry.element, entry.photo.id))}
     {error && <p className="map-error" role="status">底图暂时不可用，你仍可从下方打开照片。<button onClick={() => setAttempt(n => n + 1)}>重试地图</button></p>}<p className="muted">{located.length} 张照片有位置记录</p><ul className="map-photo-list">{located.map(p => <li key={p.id}><button aria-current={p.id === selectedPhotoId ? 'location' : undefined} onClick={() => onOpen(p)}><img src={p.thumbnail} alt="" loading="lazy" decoding="async"/><span><EllipsisWithTooltip>{p.title}</EllipsisWithTooltip><small><EllipsisWithTooltip>{p.location?.locationName || p.location?.city || `${p.location!.latitude.toFixed(3)}, ${p.location!.longitude.toFixed(3)}`}</EllipsisWithTooltip></small></span></button></li>)}</ul></>;
 }

@@ -218,7 +218,7 @@ test('reduced motion uses Swiper at zero duration and usable immediate Sheet/dis
   const { page, context } = await fixture({ ...mobile, reducedMotion: 'reduce' }); t.after(() => context.close()); await open(page);
   await expect(page.locator('[data-viewer-transition-variant]')).toHaveCount(0);
   const cdp = await context.newCDPSession(page);
-  await drag(cdp, [300, 350], [80, 350]);
+  await drag(cdp, [300, 350], [60, 350]);
   await expect(page.locator('.viewer-counter')).toHaveText('2 / 180');
   await expect(page.locator('.swiper-wrapper')).toHaveCSS('transition-duration', '0s');
   await page.getByRole('button', { name: '照片信息', exact: true }).tap();

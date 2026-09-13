@@ -243,6 +243,28 @@
 .photo-marker-selection { position: absolute; inset: -8px; border-radius: 50%; background: color-mix(in srgb, var(--color-accent) 30%, transparent); animation: photo-marker-pulse 2s linear infinite; }
 @keyframes photo-marker-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
 @media (prefers-reduced-motion: reduce) { .photo-marker-selection { animation: none; } .photo-marker-image img, .photo-marker-material { transition: none; } }
+.photo-marker-card { position: relative; z-index: 60; width: 320px; max-width: calc(100vw - max(16px, env(safe-area-inset-left)) - max(16px, env(safe-area-inset-right))); border: 1px solid var(--gallery-border); border-radius: 16px; background: var(--color-material-thick); color: var(--color-text); -webkit-backdrop-filter: blur(var(--gallery-blur-panel)); backdrop-filter: blur(var(--gallery-blur-panel)); box-shadow: var(--gallery-shadow); overflow: auto; scrollbar-width: thin; scrollbar-color: var(--color-fill) transparent; pointer-events: auto; font: 14px/1.5 var(--gallery-font-sans); }
+.photo-marker-card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(to bottom right, var(--gallery-wash), transparent, var(--gallery-wash)); }
+.photo-marker-card-hover { max-height: var(--radix-hover-card-content-available-height); transform-origin: var(--radix-hover-card-content-transform-origin); }
+.photo-marker-card-anchored { max-height: var(--radix-popover-content-available-height); transform-origin: var(--radix-popover-content-transform-origin); }
+.photo-marker-card-content { position: relative; }
+.photo-marker-card-image { position: relative; display: block; height: 128px; overflow: hidden; }
+.photo-marker-card-image .photo-marker-image { display: block; opacity: 1; border-radius: 0; }
+.photo-marker-card-image-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, var(--color-material-ultra-thin), transparent); }
+.photo-marker-card-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.photo-marker-card-title { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--color-text); text-decoration: none; transition: color 200ms; }
+.photo-marker-card-title:hover { color: var(--color-accent); }
+.photo-marker-card-title h3 { flex: 1; min-width: 0; margin: 0; font-size: 14px; font-weight: 600; color: inherit; }
+.photo-marker-card-title > .gallery-icon { color: var(--color-text-secondary); font-size: 16px; }
+.photo-marker-card-metadata { display: flex; flex-direction: column; gap: 8px; }
+.photo-marker-card-row { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; color: var(--color-text-secondary); }
+.photo-marker-card-row > .gallery-icon { font-size: 14px; }
+.photo-marker-card-number { font-family: var(--gallery-font-mono); overflow-wrap: anywhere; }
+.gallery-page .photo-marker-card-close { position: absolute; top: 12px; right: 12px; z-index: 10; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--color-fill); border-radius: 50%; color: var(--color-text); background: var(--color-material-thin); -webkit-backdrop-filter: blur(var(--gallery-blur-control)); backdrop-filter: blur(var(--gallery-blur-control)); box-shadow: var(--gallery-shadow); transition: background-color 200ms, border-color 200ms; }
+.gallery-page .photo-marker-card-close:hover { background: var(--color-material-medium); border-color: var(--color-text-tertiary); }
+.photo-marker-card-close-glass { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(to top, var(--color-fill-quaternary), var(--color-fill)); pointer-events: none; }
+.photo-marker-card-close .gallery-icon { position: relative; font-size: 18px; }
+@media (prefers-reduced-motion: reduce) { .photo-marker-card-title, .photo-marker-card-close, .photo-marker-card-image img { transition: none; } }
 .map-photo-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 16px; }
 .gallery-page .map-photo-list button { display: flex; align-items: center; width: 100%; gap: 12px; text-align: left; min-width: 0; border: 1px solid var(--gallery-border); border-radius: 8px; background: var(--color-fill-quaternary); padding: 8px; }
 .gallery-page .map-photo-list button:hover { background: var(--gallery-wash); }

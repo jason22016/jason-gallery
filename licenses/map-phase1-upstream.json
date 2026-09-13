@@ -40,13 +40,15 @@
     },
     {
       "local": "src/components/gallery/ProjectGallery.tsx",
-      "sha256": "5f651c5814987579b03df41b6662eca0ca84006e5e39a95368ebc1e53d9bfabd",
-      "phase2Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin"
+      "sha256": "9b13d5f1ddf7e6aa019fa50c45ae80f267e586102e8b5f8e072ef670304c8656",
+      "phase2Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin",
+      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards"
     },
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "264c1048e8b1c830736403ee0a5eaedd80650b70886d7aeb2272c99a3b4392f2",
-      "phase2Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin"
+      "sha256": "10ea1319ac182d574d1b42c6e894678d734c17f638971282860ad79a8ef592dc",
+      "phase2Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin",
+      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards"
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",

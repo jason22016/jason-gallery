@@ -132,6 +132,13 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
     history.pushState({ ...history.state, galleryViewer: null }, '', mapPhotoURL(new URL(location.href), photo.id));
     setMapPhotoId(photo.id);
   };
+  const clearMapSelection = () => {
+    if (!mapPhotoId) return;
+    const url = new URL(location.href);
+    url.searchParams.delete('mapPhoto');
+    history.pushState({ ...history.state, galleryViewer: null }, '', url);
+    setMapPhotoId(null);
+  };
   const items = useMemo(() => visible.map((photo, index) => ({ photo: photo as GalleryPhoto, index, onOpen: open })), [visible, open]);
   const saveView = (nextView: typeof view, nextColumns = columns) => {
     setView(nextView); setColumns(nextColumns);
@@ -190,7 +197,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
         else { setPanel(action); replaceContext(filters, sort, action === 'map'); }
       }} />}
       {panel === 'settings' && <ViewPanel sort={sort} columns={columns} view={view} onView={saveView} onSort={value => { setSort(value); replaceContext(filters, value); }} />}
-      {panel === 'map' && (PhotoMap ? <PhotoMap photos={visible} onSelect={selectMapPhoto} selectedPhotoId={selectedMapPhoto?.id ?? null} initialViewport={mapViewport.current?.key === mapKey ? mapViewport.current.viewport : mapPhotoViewport(selectedMapPhoto)} onViewport={viewport => { mapViewport.current = { key: mapKey, viewport }; }} onOpen={photo => open(photo, root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null)} /> : mapError ? <div><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><ul className="map-photo-list">{visible.filter(photo => photo.location).map(photo => <li key={photo.id}><button onClick={() => open(photo, null)}>{photo.title}</button></li>)}</ul></div> : <p role="status">正在加载地图…</p>)}
+      {panel === 'map' && (PhotoMap ? <PhotoMap photos={visible} onSelect={selectMapPhoto} onClearSelection={clearMapSelection} selectedPhotoId={selectedMapPhoto?.id ?? null} initialViewport={mapViewport.current?.key === mapKey ? mapViewport.current.viewport : mapPhotoViewport(selectedMapPhoto)} onViewport={viewport => { mapViewport.current = { key: mapKey, viewport }; }} onOpen={photo => open(photo, root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null)} /> : mapError ? <div><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><ul className="map-photo-list">{visible.filter(photo => photo.location).map(photo => <li key={photo.id}><button onClick={() => open(photo, null)}>{photo.title}</button></li>)}</ul></div> : <p role="status">正在加载地图…</p>)}
     </Panel>}
     {selectedPhoto && (Viewer ? <Viewer photos={sequence} projectTitle={project.title} index={sequence.findIndex(p => p.id === selected)} trigger={opener.current} onIndex={index => { const photo = sequence[index]; if (photo) { setSelected(photo.id); setPhotoURL(photo.id); } }} onClose={close} /> : <Panel title="打开照片" onClose={close}><p role={loadError ? 'alert' : 'status'}>{loadError || '正在加载看图组件…'}</p>{loadError && <button onClick={() => setLoadError('')}>重试</button>}<a className="text-link" href={selectedPhoto.src} target="_blank" rel="noreferrer">打开原图 ↗</a></Panel>)}
   </div></LazyMotion></MapNavigationContext.Provider>;

@@ -1,4 +1,4 @@
-import { aperture, captureDate, photoLocation, unit } from './metadata';
+import { aperture, captureDate, numericAltitude, photoLocation, unit } from './metadata';
 import type { ResolvedProject } from '../../projects';
 import type { PhotoManifestItem } from '../../photo-engine';
 
@@ -23,6 +23,7 @@ export interface ViewerPhoto {
   readonly format: string;
   readonly size: number;
   readonly location: PhotoManifestItem['location'];
+  readonly altitude?: number;
   readonly detailsUrl: string;
   readonly isHDR: boolean;
 }
@@ -40,7 +41,7 @@ export function viewerPhotos(project: ResolvedProject): readonly ViewerPhoto[] {
     date: captureDate(photo.exif), tags: [...new Set([...photo.tags, ...photo.keywords])],
     camera: [photo.exif?.Make, photo.exif?.Model].filter(Boolean).join(' '), lens: photo.exif?.LensModel ?? '',
     exposure: [unit(photo.exif?.FocalLength, 'mm') || (photo.exif?.FocalLengthIn35mmFormat ? `${unit(photo.exif.FocalLengthIn35mmFormat, 'mm')}（35mm 等效）` : ''), aperture(photo.exif?.FNumber), unit(photo.exif?.ExposureTime, 's'), photo.exif?.ISO ? `ISO ${photo.exif.ISO}` : ''].filter(Boolean),
-    format: photo.format, size: photo.size, location: photoLocation(photo),
+    format: photo.format, size: photo.size, location: photoLocation(photo), altitude: numericAltitude(photo.exif),
     detailsUrl: `/projects/${project.slug}/photos/${encodeURIComponent(photoId)}.json`, isHDR: photo.isHDR ?? false,
   }));
 }

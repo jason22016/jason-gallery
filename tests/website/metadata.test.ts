@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { captureDate, captureZone, formatCaptureTime, photoLocation, altitude, aperture, unit } from '../../src/components/viewer/metadata';
+import { captureDate, captureZone, formatCaptureTime, photoLocation, altitude, numericAltitude, aperture, unit } from '../../src/components/viewer/metadata';
 import { viewerPhotos, selectPhotos, emptyFilters, formatBytes } from '../../src/components/viewer/photos';
 import { resolveProjects } from '../../src/projects/resolver';
 import { photo, project } from '../projects/fixtures';
@@ -39,6 +39,10 @@ test('native EXIF GPS works without reverse geocoding; zero, signed hemispheres,
   assert.equal(photoLocation({ location: null, exif: { GPSLatitude: 0 } }), null);
   assert.equal(altitude({ GPSAltitude: 0 }), '0 m');
   assert.equal(altitude({ GPSAltitude: -12, GPSAltitudeRef: 1 }), '-12 m');
+  assert.equal(numericAltitude({ GPSAltitude: 0 }), 0);
+  assert.equal(numericAltitude({ GPSAltitude: 12, GPSAltitudeRef: 1 }), -12);
+  assert.equal(numericAltitude(null), undefined);
+  assert.equal(numericAltitude({ GPSAltitude: NaN }), undefined);
   assert.equal(unit('1/125', 's'), '1/125 s');
   assert.equal(unit(2.5, 's'), '2.5 s');
   assert.equal(unit('50.0 mm', 'mm'), '50.0 mm');
@@ -51,13 +55,15 @@ test('native EXIF GPS works without reverse geocoding; zero, signed hemispheres,
 
 test('projection and date filters/sort use recorded dates, actual focal length and native coordinates without mutating the engine', () => {
   const missing = photo('missing'), first = photo('first'), second = photo('second');
-  first.exif = { DateTimeOriginal: '2024-03-01T00:15:00+08:00', FocalLength: '35 mm', FocalLengthIn35mmFormat: '50 mm', ExposureTime: '1/125', ISO: 100 } as typeof first.exif;
+  first.exif = { DateTimeOriginal: '2024-03-01T00:15:00+08:00', FocalLength: '35 mm', FocalLengthIn35mmFormat: '50 mm', ExposureTime: '1/125', ISO: 100, GPSAltitude: 0 } as typeof first.exif;
   second.exif = { DateTimeOriginal: '2024-02-29T20:00:00Z' } as typeof second.exif;
   const native = [missing, first, second];
   const snapshot = JSON.stringify(native);
   const resolved = resolveProjects([{ source: 'fixture', data: project({ coverPhotoId: missing.id, photos: native.map(p => ({ photoId: p.id })) }) }], { getPhoto: id => structuredClone(native.find(p => p.id === id)) }).published.listProjects()[0]!;
   const photos = viewerPhotos(resolved);
   assert.equal(photos[0]!.date, '');
+  assert.equal(photos[0]!.altitude, undefined);
+  assert.equal(photos[1]!.altitude, 0);
   assert.deepEqual(photos[1]!.exposure, ['35 mm', '1/125 s', 'ISO 100']);
   assert.deepEqual(selectPhotos(photos, { ...emptyFilters, start: '2024-03-01', end: '2024-03-01' }, 'project').map(p => p.id), ['first']);
   assert.deepEqual(selectPhotos(photos, emptyFilters, 'asc').map(p => p.id), ['first', 'second', 'missing']);

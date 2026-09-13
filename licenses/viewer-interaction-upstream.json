@@ -177,9 +177,10 @@
       "local": "src/components/viewer/HoverCard.tsx",
       "upstream": "packages/ui/src/hover-card/index.tsx",
       "upstreamSha256": "5c2e50e8a367952855c8c5fa9d48890ab5f98a8c864676cbcd4fea7a04fd7871",
-      "sha256": "ebb14b56574479961a5a11387c5f3dc60be6b741bd7881286f69eb8c0aba8630",
+      "sha256": "d6247622993f050204436112a13acc66463a37ebe4a75b91f87e48d7e6522ff8",
       "license": "MIT",
-      "adapted": true
+      "adapted": true,
+      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards"
     },
     {
       "local": "src/components/viewer/Thumbhash.tsx",

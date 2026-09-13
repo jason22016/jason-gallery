@@ -1,0 +1,131 @@
+{
+  "repository": "https://github.com/Afilmory/Afilmory",
+  "commit": "1f65cde6672e5231599182620116ac904e39f548",
+  "verifiedAt": "2026-09-13",
+  "license": "AGPL-3.0-or-later + ANL §4 (application); MIT (packages/ui)",
+  "designAuthority": {
+    "path": "docs/viewer/AFILMORY_DESIGN.md",
+    "sha256": "12643e2c980ac021da63ffafaf76c6f2d06d8c479c7da25832da7bbb68b265ab"
+  },
+  "adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards",
+  "references": [
+    {
+      "path": "DESIGN.md",
+      "sha256": "12643e2c980ac021da63ffafaf76c6f2d06d8c479c7da25832da7bbb68b265ab"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/PhotoMarkerPin.tsx",
+      "sha256": "4c68cce37fb873a0a2e248068fa6b451a510dec56e80c130359363b47c8ca829"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/photo-marker-card-behavior.ts",
+      "sha256": "70ad1c038d9594e45729d04996b7aebf251da19942fdd867f95d9e17af545b6f"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/photo-marker-card-behavior.test.ts",
+      "sha256": "714a292c4c3afb290b4ac83ab79399b8d7234a7c81025984514f56c6a4937631"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/types.ts",
+      "sha256": "da2b89af5cbe26bd3657cbc7c53b26af1b159fbf2010f2da1f6ad07430aed448"
+    },
+    {
+      "path": "packages/ui/src/hover-card/index.tsx",
+      "sha256": "5c2e50e8a367952855c8c5fa9d48890ab5f98a8c864676cbcd4fea7a04fd7871"
+    },
+    {
+      "path": "packages/ui/src/lazy-image/index.tsx",
+      "sha256": "5e6a3cbcfd46f58dafc979e014e0b2f04cedecba7c85e0b1baec165cc416c142"
+    },
+    {
+      "path": "packages/ui/src/button/GlassButton.tsx",
+      "sha256": "97e536fa4a105bbeaea24d36e564027f6b4c0ae0dc5471d4f00553211646173c"
+    },
+    {
+      "path": "apps/web/src/hooks/usePhotoViewer.ts",
+      "sha256": "cb819816d91ba3226f06033fca8aefa397660815cc1c1336bb6cac437fbe6ba8"
+    },
+    {
+      "path": "apps/web/src/modules/viewer/PhotoViewer.tsx",
+      "sha256": "012063d75551a288540ee764fc168a50b898c74750914626bfef3ad8c89d53b3"
+    },
+    {
+      "path": "apps/web/src/modules/map/MapSection.tsx",
+      "sha256": "e9a02b37babcfd32a2b06c4956a7cf9642719f058198b22796863188bb580111"
+    },
+    {
+      "path": "packages/utils/src/spring.ts",
+      "sha256": "e76ac4b40ffd369794200f0af704475c10e8b98ae00162a6f591396e65060614"
+    }
+  ],
+  "files": [
+    {
+      "local": "src/components/gallery/map/PhotoMarkerPin.tsx",
+      "sha256": "215c7e19000378bd1fa184e1a585f5b7b4751c60897ff57db9a92a349aa22839"
+    },
+    {
+      "local": "src/components/gallery/map/PhotoMarkerCard.tsx",
+      "sha256": "217c8086aeb057dd70160c66c52ca31fc54825c47387f850bf32f95feb19cad8"
+    },
+    {
+      "local": "src/components/gallery/map/PhotoMarkerImage.tsx",
+      "sha256": "461dee00dba59191fbf70a35dfa1ff284924197905d7d68879a89204e5459872"
+    },
+    {
+      "local": "src/components/gallery/map/photo-marker-card-behavior.ts",
+      "sha256": "70ad1c038d9594e45729d04996b7aebf251da19942fdd867f95d9e17af545b6f"
+    },
+    {
+      "local": "src/components/gallery/PhotoMap.tsx",
+      "sha256": "10ea1319ac182d574d1b42c6e894678d734c17f638971282860ad79a8ef592dc"
+    },
+    {
+      "local": "src/components/gallery/ProjectGallery.tsx",
+      "sha256": "9b13d5f1ddf7e6aa019fa50c45ae80f267e586102e8b5f8e072ef670304c8656"
+    },
+    {
+      "local": "src/components/gallery/GalleryIcons.css",
+      "sha256": "ee136250e7ab2af6a0a601fb74e7dd32ce1a7b13291fc79b181fe4db95a92f5e"
+    },
+    {
+      "local": "src/components/viewer/photos.ts",
+      "sha256": "bb25b173adc81a41c4b2fe23e5dfdc2f1187e01c80a1fd8fb54926919a89cbee"
+    },
+    {
+      "local": "src/components/viewer/metadata.ts",
+      "sha256": "2868b44022299633286e1c785b77d1e43d4dafc318c979b0383111584d79dd52"
+    },
+    {
+      "local": "src/styles/gallery.css",
+      "sha256": "6e239ed63de60c0b060be6ad9d4ce113bf39ae82c1bd8e42711f6c1071b97fd2"
+    },
+    {
+      "local": "tests/website/photo-marker-card-behavior.test.ts",
+      "sha256": "5e73756f115805d06f632690db4e8ceba7e72fca743d21cf2b7f486845be47f6"
+    },
+    {
+      "local": "tests/website/metadata.test.ts",
+      "sha256": "7da9a54a891caba194255e7ab19ae8a4fc7a5630826fec01f7078f75a38296bb"
+    },
+    {
+      "local": "tests/website/website.test.ts",
+      "sha256": "60d0d29ff6694e4c87324ca7ee54e67832ec22acda79c8549422f3a7516144a7"
+    },
+    {
+      "local": "tests/website/gallery.test.ts",
+      "sha256": "57a9f46ff92cabc4eba6ae72605f016a0aceb70ad2875115e56d4cd15f2450e4"
+    },
+    {
+      "local": "tests/website/photo-marker-image.test.ts",
+      "sha256": "efb2a2a5006927b78362eb0340c6e0ae74d6ccaddc0cf6616344651008d2bd4d"
+    },
+    {
+      "local": "src/components/viewer/HoverCard.tsx",
+      "sha256": "d6247622993f050204436112a13acc66463a37ebe4a75b91f87e48d7e6522ff8"
+    },
+    {
+      "local": "tests/viewer/interactions.test.ts",
+      "sha256": "3f99cc98544e597f473721b5d2379923464e92fbc7f1ef231808d2762b827148"
+    }
+  ]
+}

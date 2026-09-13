@@ -143,7 +143,7 @@
     },
     {
       "local": "src/styles/gallery.css",
-      "localSha256": "047b406ea007050462d9ab64a9cd0f350ed000dce229867070097fa2582e90f7",
+      "localSha256": "6e239ed63de60c0b060be6ad9d4ce113bf39ae82c1bd8e42711f6c1071b97fd2",
       "license": "AGPL-3.0-or-later + ANL §4",
       "upstream": [
         {
@@ -160,7 +160,8 @@
         }
       ],
       "phase4Adaptation": "DESIGN.md semantic tokens, local overflow tooltips, and spring-only spatial motion.",
-      "mapPhase2Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin"
+      "mapPhase2Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin",
+      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards"
     },
     {
       "local": "src/components/gallery/ListView.tsx",
@@ -287,9 +288,10 @@
   "assets": [
     {
       "local": "src/components/gallery/GalleryIcons.css",
-      "sha256": "b2cbc372ce0c33387cdbcbea6310cd8bb24372be7803c14bd9172b1b856745bb",
+      "sha256": "ee136250e7ab2af6a0a601fb74e7dd32ce1a7b13291fc79b181fe4db95a92f5e",
       "source": "@iconify-json/mingcute 1.2.8",
-      "license": "Apache-2.0"
+      "license": "Apache-2.0",
+      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards"
     }
   ]
 }

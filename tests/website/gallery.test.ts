@@ -103,7 +103,8 @@ test('480-photo native map bounds HTML markers to the viewport and releases moti
   await expect.poll(() => page.locator('.photo-marker-pin').count()).toBeGreaterThan(20);
   assert(await page.locator('.photo-marker-pin').count() < 150, 'only loaded unclustered photos near the viewport get HTML markers');
   await expect(page.locator('.photo-marker-pin[aria-pressed="true"]')).toHaveCount(1);
-  const listenersBefore = await page.evaluate(() => (window as any).phase2MotionListeners.size - document.querySelectorAll('.photo-marker-pin').length);
+  const listenersBefore = await page.evaluate(() => (window as any).phase2MotionListeners.size
+    - document.querySelectorAll('.photo-marker-pin').length - document.querySelectorAll('.photo-marker-card .ellipsis-text').length);
   const canvas = page.locator('.photo-map canvas'), box = (await canvas.boundingBox())!;
   for (let cycle = 0; cycle < 3; cycle++) {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -112,7 +113,8 @@ test('480-photo native map bounds HTML markers to the viewport and releases moti
     const ids = await page.locator('.photo-marker-host').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-photo-id')));
     assert.equal(new Set(ids).size, ids.length, 'pan does not duplicate tiled markers');
     assert(ids.length < 150);
-    await expect.poll(() => page.evaluate(() => (window as any).phase2MotionListeners.size - document.querySelectorAll('.photo-marker-pin').length)).toBe(listenersBefore);
+    await expect.poll(() => page.evaluate(() => (window as any).phase2MotionListeners.size
+      - document.querySelectorAll('.photo-marker-pin').length - document.querySelectorAll('.photo-marker-card .ellipsis-text').length)).toBe(listenersBefore);
   }
   await page.getByRole('button', { name: 'Zoom out' }).click();
   await page.waitForTimeout(500);

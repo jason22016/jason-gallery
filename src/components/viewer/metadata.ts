@@ -47,8 +47,12 @@ export function unit(value: unknown, suffix: string): string {
 }
 export function aperture(value: number | undefined): string { return value != null && Number.isFinite(value) && value > 0 ? `ƒ/${value}` : ''; }
 export function altitude(exif: Exif): string {
+  const numeric = numericAltitude(exif);
+  return numeric !== undefined ? unit(numeric, 'm') : unit(exif?.GPSAltitude, 'm');
+}
+export function numericAltitude(exif: Exif): number | undefined {
   const value = exif?.GPSAltitude;
-  if (typeof value !== 'number' || !Number.isFinite(value)) return unit(value, 'm');
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
   const below = /below/i.test(String(exif?.GPSAltitudeRef)) || Number(exif?.GPSAltitudeRef) === 1;
-  return unit(below ? -Math.abs(value) : value, 'm');
+  return below ? -Math.abs(value) : value;
 }

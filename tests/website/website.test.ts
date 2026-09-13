@@ -615,6 +615,7 @@ test('real MapLibre renders photo markers, expands a native cluster, selects a p
     layers: [{ id: 'fixture-background', type: 'background', paint: { 'background-color': '#102030' } }, { id: 'attribution', type: 'circle', source: 'attribution' }],
   } }));
   await page.route('**/fixture-font/**', route => route.fulfill({ contentType: 'application/x-protobuf', body: Buffer.alloc(0) }));
+  await page.route('**/fonts/**/*.pbf', route => route.fulfill({ contentType: 'application/x-protobuf', body: Buffer.alloc(0) }));
   await page.getByRole('button', { name: '地图探索' }).click();
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
   await expect(page.locator('.map-photo-list button')).toHaveCount(3);
@@ -829,6 +830,158 @@ async function assertMapSelection(page: Page, id: string) {
   if (points.length === 2) assert(Math.abs(Math.abs(points[1]!.x - points[0]!.x) - 512 * 2 ** 15 * .001 / 360) < 2, 'single-photo entry uses upstream zoom 15');
 }
 
+test('map cards separate delayed hover/focus previews from persistent selection and safely render metadata', async t => {
+  const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  await page.addInitScript({ content: `
+    window.cardMotionListeners = new Set();
+    const add = MediaQueryList.prototype.addEventListener, remove = MediaQueryList.prototype.removeEventListener;
+    MediaQueryList.prototype.addEventListener = function(type, listener, ...args) {
+      if (type === 'change' && this.media.includes('prefers-reduced-motion')) window.cardMotionListeners.add(listener);
+      return Reflect.apply(add, this, [type, listener, ...args]);
+    };
+    MediaQueryList.prototype.removeEventListener = function(type, listener, ...args) {
+      if (type === 'change' && this.media.includes('prefers-reduced-motion')) window.cardMotionListeners.delete(listener);
+      return Reflect.apply(remove, this, [type, listener, ...args]);
+    };
+  ` });
+  const errors: string[] = [], unexpected: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('request', request => { if (/\/originals\/|\/photos\/.*\.json/.test(request.url())) unexpected.push(request.url()); });
+  const id = fixture.photos[0]!.photoId;
+  const near = fixture.manifest.data.find(photo => photo.s3Key === 'map-near.jpg')!.id;
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map&mapPhoto=${id}`);
+  await assertMapSelection(page, id);
+  const selectedCard = page.locator('[data-card-kind="selected"]');
+  const hoverCard = page.locator('[data-card-kind="hover"]');
+  const selected = page.locator(`.photo-marker-host[data-photo-id="${id}"] .photo-marker-pin`);
+  const neighbor = page.locator(`.photo-marker-host[data-photo-id="${near}"] .photo-marker-pin`);
+  await expect(selectedCard).toBeVisible();
+  await expect(selectedCard.locator('[data-card-photo]')).toHaveAttribute('data-card-photo', id);
+  await expect(selectedCard.locator('[data-card-field="camera"]')).toHaveText('NIKON Z6');
+  await expect(selectedCard.locator('[data-card-field="date"]')).toHaveText('2024年3月2日');
+  await expect(selectedCard.locator('[data-card-field="coordinates"]')).toHaveText('22.3000°N, 114.1700°E');
+  await expect(selectedCard.locator('[data-card-field="altitude"]')).toHaveText('0.0 m');
+  await expect(selectedCard).toHaveCSS('backdrop-filter', 'blur(40px)');
+  await expect(selectedCard).toHaveCSS('border-radius', '16px');
+  assert((await selectedCard.boundingBox())!.y + (await selectedCard.boundingBox())!.height < (await selected.boundingBox())!.y, 'selected card anchors above its pin');
+  const panelClose = page.getByRole('button', { name: '关闭面板', exact: true });
+  await panelClose.focus(); await page.keyboard.press('Shift+Tab');
+  await expect(selectedCard.locator('.photo-marker-card-title')).toBeFocused();
+  await page.keyboard.press('Tab'); await expect(panelClose).toBeFocused();
+  await selected.hover(); await page.waitForTimeout(450);
+  await expect(hoverCard).toHaveCount(0);
+  for (let cycle = 0; cycle < 5; cycle++) {
+    await neighbor.hover({ position: { x: 20, y: 38 } }); await page.waitForTimeout(40); await page.mouse.move(0, 0);
+  }
+  await page.waitForTimeout(450); await expect(hoverCard).toHaveCount(0);
+  await neighbor.hover({ position: { x: 20, y: 38 } }); await expect(hoverCard).toBeVisible();
+  await expect(hoverCard.locator('[data-card-photo]')).toHaveAttribute('data-card-photo', near);
+  await expect(hoverCard.locator('[data-card-field="date"]')).toHaveText('2024年3月1日');
+  await expect(hoverCard.locator('[data-card-field="camera"], [data-card-field="altitude"]')).toHaveCount(0);
+  await page.mouse.move(0, 0); await expect(hoverCard).toHaveCount(0);
+  const motionListeners = await page.evaluate(() => (window as any).cardMotionListeners.size);
+  for (let cycle = 0; cycle < 3; cycle++) {
+    await neighbor.hover({ position: { x: 20, y: 38 } }); await expect(hoverCard).toBeVisible();
+    await page.mouse.move(0, 0); await expect(hoverCard).toHaveCount(0);
+  }
+  assert.equal(await page.evaluate(() => (window as any).cardMotionListeners.size), motionListeners);
+  await expect(selectedCard).toBeVisible();
+  await neighbor.focus(); await expect(hoverCard).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(selectedCard.locator('[data-card-photo]')).toHaveAttribute('data-card-photo', near);
+  await expect(hoverCard).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(selectedCard).toHaveCount(0); await expect(neighbor).toBeFocused();
+  await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
+  assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), null);
+  await selected.click(); await expect(selectedCard).toBeVisible();
+  await selectedCard.getByRole('button', { name: '取消选择：街角 Portrait' }).click();
+  await expect(selectedCard).toHaveCount(0);
+  await page.waitForTimeout(100);
+  await panelClose.focus(); await page.keyboard.press('Shift+Tab');
+  assert(await page.evaluate(() => !!document.activeElement?.closest('.gallery-panel')), 'parent focus trap resumes after selection closes');
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  assert.equal(new URL(page.url()).searchParams.get('panel'), 'map');
+  assert.deepEqual(unexpected, []); assert.deepEqual(errors, []);
+});
+
+test('map cards open the existing Viewer in filter/sort order and preserve map URL, viewport and Back/Forward', async t => {
+  const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  const id = fixture.photos[0]!.photoId;
+  const near = fixture.manifest.data.find(photo => photo.s3Key === 'map-near.jpg')!.id;
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map&mapPhoto=${id}&start=2024-03-01&sort=asc&view=list#gallery`);
+  await assertMapSelection(page, id);
+  const mapURL = page.url(), positions = await mapCircles(page, 'photo');
+  const initialHistory = await page.evaluate(() => history.length);
+  await page.locator('[data-card-kind="selected"]').screenshot({ path: path.join(repo, '.cache/map-phase3-desktop.png') });
+  await page.locator('[data-card-kind="selected"] .photo-marker-card-title').click(); await loaded(page);
+  await expect(page.locator('.swiper-slide-active')).toHaveAttribute('data-photo-id', id);
+  await expect(page.locator('.viewer-counter')).toHaveText('2 / 2');
+  assert.equal(await page.evaluate(() => history.length), initialHistory + 1);
+  assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), id);
+  await page.keyboard.press('ArrowLeft'); await loaded(page);
+  await expect(page.locator('.swiper-slide-active')).toHaveAttribute('data-photo-id', near);
+  assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), id);
+  await page.getByRole('button', { name: '关闭照片' }).click(); await assertMapSelection(page, id);
+  await expect(page).toHaveURL(mapURL);
+  assert.deepEqual(await mapCircles(page, 'photo'), positions);
+  await page.goForward(); await loaded(page);
+  await expect(page.locator('.swiper-slide-active')).toHaveAttribute('data-photo-id', near);
+  await page.goBack(); await assertMapSelection(page, id);
+  const hover = page.locator('[data-card-kind="hover"]');
+  await page.locator(`.photo-marker-host[data-photo-id="${near}"] .photo-marker-pin`).hover({ position: { x: 20, y: 38 } });
+  await expect(hover).toBeVisible();
+  await hover.locator('.photo-marker-card-title').click(); await loaded(page);
+  await expect(page.locator('.swiper-slide-active')).toHaveAttribute('data-photo-id', near);
+  assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), id);
+  await page.keyboard.press('Escape'); await assertMapSelection(page, id);
+  const imageLink = page.locator('[data-card-kind="selected"] .photo-marker-card-image');
+  await imageLink.focus(); await page.keyboard.press('Tab');
+  await expect(page.locator('[data-card-kind="selected"] .photo-marker-card-title')).toBeFocused();
+  await page.locator('[data-card-kind="selected"] .photo-marker-card-close').click();
+  await expect(page.locator('[data-card-kind="selected"]')).toHaveCount(0);
+  assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), null);
+  await page.goBack(); await assertMapSelection(page, id);
+  await page.goForward(); await expect(page.locator('.photo-map')).not.toHaveAttribute('data-selected-photo');
+  for (const key of ['panel', 'start', 'sort', 'view']) assert.equal(new URL(page.url()).searchParams.get(key), new URL(mapURL).searchParams.get(key));
+  assert.equal(new URL(page.url()).hash, '#gallery');
+});
+
+test('map cards support touch selection and image-to-Viewer with viewport bounds and missing metadata', async t => {
+  const ctx = await context({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await mapFixture(page);
+  const id = fixture.photos[0]!.photoId;
+  const near = fixture.manifest.data.find(photo => photo.s3Key === 'map-near.jpg')!.id;
+  const far = fixture.manifest.data.find(photo => photo.s3Key === 'map-far.jpg')!.id;
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map&mapPhoto=${id}`);
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  await page.locator(`.photo-marker-host[data-photo-id="${near}"] .photo-marker-pin`).tap({ position: { x: 20, y: 38 } });
+  const card = page.locator('[data-card-kind="selected"]');
+  await expect(card.locator('[data-card-photo]')).toHaveAttribute('data-card-photo', near);
+  await expect(page.locator('[data-card-kind="hover"]')).toHaveCount(0);
+  const box = (await card.boundingBox())!;
+  assert(box.x >= 15 && box.x + box.width <= 375 && box.y >= 15 && box.y + box.height <= 829);
+  await page.screenshot({ path: path.join(repo, '.cache/map-phase3-mobile.png') });
+  await card.locator('.photo-marker-card-image').tap(); await loaded(page);
+  await expect(page.locator('.swiper-slide-active')).toHaveAttribute('data-photo-id', near);
+  await expect(page.locator('.viewer-counter')).toHaveText('2 / 4');
+  await page.getByRole('button', { name: '关闭照片' }).tap();
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', near);
+  await card.locator('.photo-marker-card-close').tap(); await expect(card).toHaveCount(0);
+  await page.waitForTimeout(450); await expect(page.locator('[data-card-kind="hover"]')).toHaveCount(0);
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map&mapPhoto=${far}`);
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+  await expect(card.locator('[data-card-photo]')).toHaveAttribute('data-card-photo', far);
+  await expect(card.locator('[data-card-field]')).toHaveCount(1);
+  await expect(card.locator('[data-card-field="coordinates"]')).toHaveText('22.3400°N, 114.2200°E');
+  await page.setViewportSize({ width: 390, height: 420 });
+  await expect(card).toHaveAttribute('data-side', 'top');
+  const shortBox = (await card.boundingBox())!;
+  assert(shortBox.y >= 15 && shortBox.y + shortBox.height <= 405);
+});
+
 test('photo marker materials, thumbnail, keyboard selection and history preserve the same map and marker instances', async t => {
   const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
   const page = await ctx.newPage(); await mapFixture(page);
@@ -894,7 +1047,7 @@ test('touch photo markers select without opening Viewer and reduced motion keeps
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
   const neighbor = page.locator('.photo-marker-pin[aria-pressed="false"]').first();
   const next = await neighbor.locator('..').getAttribute('data-photo-id');
-  await neighbor.tap();
+  await neighbor.tap({ position: { x: 20, y: 38 } });
   await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', next!);
   await expect(page.locator('.photo-dialog')).toHaveCount(0);
   await expect(page.locator('.photo-marker-selection')).toHaveCSS('animation-name', 'none');
@@ -910,7 +1063,7 @@ test('photo marker spring hover, focus and press scales use upstream gestures an
   const neighbor = page.locator('.photo-marker-pin[aria-pressed="false"]').first();
   const scale = () => neighbor.evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).a);
   await expect.poll(scale).toBe(1);
-  await neighbor.hover(); await expect.poll(async () => Math.abs(await scale() - 1.1)).toBeLessThan(.01);
+  await neighbor.hover({ position: { x: 20, y: 38 } }); await expect.poll(async () => Math.abs(await scale() - 1.1)).toBeLessThan(.01);
   await page.mouse.down(); await expect.poll(async () => Math.abs(await scale() - .9)).toBeLessThan(.01);
   await page.mouse.up();
   const selected = page.locator('.photo-marker-pin[aria-pressed="true"]');
@@ -932,8 +1085,9 @@ test('failed marker thumbnails retain thumbhash and camera without requesting or
   const id = fixture.photos[0]!.photoId;
   await page.goto(`${server.url}/projects/fixture-zeta/?panel=map&mapPhoto=${id}`);
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
-  await expect(page.locator('.photo-marker-image img:not([src^="data:"])')).toHaveCount(0);
-  await expect(page.locator('.photo-marker-image img[src^="data:"]')).toHaveCount(1);
+  await expect(page.locator('.photo-marker-pin .photo-marker-image img:not([src^="data:"])')).toHaveCount(0);
+  await expect(page.locator('.photo-marker-pin .photo-marker-image img[src^="data:"]')).toHaveCount(1);
+  await expect(page.locator('[data-card-kind="selected"] .photo-marker-image img[src^="data:"]')).toHaveCount(1);
   await expect(page.locator('.photo-marker-pin .i-mingcute-camera-line')).toBeVisible();
   assert.deepEqual(originals, []);
 });

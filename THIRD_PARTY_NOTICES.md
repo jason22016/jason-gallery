@@ -235,3 +235,33 @@ Project/Viewer attribution and source links.
 accent extraction were also studied. HoverCard and anchored selected Card code
 remain excluded for P3. Reference and adapted-file SHA-256 values are recorded in
 [licenses/map-phase2-upstream.json](licenses/map-phase2-upstream.json).
+
+## Map Phase 3 — Photo Marker Cards
+
+Current `Afilmory/Afilmory` main was fetched and verified on 2026-09-13 at
+`1f65cde6672e5231599182620116ac904e39f548`. The complete upstream `DESIGN.md`
+was read before changes and matches `docs/viewer/AFILMORY_DESIGN.md` (CC BY 4.0).
+Copyright (c) 2025 Afilmory Team. Application derivatives retain
+**AGPL-3.0-or-later + ANL §4**, the full [Afilmory license](licenses/AFILMORY-LICENSE)
+and existing visible Project/Viewer attribution and source links.
+
+| Local file | Upstream source / pattern | Adaptation |
+| --- | --- | --- |
+| `gallery/map/photo-marker-card-behavior.ts` | `apps/web/src/components/ui/map/shared/photo-marker-card-behavior.ts` | Exact source copy: 400ms open, 100ms close, independent anchored selected card. The two upstream tests are migrated to `tests/website/photo-marker-card-behavior.test.ts`, changing only the import and removing an inapplicable ESLint directive. |
+| `gallery/map/PhotoMarkerPin.tsx`; `PhotoMarkerCard.tsx` | `apps/web/src/components/ui/map/shared/PhotoMarkerPin.tsx`; `shared/types.ts` | Migrates HoverCard composition, shared card content, 320px width, 128px crop, 16px inset, title/arrow, date/camera/GPS/altitude rows, top anchor, 12px selected offset, close affordance and `.96`/4px entry. Existing shared Spring and semantic material/40px panel blur/16px radius take precedence over legacy styling. Native Marker portals replace react-map-gl; the existing Radix nonmodal Popover anchor escapes MapLibre clipping and follows map motion. Available top space constrains height, with scrolling and viewport collision handling. No outside/hover dismissal of selection. |
+| `gallery/map/PhotoMarkerImage.tsx` | `packages/ui/src/lazy-image/index.tsx` (MIT) and the P2 image adapter | Shares thumbhash → native lazy thumbnail rendering between pin and card. Keeps Jason's hexadecimal hash decoder and error lifecycle. Rejects missing thumbnails and URLs equal to the original; no full-resolution fallback or metadata fetch. Delayed HoverCard mounting limits speculative loading. |
+| `PhotoMarkerCard.tsx` close subtree | `packages/ui/src/button/GlassButton.tsx` (MIT) | Retains circular glass layers and 1.1/.95 spring gestures, with normative 32px size, 12px control blur, semantic tokens, keyboard name/focus and reduced motion. |
+| `viewer/HoverCard.tsx` | `packages/ui/src/hover-card/index.tsx` (MIT), existing local adapter | Adds an optional reduced-motion input. Map previews reuse the pin's reactive preference without initializing Motion's permanent global media listener on first hover. The existing Viewer default and portal/motion behavior remain the same. |
+| `PhotoMarkerCard.tsx` focus boundary | Jason native dialog/Panel focus model | Preserves the combined map/card Tab boundary while the persistent nonmodal Popover pauses the parent FocusScope. Removes its temporary keyboard listener and sizing frame when the card unmounts; Escape/Viewer ownership remains separate. |
+| `gallery/PhotoMap.tsx`; `ProjectGallery.tsx` | Controlled selected-marker callbacks; existing Jason Viewer history owner | Full lightweight ViewerPhoto props supply preformatted date/camera and signed coordinates. The shared mobile breakpoint disables hover, while touch/keyboard selection use the same anchored card. Close pushes only a cleared `mapPhoto` state; card image/title anchors call the existing Viewer open flow. Viewer navigation and close preserve map/filter/sort context and viewport restoration. |
+| `viewer/photos.ts`; `viewer/metadata.ts` | Jason display-data projection | Projects finite, signed EXIF altitude into an optional number, preserving zero and below-sea-level values without serializing full EXIF or changing the metadata formatter's behavior. |
+| `src/styles/gallery.css`; `gallery/GalleryIcons.css` | Card/HoverCard/GlassButton utility styles; `DESIGN.md` | Scoped CSS and existing semantic material/blur/accent/shadow primitives. Adds only the original MingCute `mountain-2-line` SVG from `@iconify-json/mingcute@1.2.8`, retaining Apache-2.0 attribution and `licenses/MINGCUTE-LICENSE`. |
+
+`packages/ui/src/hover-card/index.tsx` (MIT), LazyImage, GlassButton, map types,
+`apps/web/src/hooks/usePhotoViewer.ts` and the Viewer/MapSection integration were
+studied. The existing local HoverCard primitive is reused with the optional
+reduced-motion input described above.
+No production dependency, alternate photo page, clustering algorithm or Cluster UI
+was introduced. Source and adapted-file SHA-256 values are recorded in
+[licenses/map-phase3-upstream.json](licenses/map-phase3-upstream.json); overlapping
+prior provenance entries point to this reviewed Phase 3 adaptation.

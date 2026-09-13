@@ -56,7 +56,8 @@
   "files": [
     {
       "local": "src/components/gallery/map/PhotoMarkerPin.tsx",
-      "sha256": "68758502bdde5aa3b25a97178f070e18af2e2d3cc45a3f41b8d55ea6fddb42c0"
+      "sha256": "215c7e19000378bd1fa184e1a585f5b7b4751c60897ff57db9a92a349aa22839",
+      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards"
     },
     {
       "local": "src/components/gallery/map/photo-marker-registry.ts",
@@ -64,15 +65,18 @@
     },
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "264c1048e8b1c830736403ee0a5eaedd80650b70886d7aeb2272c99a3b4392f2"
+      "sha256": "10ea1319ac182d574d1b42c6e894678d734c17f638971282860ad79a8ef592dc",
+      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards"
     },
     {
       "local": "src/components/gallery/ProjectGallery.tsx",
-      "sha256": "5f651c5814987579b03df41b6662eca0ca84006e5e39a95368ebc1e53d9bfabd"
+      "sha256": "9b13d5f1ddf7e6aa019fa50c45ae80f267e586102e8b5f8e072ef670304c8656",
+      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards"
     },
     {
       "local": "src/styles/gallery.css",
-      "sha256": "047b406ea007050462d9ab64a9cd0f350ed000dce229867070097fa2582e90f7"
+      "sha256": "6e239ed63de60c0b060be6ad9d4ce113bf39ae82c1bd8e42711f6c1071b97fd2",
+      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards"
     }
   ]
 }

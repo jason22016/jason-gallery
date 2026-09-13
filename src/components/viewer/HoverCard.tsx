@@ -7,8 +7,14 @@ import { Spring } from '@afilmory/utils';
 import type { ComponentPropsWithoutRef } from 'react';
 export const HoverCard = HoverCardPrimitive.Root;
 export const HoverCardTrigger = HoverCardPrimitive.Trigger;
-export function HoverCardContent({ container, children, ...props }: ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content> & { container?: HTMLElement | null }) {
-  const reduced = useReducedMotion();
+type HoverCardContentProps = ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content> & { container?: HTMLElement | null; reducedMotion?: boolean };
+export function HoverCardContent({ reducedMotion, ...props }: HoverCardContentProps) {
+  return reducedMotion === undefined ? <AutomaticHoverCardContent {...props} /> : <AnimatedHoverCardContent {...props} reduced={reducedMotion} />;
+}
+function AutomaticHoverCardContent(props: Omit<HoverCardContentProps, 'reducedMotion'>) {
+  return <AnimatedHoverCardContent {...props} reduced={!!useReducedMotion()} />;
+}
+function AnimatedHoverCardContent({ container, children, reduced, ...props }: Omit<HoverCardContentProps, 'reducedMotion'> & { reduced: boolean }) {
   return <HoverCardPrimitive.Portal container={container}>
     <HoverCardPrimitive.Content align="center" sideOffset={4} {...props} asChild>
       <m.div initial={reduced ? false : { opacity: 0, scale: .95, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: .95, y: 4 }} transition={reduced ? { duration: 0 } : Spring.presets.smooth}>
