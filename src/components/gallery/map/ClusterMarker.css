@@ -1,0 +1,32 @@
+.photo-map .cluster-marker-host { z-index: 10; }
+.photo-map .cluster-marker-host:hover, .photo-map .cluster-marker-host:focus-within { z-index: 20; }
+.gallery-page .cluster-marker { position: relative; display: block; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; touch-action: manipulation; }
+.gallery-page .cluster-marker:hover:not(:disabled) { background: transparent; }
+.gallery-page .cluster-marker:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
+.cluster-marker-ring { position: absolute; inset: -6px; border-radius: 50%; background: color-mix(in srgb, var(--color-accent) 20%, transparent); opacity: .6; animation: photo-marker-pulse 2s linear infinite; pointer-events: none; }
+.cluster-marker-surface { position: relative; display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; border: .5px solid var(--gallery-border); border-radius: 50%; background: var(--color-material-thick); -webkit-backdrop-filter: blur(var(--gallery-blur-control)); backdrop-filter: blur(var(--gallery-blur-control)); box-shadow: var(--gallery-shadow); transition: background-color 200ms, border-color 200ms; }
+.cluster-marker:hover .cluster-marker-surface, .cluster-marker:focus-visible .cluster-marker-surface { background: var(--color-material-medium); border-color: color-mix(in srgb, var(--color-accent) 40%, transparent); }
+.cluster-marker-mosaic { position: absolute; inset: 4px; display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); overflow: hidden; border-radius: 50%; }
+.cluster-marker-mosaic-cell { position: relative; overflow: hidden; opacity: .3; }
+.cluster-marker-mosaic-cell .photo-marker-image { opacity: 1; border-radius: 0; }
+.cluster-marker-wash { position: absolute; inset: 4px; border-radius: 50%; background: linear-gradient(to bottom right, color-mix(in srgb, var(--color-accent) 12%, transparent), color-mix(in srgb, var(--color-blue) 20%, transparent)); }
+.cluster-marker-glass { position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(to bottom right, var(--color-fill), var(--color-fill-tertiary)); }
+.cluster-marker-count { position: relative; z-index: 10; color: var(--color-text); font: 700 12px/1 var(--gallery-font-sans); }
+.cluster-marker-inner { position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 1px 2px var(--color-fill-tertiary); }
+.cluster-photo-grid { position: relative; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.cluster-photo-grid header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cluster-photo-grid h3 { margin: 0; color: var(--color-text); font-size: 14px; font-weight: 600; }
+.cluster-photo-grid header > span, .cluster-photo-grid p { font-size: 12px; color: var(--color-text-secondary); }
+.cluster-photo-grid p { margin: 0; }
+.cluster-photo-grid-images { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cluster-photo-cell, .cluster-photo-more { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 8px; background: var(--color-fill-secondary); }
+.cluster-photo-cell .photo-marker-image { display: block; opacity: 1; border-radius: 0; }
+.cluster-photo-more { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.cluster-photo-more strong { font-size: 18px; color: var(--color-text); }
+.cluster-photo-more span { font-size: 12px; color: var(--color-text-secondary); }
+.cluster-photo-metadata { position: relative; display: flex; flex-direction: column; gap: 8px; padding-top: 12px; }
+.cluster-photo-metadata::before { content: ''; position: absolute; inset: 0 0 auto; height: .5px; background: linear-gradient(to right, transparent, var(--color-fill), transparent); }
+.cluster-photo-metadata > div { display: flex; align-items: center; gap: 8px; color: var(--color-text-secondary); font-size: 12px; }
+.cluster-photo-metadata .gallery-icon { font-size: 14px; }
+.cluster-photo-coordinates { font-family: var(--gallery-font-mono); overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .cluster-marker-ring { animation: none; } .cluster-marker-surface { transition: none; } }

@@ -579,28 +579,11 @@ test('filtered/sorted share URL restores the same sequence; Forward then Close d
   assert(!new URL(direct.url()).searchParams.has('tag'));
 });
 
-// Inspect visible circle pixels in the real WebGL canvas, without exposing application test hooks.
 async function mapCircles(page: Page, kind: 'cluster' | 'photo') {
-  if (kind === 'photo') return page.locator('.photo-marker-pin').evaluateAll(nodes => nodes.map(node => {
+  return page.locator(kind === 'photo' ? '.photo-marker-pin' : '.cluster-marker').evaluateAll(nodes => nodes.map(node => {
     const box = node.getBoundingClientRect(), canvas = document.querySelector('.photo-map canvas')!.getBoundingClientRect();
     return { x: box.x + box.width / 2 - canvas.x, y: box.y + box.height / 2 - canvas.y, area: box.width * box.height };
   }));
-  const { default: sharp } = await import('sharp');
-  const { data, info } = await sharp(await page.locator('.photo-map canvas').screenshot()).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-  const color = await page.locator('[aria-label="地图探索"][data-active]').evaluate(el => getComputedStyle(el).color);
-  const rgb = color.match(/[\d.]+/g)!.slice(0, 3).map(Number);
-  const visited = new Set<number>(), circles: { x: number; y: number; area: number }[] = [];
-  const matches = (i: number) => i >= 0 && i < info.width * info.height && data[i * 3] === rgb[0] && data[i * 3 + 1] === rgb[1] && data[i * 3 + 2] === rgb[2];
-  for (let i = 0; i < info.width * info.height; i++) {
-    if (visited.has(i) || !matches(i)) continue;
-    const queue = [i]; visited.add(i); let x = 0, y = 0;
-    for (let j = 0; j < queue.length; j++) {
-      const pixel = queue[j]!; x += pixel % info.width; y += Math.floor(pixel / info.width);
-      for (const next of [pixel - 1, pixel + 1, pixel - info.width, pixel + info.width]) if (!visited.has(next) && matches(next)) { visited.add(next); queue.push(next); }
-    }
-    if (queue.length > 800) circles.push({ x: x / queue.length, y: y / queue.length, area: queue.length });
-  }
-  return circles;
 }
 
 test('real MapLibre renders photo markers, expands a native cluster, selects a point and restores the filtered map', async t => {
@@ -636,7 +619,7 @@ test('real MapLibre renders photo markers, expands a native cluster, selects a p
   await expect(attribution.getByRole('link')).toBeVisible();
   const clusters = await mapCircles(page, 'cluster'); assert.equal(clusters.length, 1);
   assert.equal((await mapCircles(page, 'photo')).length, 1);
-  await page.locator('.photo-map canvas').click({ position: { x: clusters[0]!.x, y: clusters[0]!.y } });
+  await page.locator('.cluster-marker').click();
   await expect.poll(async () => (await mapCircles(page, 'cluster')).length).toBe(0);
   await expect.poll(async () => (await mapCircles(page, 'photo')).length).toBe(2);
   const marker = page.locator('.photo-marker-pin').first();

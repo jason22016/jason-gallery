@@ -265,3 +265,24 @@ No production dependency, alternate photo page, clustering algorithm or Cluster 
 was introduced. Source and adapted-file SHA-256 values are recorded in
 [licenses/map-phase3-upstream.json](licenses/map-phase3-upstream.json); overlapping
 prior provenance entries point to this reviewed Phase 3 adaptation.
+
+## Map Phase 4 — Cluster Marker and Photo Preview
+
+Afilmory current main was read through the GitHub connector and verified on
+2026-09-13 at `1f65cde6672e5231599182620116ac904e39f548`. The complete
+`DESIGN.md` was read first and matches `docs/viewer/AFILMORY_DESIGN.md`.
+Copyright (c) 2025 Afilmory Team. Application derivatives retain
+**AGPL-3.0-or-later + ANL §4**, the full [license](licenses/AFILMORY-LICENSE),
+and the existing visible Project/Viewer attribution and source links.
+
+| Local file | Upstream source / pattern | Adaptation |
+| --- | --- | --- |
+| `gallery/map/ClusterMarker.tsx`; `cluster-preview.ts` | `apps/web/src/components/ui/map/shared/ClusterMarker.tsx`; `shared/types.ts` | Reuses the exact bounded logarithmic 40–64px size policy, circular 2×2 mosaic, 30% image opacity, count, 6px pulse ring, glass and inner layers, 1.05/.95 gestures, and 300/150ms HoverCard delays. Native MapLibre Marker hosts and existing React portals replace react-map-gl. Native buttons add keyboard focus and direct click/tap expansion. DESIGN.md overrides legacy neutral ramps, light/dark pairs, hard shadows and inline spring parameters. |
+| `gallery/map/ClusterPhotoGrid.tsx` | `apps/web/src/components/ui/map/ClusterPhotoGrid.tsx` | Retains three-column square thumbnails, 8px gaps, 16px card inset, six-photo cap, +N tile, compact coordinates/date rows, and staggered `Spring.presets.smooth` entry. Jason's native count supplies the total and remainder. Preview cells are descriptive; activation of the cluster retains expansion. Capture range comes from native worker aggregates for all members rather than the six sample photos, and uses validated recorded calendar days. |
+| `gallery/map/ClusterMarker.css` | ClusterMarker / ClusterPhotoGrid utility styles; `DESIGN.md` §§2–7, 12 | Scoped CSS with existing semantic accent/blue wash, material, 12px control blur, 40px panel blur, hairline and faint shared shadows. Reuses the existing opacity pulse; spatial motion uses shared Spring. Reduced motion disables spatial gestures, entry and pulse. Focus follows the semantic accent token. |
+| `gallery/map/cluster-marker-registry.ts`; `gallery/PhotoMap.tsx` | Jason-specific native bridge; upstream `shared/clustering.ts` / `shared/types.ts` studied | Keeps native clustering and its existing radius. Deduplicates visible cluster IDs across source tiles/world copies, reuses marker instances, fetches four leaves once for mosaic and six on delayed preview, and retains data only for active markers. Pending requests deduplicate and cannot replace a larger sample. Generation and entry identity discard stale results after zoom, source update, retirement or teardown. Native `getClusterExpansionZoom()` still feeds `easeTo()`, with latest-click and lifecycle guards. Native `clusterProperties` min/max aggregate validated capture days without another clustering algorithm or full leaf scan. |
+| `gallery/map/PhotoMarkerImage.tsx`; `viewer/HoverCard.tsx` (unchanged) | Existing P2/P3 adapters of MIT `packages/ui/src/lazy-image/index.tsx` / `hover-card/index.tsx`; shared Spring | Reuses thumbhash and lazy thumbnail rendering, including missing/original-equal guards; no original fallback or full metadata request. Reuses delayed Radix composition, collision positioning, material card styling and the caller's reactive reduced-motion preference. |
+
+No dependency, Viewer, MiniMap, map controls, info panel, fullscreen or overall
+layout changes are included. Upstream/source and adapted-file hashes are in
+[licenses/map-phase4-upstream.json](licenses/map-phase4-upstream.json).

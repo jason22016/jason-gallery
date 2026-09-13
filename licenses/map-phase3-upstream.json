@@ -77,7 +77,8 @@
     },
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "10ea1319ac182d574d1b42c6e894678d734c17f638971282860ad79a8ef592dc"
+      "sha256": "8fd410638a79ad4dc4496801586781fcda86122b7d63cfac8d28a26fe882391e",
+      "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview"
     },
     {
       "local": "src/components/gallery/ProjectGallery.tsx",
@@ -109,11 +110,13 @@
     },
     {
       "local": "tests/website/website.test.ts",
-      "sha256": "60d0d29ff6694e4c87324ca7ee54e67832ec22acda79c8549422f3a7516144a7"
+      "sha256": "fd11bbf0e29833d30a13f5a825ae07b8fe46badbaf30c0e9e0bd2427d2cc081e",
+      "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview"
     },
     {
       "local": "tests/website/gallery.test.ts",
-      "sha256": "57a9f46ff92cabc4eba6ae72605f016a0aceb70ad2875115e56d4cd15f2450e4"
+      "sha256": "318446f381775b5398af00322790e06217e965acd8373ee9bd92df8515d19f99",
+      "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview"
     },
     {
       "local": "tests/website/photo-marker-image.test.ts",

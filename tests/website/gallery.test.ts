@@ -65,6 +65,88 @@ async function ready(page: Page, query = '') {
   await expect(page.locator('.masonry-photo').first()).toBeVisible();
   await expect(page.locator('.masonry-photo').first().locator('img')).toHaveCSS('opacity', '1');
 }
+async function clusterFixture(page: Page) {
+  const located = photos.slice(0, 12).map((photo, index) => ({ ...photo, video: undefined, src: `/original-forbidden/${index}.jpg`,
+    date: index === 6 ? '2024-04-01T00:30:00+14:00' : index === 7 ? '2023-12-30T23:30:00-12:00' : photo.date,
+    location: { longitude: 114.17 + (index < 8 ? index * .00001 : .08 + index * .00001), latitude: 22.3 } }));
+  await page.route('**/photos.json', route => route.fulfill({ json: located }));
+  await page.route('**/dark-matter-gl-style/style.json', route => route.fulfill({ json: {
+    version: 8, sources: {}, layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#102030' } }],
+  } }));
+  return located;
+}
+
+test('native cluster mosaic and focus preview use actual leaves, bounded thumbnails, total count and whole-cluster dates', async t => {
+  const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  const located = await clusterFixture(page);
+  let originals = 0; const errors: string[] = [];
+  page.on('request', request => { if (request.url().includes('/original-forbidden/')) originals++; });
+  page.on('pageerror', error => errors.push(error.message));
+  await ready(page, '?panel=map');
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+  const large = page.locator('.cluster-marker[data-point-count="8"]'), small = page.locator('.cluster-marker[data-point-count="4"]');
+  await expect(large).toHaveCount(1); await expect(small).toHaveCount(1);
+  await expect(large.locator('[data-mosaic-photo]')).toHaveCount(4);
+  const members = new Set(located.slice(0, 8).map(photo => photo.id));
+  const mosaic = await large.locator('[data-mosaic-photo]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-mosaic-photo')));
+  assert(mosaic.every(id => members.has(id!)));
+  const size = (await large.boundingBox())!.width;
+  assert(Math.abs(size - (32 + Math.log(8) * 8)) < .1);
+  await large.hover(); await page.waitForTimeout(80); await small.hover(); await page.waitForTimeout(80);
+  await expect(page.locator('[data-card-kind="cluster"]')).toHaveCount(0);
+  await page.mouse.move(0, 0);
+  await large.focus();
+  const card = page.locator('[data-card-kind="cluster"]');
+  await expect(card).toBeVisible(); await expect(card.locator('[data-cluster-photo]')).toHaveCount(6);
+  await expect(card.locator('h3')).toHaveText('8 张照片');
+  await expect(card.locator('[data-cluster-remaining]')).toHaveText('+2更多照片');
+  await expect(card.locator('[data-cluster-date]')).toHaveText('2023年12月30日 — 2024年4月1日');
+  await expect(card.locator('.cluster-photo-coordinates')).toContainText('22.3000°N');
+  const preview = await card.locator('[data-cluster-photo]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-cluster-photo')));
+  assert(preview.every(id => members.has(id!))); assert.equal(new Set(preview).size, 6);
+  await expect(card).toHaveCSS('backdrop-filter', 'blur(40px)'); await expect(card).toHaveCSS('border-radius', '16px');
+  for (const image of await card.locator('img').all()) assert.match((await image.getAttribute('src'))!, /^\/thumb\.jpg\?id=\d+$/);
+  await page.screenshot({ path: path.join(screenshots, 'map-phase4-cluster-preview.png') });
+  await small.focus();
+  await expect(card.locator('h3')).toHaveText('4 张照片'); await expect(card.locator('[data-cluster-photo]')).toHaveCount(4);
+  await expect(card.locator('[data-cluster-remaining]')).toHaveCount(0);
+  const otherMembers = new Set(located.slice(8).map(photo => photo.id));
+  assert((await card.locator('[data-cluster-photo]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-cluster-photo')))).every(id => otherMembers.has(id!)));
+  await large.focus(); await expect(card.locator('h3')).toHaveText('8 张照片');
+  await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
+  await expect(card).toHaveCount(0);
+  await expect(large).toHaveCount(1); await large.click();
+  await expect.poll(() => page.locator('.photo-marker-pin').count()).toBe(8);
+  await expect(card).toHaveCount(0); await expect(large).toHaveCount(0);
+  assert.equal(new URL(page.url()).searchParams.get('mapPhoto'), null);
+  await page.locator('.photo-marker-pin').first().focus();
+  await expect(page.locator('[data-card-kind="hover"]')).toBeVisible();
+  await page.keyboard.press('Enter'); await expect(page.locator('[data-card-kind="selected"]')).toBeVisible();
+  assert(new URL(page.url()).searchParams.has('mapPhoto'));
+  await page.getByRole('button', { name: '关闭面板' }).click();
+  await expect(page.locator('.cluster-marker, [data-card-kind="cluster"]')).toHaveCount(0);
+  await page.evaluate(() => { history.pushState(history.state, '', '?panel=map&tag=偶数'); window.dispatchEvent(new PopStateEvent('popstate')); });
+  await expect(page.locator('.cluster-marker[data-point-count="4"]')).toHaveCount(1);
+  await page.locator('.cluster-marker[data-point-count="4"]').focus();
+  await expect(card.locator('[data-cluster-photo]')).toHaveCount(4);
+  assert((await card.locator('[data-cluster-photo]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-cluster-photo')))).every(id => Number(id!.slice(6)) % 2 === 0));
+  assert.equal(originals, 0); assert.deepEqual(errors, []);
+});
+
+test('touch cluster tap expands immediately without a preview and reduced motion disables the pulse', async t => {
+  const { ctx, page } = await pageFor({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  await clusterFixture(page);
+  await ready(page, '?panel=map');
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+  const cluster = page.locator('.cluster-marker[data-point-count="8"]');
+  await expect(cluster).toHaveCount(1); await expect(cluster.locator('.cluster-marker-ring')).toHaveCSS('animation-name', 'none');
+  await cluster.tap();
+  await expect.poll(() => page.locator('.photo-marker-pin').count()).toBe(8);
+  await expect(page.locator('[data-card-kind="cluster"]')).toHaveCount(0);
+  await page.locator('.photo-marker-pin').first().focus(); await page.locator('.photo-marker-pin').first().tap();
+  await expect(page.locator('[data-card-kind="selected"]')).toBeVisible();
+  await page.screenshot({ path: path.join(screenshots, 'map-phase4-mobile-expanded.png') });
+});
 const cards = (page: Page) => page.locator('.masonry-photo');
 
 test('480-photo native map bounds HTML markers to the viewport and releases motion subscriptions on close', async t => {
@@ -104,7 +186,7 @@ test('480-photo native map bounds HTML markers to the viewport and releases moti
   assert(await page.locator('.photo-marker-pin').count() < 150, 'only loaded unclustered photos near the viewport get HTML markers');
   await expect(page.locator('.photo-marker-pin[aria-pressed="true"]')).toHaveCount(1);
   const listenersBefore = await page.evaluate(() => (window as any).phase2MotionListeners.size
-    - document.querySelectorAll('.photo-marker-pin').length - document.querySelectorAll('.photo-marker-card .ellipsis-text').length);
+    - document.querySelectorAll('.photo-marker-pin, .cluster-marker').length - document.querySelectorAll('.photo-marker-card .ellipsis-text').length);
   const canvas = page.locator('.photo-map canvas'), box = (await canvas.boundingBox())!;
   for (let cycle = 0; cycle < 3; cycle++) {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -114,7 +196,7 @@ test('480-photo native map bounds HTML markers to the viewport and releases moti
     assert.equal(new Set(ids).size, ids.length, 'pan does not duplicate tiled markers');
     assert(ids.length < 150);
     await expect.poll(() => page.evaluate(() => (window as any).phase2MotionListeners.size
-      - document.querySelectorAll('.photo-marker-pin').length - document.querySelectorAll('.photo-marker-card .ellipsis-text').length)).toBe(listenersBefore);
+      - document.querySelectorAll('.photo-marker-pin, .cluster-marker').length - document.querySelectorAll('.photo-marker-card .ellipsis-text').length)).toBe(listenersBefore);
   }
   await page.getByRole('button', { name: 'Zoom out' }).click();
   await page.waitForTimeout(500);

@@ -1,0 +1,96 @@
+{
+  "repository": "https://github.com/Afilmory/Afilmory",
+  "commit": "1f65cde6672e5231599182620116ac904e39f548",
+  "verifiedAt": "2026-09-13",
+  "license": "AGPL-3.0-or-later + ANL §4 (application); MIT (packages/ui)",
+  "designAuthority": {
+    "path": "docs/viewer/AFILMORY_DESIGN.md",
+    "sha256": "12643e2c980ac021da63ffafaf76c6f2d06d8c479c7da25832da7bbb68b265ab"
+  },
+  "adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview",
+  "references": [
+    {
+      "path": "DESIGN.md",
+      "sha256": "12643e2c980ac021da63ffafaf76c6f2d06d8c479c7da25832da7bbb68b265ab",
+      "gitBlobSha": "fbdbf83b72ce2b725fb482a62528b99f501e90d6"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/ClusterMarker.tsx",
+      "sha256": "d7d910cdf021f60fff142a20446f91569f57cf999332857e1896cb749e71fda3",
+      "gitBlobSha": "76dad5392abadcd76eb4951ef8f8c03b00b8e2cc"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/ClusterPhotoGrid.tsx",
+      "sha256": "51396b76b5e40f5da28197b939ac1d5c0d8f85071d6259b2ca7057f971aff990",
+      "gitBlobSha": "091618e530788d80c4cfe901dfb369d95a8d5078"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/clustering.ts",
+      "sha256": "f1b6808622a264a882167bda608044470b2dd1d0e8cbdde691f6e45fef874d10",
+      "gitBlobSha": "c60fc16befef19e01631be3ecc749bd48cb097fe"
+    },
+    {
+      "path": "apps/web/src/components/ui/map/shared/types.ts",
+      "sha256": "da2b89af5cbe26bd3657cbc7c53b26af1b159fbf2010f2da1f6ad07430aed448",
+      "gitBlobSha": "574455cbbcc037b4a62751b5c9e47397f9d1c24d"
+    },
+    {
+      "path": "packages/ui/src/hover-card/index.tsx",
+      "sha256": "5c2e50e8a367952855c8c5fa9d48890ab5f98a8c864676cbcd4fea7a04fd7871",
+      "gitBlobSha": "21e752115a56a6bc3029be3e57deaf65156275aa"
+    },
+    {
+      "path": "packages/ui/src/lazy-image/index.tsx",
+      "sha256": "5e6a3cbcfd46f58dafc979e014e0b2f04cedecba7c85e0b1baec165cc416c142",
+      "gitBlobSha": "ba90c5effa79443cb322de03bee198ce3ba7a9a5"
+    },
+    {
+      "path": "packages/utils/src/spring.ts",
+      "sha256": "e76ac4b40ffd369794200f0af704475c10e8b98ae00162a6f591396e65060614",
+      "gitBlobSha": "e767a12b1af1f720389daac2cea0bc64d02ce944"
+    },
+    {
+      "path": "packages/ui/src/button/GlassButton.tsx",
+      "sha256": "97e536fa4a105bbeaea24d36e564027f6b4c0ae0dc5471d4f00553211646173c",
+      "gitBlobSha": "c6ee4286c71dc470d16ecad67093e3693ece5f4e"
+    }
+  ],
+  "files": [
+    {
+      "local": "src/components/gallery/PhotoMap.tsx",
+      "sha256": "8fd410638a79ad4dc4496801586781fcda86122b7d63cfac8d28a26fe882391e"
+    },
+    {
+      "local": "src/components/gallery/map/ClusterMarker.tsx",
+      "sha256": "d6528835ce353ddf60ebe1886b0976ab50e553097dd52030891e092a6053e16b"
+    },
+    {
+      "local": "src/components/gallery/map/ClusterPhotoGrid.tsx",
+      "sha256": "c74a8b5a1ffe1b68757b1890732fcf2b131d604b78c3a9dce9f5e0e753386dac"
+    },
+    {
+      "local": "src/components/gallery/map/ClusterMarker.css",
+      "sha256": "6a8020f251c32166250581492bed9474a707020f3f654edfb2f95cda4f5f5ed1"
+    },
+    {
+      "local": "src/components/gallery/map/cluster-marker-registry.ts",
+      "sha256": "54823164831b5b3fe5c3b973a378bc645d06aaf08ad5402dec822f1ec378a199"
+    },
+    {
+      "local": "src/components/gallery/map/cluster-preview.ts",
+      "sha256": "2fd344e8037d1e3bafdbbc8f8aec85f423b540ea899aff2cb6cc8cd9dc687c53"
+    },
+    {
+      "local": "tests/website/cluster-preview.test.ts",
+      "sha256": "3737c3528adb9e36d9d6ac97d432baddf8a5a0e3b39a63f227f09f81f2937127"
+    },
+    {
+      "local": "tests/website/gallery.test.ts",
+      "sha256": "318446f381775b5398af00322790e06217e965acd8373ee9bd92df8515d19f99"
+    },
+    {
+      "local": "tests/website/website.test.ts",
+      "sha256": "fd11bbf0e29833d30a13f5a825ae07b8fe46badbaf30c0e9e0bd2427d2cc081e"
+    }
+  ]
+}

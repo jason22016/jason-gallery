@@ -46,9 +46,10 @@
     },
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "10ea1319ac182d574d1b42c6e894678d734c17f638971282860ad79a8ef592dc",
+      "sha256": "8fd410638a79ad4dc4496801586781fcda86122b7d63cfac8d28a26fe882391e",
       "phase2Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin",
-      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards"
+      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards",
+      "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview"
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",
