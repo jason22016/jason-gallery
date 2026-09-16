@@ -24,9 +24,11 @@ async function pageFor(mode: 'auto' | 'webgl' | 'no-gpu' | 'webgpu-failure' = 'a
   return page;
 }
 async function loaded(page: Page, renderer?: string) {
-  await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loaded', { timeout: 30_000 });
-  if (renderer) await expect(page.locator('.viewer-media')).toHaveAttribute('data-renderer', renderer);
-  assert.equal(await page.locator('.viewer-preview').count(), 0);
+  // Renderer loss is asynchronous: never accept the preceding renderer's loaded
+  // state while its replacement is still decoding and showing the preview.
+  const media = page.locator(renderer ? `.viewer-media[data-renderer="${renderer}"]` : '.viewer-media');
+  await expect(media).toHaveAttribute('data-media-state', 'loaded', { timeout: 30_000 });
+  await expect(media.locator('.viewer-preview')).toHaveCount(0);
 }
 
 test('streamed download reports real bytes and percentage at bottom right, then hides on display', async () => {
