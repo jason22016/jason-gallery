@@ -8,7 +8,7 @@ export interface DeployIO {
   api: (route: string, method?: string) => Promise<any>;
   heads: () => Promise<{ website: string; photos: PhotoSnapshot }>;
   upload: (directory: string, release: Release) => Promise<void>;
-  version: (url: string) => Promise<{ version: string; websiteCommit: string; photoSnapshotVersion: string; runNumber: number }>;
+  version: (url: string) => Promise<{ version: string; websiteCommit: string; photoSnapshotVersion: string; runNumber: number; siteURL?: string | null }>;
 }
 export function deploymentIO(): DeployIO {
   const { CLOUDFLARE_ACCOUNT_ID: account, CLOUDFLARE_API_TOKEN: token, CLOUDFLARE_PAGES_PROJECT: project } = process.env;
@@ -48,7 +48,7 @@ export async function deployRelease(directory: string, io: DeployIO = deployment
   if (previous) {
     const current = await io.version(previous.url);
     if (current.runNumber > release.runNumber) throw new Error('Older workflow cannot overwrite a newer deployment');
-    if (current.websiteCommit === release.websiteCommit && current.photoSnapshotVersion === release.photoSnapshot.version) return { status: 'unchanged', url: `https://${project.subdomain}`, deploymentUrl: previous.url, deploymentId: previous.id, version: current.version };
+    if (current.websiteCommit === release.websiteCommit && current.photoSnapshotVersion === release.photoSnapshot.version && current.siteURL === release.siteURL) return { status: 'unchanged', url: release.siteURL ?? `https://${project.subdomain}`, deploymentUrl: previous.url, deploymentId: previous.id, version: current.version };
   }
   await verifyRelease(directory);
   await io.upload(directory, release);
@@ -58,12 +58,12 @@ export async function deployRelease(directory: string, io: DeployIO = deployment
   try {
     const current = await io.version(deployment.url);
     const latest: PagesProject = await io.api('');
-    if (current.version !== release.version || latest.canonical_deployment?.id !== deployment.id) throw new Error('Deployed version/canonical deployment mismatch');
+    if (current.version !== release.version || current.siteURL !== release.siteURL || latest.canonical_deployment?.id !== deployment.id) throw new Error('Deployed version/canonical deployment mismatch');
   } catch {
     if (previous) { await io.api(`/deployments/${previous.id}/rollback`, 'POST'); throw new Error('Deployed verification failed; restored preceding production deployment'); }
     throw new Error('First deployment verification failed; no previous deployment exists to restore');
   }
-  return { status: 'success', url: `https://${project.subdomain}`, deploymentUrl: deployment.url, deploymentId: deployment.id, version: release.version };
+  return { status: 'success', url: release.siteURL ?? `https://${project.subdomain}`, deploymentUrl: deployment.url, deploymentId: deployment.id, version: release.version };
 }
 export async function rollbackDeployment(id: string, io: DeployIO = deploymentIO()) {
   if (!/^[a-f0-9-]{36}$/.test(id)) throw new Error('Provide the exact Cloudflare deployment UUID');
@@ -73,5 +73,5 @@ export async function rollbackDeployment(id: string, io: DeployIO = deploymentIO
   await io.api(`/deployments/${id}/rollback`, 'POST');
   const project: PagesProject = await io.api('');
   if (project.canonical_deployment?.id !== id) throw new Error('Rollback outcome unconfirmed');
-  return { status: 'success', action: 'rollback', url: `https://${project.subdomain}`, deploymentUrl: deployment.url, deploymentId: id, ...version };
+  return { status: 'success', action: 'rollback', url: version.siteURL ?? `https://${project.subdomain}`, deploymentUrl: deployment.url, deploymentId: id, ...version };
 }

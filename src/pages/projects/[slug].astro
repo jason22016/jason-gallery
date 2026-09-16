@@ -3,12 +3,13 @@ import type { GetStaticPaths } from 'astro';
 import { loadProjects, type ResolvedProject } from '../../projects';
 import SiteLayout from '../../layouts/SiteLayout.astro';
 import Gallery from '../../components/Gallery.astro';
+import { projectDescription, projectShareImage } from '../../website/seo';
 export const getStaticPaths = (() => loadProjects().listProjects().map(project => ({
   params: { slug: project.slug }, props: { project },
 }))) satisfies GetStaticPaths;
 interface Props { project: ResolvedProject; }
 const { project } = Astro.props;
 ---
-<SiteLayout title={project.title} description={project.summary ?? project.title} gallery>
+<SiteLayout title={project.title} description={projectDescription(project)} image={projectShareImage(project)} gallery>
   <Gallery project={project} />
 </SiteLayout>

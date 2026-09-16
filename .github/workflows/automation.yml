@@ -57,6 +57,7 @@ jobs:
       EXPECTED_WEBSITE_COMMIT: ${{ inputs.expected_website_commit }}
       TASK_MODE: ${{ inputs.mode || 'publish' }}
       AUTO_DEPLOY_ENABLED: ${{ vars.AUTO_DEPLOY_ENABLED || 'false' }}
+      SITE_URL: ${{ vars.SITE_URL || 'https://jason-gallery.pages.dev' }}
       PHOTO_COMMITS: ${{ inputs.photo_commits }}
       PHOTO_RUN_ID: ${{ inputs.photo_run_id }}
       SYNC_FIRST_RUN: ${{ inputs.sync_first_run }}

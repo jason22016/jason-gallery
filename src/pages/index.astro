@@ -2,9 +2,10 @@
 import SiteLayout from '../layouts/SiteLayout.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import { loadProjects } from '../projects';
+import { projectShareImage } from '../website/seo';
 const projects = loadProjects().listProjects();
 ---
-<SiteLayout>
+<SiteLayout image={projectShareImage(projects[0])}>
   <h1 class="sr-only">Projects</h1>
   {projects.length > 0 ? (
     <ul class="project-grid" aria-label="摄影项目">{projects.map((project, index) => <ProjectCard project={project} index={index} />)}</ul>

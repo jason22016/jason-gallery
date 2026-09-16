@@ -7,6 +7,7 @@ import { AdminService } from './service';
 function secure(response: Response, env: Env) {
   const result = new Response(response.body, response);
   result.headers.set('Cache-Control', 'no-store');
+  result.headers.set('X-Robots-Tag', 'noindex, nofollow');
   result.headers.set('X-Content-Type-Options', 'nosniff');
   result.headers.set('Referrer-Policy', 'no-referrer');
   result.headers.set('Content-Security-Policy', "default-src 'self'; img-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");

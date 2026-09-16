@@ -10,6 +10,19 @@ test.before(prepareKeys);
 async function api(f: Awaited<ReturnType<typeof fixture>>, path:string, body?:unknown, jwt?:string, headers:Record<string,string>={}) {
   return handle(new Request(env.ADMIN_ORIGIN+path,{method:body===undefined?'GET':'POST',headers:{'Cf-Access-Jwt-Assertion':jwt??await token(),...(body===undefined?{}:{Origin:env.ADMIN_ORIGIN,'Content-Type':'application/json'}),...headers},body:body===undefined?undefined:JSON.stringify(body)}),env,f.fetcher);
 }
+test('admin success, API, asset and error responses prohibit indexing without weakening authentication', async () => {
+  const f = await fixture();
+  for (const [path, jwt, status] of [['/', '', 401], ['/robots.txt', '', 401], ['/sitemap.xml', '', 401], ['/', await token(), 200], ['/api/state', await token(), 200], ['/api/missing', await token(), 404]] as const) {
+    const response = await api(f, path, undefined, jwt);
+    assert.equal(response.status, status);
+    assert.equal(response.headers.get('X-Robots-Tag'), 'noindex, nofollow');
+    assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  }
+  const unconfigured = await handle(new Request(env.ADMIN_ORIGIN), { ...env, GITHUB_TOKEN: '' }, f.fetcher);
+  assert.equal(unconfigured.status, 503);
+  assert.equal(unconfigured.headers.get('X-Robots-Tag'), 'noindex, nofollow');
+  assert.equal(f.mutations.length, 0);
+});
 test('all APIs and static assets reject missing, forged, expired, wrong issuer/audience/email JWT; authenticated same-origin writes only', async()=>{
   const f=await fixture();
   for(const path of ['/','/api/state','/api/save','/api/dispatch','/api/sync-preview','/api/thumbnail/1/foo']) {

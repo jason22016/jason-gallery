@@ -11,15 +11,16 @@ export const repo = fileURLToPath(new URL('../../', import.meta.url));
 export const root = path.join(repo, '.cache/website-fixture');
 export const dist = path.join(root, 'dist');
 
-export function run(args: string[], cwd: string) {
-  const result = spawnSync(process.execPath, args, { cwd, encoding: 'utf8', timeout: 90_000, env: { ...process.env, ASTRO_TELEMETRY_DISABLED: '1' } });
+export function run(args: string[], cwd: string, env: Record<string, string | undefined> = {}) {
+  const result = spawnSync(process.execPath, args, { cwd, encoding: 'utf8', timeout: 90_000, env: { ...process.env, ASTRO_TELEMETRY_DISABLED: '1', ...env } });
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stdout + result.stderr);
   return result.stdout + result.stderr;
 }
 
 /** Dedicated root: never swap out production content or its generated assets. */
-export async function buildFixture() {
+export async function buildFixture(options: { root?: string; siteURL?: string } = {}) {
+  const root = options.root ?? path.join(repo, '.cache/website-fixture');
   await fs.rm(root, { force: true, recursive: true });
   await fs.mkdir(root, { recursive: true });
   await fs.cp(path.join(repo, 'src'), path.join(root, 'src'), {
@@ -85,7 +86,7 @@ export async function buildFixture() {
   const content = path.join(root, 'src/content/projects');
   await fs.mkdir(content, { recursive: true });
   for (const project of projects) await fs.writeFile(path.join(content, `${project.slug}.json`), JSON.stringify(project));
-  await fs.writeFile(path.join(root, 'build.log'), run([path.join(repo, 'node_modules/astro/bin/astro.mjs'), 'build'], root));
+  await fs.writeFile(path.join(root, 'build.log'), run([path.join(repo, 'node_modules/astro/bin/astro.mjs'), 'build'], root, { SITE_URL: options.siteURL ?? 'https://gallery.seo-fixture.com' }));
   return { manifest, projects, photos };
 }
 

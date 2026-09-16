@@ -6,7 +6,7 @@ import { dist } from './fixture';
 
 /** Small static test host, including the generated custom 404. No application API. */
 export async function serve(directory = dist, port = 0) {
-  const types: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.txt': 'text/plain', '.json': 'application/json' };
+  const types: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.txt': 'text/plain', '.json': 'application/json', '.xml': 'application/xml; charset=utf-8' };
   const server = createServer(async (request, response) => {
     try {
       const pathname = decodeURIComponent(new URL(request.url!, 'http://localhost').pathname);

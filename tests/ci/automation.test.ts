@@ -122,7 +122,7 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   const {version: _, ...record} = original; record.source = 'github';
   const simulated: Release = {...record,version:sha256(JSON.stringify(record))};
   await fs.writeFile(path.join(destination,'release.json'),JSON.stringify(simulated));
-  await fs.writeFile(path.join(destination,'dist/build-version.json'),JSON.stringify({version:simulated.version,websiteCommit:codeCommit,photoSnapshotVersion:simulated.photoSnapshot.version,runNumber:10}));
+  await fs.writeFile(path.join(destination,'dist/build-version.json'),JSON.stringify({version:simulated.version,websiteCommit:codeCommit,photoSnapshotVersion:simulated.photoSnapshot.version,runNumber:10,siteURL:simulated.siteURL}));
   let uploads = 0, rollback = false, wrongVersion = false;
   const old = {id:'00000000-0000-0000-0000-000000000001',url:'https://old.example',environment:'production',latest_stage:{status:'success'}};
   const next = {...old,id:'00000000-0000-0000-0000-000000000002',url:'https://new.example',deployment_trigger:{metadata:{commit_message:`gallery:${simulated.version}`}}};
@@ -130,7 +130,7 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   const io: DeployIO = {
     heads: async()=>({website:codeCommit,photos:simulated.photoSnapshot}),
     upload: async()=>{uploads++;latest=next;},
-    version: async url => ({version:url===old.url?'old':wrongVersion?'wrong':simulated.version,websiteCommit:url===old.url?'b'.repeat(40):codeCommit,photoSnapshotVersion:simulated.photoSnapshot.version,runNumber:url===old.url?9:10}),
+    version: async url => ({version:url===old.url?'old':wrongVersion?'wrong':simulated.version,websiteCommit:url===old.url?'b'.repeat(40):codeCommit,photoSnapshotVersion:simulated.photoSnapshot.version,runNumber:url===old.url?9:10,siteURL:simulated.siteURL}),
     api: async(route,method)=>{
       if (method==='POST') {rollback=true;latest=old;return old;}
       if (route.startsWith('/deployments?')) return [next,old];
@@ -144,6 +144,10 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   await assert.rejects(deployRelease(destination,{...io,upload:async()=>{throw new Error('upload failed');}}),/upload failed/); assert.equal(latest.id,old.id);
   const deployed = await deployRelease(destination,io); assert.equal(deployed.status,'success'); assert.equal(deployed.version,simulated.version);
   assert.equal((await deployRelease(destination,io)).status,'unchanged'); assert.equal(uploads,1);
+  // The same code/photos on a different canonical domain must be republished.
+  let domainChecks = 0;
+  const domainChange = await deployRelease(destination, { ...io, version: async url => ({ ...await io.version(url), siteURL: domainChecks++ === 0 ? 'https://previous.gallery-domain.com' : simulated.siteURL }) });
+  assert.equal(domainChange.status, 'success'); assert.equal(uploads, 2); assert.equal(domainChange.url, simulated.siteURL);
   latest=old;wrongVersion=true;
   await assert.rejects(deployRelease(destination,io),/restored preceding/); assert(rollback); assert.equal(latest.id,old.id);
   wrongVersion=false;latest=next;

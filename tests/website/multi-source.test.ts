@@ -95,7 +95,7 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
   const simulated = { ...record, source:'github' as const };
   const version = sha256(JSON.stringify(simulated));
   await fs.writeFile(path.join(releaseRoot,'release.json'),JSON.stringify({...simulated,version}));
-  await fs.writeFile(path.join(releaseRoot,'dist/build-version.json'),JSON.stringify({version,websiteCommit:release.websiteCommit,photoSnapshotVersion:release.photoSnapshot.version,runNumber:1}));
+  await fs.writeFile(path.join(releaseRoot,'dist/build-version.json'),JSON.stringify({version,websiteCommit:release.websiteCommit,photoSnapshotVersion:release.photoSnapshot.version,runNumber:1,siteURL:release.siteURL}));
   let uploads = 0;
   const commits = Object.fromEntries(release.photoSnapshot.sources.map(s=>[s.sourceId,s.commit]));
   for (const snapshot of [makeSnapshot(config,{...commits,travel:'f'.repeat(40)}),makeSnapshot(parseSources({...config,sources:config.sources.slice(0,1)}),{'jason-photos':commits['jason-photos']!})]) {
