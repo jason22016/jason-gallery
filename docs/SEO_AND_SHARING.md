@@ -24,9 +24,9 @@
 - Open Graph 的网站名、类型、语言、标题、描述、绝对图片 URL/替代文字，以及 Twitter 大图卡片。
 - Project 分享图使用该项目已发布的 JPEG 封面缩略图；首页使用排序第一的公开项目封面。Explore、Global Map 和空站点使用构建生成的 `1200×630` 品牌 JPEG，地址为 `/social/default.jpg`。不依赖原始 HDR/HEIC 或后台图片接口。
 
-照片分享链接仍保留照片参数以打开 Viewer；由于是静态站点，聊天平台抓取到的分享卡片属于当前 Project / Explore / Map 页面，不能为不同 query 返回不同照片卡片。
+Viewer 浏览状态仍使用 Project / Explore / Map 页面的 `?photo=<internal-id>` 和现有筛选参数。点击分享时，Web Share、复制链接及失败时显示的地址统一使用当前照片的 `/photos/<short-public-id>/`，不会修改浏览 URL 或 history，也不携带筛选与 hash。
 
-Share Photo Page 第一阶段新增 `/photos/<short-public-id>/` 静态分享落地页，只从 Public Global Photo Collection 生成。每页使用当前照片自己的公开 JPEG thumbnail，并有独立 canonical、title/description、OG/Twitter 卡片；HTML 与 `/photos/*` 响应头均为 noindex，sitemap 不收录。`SiteLayout` 的 `shareable` 可以为 noindex 落地页保留分享元数据，404 和无正式地址预览继续省略 canonical/绝对分享地址。现有 Viewer Share 和 Gallery / Explore / Map 入口未接入新页面，规则与后续接口见 [Share Photo Page](SHARE_PHOTO_PAGE.md)。
+Share Photo Page 第一阶段新增 `/photos/<short-public-id>/` 静态分享落地页，只从 Public Global Photo Collection 生成。每页使用当前照片自己的公开 JPEG thumbnail，并有独立 canonical、title/description、OG/Twitter 卡片；HTML 与 `/photos/*` 响应头均为 noindex，sitemap 不收录。`SiteLayout` 的 `shareable` 可以为 noindex 落地页保留分享元数据，404 和无正式地址预览继续省略 canonical/绝对分享地址。第二阶段接入 Viewer Share；Gallery / Explore / Map 中仍没有 Photo Page 导航入口。落地页通过 primary published Project 的原有深链打开 Viewer，浏览器 Back 返回落地页。规则与接口见 [Share Photo Page](SHARE_PHOTO_PAGE.md)。
 
 ## 索引边界与 404
 

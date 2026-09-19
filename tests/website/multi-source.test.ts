@@ -84,7 +84,8 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
     assert.equal(new URL(page.url()).searchParams.get('photo'),p.id);
     const details = await context.request.get(`${server.url}/projects/mixed/photos/${p.id}.json`);
     assert.equal(details.status(),200); assert.equal((await details.json()).exif.Artist,`Artist ${i}`);
-    await page.getByRole('button',{name:'分享照片'}).click(); await expect(page.locator('.viewer-message')).toContainText(p.id);
+    await page.getByRole('button',{name:'分享照片'}).click();
+    await expect(page.locator('.viewer-message')).toHaveText(`${server.url}/photos/${shortPublicPhotoId(p.id)}/`);
     await page.reload(); await expectFallbackSource(page, p.originalUrl);
     if (i===0) await page.keyboard.press('ArrowRight');
   }

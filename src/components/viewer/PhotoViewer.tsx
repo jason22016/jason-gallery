@@ -124,7 +124,8 @@ function PhotoDialog({ photos, collectionTitle, index, trigger, onIndex, onClose
   };
   const closeInspector = () => { gestures.closeInspector(); dialog.current?.querySelector<HTMLButtonElement>('.viewer-close')?.focus(); };
   const share = async () => {
-    const url = location.href;
+    if (!photo.sharePath) { setMessage('此照片暂无公开分享链接。'); return; }
+    const url = new URL(photo.sharePath, location.origin).href;
     try {
       if (navigator.share && mobile) await navigator.share({ title: `${photo.title} — ${collectionTitle}`, url });
       else if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(url); setMessage('照片链接已复制'); }

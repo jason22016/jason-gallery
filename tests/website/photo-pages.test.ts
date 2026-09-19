@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import { copyFileSync } from 'node:fs';
 import path from 'node:path';
 import { before, after, test } from 'node:test';
 import sharp from 'sharp';
@@ -13,6 +14,7 @@ import { shortPublicPhotoId } from '../../src/website/public-photo-id';
 import { assertPublicOutput, publicOutputPaths } from '../../src/website/public-output';
 import { loadProjects } from '../../src/projects';
 import { photoDescription } from '../../src/website/seo';
+import { installMapFixture, openMapPhotoList } from './map-fixture';
 
 const expect = baseExpect.configure({ timeout: browserReadyTimeout(5_000) });
 const root = path.join(repo, '.cache/photo-pages-fixture');
@@ -29,6 +31,8 @@ before(async () => {
     portrait.digest = 'PHOTO PAGE PRIVATE DIGEST';
     portrait.regions = [{ name: 'PHOTO PAGE PRIVATE PERSON', area: null, appliedToDimensions: null }];
     Object.assign(portrait.exif!, { PrivateField: 'PHOTO PAGE PRIVATE EXIF' });
+    portrait.video = { type: 'live-photo', videoUrl: '/originals/live.mp4', s3Key: 'live.mp4' };
+    copyFileSync(path.join(repo, 'tests/gallery/live.mp4'), path.join(root, 'sources/live.mp4'));
     const empty = manifest.data.find(photo => photo.s3Key === 'map-far.jpg')!;
     empty.title = ''; empty.description = ''; empty.exif = null;
   } });
@@ -76,6 +80,153 @@ test('every public photo has one static share page with its own JPEG metadata, c
     for (const absent of ['PHOTO PAGE PRIVATE', 'DateTimeOriginal', 'GPSLatitude', 'toneAnalysis', 'detailsUrl', 'data-photo-gallery', photo.src]) assert(!html.includes(absent), absent);
   }
   assert.match(await fs.readFile(path.join(dist, '_headers'), 'utf8'), /\/photos\/\*\n  X-Robots-Tag: noindex, nofollow/);
+});
+
+const captureShare = `
+  window.shareCalls = []; window.copyCalls = [];
+  window.shareFailure = ''; window.copyFailure = false;
+  Object.defineProperty(navigator, 'share', { configurable: true, value: async data => {
+    window.shareCalls.push(data);
+    if (window.shareFailure) throw new DOMException('Fixture share failure', window.shareFailure);
+  } });
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async url => {
+    window.copyCalls.push(url);
+    if (window.copyFailure) throw new Error('Fixture clipboard failure');
+  } } });
+`;
+interface ShareCapture { shareCalls: ShareData[]; copyCalls: string[]; shareFailure: string; copyFailure: boolean; }
+
+for (const mobile of [false, true]) test(`${mobile ? 'Web Share' : 'Copy Link'} uses the same Photo Page from Project, other Project, Explore and Map without changing browsing history`, async t => {
+  const ctx = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: mobile ? 390 : 1280, height: 900 }, isMobile: mobile, hasTouch: mobile });
+  t.after(() => ctx.close()); await ctx.addInitScript({ content: captureShare });
+  const page = await ctx.newPage(); await installMapFixture(page, server.url);
+  const photo = collection.listPhotos()[0]!;
+  const shareURL = server.url + photo.sharePath;
+  const query = '?camera=NIKON+Z6&sort=desc&view=list&tracking=keep#gallery';
+  for (const route of ['/projects/fixture-beta/', '/projects/fixture-alpha/', '/explore/', '/map/']) {
+    await page.goto(server.url + route + query);
+    await expect(page.locator('[data-photo-gallery]')).toHaveAttribute('data-enhanced', 'true');
+    assert.equal(await page.locator('a[href^="/photos/"]').count(), 0, 'normal browsing has no Photo Page entry');
+    if (route === '/map/') {
+      await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
+      await openMapPhotoList(page); await page.locator('.map-photo-list button').click();
+    } else await page.locator('.gallery-live [data-gallery-index]').first().click();
+    await expect(page.locator('.photo-dialog')).toHaveAttribute('data-mobile', String(mobile));
+    const browsingURL = page.url();
+    assert.equal(new URL(browsingURL).searchParams.get('photo'), photo.id);
+    const history = await page.evaluate(() => ({ length: window.history.length, state: window.history.state }));
+    const collectionTitle = await page.locator('.gallery-live .gallery-header h1').textContent();
+    const share = page.getByRole('button', { name: '分享照片', exact: true });
+    if (mobile) await share.tap(); else await share.click();
+    if (mobile) {
+      await expect.poll(() => page.evaluate(() => (window as unknown as ShareCapture).shareCalls)).toEqual([{ title: `${photo.title} — ${collectionTitle}`, url: shareURL }]);
+    } else {
+      await expect.poll(() => page.evaluate(() => (window as unknown as ShareCapture).copyCalls)).toEqual([shareURL]);
+      await expect(page.locator('.viewer-message')).toHaveText('照片链接已复制');
+      assert.deepEqual(await page.evaluate(() => (window as unknown as ShareCapture).shareCalls), []);
+    }
+    assert.equal(page.url(), browsingURL);
+    assert.deepEqual(await page.evaluate(() => ({ length: window.history.length, state: window.history.state })), history);
+    await page.goBack(); await expect(page.locator('.photo-dialog')).toHaveCount(0);
+    assert.equal(page.url(), server.url + route + query);
+    await page.goForward(); await expect(page.locator('.photo-dialog')).toBeVisible();
+    assert.equal(page.url(), browsingURL);
+    const close = page.getByRole('button', { name: '关闭照片', exact: true });
+    if (mobile) await close.tap(); else await close.click();
+    await expect(page.locator('.photo-dialog')).toHaveCount(0);
+    assert.equal(page.url(), server.url + route + query);
+  }
+});
+
+test('share cancellation, unavailable APIs and rejected clipboard/native sharing retain the existing fallback', async t => {
+  const ctx = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  t.after(() => ctx.close()); await ctx.addInitScript({ content: captureShare });
+  const page = await ctx.newPage();
+  const photo = collection.listPhotos()[0]!;
+  const viewerHref = collection.getPhotoPage(photo.publicId)!.viewerHref;
+  await page.goto(server.url + viewerHref); await expect(page.locator('.photo-dialog')).toHaveAttribute('data-mobile', 'true');
+  const browsingURL = page.url();
+  await page.evaluate(() => { (window as unknown as ShareCapture).shareFailure = 'AbortError'; });
+  await page.getByRole('button', { name: '分享照片', exact: true }).tap();
+  await expect.poll(() => page.evaluate(() => (window as unknown as ShareCapture).shareCalls.length)).toBe(1);
+  assert.equal(await page.locator('.viewer-message').count(), 0);
+  await page.evaluate(() => { (window as unknown as ShareCapture).shareFailure = 'NotAllowedError'; });
+  await page.getByRole('button', { name: '分享照片', exact: true }).tap();
+  await expect(page.locator('.viewer-message')).toHaveText(server.url + photo.sharePath);
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+    (window as unknown as ShareCapture).copyFailure = true;
+  });
+  await page.getByRole('button', { name: '分享照片', exact: true }).tap();
+  await expect.poll(() => page.evaluate(() => (window as unknown as ShareCapture).copyCalls)).toEqual([server.url + photo.sharePath]);
+  await expect(page.locator('.viewer-message')).toHaveText(server.url + photo.sharePath);
+  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined }));
+  await page.getByRole('button', { name: '分享照片', exact: true }).tap();
+  await expect(page.locator('.viewer-message')).toHaveText(server.url + photo.sharePath);
+  assert.equal(page.url(), browsingURL);
+});
+
+test('Photo Page enters the primary Project Viewer, retains media/metadata/navigation and returns with Back', async t => {
+  const ctx = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1280, height: 900 } });
+  t.after(() => ctx.close()); await ctx.addInitScript({ content: captureShare + `
+    Object.defineProperty(navigator, 'gpu', { configurable: true, value: undefined });
+    const nativeContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function(kind, ...args) {
+      return ['webgl', 'webgl2', 'experimental-webgl'].includes(kind) && this.closest('.viewer-drag-content')
+        ? null : nativeContext.call(this, kind, ...args);
+    };
+  ` });
+  const page = await ctx.newPage(); await installMapFixture(page, server.url);
+  const photo = collection.listPhotos()[0]!;
+  const data = collection.getPhotoPage(photo.publicId)!;
+  const metadata: string[] = [];
+  page.on('request', request => { if (/\/photos\/[^/]+\.json$/.test(request.url())) metadata.push(request.url()); });
+  await page.goto(server.url + data.path);
+  assert.deepEqual(metadata, []);
+  const historyLength = await page.evaluate(() => history.length);
+  await page.getByRole('link', { name: '查看原图 · Open in Viewer', exact: true }).click();
+  await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loaded');
+  assert.equal(page.url(), server.url + data.viewerHref);
+  assert.equal(data.primaryProject.slug, 'fixture-beta');
+  assert.equal(await page.evaluate(() => history.length), historyLength + 1);
+  assert.deepEqual(await page.locator('[data-filmstrip-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-filmstrip-id'))), fixture.photos.map(photo => photo.photoId));
+  await expect(page.locator('.swiper-slide-active')).toHaveAttribute('data-photo-id', photo.id);
+  await page.getByRole('button', { name: '放大', exact: true }).click();
+  await expect.poll(() => page.locator('.viewer-fallback').evaluate(image => new DOMMatrixReadOnly(getComputedStyle(image).transform).a)).toBeGreaterThan(1);
+  await page.getByRole('button', { name: '适应屏幕', exact: true }).click();
+  await expect.poll(() => page.locator('.viewer-fallback').evaluate(image => new DOMMatrixReadOnly(getComputedStyle(image).transform).a)).toBe(1);
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
+  await expect(page.locator('.metadata-content')).toContainText('Fixture artist');
+  await expect(page.locator('.viewer-minimap')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+  assert.deepEqual(metadata, [server.url + photo.detailsUrl]);
+  await page.getByRole('button', { name: '照片信息', exact: true }).click();
+  await page.getByRole('button', { name: '下一张照片', exact: true }).click();
+  await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loaded');
+  const hdr = collection.getPhoto(fixture.photos[1]!.photoId)!;
+  await expect(page.locator('.swiper-slide-active')).toHaveAttribute('data-photo-id', hdr.id);
+  await expect(page.locator('.hdr-status')).toHaveText('HDR source');
+  await page.getByRole('button', { name: '分享照片', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as ShareCapture).copyCalls)).toEqual([server.url + hdr.sharePath]);
+  await page.getByRole('button', { name: '上一张照片', exact: true }).click();
+  await expect(page.locator('.viewer-counter')).toHaveText('1 / 3');
+  await page.keyboard.press('End'); await expect(page.locator('.viewer-counter')).toHaveText('3 / 3');
+  assert.equal(await page.evaluate(() => history.length), historyLength + 1, 'paging replaces the Project entry');
+  const lastViewerURL = page.url();
+  await page.goBack(); await expect(page.locator('.photo-share')).toBeVisible();
+  assert.equal(page.url(), server.url + data.path);
+  await page.goForward(); await expect(page.locator('.viewer-counter')).toHaveText('3 / 3');
+  assert.equal(page.url(), lastViewerURL);
+  await page.reload(); await expect(page.locator('.viewer-counter')).toHaveText('3 / 3');
+  await page.getByRole('button', { name: '关闭照片', exact: true }).click();
+  await expect(page.locator('.photo-dialog')).toHaveCount(0);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.mouse.move(0, 0);
+  const live = page.locator(`.gallery-live [data-photo-id="${photo.id}"]`);
+  await expect(live.locator('.live-photo-badge')).toHaveAttribute('data-state', 'ready');
+  await live.hover(); await expect(live.locator('video')).toHaveAttribute('data-playing', 'true');
+  await page.mouse.move(0, 0); await expect(live.locator('video')).toHaveAttribute('data-playing', 'false');
+  await page.goBack(); await expect(page.locator('.photo-share')).toBeVisible();
+  assert.equal(page.url(), server.url + data.path);
 });
 
 test('draft-only, unused, raw internal IDs and guessed short URLs return 404 and stay outside the output whitelist', async () => {
@@ -128,6 +279,9 @@ test('minimal Photo Page uses existing chrome, handles missing fields and opens 
   assert.equal(new URL(page.url()).pathname, `/projects/${photo.projects[0]!.slug}/`);
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 3');
   const empty = fixture.manifest.data.find(photo => photo.s3Key === 'map-far.jpg')!;
+  await page.goBack(); await expect(page.locator('.photo-share')).toBeVisible();
+  assert.equal(page.url(), server.url + photo.sharePath);
+  await page.goForward(); await expect(page.locator('.viewer-counter')).toHaveText('1 / 3');
   await page.goto(server.url + collection.getPhoto(empty.id)!.sharePath);
   assert.equal(await page.locator('.photo-share h1, .photo-share-caption, .photo-share-facts').count(), 0);
   await expect(page.getByRole('link', { name: '查看原图 · Open in Viewer', exact: true })).toBeVisible();

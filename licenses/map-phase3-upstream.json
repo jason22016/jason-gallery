@@ -94,8 +94,9 @@
     },
     {
       "local": "src/components/viewer/photos.ts",
-      "sha256": "6a275e17b0658a3eae32bc28959f049f2049819d50cb6b19603f3621d68da768",
-      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation"
+      "sha256": "9fb50895099ee8e556cb02c16f4681fdbb5ba0c64ab6870ecb75f68332862441",
+      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation",
+      "sharePhotoPageAdaptation": "THIRD_PARTY_NOTICES.md#share-photo-page--step-2"
     },
     {
       "local": "src/components/viewer/metadata.ts",

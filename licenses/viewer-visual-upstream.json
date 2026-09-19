@@ -118,7 +118,7 @@
     },
     {
       "local": "src/components/viewer/PhotoViewer.tsx",
-      "sha256": "0e08d5bec6e0c142f000eec1aa35a4263e98ef6af3508d1fec4fa903f03212a9",
+      "sha256": "20e8eb61286d22b0292c224540020517b62a6707c13b3e9f1251ac9886487426",
       "adapted": true,
       "upstream": [
         {
@@ -126,7 +126,8 @@
           "sha256": "012063d75551a288540ee764fc168a50b898c74750914626bfef3ad8c89d53b3"
         }
       ],
-      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation"
+      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation",
+      "sharePhotoPageAdaptation": "THIRD_PARTY_NOTICES.md#share-photo-page--step-2"
     },
     {
       "local": "src/components/viewer/PhotoViewer.css",

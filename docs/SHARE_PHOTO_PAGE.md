@@ -1,4 +1,4 @@
-# Share Photo Page · Step 1
+# Share Photo Page
 
 `/photos/<short-public-id>/` 是静态分享落地页。开始前阅读了现有 Public Global Photo Collection、Project、Viewer、SEO、public-output 实现及 [Afilmory DESIGN.md](https://github.com/Afilmory/afilmory/blob/main/DESIGN.md)。本阶段沿用 Jason Gallery 的布局和设计系统。
 
@@ -29,7 +29,7 @@
 - 页面不挂载 Viewer island，不加载详情 JSON 或原始照片，不包含完整 EXIF、地图、Histogram、Filmstrip 或照片切换。照片和分享图均使用当前照片的公开 JPEG thumbnail；非 JPEG 缩略图使页面构建失败。
 - 沿用 SEO helpers 与 SiteLayout，独立 canonical、title/description、Open Graph / Twitter。`shareable` 与 `noindex` 分开控制，404 和无 SITE_URL 预览保持原有行为。HTML robots 和 `/photos/*` 的 X-Robots-Tag 均为 `noindex, nofollow`；不加入 sitemap。
 
-## Step 2 接口
+## 公开 URL 接口
 
 ```ts
 const collection = loadPublicPhotoCollection();
@@ -40,7 +40,19 @@ collection.getPhotoByPublicId(publicId);
 collection.getPhotoPage(publicId); // 含 primaryProject、viewerHref、image
 ```
 
-以上入口均在构建端。Step 2 可以把已经确认公开的 `sharePath` 投影给 Viewer，再按站点 origin 组成分享 URL；浏览器不需要导入 Node crypto、Manifest 或重新判断公开资格。本阶段未修改 Viewer Share，也未增加 Gallery / Explore / Map 的 Photo Page 入口；Admin、Photo Engine、Manifest、Project schema、HDR/color pipeline 均未修改。
+以上入口均在构建端。浏览器只消费已经确认公开的 `sharePath`，不导入 Node crypto、Manifest 或重新判断公开资格。Step 1 建立这些接口和静态页面时，未修改 Viewer Share。
+
+## Step 2 · Viewer 分享与返回
+
+Project 的 `Gallery.astro` 保留原有 `galleryPhotos(project)` 投影，并用 `loadPublicPhotoCollection().getPhoto(photo.id)?.sharePath` 补充分享路径。项目内 alt/caption、编排和 metadata URL 不变；Explore / Map 已经消费同一公开集合，直接使用其 `sharePath`。`ViewerPhoto.sharePath` 可选，未解析或非公开照片没有此字段。
+
+Viewer 点击分享时，通过 `new URL(photo.sharePath, location.origin)` 得到绝对 Photo Page URL。桌面复制、移动端 Web Share、API 不可用和失败时显示的链接完全一致，均无 `photo`、filter、sort、mapPhoto、tracking 或 hash。标题继续使用原来的照片标题与当前集合标题，用户取消仍静默处理。缺少公开路径时只提示不可分享，既不在浏览器计算 ID，也不回退到当前浏览 URL。
+
+`PhotoGallery` / Project / Explore / Map 的 URL state、筛选、history owner、push/replace、Close、Back/Forward 和 metadata 逻辑均未修改。站内点击卡片仍直接打开 Viewer，没有新增 Photo Page 入口。`?photo=<internal-id>` 继续是当前 Viewer 状态，分享动作只读取公开路径和当前 origin，不写地址栏或历史记录。
+
+Photo Page 的主按钮继续正常导航到 `primaryProject` 的 `/projects/<slug>/?photo=<encoded-internal-id>`，复用现有 Project Viewer。浏览器添加一个 Project 页面记录；Viewer 初次读取有效照片深链不会再 push，前后切图只替换该记录。因此直接 Back 返回原 Photo Page，Forward 恢复最后选中的照片。Close 保持既有深链行为，留在 Project Gallery；之后 Back 仍能返回 Photo Page。
+
+页面信息与视觉设计、Admin、Photo Engine、Manifest、Project schema、HDR/color pipeline 均未修改。新增测试覆盖两个 Project / Explore / Map 下相同照片的剪贴板和 Web Share URL、取消/失败/fallback、无公开路径拒绝分享、Photo Page 的桌面/手机 Back/Forward、primary Project、切图、zoom、EXIF/MiniMap、HDR source，以及关闭 Viewer 后原有 Live Photo 预览。
 
 ## 验证
 
@@ -48,7 +60,7 @@ collection.getPhotoPage(publicId); // 含 primaryProject、viewerHref、image
 
 测试日志和截图保存在 `.cache/`，不进入提交或网站输出。此次本机 pnpm 的自动依赖重装检查与既有 node_modules 状态不一致，验证命令使用 `--config.verify-deps-before-run=false` 运行现有依赖，不改动 lockfile 或依赖版本。
 
-2026-09-20 本地验证结果：
+Step 1（2026-09-20）本地验证结果：
 
 | 验证 | 结果 |
 | --- | --- |
@@ -57,4 +69,15 @@ collection.getPhotoPage(publicId); // 含 primaryProject、viewerHref、image
 | `pnpm --config.verify-deps-before-run=false check:upstream` | 通过，16 个 Viewer 核心源文件保持固定基线 |
 | `pnpm --config.verify-deps-before-run=false build` | 通过，160 个 HTML 页面，其中 154 个 Photo Page |
 | 真实 production 输出精确白名单 / ID / sitemap 核对 | 154 张公开照片、154 个唯一短 ID、154 个照片页；全部输出路径合法，sitemap 无 Photo Page |
+| `git diff --check` / staged diff 检查 | 通过 |
+
+Step 2（2026-09-20）本地验证结果：
+
+| 验证 | 结果 |
+| --- | --- |
+| `pnpm --config.verify-deps-before-run=false test:viewer` | 66/66 通过，无跳过，包含真实 WebGPU / WebGL 与 native fallback、HDR / ICC、手势与来源记录校验 |
+| `node --import tsx --test --test-concurrency=1 tests/website/*.test.ts tests/seo/*.test.ts` | 144/144 通过，无跳过，包含四种分享上下文、Photo Page 联动、原有 filter / URL / history 和公开输出边界 |
+| `pnpm --config.verify-deps-before-run=false check` / `check:upstream` | 通过，Viewer 核心基线未修改 |
+| `pnpm --config.verify-deps-before-run=false build` | 通过，160 个 HTML 页面，其中 154 个 Photo Page |
+| 真实 production 输出精确白名单 / ID / noindex / sitemap 核对 | 通过，154 张公开照片与 154 个唯一照片页一一对应；浏览器 bundle 无 Manifest / Node crypto |
 | `git diff --check` / staged diff 检查 | 通过 |

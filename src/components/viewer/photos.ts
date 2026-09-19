@@ -25,6 +25,8 @@ export interface ViewerPhoto {
   readonly location: PhotoManifestItem['location'];
   readonly altitude?: number;
   readonly detailsUrl: string;
+  /** Supplied by the build-only public collection; absent for non-public/unresolved photos. */
+  readonly sharePath?: string;
   readonly isHDR: boolean;
 }
 export interface PhotoDetails {

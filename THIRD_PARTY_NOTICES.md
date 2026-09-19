@@ -371,3 +371,13 @@ panel behavior. No additional upstream code or map system was imported. Current
 adaptation hashes are updated only for changed local sources; upstream baselines,
 licenses and visible attribution are retained.
 See [Global Gallery Phase 3](docs/gallery/GLOBAL_PHASE3.md).
+
+## Share Photo Page — Step 2
+
+2026-09-20: The local PhotoViewer adapter now shares the build-supplied public
+Photo Page path instead of the current browsing URL. Native share, clipboard,
+titles and cancellation/error handling retain the existing implementation;
+unresolved photos cannot fall back to sharing a private/current URL. The Project,
+Explore and Map history owners, media renderer, interactions and visual design
+are unchanged. The local adaptation hash is updated; upstream source and license
+baselines remain pinned. See [Share Photo Page](docs/SHARE_PHOTO_PAGE.md).

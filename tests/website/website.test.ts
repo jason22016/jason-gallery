@@ -14,6 +14,7 @@ import { colorFixtures } from '../viewer/color-fixtures';
 import { browserReadyTimeout, softwareGPUOptions } from '../browser';
 import { coverGeometry } from '../../src/projects/cover';
 import { loadPublicPhotoCollection } from '../../src/website/public-photos';
+import { shortPublicPhotoId } from '../../src/website/public-photo-id';
 
 const expect = baseExpect.configure({ timeout: browserReadyTimeout(5_000) });
 
@@ -641,7 +642,7 @@ test('metadata stays lazy, preserves units/offsets and zero values, retries, and
   await expect(page.locator('.metadata-content')).not.toContainText('2026-');
 });
 
-test('filtered/sorted share URL restores the same sequence; Forward then Close does not add duplicate history', async t => {
+test('filtered/sorted browsing URL restores the same sequence while sharing a clean Photo Page; Forward then Close does not add duplicate history', async t => {
   const ctx = await context({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
   const page = await projectPage(ctx);
   await page.getByRole('button', { name: '搜索和筛选' }).click();
@@ -654,18 +655,19 @@ test('filtered/sorted share URL restores the same sequence; Forward then Close d
   await open(page); await loaded(page);
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 2');
   await page.keyboard.press('ArrowRight'); await loaded(page);
-  const shared = page.url();
+  const browsingURL = page.url();
   // Exercise the unavailable-clipboard path explicitly, independently of the
   // browser channel's clipboard permissions and host operating system.
   await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined }));
   await page.getByRole('button', { name: '分享照片' }).click();
-  await expect(page.locator('.viewer-message')).toHaveText(shared);
+  await expect(page.locator('.viewer-message')).toHaveText(`${server.url}/photos/${shortPublicPhotoId(new URL(browsingURL).searchParams.get('photo')!)}/`);
+  assert.equal(page.url(), browsingURL);
   await page.goBack(); await expect(page.locator('.photo-dialog')).toHaveCount(0);
   await page.goForward(); await loaded(page);
   await page.getByRole('button', { name: '关闭照片' }).click();
   await expect(page.locator('.photo-dialog')).toHaveCount(0);
   await page.goForward(); await loaded(page);
-  const direct = await ctx.newPage(); await direct.goto(shared); await loaded(direct);
+  const direct = await ctx.newPage(); await direct.goto(browsingURL); await loaded(direct);
   assert.deepEqual(await direct.locator('[data-filmstrip-id]').evaluateAll(nodes => nodes.map(n => n.getAttribute('data-filmstrip-id'))), [fixture.photos[1]!.photoId, fixture.photos[0]!.photoId]);
   await expect(direct.locator('.viewer-counter')).toHaveText('2 / 2');
   await direct.reload(); await loaded(direct);

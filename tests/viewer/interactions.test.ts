@@ -47,6 +47,19 @@ async function drag(cdp: CDPSession, from: [number, number], to: [number, number
 }
 const mobile = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true };
 
+test('Viewer without a public collection share path never shares its browsing URL or derives a public ID', async t => {
+  const { page, context } = await fixture({ ...mobile, reducedMotion: 'reduce' }); t.after(() => context.close());
+  await page.evaluate(`
+    Object.defineProperty(navigator, 'share', { configurable: true, value: () => { throw new Error('Unexpected native share'); } });
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: () => { throw new Error('Unexpected clipboard write'); } } });
+  `);
+  await open(page);
+  const browsingURL = page.url();
+  await page.getByRole('button', { name: '分享照片', exact: true }).tap();
+  await expect(page.locator('.viewer-message')).toHaveText('此照片暂无公开分享链接。');
+  assert.equal(page.url(), browsingURL);
+});
+
 test('entry catch-up remains until the slide is visually ready; only current slide is hidden', () => {
   for (const ready of [false, true]) {
     const state = resolvePhotoViewerEntryState({ hasTransitionTrigger: true, isCurrentImageVisualReady: ready, isEntryTransitionActive: false, isOpen: true, isViewerContentVisible: true });

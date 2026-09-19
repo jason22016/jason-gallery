@@ -86,6 +86,7 @@ test('Photo Page lookups use the public collection and expose only a small landi
   });
   assert(Object.isFrozen(page)); assert(Object.isFrozen(page.image)); assert(Object.isFrozen(page.primaryProject));
   for (const id of ['draft-only', 'unreferenced', 'missing']) {
+    assert.equal(collection.getPhoto(id)?.sharePath, undefined);
     assert.equal(collection.getPhotoByPublicId(shortPublicPhotoId(id)), undefined);
     assert.equal(collection.getPhotoPage(shortPublicPhotoId(id)), undefined);
   }
