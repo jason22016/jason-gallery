@@ -22,7 +22,7 @@
     "heic-convert": "2.1.0",
     "nunjucks": "3.2.4",
     "satori": "0.26.0",
-    "sharp": "0.35.1",
+    "sharp": "0.35.4",
     "thumbhash": "0.1.1",
     "@afilmory/utils": "workspace:*",
     "es-toolkit": "1.47.1"

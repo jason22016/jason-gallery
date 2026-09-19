@@ -3,13 +3,13 @@ import path from 'node:path'
 import type { ImageMetadata } from '@afilmory/typing'
 import * as bmp from '@vingle/bmp-js'
 import heicConvert from 'heic-convert'
-import sharp from 'sharp'
+import sharp, { type Sharp } from 'sharp'
 
 import { HEIC_FORMATS } from '../constants/index.js'
 import { getGlobalLoggers } from '../photo/logger-adapter.js'
 
 // 获取图片元数据（复用 Sharp 实例）
-export async function getImageMetadataWithSharp(sharpInstance: sharp.Sharp): Promise<ImageMetadata | null> {
+export async function getImageMetadataWithSharp(sharpInstance: Sharp): Promise<ImageMetadata | null> {
   const log = getGlobalLoggers().image
 
   try {
@@ -97,7 +97,7 @@ export function isBitmap(buf: Buffer): boolean {
  * @param bmpBuffer Buffer
  * @returns Sharp 实例
  */
-export async function convertBmpToJpegSharpInstance(bmpBuffer: Buffer): Promise<sharp.Sharp> {
+export async function convertBmpToJpegSharpInstance(bmpBuffer: Buffer): Promise<Sharp> {
   const log = getGlobalLoggers().image
 
   try {

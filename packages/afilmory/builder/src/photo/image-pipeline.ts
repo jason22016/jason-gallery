@@ -3,7 +3,7 @@ import path from 'node:path'
 
 import type { PhotoManifestItem, ProcessPhotoResult } from '@afilmory/typing'
 import { compressUint8Array } from '@afilmory/utils'
-import sharp from 'sharp'
+import sharp, { type Sharp } from 'sharp'
 
 import type { BuilderOptions } from '../builder/builder.js'
 import {
@@ -32,7 +32,7 @@ const EMPTY_XMP_METADATA = {
 }
 
 export interface ProcessedImageData {
-  sharpInstance: sharp.Sharp
+  sharpInstance: Sharp
   imageBuffer: Buffer
   metadata: { width: number; height: number }
 }
