@@ -56,24 +56,37 @@ export class AdminService {
       return value;
     } catch (e) { if (e instanceof ApiError) throw e; throw new ApiError(422, 'integrity', '执行摘要验证失败'); }
   }
-  async catalog(requestedRun?: number) {
+  private async photoRun(requestedRun?: number, proof?: SaveProof) {
     const runs = requestedRun ? [await this.github.run(requestedRun)] : await this.github.runs(true);
     const selected = runs.find(r => r.status === 'completed' && r.event !== 'pull_request');
     if (!selected) throw new ApiError(404, 'empty', '还没有完整照片产物，请先同步');
-    let run = this.github.verifyRun(selected);
-    let summary = await this.summary(run);
-    if (!requestedRun && (summary?.photos?.status !== 'success' || summary?.adminRead?.status !== 'success')) {
+    const inspect = async (candidate: any) => {
+      const run = this.github.verifyRun(candidate);
+      // State already verified this immutable run/attempt and its catalog. Reuse
+      // that signed snapshot; saving still checks live artifact metadata and HEAD.
+      if (proof && run.id === proof.runId) {
+        if (run.run_attempt !== proof.runAttempt || run.head_sha !== proof.runHead) throw new ApiError(409, 'stale', '照片任务已变化，请保留编辑并重新加载仓库');
+        return { run, summary: null, photosReady: true };
+      }
+      const summary = await this.summary(run);
+      return { run, summary, photosReady: summary?.photos?.status === 'success' && summary?.adminRead?.status === 'success' };
+    };
+    let result = await inspect(selected);
+    if (!requestedRun && !result.photosReady) {
       const recent = await this.github.runs();
-      for (const candidate of recent.filter(r => r.status === 'completed' && r.id !== run.id).sort((a,b) => (Date.parse(b.run_started_at ?? b.updated_at) || 0) - (Date.parse(a.run_started_at ?? a.updated_at) || 0))) {
-        this.github.verifyRun(candidate);
-        const previous = await this.summary(candidate);
-        if (previous?.photos?.status === 'success' && previous?.adminRead?.status === 'success') { run = candidate; summary = previous; break; }
+      for (const candidate of recent.filter(r => r.status === 'completed' && r.id !== selected.id).sort((a,b) => (Date.parse(b.run_started_at ?? b.updated_at) || 0) - (Date.parse(a.run_started_at ?? a.updated_at) || 0))) {
+        const previous = await inspect(candidate);
+        if (previous.photosReady) { result = previous; break; }
       }
     }
-
+    const { summary } = result;
+    if (result.photosReady) return result;
     if (!summary || summary.photos?.status !== 'success') throw new ApiError(422, 'sync_failed', summary?.failureReason || '最近任务未生成完整照片产物，请查看任务失败原因并重新同步');
+    throw new ApiError(422, 'format', '缺少已验证的新版后台读取产物，请运行一次新版同步');
+  }
+  async catalog(requestedRun?: number) {
+    const { run, summary } = await this.photoRun(requestedRun);
     const seal = summary.adminRead;
-    if (seal?.status !== 'success') throw new ApiError(422, 'format', '缺少已验证的新版后台读取产物，请运行一次新版同步');
     const artifacts = await this.github.artifacts(run.id);
     const originals = artifacts.filter(a => a.name === 'photos');
     const reads = artifacts.filter(a => a.name === 'admin-read');
@@ -170,10 +183,8 @@ export class AdminService {
     const ids = new Set(proof.ids), aliases = new Map(proof.aliases);
     try { validateProjectReferences(projects, id => { const canonical = aliases.get(id) ?? id; return ids.has(canonical) ? canonical : undefined; }); }
     catch { throw new ApiError(422, 'project_reference', 'Project 引用校验失败；照片缺失、重复或来源已变化'); }
-    const latest = (await this.github.runs(true))[0];
-    if (!latest || latest.status !== 'completed') throw new ApiError(409, 'stale', '照片任务已变化，请保留编辑并重新加载仓库');
-    this.github.verifyRun(latest);
-    if (latest.id !== proof.runId || latest.run_attempt !== proof.runAttempt || latest.head_sha !== proof.runHead) throw new ApiError(409, 'stale', '照片任务已变化，请保留编辑并重新加载仓库');
+    const { run } = await this.photoRun(undefined, proof);
+    if (run.id !== proof.runId || run.run_attempt !== proof.runAttempt || run.head_sha !== proof.runHead) throw new ApiError(409, 'stale', '照片任务已变化，请保留编辑并重新加载仓库');
     const artifacts = await this.github.artifacts(proof.runId);
     const reads = artifacts.filter(a => a.name === 'admin-read'), originals = artifacts.filter(a => a.name === 'photos');
     if (!reads.length || !originals.length) throw new ApiError(410, 'expired', '照片产物缺失，请保留编辑并重新同步');

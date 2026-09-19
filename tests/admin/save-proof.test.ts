@@ -42,11 +42,11 @@ test('signed saves reject changed HEAD, concurrent writers, stale runs and remov
     const { f, project, state, save } = await setup();
     if (mode === 'head') f.setStale();
     if (mode === 'race') f.setRace();
-    if (mode === 'run') f.run.id = 2;
+    const newer = mode === 'run' ? await fixture(undefined, 2) : undefined;
     if (mode === 'attempt') f.run.run_attempt = 2;
     if (mode === 'expired') f.setExpired();
     const response = await save({ kind: 'project', expectedHead: state.head, project, saveProof: state.saveProof }, async (input, init) => {
-      const response = await f.fetcher(input, init);
+      const response = await (newer ?? f).fetcher(input, init);
       if (String(input).includes('/artifacts?')) {
         const data = await response.json();
         if (mode === 'deleted') data.artifacts = data.artifacts.filter((a: any) => a.name !== 'photos');
@@ -57,6 +57,7 @@ test('signed saves reject changed HEAD, concurrent writers, stale runs and remov
     });
     assert.equal(response.status, ['expired', 'deleted'].includes(mode) ? 410 : mode === 'digest' ? 422 : 409, mode);
     if (!['head', 'race'].includes(mode)) assert.equal(f.mutations.length, 0, mode);
+    if (newer) assert.equal(newer.mutations.length, 0, mode);
   }
   const { project, state, save } = await setup();
   const outcomes = await Promise.all([1, 2].map(i => save({ kind: 'project', expectedHead: state.head, project: { ...project, description: String(i) }, saveProof: state.saveProof })));

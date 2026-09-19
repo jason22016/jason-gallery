@@ -36,29 +36,31 @@ async function collection() {
   return {files,artifact};
 }
 export async function zip(files: Map<string,Uint8Array>, level = 0) { const writer = new ZipWriter(new Uint8ArrayWriter(), { useWebWorkers:false, level, zip64: false }); for(const [name,data] of files) await writer.add(name,new Uint8ArrayReader(data)); return writer.close(); }
-async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any; config: typeof config }) {
-  const c = replay ?? await collection(); let activeConfig = replay?.config ?? config; let summary: any = {schemaVersion:2,runId:1,runAttempt:1,action:'sync',websiteCommit:head,photos:{status:'success',artifactVersion:c.artifact.version},sources:c.artifact.sources,website:{status:'not_started'},deployment:{status:'not_requested'}};
+async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any; config: typeof config }, runId = 1) {
+  const photosId = runId * 10, summaryId = photosId + 1, readId = photosId + 2;
+  const storagePrefix = runId === 1 ? '' : `/${runId}`;
+  const c = replay ?? await collection(); let activeConfig = replay?.config ?? config; let summary: any = {schemaVersion:2,runId,runAttempt:1,action:'sync',websiteCommit:head,photos:{status:'success',artifactVersion:c.artifact.version},sources:c.artifact.sources,website:{status:'not_started'},deployment:{status:'not_requested'}};
   let commitCount = 0;
   let currentHead = head; let race = false; let expired = false; let tamper = false; let codeStale = false;
   let projects: any[] = []; const mutations: any[] = []; const network: any[] = [];
   const photosZip = await zip(c.files);
-  const readFiles = await buildReadFiles(await readCollection(async p => c.files.get(p)!, activeConfig), { repository: env.GITHUB_REPOSITORY, runId: 1, runAttempt: 1, websiteCommit: head, photosArtifactId: 10 }, [{ path: 'pnpm-lock.yaml', type: 'blob', sha: 'd'.repeat(40) }]);
+  const readFiles = await buildReadFiles(await readCollection(async p => c.files.get(p)!, activeConfig), { repository: env.GITHUB_REPOSITORY, runId, runAttempt: 1, websiteCommit: head, photosArtifactId: photosId }, [{ path: 'pnpm-lock.yaml', type: 'blob', sha: 'd'.repeat(40) }]);
   let adminZip: Uint8Array = await zip(new Map([['catalog.json', readFiles.catalog], ['previews.bin', readFiles.previews]]));
   let adminDigest = 'sha256:' + hashBytes(adminZip);
-  summary.adminRead = { status: 'success', repository: env.GITHUB_REPOSITORY, runId: 1, runAttempt: 1, websiteCommit: head, photosArtifactId: 10, photosArtifactVersion: c.artifact.version, catalogHash: readFiles.catalogHash, artifactId: 12, artifactDigest: adminDigest };
+  summary.adminRead = { status: 'success', repository: env.GITHUB_REPOSITORY, runId, runAttempt: 1, websiteCommit: head, photosArtifactId: photosId, photosArtifactVersion: c.artifact.version, catalogHash: readFiles.catalogHash, artifactId: readId, artifactDigest: adminDigest };
   let summaryLevel = 0;
   let summaryBytes: Promise<Uint8Array> | undefined;
   const summaryZip = () => summaryBytes ??= zip(new Map([['summary.json', new TextEncoder().encode(JSON.stringify(summary))]]), summaryLevel);
   await summaryZip();
   const blob = (value: unknown) => { const text = JSON.stringify(value); const byteSize = Buffer.byteLength(text); return { text, byteSize, oid: createHash('sha1').update(`blob ${byteSize}\0`).update(text).digest('hex'), isBinary: false, isTruncated: false }; };
-  const run = {id:1,run_attempt:1,head_branch:'main',path:'.github/workflows/automation.yml',repository:{full_name:env.GITHUB_REPOSITORY},head_repository:{full_name:env.GITHUB_REPOSITORY},head_sha:head,status:'completed',event:'workflow_dispatch',conclusion:'success',display_title:'Gallery sync · fixture'};
+  const run = {id:runId,run_attempt:1,head_branch:'main',path:'.github/workflows/automation.yml',repository:{full_name:env.GITHUB_REPOSITORY},head_repository:{full_name:env.GITHUB_REPOSITORY},head_sha:head,status:'completed',event:'workflow_dispatch',conclusion:'success',display_title:'Gallery sync · fixture'};
   const fetcher: typeof fetch = async (input, init) => {
     const url = new URL(String(input)); const headers = new Headers(init?.headers); const method=init?.method||'GET'; network.push({url: url.origin+url.pathname,method,auth:headers.get('authorization')});
     if (url.hostname==='fixture.cloudflareaccess.com') return Response.json({keys:[jwk]});
     if (url.hostname==='fixture.blob.core.windows.net') {
       assert.equal(headers.get('authorization'),null);
-      let data = url.pathname==='/photos' ? photosZip : url.pathname==='/admin-read' ? adminZip : await summaryZip();
-      if (tamper && url.pathname==='/admin-read') data = new Uint8Array(data.length);
+      let data = url.pathname===storagePrefix+'/photos' ? photosZip : url.pathname===storagePrefix+'/admin-read' ? adminZip : await summaryZip();
+      if (tamper && url.pathname===storagePrefix+'/admin-read') data = new Uint8Array(data.length);
       if (method==='HEAD') return new Response(null,{headers:{'content-length':String(data.length)}});
       if (!headers.has('range')) return new Response(new Uint8Array(data));
       const range=headers.get('range')!.match(/^bytes=(\d+)-(\d+)$/);assert(range,'Azure transport requires an explicit byte range'); const start=+range[1],end=+range[2];
@@ -96,10 +98,10 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
     if(p==='/git/trees' || p==='/git/commits') return Response.json({sha:next});
     if(p==='/git/refs/heads/main') { if(race) return Response.json({}, {status:422}); currentHead=next; return Response.json({object:{sha:next}}); }
     if(p==='/actions/workflows/automation.yml/runs') return Response.json({workflow_runs:[run]});
-    if(p==='/actions/runs/1') return Response.json(run);
-    if(p==='/actions/runs/1/jobs') return Response.json({jobs:[{steps:[{name:'Photos',status:'completed',conclusion:'success'}]}]});
-    if(p==='/actions/runs/1/artifacts') return Response.json({artifacts:[{id:10,name:'photos',expired,expires_at:new Date(Date.now()+86400000).toISOString()},{id:11,name:'execution-summary',digest:'sha256:'+hashBytes(await summaryZip()),expires_at:new Date(Date.now()+86400000).toISOString()},{id:12,name:'admin-read',size_in_bytes:adminZip.length,digest:adminDigest,expires_at:new Date(Date.now()+86400000).toISOString()}]});
-    if(p.startsWith('/actions/artifacts/')) return new Response(null,{status:302,headers:{location:`https://fixture.blob.core.windows.net/${p.includes('/10/')?'photos':p.includes('/12/')?'admin-read':'summary'}?secret=signed-never-expose`}});
+    if(p===`/actions/runs/${runId}`) return Response.json(run);
+    if(p===`/actions/runs/${runId}/jobs`) return Response.json({jobs:[{steps:[{name:'Photos',status:'completed',conclusion:'success'}]}]});
+    if(p===`/actions/runs/${runId}/artifacts`) return Response.json({artifacts:[{id:photosId,name:'photos',expired,expires_at:new Date(Date.now()+86400000).toISOString()},{id:summaryId,name:'execution-summary',digest:'sha256:'+hashBytes(await summaryZip()),expires_at:new Date(Date.now()+86400000).toISOString()},{id:readId,name:'admin-read',size_in_bytes:adminZip.length,digest:adminDigest,expires_at:new Date(Date.now()+86400000).toISOString()}]});
+    if(p.startsWith('/actions/artifacts/')) return new Response(null,{status:302,headers:{location:`https://fixture.blob.core.windows.net${storagePrefix}/${p.includes(`/${photosId}/`)?'photos':p.includes(`/${readId}/`)?'admin-read':'summary'}?secret=signed-never-expose`}});
     if(p==='/actions/workflows/automation.yml/dispatches') return new Response(null,{status:204});
     throw new Error('Unexpected '+p);
   };
