@@ -15,7 +15,7 @@ export function projectDescription(project: Pick<ResolvedProject, 'summary' | 'd
   return textSummary(project.summary?.trim() || project.description?.trim() || `浏览 Jason 的摄影项目「${project.title}」。`);
 }
 
-/** Photo/filter query parameters are state within the same static Project page. */
+/** Photo/filter query parameters are state within the same static Gallery page. */
 export function canonicalURL(pathname: string, site: URL | undefined): string | undefined {
   if (!site) return undefined;
   const path = new URL(pathname, site).pathname.replace(/\/index\.html$/, '/').replace(/\/+$/, '');
@@ -32,7 +32,7 @@ export function projectShareImage(project?: ResolvedProject) {
 
 export function sitemapXML(site: URL | undefined, slugs: readonly string[]): string {
   const escape = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-  const urls = site ? ['/', ...slugs.map(slug => `/projects/${slug}/`)] : [];
+  const urls = site ? ['/', '/explore/', ...slugs.map(slug => `/projects/${slug}/`)] : [];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(path => `  <url><loc>${escape(canonicalURL(path, site)!)}</loc></url>`).join('\n')}\n</urlset>\n`;
 }
 

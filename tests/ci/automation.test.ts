@@ -102,6 +102,10 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   const destination = path.join(root,'release');
   const build = () => buildRelease({photos:collection,root:site,destination,websiteCommit:codeCommit,runId:'test',runNumber:10,production:false});
   const release = await build(); assert.equal(release.publicPhotos,1); assert.equal(release.publishedProjects,1);
+  assert(release.files['explore/index.html']);
+  const explore = await fs.readFile(path.join(destination, 'dist/explore/index.html'), 'utf8');
+  assert(explore.includes(id)); assert(!explore.includes(hiddenId));
+  assert(!(await fs.readdir(path.join(destination, 'dist'))).includes('map'));
   await verifyRelease(destination,false); await assert.rejects(verifyRelease(destination,true),/provenance/);
   assert.equal(release.files['favicon.svg'],sha256(favicon));
   assert.deepEqual(await fs.readFile(path.join(destination,'dist/favicon.svg')),favicon);

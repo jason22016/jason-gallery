@@ -31,7 +31,7 @@ export async function buildFixture(options: { root?: string; siteURL?: string } 
   await fs.writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({ extends: path.join(repo, 'tsconfig.json') }));
   // Astro discovers renderer bundling rules from the root dependency declarations.
   await fs.copyFile(path.join(repo, 'package.json'), path.join(root, 'package.json'));
-  const originals = { 'ordinary.jpg': await jpeg('#597c8b', 960, 640), 'portrait.jpg': await jpeg('#9d7155', 640, 960), 'hdr.jpg': await gainmapJPEG(), 'private.jpg': await jpeg('#6b7756'), 'map-near.jpg': await jpeg('#7c9578'), 'map-far.jpg': await jpeg('#788295') };
+  const originals = { 'ordinary.jpg': await jpeg('#597c8b', 960, 640), 'portrait.jpg': await jpeg('#9d7155', 640, 960), 'hdr.jpg': await gainmapJPEG(), 'private.jpg': await jpeg('#6b7756'), 'unused.jpg': await jpeg('#5b6859'), 'map-near.jpg': await jpeg('#7c9578'), 'map-far.jpg': await jpeg('#788295') };
   const files: Record<string, { file: string; commit: string }> = {};
   const commit = '3'.repeat(40);
   await fs.mkdir(path.join(root, 'sources'));

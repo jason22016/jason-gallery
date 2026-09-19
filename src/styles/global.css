@@ -18,6 +18,11 @@ ul, ol { list-style: none; padding: 0; margin: 0; }
 .site-header { height: clamp(120px, 8vw, 180px); padding-top: 22px; }
 .wordmark { display: inline-block; color: #bfc4c7; font-size: clamp(30px, 2.6vw, 52px); font-weight: 750; line-height: 1.1; letter-spacing: -.045em; }
 .wordmark span { color: #28ca75; }
+.site-navigation { display: flex; align-items: center; gap: 20px; font-size: 12px; }
+.site-header .site-navigation { margin-top: 16px; }
+.site-navigation a { padding-block: 4px; transition: opacity 200ms; }
+.site-navigation a:hover, .site-navigation a[aria-current] { text-decoration: underline; text-underline-offset: 4px; }
+.site-navigation [aria-disabled] { opacity: .5; }
 .project-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2vw; }
 .project-link { display: block; position: relative; }
 .thumbnail { display: block; position: relative; aspect-ratio: var(--photo-ratio); background: #e5e5e5; overflow: hidden; }

@@ -358,6 +358,10 @@ test('empty public catalog builds a useful home page, even when draft content ex
     assert.equal((await fs.readdir(path.join(emptyDist, 'thumbnails'))).length, 0);
     assert.equal((await fs.readdir(path.join(emptyDist, 'originals'))).length, 0);
     await page.screenshot({ path: path.join(root, 'empty-home.png'), fullPage: true });
+    await page.goto(host.url + '/explore/');
+    await expect(page.getByRole('heading', { name: '尚无公开照片' })).toBeVisible();
+    await expect(page.locator('.gallery-live [data-gallery-index]')).toHaveCount(0);
+    assert(!(await fs.readFile(path.join(emptyDist, 'explore/index.html'), 'utf8')).includes('DRAFT WEBSITE SECRET'));
   } finally {
     for (const project of published) await fs.writeFile(path.join(directory, `${project.slug}.json`), JSON.stringify(project));
   }

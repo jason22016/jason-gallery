@@ -35,10 +35,16 @@ export default function Panel({ title, onClose, children, wide = false, kind = '
   const surface = useRef<HTMLDivElement>(null);
   const dropdown = kind === 'settings' && !mobile;
   useLayoutEffect(() => {
-    previous.current = document.activeElement as HTMLElement | null;
+    previous.current = anchor ?? document.activeElement as HTMLElement | null;
     const unlock = dropdown ? () => {} : lockPageScroll();
-    return () => { unlock(); previous.current?.isConnected && previous.current.focus({ preventScroll: true }); };
-  }, [dropdown]);
+    return unlock;
+  }, [dropdown, anchor]);
+  const restoreFocus = (event: Event) => {
+    event.preventDefault();
+    const active = document.activeElement;
+    if (active && active !== document.body && active.isConnected) return;
+    previous.current?.isConnected && previous.current.focus({ preventScroll: true });
+  };
   const dismiss = () => reduced ? onClose() : setClosing(true);
   const autoFocus = (event: Event) => {
     event.preventDefault();
@@ -55,14 +61,14 @@ export default function Panel({ title, onClose, children, wide = false, kind = '
   const className = `gallery-panel ${wide ? 'wide-panel' : ''} ${mobile ? 'gallery-drawer' : dropdown ? 'gallery-dropdown' : 'gallery-dialog'} ${kind === 'search' ? 'search-panel' : ''} ${kind === 'map' ? 'map-panel' : ''}`;
   if (dropdown) return <Popover.Root open onOpenChange={open => { if (!open) dismiss(); }}>
     <Popover.Anchor virtualRef={{ current: anchor ?? previous.current }} />
-    <Popover.Portal><Popover.Content forceMount asChild sideOffset={8} align="end" collisionPadding={16} onOpenAutoFocus={autoFocus} onCloseAutoFocus={event => event.preventDefault()} aria-label={title}>
+    <Popover.Portal><Popover.Content forceMount asChild sideOffset={8} align="end" collisionPadding={16} onOpenAutoFocus={autoFocus} onCloseAutoFocus={restoreFocus} aria-label={title}>
       <m.div {...motion} ref={surface} className={className} aria-hidden={closing || undefined} inert={closing}>{content}</m.div>
     </Popover.Content></Popover.Portal>
   </Popover.Root>;
   if (mobile) return <Drawer.Root open onOpenChange={open => { if (!open) dismiss(); }} handleOnly noBodyStyles autoFocus repositionInputs={false}>
     <Drawer.Portal>
       <Drawer.Overlay className="gallery-scrim" />
-      <Drawer.Content asChild aria-describedby={undefined} aria-label={title} onOpenAutoFocus={autoFocus} onCloseAutoFocus={event => event.preventDefault()}>
+      <Drawer.Content asChild aria-describedby={undefined} aria-label={title} onOpenAutoFocus={autoFocus} onCloseAutoFocus={restoreFocus}>
         <m.div {...motion} ref={surface} className={className} aria-hidden={closing || undefined} inert={closing} style={{ maxHeight: viewport.height - 24, bottom: viewport.bottom }} drag={reduced ? false : 'y'} dragControls={drag} dragListener={false} dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: .5 }} dragSnapToOrigin
           onDragEnd={(_, info) => { if (info.offset.y > 80 || info.velocity.y > 500) dismiss(); }}>
           <button type="button" className="drawer-handle" aria-label="关闭面板手柄" onClick={dismiss} onPointerDown={event => drag.start(event)}><span /></button>
@@ -73,7 +79,7 @@ export default function Panel({ title, onClose, children, wide = false, kind = '
   </Drawer.Root>;
   return <Dialog.Root open onOpenChange={open => { if (!open) dismiss(); }}>
     <Dialog.Portal><Dialog.Overlay className="gallery-scrim" /><div className={`gallery-dialog-position ${kind === 'search' ? 'search-position' : ''} ${kind === 'map' ? 'map-position' : ''}`}>
-      <Dialog.Content asChild aria-describedby={undefined} aria-label={title} onOpenAutoFocus={autoFocus} onCloseAutoFocus={event => event.preventDefault()}>
+      <Dialog.Content asChild aria-describedby={undefined} aria-label={title} onOpenAutoFocus={autoFocus} onCloseAutoFocus={restoreFocus}>
         <m.div {...motion} ref={surface} className={className} aria-hidden={closing || undefined} inert={closing}>{content}</m.div>
       </Dialog.Content>
     </div></Dialog.Portal>

@@ -86,7 +86,7 @@
     },
     {
       "local": "src/components/gallery/PageHeader.tsx",
-      "localSha256": "bc9df945893eb2b19a119f2bb5389e3f0cbd029790d0c07f4138c9c57e0ce0ab",
+      "localSha256": "e4fc5b7dd9a3bce2639f7dc568eb6cbdc219b4d34793cebf85a6a4e49401bfb0",
       "license": "AGPL-3.0-or-later + ANL §4",
       "upstream": [
         {
@@ -102,7 +102,8 @@
           "sha256": "02ee3cd41659c52b19c28fdeb418a8c94e8af51e03834db413b18669e8ae2557"
         }
       ],
-      "phase4Adaptation": "DESIGN.md semantic tokens, local overflow tooltips, and spring-only spatial motion."
+      "phase4Adaptation": "DESIGN.md semantic tokens, local overflow tooltips, and spring-only spatial motion.",
+      "globalGalleryPhase2Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-2--explore"
     },
     {
       "local": "src/components/gallery/ViewModeSegment.tsx",
@@ -177,7 +178,7 @@
     },
     {
       "local": "src/components/gallery/SearchPanel.tsx",
-      "localSha256": "66725f8e8cf8fd11d1517c572b9f337616c5ab3552781e6ddab9f9fca91fba0a",
+      "localSha256": "1f42d6172e814f1b0509a0e242af4fe593f73d67dcc3d82b80c3b96914caddd7",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adaptation": "Migrated command rows, filter category/icon/active hierarchy, keyboard selection and controls. Project-local props replace photoLoader/Jotai/router/i18n. Existing selectPhotos and URL filter semantics retained; no upstream fuzzy-photo filter algorithm, multi-tag logic or rating introduced.",
       "upstream": [
@@ -186,7 +187,8 @@
           "sha256": "9df7a6547e5609106706f25d375be19dd974062af900e191662aa40d9aadc839"
         }
       ],
-      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation"
+      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation",
+      "globalGalleryPhase2Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-2--explore"
     },
     {
       "local": "src/components/gallery/FilterChip.tsx",
@@ -228,7 +230,7 @@
     },
     {
       "local": "src/components/gallery/Panel.tsx",
-      "localSha256": "124c0bafce879382c9a4338471c5e360ad54f7094064a2df9fb34ce13b279f91",
+      "localSha256": "1817882c7cdce35a3cf215828c55567aabd04740812b3c33b1d0eb41521fb330",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adaptation": "Migrated responsive ActionPanel/Vaul structure and desktop floating-menu surface. Radix Popover supplies dialog semantics for a settings form, focus and collision placement. Radix Dialog for centered panels. Vaul CSS tweens disabled; shared Motion springs and drag control drive drawer movement. Local scroll lock, focus restoration, visual viewport and reduced-motion adapters.",
       "upstream": [
@@ -245,7 +247,8 @@
           "sha256": "0f7135d7d2dbe1309917df92d9d745c8666da3e3c3e6b7c785836e76fde04b45"
         }
       ],
-      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome",
+      "globalGalleryPhase2Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-2--explore"
     },
     {
       "local": "src/components/gallery/ui/EllipsisWithTooltip.tsx",

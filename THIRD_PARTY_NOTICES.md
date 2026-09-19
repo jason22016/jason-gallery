@@ -345,3 +345,16 @@ were imported. The existing attribution and licenses remain in effect.
 Affected local source hashes and adaptation links are updated in the existing
 Gallery, Viewer and Map provenance records. See
 [the architecture and interfaces](docs/gallery/GLOBAL_PHASE1.md).
+
+## Global Gallery Phase 2 — Explore
+
+2026-09-20: `gallery/ProjectGallery.tsx` now delegates to the shared
+`gallery/PhotoGallery.tsx`; the existing Gallery/Map/Viewer orchestration and
+its prior attribution move with that implementation. PageHeader uses the
+shared public navigation and gates Project-only actions; SearchPanel accepts
+shared facets including public Project memberships. Panel restores its
+explicit anchor after Radix focus-scope teardown without taking focus away
+from a newly opened surface. Existing Gallery tokens, motion presets and
+Viewer implementation remain in use; no additional upstream source was
+imported. The affected current Gallery and Map provenance records are updated.
+See [Global Gallery Phase 2](docs/gallery/GLOBAL_PHASE2.md).

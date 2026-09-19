@@ -112,9 +112,11 @@
       "sha256": "14648bc9cefd1bb5d9368ac6be617b4e40fdd3a74470e5c11f48927d76556e08"
     },
     {
-      "local": "src/components/gallery/ProjectGallery.tsx",
-      "sha256": "d59d32d496bc1a70064b640b7178098da683c7d87ff6e572bedccd0271b78182",
-      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation"
+      "local": "src/components/gallery/PhotoGallery.tsx",
+      "sha256": "780fa40ed3c74371e375b3a47f5046af6631b0b99b268088397baea8b09fbcf3",
+      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation",
+      "movedFrom": "src/components/gallery/ProjectGallery.tsx",
+      "globalGalleryPhase2Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-2--explore"
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",

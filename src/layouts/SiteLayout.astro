@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import { SiteNavigation } from '../components/SiteNavigation';
 import { canonicalURL, DEFAULT_SHARE_IMAGE, NOINDEX, SITE_DESCRIPTION, SITE_NAME, textSummary } from '../website/seo';
 interface Props { title?: string; description?: string; gallery?: boolean; noindex?: boolean; image?: { path: string; alt: string }; }
 const { title, description = SITE_DESCRIPTION, gallery = false, noindex = false, image = { path: DEFAULT_SHARE_IMAGE, alt: `${SITE_NAME} — Photography` } } = Astro.props;
@@ -39,7 +40,7 @@ const shareImage = Astro.site && !noindex ? new URL(image.path, Astro.site).href
   </head>
   <body class={gallery ? 'gallery-page' : 'portfolio-page'}>
     <a class="skip-link" href="#main">跳至内容</a>
-    {!gallery && <header class="site-header shell"><a class="wordmark" href="/" aria-label="Jason Gallery 首页">Jason Gallery<span>.</span></a></header>}
+    {!gallery && <header class="site-header shell"><a class="wordmark" href="/" aria-label="Jason Gallery 首页">Jason Gallery<span>.</span></a><SiteNavigation current={Astro.url.pathname === '/' ? 'projects' : undefined} /></header>}
     <main id="main" class={gallery ? 'gallery-main' : 'shell'} tabindex="-1"><slot /></main>
     {!gallery && <footer class="site-footer shell"><span>© Jason Gallery</span><a href="/">Projects</a></footer>}
   </body>

@@ -1,34 +1,38 @@
 ---
 import type { ResolvedProject } from '../projects';
 import Thumbnail from './ui/Thumbnail.astro';
-import ProjectGallery from './gallery/ProjectGallery';
-import { galleryPhotos } from './gallery/photos';
+import PhotoGallery from './gallery/PhotoGallery';
+import { galleryPhotos, type GalleryPhoto } from './gallery/photos';
+import { SiteNavigation } from './SiteNavigation';
 import { LinearBlur } from './gallery/ui/LinearBlur';
 import { ViewerAttribution } from './viewer/ViewerAttribution';
 import './gallery/GalleryTokens.css';
 import './gallery/GalleryIcons.css';
 import '../styles/gallery.css';
-interface Props { project: ResolvedProject; }
+type Props = { project: ResolvedProject; title?: never; photos?: never } | { project?: never; title: string; photos: readonly GalleryPhoto[] };
 const { project } = Astro.props;
-const photos = galleryPhotos(project);
-const { title, slug, summary, description, location, period, tags } = project;
+const photos = project ? galleryPhotos(project) : Astro.props.photos;
+const title = project ? project.title : Astro.props.title;
+const { slug, summary, description, location, period, tags } = project ?? {};
+const preview = project ? photos : photos.slice(0, 24);
 ---
-<section data-project-gallery aria-label={`${project.title} photographs`}>
+<section data-photo-gallery data-project-gallery={!!project || undefined} aria-label={`${title} photographs`}>
   <div data-static-gallery>
-    <header class="gallery-header"><LinearBlur className="gallery-header-blur" tint="var(--color-background)" strength={128} side="top" aria-hidden="true" /><div class="gallery-header-content"><a class="gallery-action" href="/" aria-label="返回首页">←</a><h1 title={title}>{title}</h1><span class="gallery-count">{photos.length}</span>
-      <details class="static-info"><summary>项目信息</summary><div class="panel-body">
+    <header class="gallery-header"><LinearBlur className="gallery-header-blur" tint="var(--color-background)" strength={128} side="top" aria-hidden="true" /><div class="gallery-header-content"><div class="gallery-heading"><SiteNavigation current={project ? 'projects' : 'explore'} compact /><h1 title={title}>{title}</h1><span class="gallery-count">{photos.length}</span></div>
+      {project && <details class="static-info"><summary>项目信息</summary><div class="panel-body">
         {summary && <p>{summary}</p>}
         <dl class="project-details"><dt>地点</dt><dd>{location}</dd><dt>日期</dt><dd>{period?.start}{period?.end && period.end !== period.start && ` — ${period.end}`}</dd></dl>
         {description && <p class="project-description">{description}</p>}
         <ul class="tags">{tags?.map(tag => <li>{tag}</li>)}</ul>
         <ViewerAttribution />
-      </div></details>
+      </div></details>}
     </div></header>
-    <ol class="photo-grid static-grid">{photos.map((photo, index) => <li data-photo-id={photo.id}>
+    <ol class="photo-grid static-grid">{preview.map((photo, index) => <li data-photo-id={photo.id}>
       <a class="photo-link" href={photo.src} data-gallery-index={index} aria-label={`查看照片：${photo.alt}`}>
         <Thumbnail src={photo.thumbnail} alt={photo.alt} width={photo.width} height={photo.height} eager={index < 5} />
       </a>
     </li>)}</ol>
+    {!project && <noscript><p class="gallery-notice">启用 JavaScript 以筛选和浏览全部 {photos.length} 张公开照片。</p></noscript>}
   </div>
-  <ProjectGallery photos={photos} project={{ title, slug, summary, description, location, period, tags }} client:only="react" />
+  <PhotoGallery photos={photos} title={title} project={project ? { title, slug, summary, description, location, period, tags } : undefined} client:only="react" />
 </section>

@@ -316,3 +316,11 @@ Final Gate 的独立命令为 `pnpm photos:verify --run <completed-workdir> --ex
 - 缓存清空、过期、损坏的派生记录或 Cache API 故障会自动回源重建。原产物已过期、来源配置/处理输入变化或完整性失败仍拒绝操作，不能用旧缓存兜底接受过期数据。
 
 本轮完成本地功能与性能评估，不能据此认定 Cloudflare Free 正式可用。50 个来源/500 个 Project 仍只是 schema 上限；冷 ZIP/完整校验、验签、Git 写入及 Cache API 总预算需要实际 Free 数据验证。详见 [ADMIN_CPU_PROFILE.md](docs/ADMIN_CPU_PROFILE.md)。没有购买套餐、生产部署、正式摄影 Project 或 Phase 8 改动。
+
+## Global Gallery — Public collection 与 Explore（2026-09-20）
+
+`src/website/public-photos.ts` 在构建端从 published Project 引用派生唯一公开照片集合，按 canonical ID 去重并保留公开 memberships；不扫描 Manifest 作为公开目录，不改变 Photo Engine 或 Project schema。详情沿用所属公开 Project 的白名单 metadata route。
+
+`/` 仍为 Projects，新增静态 `/explore/`，共用 `Gallery.astro` 与从 `ProjectGallery` 提取的 `PhotoGallery`。后者持有相同的筛选、虚拟化、Viewer、URL/history、滚动与焦点状态；`ProjectGallery` 保留为薄适配器。全局筛选沿用共享 `filters.ts` / `url-state.ts`，Project 参数是永久 ID。Explore Viewer 的序列严格等于当前筛选/排序结果；不匹配的 `photo` 深链接不会扩大结果集或清空筛选。
+
+Explore 只序列化一次公开 Gallery 投影，静态首屏预览限制为 24 张，完整浏览由原虚拟化 Gallery 承载；完整 Manifest、draft、详细 EXIF 不进入 island。GPU/图片引擎、metadata、地图等重模块保持既有加载边界。公开导航为 Projects / Explore / Map，全站 Map 暂不可用，项目内地图继续保留。SEO sitemap 和 release 精确白名单纳入 Explore，不放宽其他公开输出限制。详见 [Global Gallery Phase 2](docs/gallery/GLOBAL_PHASE2.md)。

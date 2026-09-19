@@ -1,22 +1,22 @@
 import { usePanelDismiss } from './Panel';
 import { AnimatePresence } from 'motion/react';
-import { useId, useMemo, useRef, useState } from 'react';
-import { emptyFilters, galleryFilterOptions, type Filters } from './filters';
-import type { GalleryPhoto } from './photos';
+import { useId, useRef, useState } from 'react';
+import { emptyFilters, type Filters, type FilterField, type FilterOption } from './filters';
 import { FilterChip, filterIcons, filterLabels } from './FilterChip';
 import { EllipsisWithTooltip } from './ui/EllipsisWithTooltip';
 import { Icon } from './ui/Icon';
 
-export function SearchPanel({ photos, filters, count, onChange, onAction }: {
-  photos: readonly GalleryPhoto[]; filters: Filters; count: number; onChange: (filters: Filters) => void;
+export function SearchPanel({ options, fields, project, filters, count, onChange, onAction }: {
+  options: readonly FilterOption[]; fields: readonly FilterField[]; project: boolean;
+  filters: Filters; count: number; onChange: (filters: Filters) => void;
   onAction: (action: 'settings' | 'info' | 'map' | 'masonry' | 'list') => void;
 }) {
   const dismiss = usePanelDismiss();
   const id = useId();
   const listRef = useRef<HTMLDivElement>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [category, setCategory] = useState<'all' | 'camera' | 'lens' | 'tag'>('all');
-  const options = useMemo(() => galleryFilterOptions(photos), [photos]);
+  const [category, setCategory] = useState<'all' | FilterField>('all');
+  const projectLabel = options.find(option => option.field === 'project' && option.value === filters.project)?.label;
   const commands = options.filter(option => category === 'all' || option.field === category);
   const update = (field: keyof Filters, value: string) => onChange({ ...filters, [field]: value });
   const choose = (index: number) => { const option = commands[index]; if (option) update(option.field, filters[option.field] === option.value ? '' : option.value); };
@@ -35,10 +35,10 @@ export function SearchPanel({ photos, filters, count, onChange, onAction }: {
         if (event.key === 'Enter' && selectedIndex >= 0) { event.preventDefault(); choose(selectedIndex); }
       }} /><kbd>⌘ K</kbd></div>
     {Object.values(filters).some(Boolean) && <div className="filter-chips" aria-label="当前筛选"><AnimatePresence initial={false}>
-      {(Object.keys(filters) as (keyof Filters)[]).filter(field => filters[field]).map(field => <FilterChip key={field} field={field} value={filters[field]} onRemove={() => update(field, '')} />)}
+      {(Object.keys(filters) as (keyof Filters)[]).filter(field => filters[field]).map(field => <FilterChip key={field} field={field} value={field === 'project' ? projectLabel ?? filters[field] : filters[field]} onRemove={() => update(field, '')} />)}
     </AnimatePresence></div>}
     <div className="search-filter-heading"><span><Icon name="filter-3" />筛选照片</span><div className="filter-categories" role="group" aria-label="筛选类别">
-      {(['all', 'camera', 'lens', 'tag'] as const).map(field => <button type="button" key={field} aria-pressed={category === field} onClick={() => { setCategory(field); setSelectedIndex(-1); }}>{field === 'all' ? '全部' : filterLabels[field]}</button>)}
+      {(['all', ...fields] as const).map(field => <button type="button" key={field} aria-pressed={category === field} onClick={() => { setCategory(field); setSelectedIndex(-1); }}>{field === 'all' ? '全部' : filterLabels[field]}</button>)}
     </div></div>
     <div className="command-list" ref={listRef} id={`${id}-commands`} role="group" aria-label="筛选选项" onKeyDown={event => {
       if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
@@ -54,13 +54,13 @@ export function SearchPanel({ photos, filters, count, onChange, onAction }: {
         <span className="command-icon"><Icon name={filterIcons[option.field]} /></span>
         <span className="command-text"><EllipsisWithTooltip>{option.label}</EllipsisWithTooltip><small>{filterLabels[option.field]}</small></span>
         <span className="command-count">{option.count}</span>{filters[option.field] === option.value && <Icon name="check" className="selected-check" />}
-      </button>) : <p className="command-empty">当前项目没有这类筛选项</p>}
+      </button>) : <p className="command-empty">当前图库没有这类筛选项</p>}
     </div>
     <details className="date-filter" open={!!filters.start || !!filters.end || undefined}><summary><Icon name="calendar" />拍摄日期</summary>
       <div className="date-fields"><label>开始日期<input type="date" value={filters.start} max={filters.end || undefined} onChange={event => update('start', event.target.value)} /></label><label>结束日期<input type="date" value={filters.end} min={filters.start || undefined} onChange={event => update('end', event.target.value)} /></label></div>
     </details>
     <details className="palette-actions"><summary><Icon name="settings-3" />图库操作</summary><div>
-      {([['settings', '显示设置'], ['map', '地图探索'], ['info', '项目信息'], ['masonry', '瀑布流'], ['list', '列表视图']] as const).map(([action, label]) => <button type="button" key={action} onClick={() => onAction(action)}>{label}<Icon name="arrow-right" /></button>)}
+      {([['settings', '显示设置'], ['map', '地图探索'], ['info', '项目信息'], ['masonry', '瀑布流'], ['list', '列表视图']] as const).filter(([action]) => project || (action !== 'map' && action !== 'info')).map(([action, label]) => <button type="button" key={action} onClick={() => onAction(action)}>{label}<Icon name="arrow-right" /></button>)}
     </div></details>
     <footer className="search-footer"><span className="keyboard-hint"><kbd>↑↓</kbd> 选择 <kbd>↵</kbd> 应用</span><div className="form-actions"><button type="button" onClick={() => { onChange(emptyFilters); setSelectedIndex(-1); }}>重置</button><button type="submit" className="primary-button">查看 {count} 张照片</button></div></footer>
   </form>;

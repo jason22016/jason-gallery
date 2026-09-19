@@ -151,6 +151,40 @@ test('touch cluster tap expands immediately without a preview and reduced motion
 });
 const cards = (page: Page) => page.locator('.masonry-photo');
 
+test('Global Gallery keeps 480-photo virtualization and filtered Viewer scroll/focus restoration in both views', async t => {
+  const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  const membership = { id: 'shared-id', slug: 'shared-slug', title: 'Shared project' };
+  const globalPhotos = photos.map(photo => ({ ...photo, video: undefined, projects: [membership, { id: 'another-id', slug: 'another', title: 'Another project' }] }));
+  await page.route('**/photos.json', route => route.fulfill({ json: globalPhotos }));
+  const thumbnails = new Set<string>(), originalRequests: string[] = [];
+  page.on('request', request => {
+    if (request.url().includes('/thumb.jpg?id=')) thumbnails.add(request.url());
+    if (/\/(motion\.jpg|live\.(mp4|mov)|details\.json)$/.test(request.url())) originalRequests.push(request.url());
+  });
+  await ready(page, '?global&project=shared-id&tag=偶数&sort=asc');
+  await expect(page.locator('.gallery-count')).toHaveText('240');
+  assert(await cards(page).count() < 100);
+  assert(thumbnails.size < 100, 'Global Gallery requests only the virtual window of thumbnails');
+  assert.deepEqual(originalRequests, []);
+  await page.getByRole('button', { name: '列表视图', exact: true }).click();
+  assert(await page.locator('.list-card').count() < 30);
+  await page.evaluate(() => scrollTo(0, document.body.scrollHeight));
+  const last = page.locator('.list-card[data-gallery-index="239"]');
+  await expect(last).toBeVisible();
+  const before = await page.evaluate(() => scrollY), url = page.url();
+  const trigger = last.locator('.list-image'), box = await trigger.boundingBox();
+  await last.click();
+  await expect(page.locator('.viewer-counter')).toHaveText('240 / 240');
+  await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loaded', { timeout: browserReadyTimeout(15_000) });
+  await page.keyboard.press('Home');
+  await expect(page.locator('.viewer-counter')).toHaveText('1 / 240');
+  await page.getByRole('button', { name: '关闭照片', exact: true }).click();
+  await expect(page.locator('.photo-dialog')).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  assert.equal(page.url(), url); assert.equal(await page.evaluate(() => scrollY), before);
+  assert.deepEqual(await trigger.boundingBox(), box);
+});
+
 test('480-photo native map bounds HTML markers to the viewport and releases motion subscriptions on close', async t => {
   const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
   const located = photos.map((photo, index) => ({ ...photo, video: undefined, src: `/original-forbidden/${index}.jpg`,

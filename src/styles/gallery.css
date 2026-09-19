@@ -23,6 +23,13 @@
 .gallery-page .gallery-action[data-active] { color: var(--color-accent); background: var(--gallery-wash); }
 .gallery-action .gallery-icon { font-size: 16px; }
 .gallery-page .gallery-home { border-radius: 8px; }
+.site-navigation-menu { position: relative; flex-shrink: 0; }
+.site-navigation-menu summary { list-style: none; cursor: pointer; }
+.site-navigation-menu summary::-webkit-details-marker { display: none; }
+.site-navigation-menu .site-navigation { position: absolute; top: 40px; left: 0; min-width: 156px; display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 8px; border-radius: 12px; background: var(--color-material-thick); color: var(--color-text); border: .5px solid var(--gallery-border); backdrop-filter: blur(var(--gallery-blur-panel)); box-shadow: var(--gallery-shadow); }
+.site-navigation-menu .site-navigation > * { padding: 8px 12px; border-radius: 8px; }
+.site-navigation-menu .site-navigation a { transition: background-color 200ms; }
+.site-navigation-menu .site-navigation a:hover, .site-navigation-menu .site-navigation a[aria-current] { background: var(--color-fill); text-decoration: none; }
 .view-segment { position: relative; height: 32px; gap: 4px; padding: 4px; }
 .gallery-page .view-segment button { position: relative; z-index: 10; display: flex; height: 100%; justify-content: center; align-items: center; padding: 0 16px; color: var(--color-text-secondary); border: 0; border-radius: 6px; background: transparent; transition: color 200ms; }
 .gallery-page .view-segment button:hover { background: transparent; color: var(--color-text); }
@@ -196,7 +203,7 @@
 .search-input-row input::placeholder { color: var(--color-text-secondary); }
 .search-form kbd { border: 1px solid var(--gallery-border); background: var(--color-fill-tertiary); color: var(--color-text-secondary); border-radius: 4px; padding: 2px 4px; font: 10px/14px var(--gallery-font-mono); white-space: nowrap; }
 .search-form .filter-chips { padding: 0 16px 12px; }
-.search-filter-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--color-fill-quaternary); padding: 8px 16px; }
+.search-filter-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; background: var(--color-fill-quaternary); padding: 8px 16px; }
 .search-filter-heading > span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-secondary); }
 .filter-categories { display: flex; gap: 4px; }
 .gallery-page .filter-categories button { padding: 4px 8px; border-radius: 999px; font-size: 12px; border: 0; background: transparent; }

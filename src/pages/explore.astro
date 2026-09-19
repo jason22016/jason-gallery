@@ -1,0 +1,10 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import Gallery from '../components/Gallery.astro';
+import { loadPublicPhotoCollection } from '../website/public-photos';
+
+const photos = loadPublicPhotoCollection().listPhotos();
+---
+<SiteLayout title="Explore" description="浏览 Jason 的全部公开照片，按项目、拍摄日期、相机、镜头和标签筛选。" gallery>
+  <Gallery title="Explore" photos={photos} />
+</SiteLayout>
