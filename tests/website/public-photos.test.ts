@@ -139,6 +139,23 @@ test('public detail lookup uses the same whitelist as the Project route and refu
   for (const value of ['draft-only', 'unreferenced', 'PRIVATE', 'internal-storage-directory', 'regions', 'lastModified', 'digest', 'PrivateField', 'Orientation']) assert(!serialized.includes(value), value);
 });
 
+test('public Live/Motion Photo projections retain playback fields without storage internals or engine object references', () => {
+  for (const video of [
+    { type: 'live-photo' as const, videoUrl: '/public/live.mp4', s3Key: 'PRIVATE STORAGE/video.mov', privateSource: 'PRIVATE SOURCE' },
+    { type: 'motion-photo' as const, offset: 2048, size: 1024, presentationTimestamp: 42, privateSource: 'PRIVATE SOURCE' },
+  ]) {
+    const native = photo('video'); native.video = video;
+    const catalog = resolveProjects([{ source: 'fixture', data: project({ coverPhotoId: native.id, photos: [{ photoId: native.id }] }) }], { getPhoto: () => native }).published;
+    const projected = resolvePublicPhotoCollection(catalog).getPhoto(native.id)!;
+    const expected = video.type === 'live-photo' ? { type: video.type, videoUrl: video.videoUrl }
+      : { type: video.type, offset: video.offset, size: video.size, presentationTimestamp: video.presentationTimestamp };
+    assert.deepEqual(projected.video, expected);
+    assert.deepEqual(galleryPhotos(catalog.listProjects()[0]!)[0]!.video, expected);
+    assert(!JSON.stringify(projected).includes('PRIVATE'));
+    assert(!Object.isFrozen(video), 'publishing must not freeze engine-owned video data');
+  }
+});
+
 test('even a draft or mixed index cannot add private photos, memberships or details to the public collection', () => {
   const { catalog } = publicFixture();
   const draftOnly = resolvePublicPhotoCollection(catalog.drafts);

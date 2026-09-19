@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { copyFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { before, after, test } from 'node:test';
 import sharp from 'sharp';
@@ -31,7 +32,9 @@ before(async () => {
     portrait.digest = 'PHOTO PAGE PRIVATE DIGEST';
     portrait.regions = [{ name: 'PHOTO PAGE PRIVATE PERSON', area: null, appliedToDimensions: null }];
     Object.assign(portrait.exif!, { PrivateField: 'PHOTO PAGE PRIVATE EXIF' });
-    portrait.video = { type: 'live-photo', videoUrl: '/originals/live.mp4', s3Key: 'live.mp4' };
+    portrait.video = { type: 'live-photo', videoUrl: '/originals/live.mp4', s3Key: 'PHOTO PAGE PRIVATE STORAGE/live.mp4' };
+    Object.assign(portrait, { sourceId: 'PHOTO PAGE PRIVATE SOURCE', storage: { bucket: 'PHOTO PAGE PRIVATE BUCKET' } });
+    Object.assign(portrait.video, { internalStorage: 'PHOTO PAGE PRIVATE VIDEO' });
     copyFileSync(path.join(repo, 'tests/gallery/live.mp4'), path.join(root, 'sources/live.mp4'));
     const empty = manifest.data.find(photo => photo.s3Key === 'map-far.jpg')!;
     empty.title = ''; empty.description = ''; empty.exif = null;
@@ -238,10 +241,63 @@ test('draft-only, unused, raw internal IDs and guessed short URLs return 404 and
   for (const route of ['/photos/AAAAAAAAAAAAAAAA/', `/photos/${collection.listPhotos()[0]!.id}/`, `/photos/${collection.listPhotos()[0]!.publicId}.json`]) assert.equal((await fetch(server.url + route)).status, 404, route);
   const projects = loadProjects({ directory: path.join(root, 'src/content/projects'), manifestFile: path.join(root, 'src/data/photos-manifest.json') }).listProjects();
   const files = (await fs.readdir(dist, { recursive: true, withFileTypes: true })).filter(entry => entry.isFile()).map(entry => path.relative(dist, path.join(entry.parentPath, entry.name)));
-  assertPublicOutput(files, publicOutputPaths(projects), true);
+  const expected = publicOutputPaths(projects);
+  assertPublicOutput(files, expected, true);
+  const publicPage = `photos/${collection.listPhotos()[0]!.publicId}/index.html`;
+  for (const unexpected of ['photos/AAAAAAAAAAAAAAAA/index.html', publicPage.replace('index.html', 'details.json'), 'photos-manifest.json', 'sources/private.json']) {
+    assert.throws(() => assertPublicOutput([...files, unexpected], expected, true), /Unexpected public file/);
+  }
+  assert.throws(() => assertPublicOutput(files.filter(file => file !== publicPage), expected, true), /Missing published asset/);
   for (const file of files.filter(file => /\.(html|js|json)$/.test(file))) {
     const body = await fs.readFile(path.join(dist, file), 'utf8');
     assert(!/PHOTO PAGE PRIVATE|DRAFT WEBSITE SECRET|PRIVATE PROJECT CAPTION/.test(body), file);
+    if (!file.endsWith('.js')) assert(!/(?:&quot;|")(?:s3Key|sourceId|regions|digest|PrivateField)(?:&quot;|")\s*:/.test(body), file);
+  }
+});
+
+for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 664 }, { width: 320, height: 568 }]) test(`Photo Page at ${viewport.width}px keeps the primary action visible, keyboard focus clear and heavy resources deferred`, async t => {
+  const ctx = await browser.newContext({ viewport }); t.after(() => ctx.close());
+  const page = await ctx.newPage();
+  const photo = collection.listPhotos()[0]!;
+  for (const reducedMotion of ['reduce', 'no-preference'] as const) {
+    await page.emulateMedia({ reducedMotion });
+    const requests: { url: string; type: string }[] = [];
+    const capture = (request: import('playwright').Request) => requests.push({ url: request.url(), type: request.resourceType() });
+    page.on('request', capture);
+    await page.goto(server.url + photo.sharePath);
+    await page.waitForLoadState('networkidle');
+    const open = page.getByRole('link', { name: '查看原图 · Open in Viewer', exact: true });
+    await expect(open).toBeInViewport({ ratio: 1 });
+    assert.equal(await page.locator('.photo-share .primary-button').count(), 1);
+    assert.equal(await page.locator('astro-island, .photo-dialog, .viewer-inspector, .viewer-minimap, .photo-map, .filmstrip, canvas, video').count(), 0);
+    assert(requests.every(request => new URL(request.url).origin === server.url), 'landing resources stay on the public site');
+    assert(!requests.some(request => /fetch|xhr|media|other/.test(request.type) || /PhotoViewer|PhotoGallery|maplibre|\.wasm|\.json|\/originals\//i.test(request.url)), JSON.stringify(requests));
+    assert.deepEqual(requests.filter(request => request.type === 'image').map(request => new URL(request.url).pathname), [photo.thumbnail]);
+    const scriptBytes = await page.evaluate(() => performance.getEntriesByType('resource').filter(entry => (entry as PerformanceResourceTiming).initiatorType === 'script').reduce((bytes, entry) => bytes + (entry as PerformanceResourceTiming).decodedBodySize, 0));
+    assert(scriptBytes <= 2048, 'only the small Thumbnail helper is permitted; no Viewer, React hydration, MapLibre or GPU engine');
+    const html = await page.content();
+    for (const other of collection.listPhotos().filter(other => other.id !== photo.id)) assert(!html.includes(other.id) && !html.includes(other.publicId), 'landing HTML must not duplicate the Global collection');
+    await page.keyboard.press('Tab'); await expect(page.locator('.skip-link')).toBeFocused();
+    await page.keyboard.press('Enter'); await expect(page.locator('#main')).toBeFocused();
+    await page.keyboard.press('Tab'); await expect(page.locator('summary[aria-label="网站导航"]')).toBeFocused();
+    await page.keyboard.press('Tab'); await page.keyboard.press('Tab'); await expect(open).toBeFocused();
+    const style = await open.evaluate(element => {
+      const css = getComputedStyle(element);
+      return { outline: css.outlineStyle, outlineWidth: css.outlineWidth, duration: css.transitionDuration, height: element.getBoundingClientRect().height };
+    });
+    assert.equal(style.outline, 'solid'); assert.equal(style.outlineWidth, '2px'); assert(style.height >= 44);
+    if (reducedMotion === 'reduce') assert(style.duration.split(',').every(duration => parseFloat(duration) === 0));
+    await page.locator('.photo-share-caption').evaluate(element => { element.textContent = '长说明文字用于确认主要操作不会被挤到说明之后。'.repeat(100); });
+    await expect(open).toBeInViewport({ ratio: 1 });
+    const landingURL = page.url();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loaded');
+    assert.equal(page.url(), server.url + collection.getPhotoPage(photo.publicId)!.viewerHref);
+    assert(requests.some(request => /PhotoGallery|PhotoViewer/.test(request.url)), 'the existing Viewer loads only after navigation');
+    await page.goBack(); await expect(page.locator('.photo-share')).toBeVisible();
+    assert.equal(page.url(), landingURL, 'Back restores the landing entry, including the skip-link fragment');
+    assert.equal(new URL(page.url()).pathname, photo.sharePath);
+    page.off('request', capture);
   }
 });
 
@@ -291,4 +347,20 @@ test('minimal Photo Page uses existing chrome, handles missing fields and opens 
   assert.equal(await page.locator('.photo-share-caption script').count(), 0);
   assert.equal(await page.locator('script').filter({ hasText: 'fixture caption is plain text' }).count(), 0);
   assert.deepEqual(errors, []);
+});
+
+test('an actual Astro build rejects a colliding Public ID before a release can be produced', async () => {
+  const filename = path.join(root, 'src/website/public-photo-id.ts');
+  const original = await fs.readFile(filename, 'utf8');
+  const collision = original.replace(/export function shortPublicPhotoId\(photoId: string\): string \{[^}]+\}/, "export function shortPublicPhotoId(photoId: string): string { return 'AAAAAAAAAAAAAAAA'; }");
+  assert.notEqual(collision, original, 'the isolated build must exercise a real collision');
+  try {
+    await fs.writeFile(filename, collision);
+    const build = spawnSync(process.execPath, [path.join(repo, 'node_modules/astro/bin/astro.mjs'), 'build', '--outDir', path.join(root, 'collision-dist')], {
+      cwd: root, encoding: 'utf8', timeout: 90_000, env: { ...process.env, ASTRO_TELEMETRY_DISABLED: '1', SITE_URL: origin },
+    });
+    assert.ifError(build.error);
+    assert.notEqual(build.status, 0);
+    assert.match(build.stdout + build.stderr, /Public photo ID collision: AAAAAAAAAAAAAAAA/);
+  } finally { await fs.writeFile(filename, original); }
 });

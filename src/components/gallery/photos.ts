@@ -4,11 +4,14 @@ import { aperture, unit } from '../viewer/metadata';
 import { viewerPhotos, type ViewerPhoto } from '../viewer/photos';
 
 export type GalleryProjectMembership = Pick<ResolvedProject, 'id' | 'slug' | 'title'>;
+type Video = NonNullable<PhotoManifestItem['video']>;
+type GalleryVideo = Pick<Extract<Video, { type: 'live-photo' }>, 'type' | 'videoUrl'>
+  | Pick<Extract<Video, { type: 'motion-photo' }>, 'type' | 'offset' | 'size' | 'presentationTimestamp'>;
 
 export interface GalleryPhoto extends ViewerPhoto {
   readonly projects?: readonly GalleryProjectMembership[];
   readonly aspectRatio: number;
-  readonly video?: PhotoManifestItem['video'];
+  readonly video?: GalleryVideo;
   readonly capture: { focalLength: string; aperture: string; shutter: string; iso: string; exposureBias?: string };
 }
 
@@ -17,11 +20,13 @@ export function galleryPhotos(project: ResolvedProject): readonly GalleryPhoto[]
   return viewerPhotos(project).map((photo, index) => {
     const source = project.photos[index]!.photo;
     const exif = source.exif;
+    const video = source.video;
     return {
       ...photo,
       projects,
       aspectRatio: Number.isFinite(source.aspectRatio) && source.aspectRatio > 0 ? source.aspectRatio : photo.width / photo.height,
-      video: source.video,
+      video: video?.type === 'live-photo' ? { type: video.type, videoUrl: video.videoUrl }
+        : video ? { type: video.type, offset: video.offset, size: video.size, presentationTimestamp: video.presentationTimestamp } : undefined,
       capture: {
         focalLength: unit(exif?.FocalLengthIn35mmFormat || exif?.FocalLength, 'mm'),
         aperture: aperture(exif?.FNumber),

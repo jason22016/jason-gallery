@@ -21,6 +21,7 @@ const { photo } = Astro.props;
     <Thumbnail src={photo.image.path} alt={photo.image.alt} width={photo.image.width} height={photo.image.height} eager />
   </figure>
   <div class="photo-share-summary">
+    <a class="button-link primary-button photo-share-open" href={photo.viewerHref}>查看原图 · Open in Viewer</a>
     <div class="photo-share-copy">
       {photo.title && <h1>{photo.title}</h1>}
       {photo.caption && <p class="photo-share-caption">{photo.caption}</p>}
@@ -31,7 +32,6 @@ const { photo } = Astro.props;
       </dl>}
       <p class="photo-share-project"><span>Project</span><a href={`/projects/${photo.primaryProject.slug}/`}>{photo.primaryProject.title}</a></p>
     </div>
-    <a class="button-link primary-button photo-share-open" href={photo.viewerHref}>查看原图 · Open in Viewer</a>
   </div>
 </article>
 
@@ -41,7 +41,7 @@ const { photo } = Astro.props;
   .photo-share-preview :global(.thumbnail) { background: var(--color-fill-quaternary); }
   .photo-share-preview :global(.thumbnail-error) { color: var(--color-text-secondary); }
   .photo-share-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-top: 24px; }
-  .photo-share-copy { min-width: 0; display: grid; gap: 12px; overflow-wrap: anywhere; }
+  .photo-share-copy { order: -1; min-width: 0; display: grid; gap: 12px; overflow-wrap: anywhere; }
   h1 { font-size: 18px; line-height: 1.5; font-weight: 500; }
   .photo-share-caption { font-size: 14px; line-height: 1.7; white-space: pre-line; }
   .photo-share-facts { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 0; font-size: 12px; line-height: 1.5; }
@@ -53,6 +53,7 @@ const { photo } = Astro.props;
   @media (max-width: 599px) {
     .photo-share { padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); }
     .photo-share-summary { flex-direction: column; }
+    .photo-share-copy { order: 0; }
     .photo-share-open { width: 100%; }
   }
 </style>
