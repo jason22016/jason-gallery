@@ -27,13 +27,14 @@ export function PhotoMarkerPin({ photo, isSelected = false, enableHover = true, 
   const cardBehavior = resolvePhotoMarkerCardBehavior({ isSelected });
   useEffect(() => { setHoverOpen(false); }, [isSelected, enableHover]);
   const close = () => { onClose(); anchor.current?.focus({ preventScroll: true }); };
+  // Neutral targets keep gesture end events active during reduced motion.
   return <Popover.Root open={cardBehavior.renderAnchoredCard}>
     <HoverCard open={enableHover && !isSelected && hoverOpen} onOpenChange={setHoverOpen} openDelay={cardBehavior.hoverCardOpenDelay} closeDelay={cardBehavior.hoverCardCloseDelay}>
       <HoverCardTrigger asChild><Popover.Anchor asChild><m.button ref={anchor} type="button" className="photo-marker-pin" aria-label={photo.title || photo.id} aria-pressed={isSelected}
         aria-haspopup="dialog" aria-expanded={isSelected} aria-controls={isSelected ? cardId : undefined}
         initial={reduced ? false : { scale: 0 }} animate={{ scale: 1 }} transition={reduced ? { duration: 0 } : Spring.presets.snappy}
-        whileHover={reduced ? undefined : { scale: 1.1 }} whileFocus={reduced ? undefined : { scale: 1.1 }}
-        whileTap={reduced ? undefined : { scale: 0.9 }} onClick={event => { event.stopPropagation(); onClick(); }}>
+        whileHover={{ scale: reduced ? 1 : 1.1 }} whileFocus={{ scale: reduced ? 1 : 1.1 }}
+        whileTap={{ scale: reduced ? 1 : 0.9 }} onClick={event => { event.stopPropagation(); onClick(); }}>
         {isSelected && <span className="photo-marker-selection" aria-hidden="true" />}
         <PhotoMarkerImage key={photo.thumbnail} photo={photo} />
         <span className="photo-marker-material" aria-hidden="true">

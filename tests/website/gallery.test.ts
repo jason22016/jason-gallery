@@ -63,6 +63,11 @@ async function pageFor(options: Parameters<Browser['newContext']>[0] = {}) {
 }
 async function ready(page: Page, query = '') {
   await page.goto(server.url + query);
+  if (new URL(page.url()).searchParams.get('panel') === 'map') {
+    // Cold software WebGL initialization blocks the renderer and can stall
+    // thumbnail readiness checks. Wait for the active map first.
+    await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+  }
   await expect(page.locator('.masonry-photo').first()).toBeVisible();
   await expect(page.locator('.masonry-photo').first().locator('img')).toHaveCSS('opacity', '1');
 }
@@ -82,7 +87,6 @@ test('native cluster mosaic and focus preview use actual leaves, bounded thumbna
   page.on('request', request => { if (request.url().includes('/original-forbidden/')) originals++; });
   page.on('pageerror', error => errors.push(error.message));
   await ready(page, '?panel=map');
-  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
   const large = page.locator('.cluster-marker[data-point-count="8"]'), small = page.locator('.cluster-marker[data-point-count="4"]');
   await expect(large).toHaveCount(1); await expect(small).toHaveCount(1);
   await expect(large.locator('[data-mosaic-photo]')).toHaveCount(4);
@@ -136,7 +140,6 @@ test('touch cluster tap expands immediately without a preview and reduced motion
   const { ctx, page } = await pageFor({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }); t.after(() => ctx.close());
   await clusterFixture(page);
   await ready(page, '?panel=map');
-  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
   const cluster = page.locator('.cluster-marker[data-point-count="8"]');
   await expect(cluster).toHaveCount(1); await expect(cluster.locator('.cluster-marker-ring')).toHaveCSS('animation-name', 'none');
   await cluster.tap();
@@ -643,7 +646,6 @@ test('coincident photos expand to keyboard markers and rapid map close/reopen re
   await page.route('**/photos.json', route => route.fulfill({ json: located }));
   await installMapFixture(page, server.url);
   await ready(page, '?panel=map');
-  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
   await expect(page.locator('.cluster-marker[data-point-count="8"]')).toHaveCount(1);
   await page.locator('.cluster-marker').focus(); await page.keyboard.press('Enter');
   await expect(page.locator('.photo-marker-pin')).toHaveCount(8);
@@ -671,7 +673,6 @@ test('widely separated GPS photos fit together and filtering to zero, one and ma
   await page.route('**/photos.json', route => route.fulfill({ json: located }));
   await installMapFixture(page, server.url);
   await ready(page, '?panel=map');
-  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
   await expect(page.locator('.photo-marker-pin')).toHaveCount(3);
   const filter = async (query: string) => page.evaluate(query => {
     history.pushState(history.state, '', `?panel=map&query=${query}`);

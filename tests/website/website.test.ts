@@ -1364,20 +1364,52 @@ test('photo marker spring hover, focus and press scales use upstream gestures an
   const id = fixture.photos[0]!.photoId;
   await page.goto(`${server.url}/projects/fixture-alpha/?panel=map&mapPhoto=${id}`);
   await assertMapSelection(page, id);
-  const neighbor = page.locator('.photo-marker-pin[aria-pressed="false"]').first();
-  const scale = () => neighbor.evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).a);
-  await expect.poll(scale).toBe(1);
-  await neighbor.hover({ position: { x: 20, y: 38 } }); await expect.poll(async () => Math.abs(await scale() - 1.1)).toBeLessThan(.01);
-  await page.mouse.down(); await expect.poll(async () => Math.abs(await scale() - .9)).toBeLessThan(.01);
-  await page.mouse.up();
   const selected = page.locator('.photo-marker-pin[aria-pressed="true"]');
+  const selectedScale = () => selected.evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).a);
+  // The neighboring pin is partly covered by this card. Its exposed bottom
+  // edge moves outside the pointer when pressed, so use this pin's center.
+  await expect.poll(selectedScale).toBe(1);
+  await selected.hover(); await expect.poll(async () => Math.abs(await selectedScale() - 1.1)).toBeLessThan(.01);
+  await page.mouse.down(); await expect.poll(async () => Math.abs(await selectedScale() - .9)).toBeLessThan(.01);
+  await page.mouse.up();
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', id);
   await expect(selected.locator('.photo-marker-selection')).toHaveCSS('animation-duration', '2s');
   await page.mouse.move(0, 0);
+  // Motion's focus gesture requires keyboard focus-visible, not a remaining
+  // mouse hover scale sampled before the pointer-leave spring has finished.
+  await page.keyboard.press('Tab');
   await selected.focus();
-  await expect.poll(() => selected.evaluate(element => Math.abs(new DOMMatrixReadOnly(getComputedStyle(element).transform).a - 1.1))).toBeLessThan(.01);
+  await expect(selected).toBeFocused();
+  await expect.poll(() => selected.evaluate(element => element.matches(':focus-visible'))).toBe(true);
+  for (let cycle = 0; cycle < 2; cycle++) {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await expect.poll(async () => Math.abs(await selectedScale() - 1.1)).toBeLessThan(.01);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expect(selected.locator('.photo-marker-selection')).toHaveCSS('animation-name', 'none');
+    await expect.poll(selectedScale).toBe(1);
+    await expect(selected).toBeFocused();
+  }
+  await page.keyboard.press('Tab');
+  await expect(selected).not.toBeFocused();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await selected.hover();
+  await expect.poll(async () => Math.abs(await selectedScale() - 1.1)).toBeLessThan(.01);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect.poll(selectedScale).toBe(1);
+  await page.mouse.move(0, 0);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect.poll(selectedScale).toBe(1);
+  await selected.hover();
+  await expect.poll(async () => Math.abs(await selectedScale() - 1.1)).toBeLessThan(.01);
+  await page.mouse.down();
+  await expect.poll(async () => Math.abs(await selectedScale() - .9)).toBeLessThan(.01);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(selected.locator('.photo-marker-selection')).toHaveCSS('animation-name', 'none');
-  await expect.poll(() => selected.evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).a)).toBe(1);
+  await expect.poll(selectedScale).toBe(1);
+  await page.mouse.up();
+  await page.mouse.move(0, 0);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect.poll(selectedScale).toBe(1);
 });
 
 test('failed marker thumbnails retain thumbhash and camera without requesting originals', async t => {

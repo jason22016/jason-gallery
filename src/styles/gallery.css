@@ -242,7 +242,8 @@
 .photo-marker-inner { position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 1px 2px var(--color-fill-tertiary); }
 .photo-marker-selection { position: absolute; inset: -8px; border-radius: 50%; background: color-mix(in srgb, var(--color-accent) 30%, transparent); animation: photo-marker-pulse 2s linear infinite; }
 @keyframes photo-marker-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-@media (prefers-reduced-motion: reduce) { .photo-marker-selection { animation: none; } .photo-marker-image img, .photo-marker-material { transition: none; } }
+/* An active Motion gesture can retain its inline scale when the preference changes. */
+@media (prefers-reduced-motion: reduce) { .photo-marker-pin { transform: none !important; } .photo-marker-selection { animation: none; } .photo-marker-image img, .photo-marker-material { transition: none; } }
 .photo-marker-card { position: relative; z-index: 60; width: 320px; max-width: calc(100vw - max(16px, env(safe-area-inset-left)) - max(16px, env(safe-area-inset-right))); border: 1px solid var(--gallery-border); border-radius: 16px; background: var(--color-material-thick); color: var(--color-text); -webkit-backdrop-filter: blur(var(--gallery-blur-panel)); backdrop-filter: blur(var(--gallery-blur-panel)); box-shadow: var(--gallery-shadow); overflow: auto; scrollbar-width: thin; scrollbar-color: var(--color-fill) transparent; pointer-events: auto; font: 14px/1.5 var(--gallery-font-sans); }
 .photo-marker-card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(to bottom right, var(--gallery-wash), transparent, var(--gallery-wash)); }
 .photo-marker-card-hover { max-height: var(--radix-hover-card-content-available-height); transform-origin: var(--radix-hover-card-content-transform-origin); }
