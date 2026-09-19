@@ -2,12 +2,12 @@
 import '../styles/global.css';
 import { SiteNavigation } from '../components/SiteNavigation';
 import { canonicalURL, DEFAULT_SHARE_IMAGE, NOINDEX, SITE_DESCRIPTION, SITE_NAME, textSummary } from '../website/seo';
-interface Props { title?: string; description?: string; gallery?: boolean; noindex?: boolean; image?: { path: string; alt: string }; }
-const { title, description = SITE_DESCRIPTION, gallery = false, noindex = false, image = { path: DEFAULT_SHARE_IMAGE, alt: `${SITE_NAME} — Photography` } } = Astro.props;
+interface Props { title?: string; description?: string; gallery?: boolean; noindex?: boolean; shareable?: boolean; image?: { path: string; alt: string }; }
+const { title, description = SITE_DESCRIPTION, gallery = false, noindex = false, shareable = !noindex, image = { path: DEFAULT_SHARE_IMAGE, alt: `${SITE_NAME} — Photography` } } = Astro.props;
 const pageTitle = title ? `${title.trim()} — ${SITE_NAME}` : `${SITE_NAME} — Photography`;
 const pageDescription = textSummary(description) || SITE_DESCRIPTION;
-const canonical = noindex ? undefined : canonicalURL(Astro.url.pathname, Astro.site);
-const shareImage = Astro.site && !noindex ? new URL(image.path, Astro.site).href : undefined;
+const canonical = shareable ? canonicalURL(Astro.url.pathname, Astro.site) : undefined;
+const shareImage = Astro.site && shareable ? new URL(image.path, Astro.site).href : undefined;
 ---
 <!doctype html>
 <html lang="zh-CN">

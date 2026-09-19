@@ -16,6 +16,7 @@ import { buildRelease } from '../../scripts/ci/release.js';
 import { deployRelease } from '../../scripts/ci/deploy.js';
 import { jpeg } from '../../scripts/photos/fixtures.js';
 import { fileHashes, sha256 } from '../../scripts/photos/artifact.js';
+import { shortPublicPhotoId } from '../../src/website/public-photo-id';
 
 test('cross-source Gallery, metadata, Viewer sharing and map use the same qualified photo identity', { timeout: 120_000 }, async t => {
   const root = path.resolve('.cache/multi-source-website');
@@ -49,7 +50,11 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
   assert.equal(release.publicPhotos,2);
   const files = await fileHashes(path.join(releaseRoot,'dist'));
   assert(!Object.keys(files).some(name=>name.includes('photo-index') || name.includes('manifest') || name.startsWith('sources/')));
-  for (const p of photos) assert(files[`projects/mixed/photos/${p.id}.json`] && files[`thumbnails/${p.id}.jpg`]);
+  for (const p of photos) {
+    assert(files[`projects/mixed/photos/${p.id}.json`] && files[`thumbnails/${p.id}.jpg`] && files[`photos/${shortPublicPhotoId(p.id)}/index.html`]);
+    const html = await fs.readFile(path.join(releaseRoot, `dist/photos/${shortPublicPhotoId(p.id)}/index.html`), 'utf8');
+    assert(html.includes(`/projects/mixed/?photo=${encodeURIComponent(p.id)}`));
+  }
   const server = await serve(path.join(releaseRoot,'dist')); t.after(()=>server.close());
   const browser = await chromium.launch(softwareGPUOptions('webgl')); t.after(()=>browser.close());
   const context = await browser.newContext({viewport:{width:1280,height:900},reducedMotion:'reduce'}); t.after(()=>context.close());

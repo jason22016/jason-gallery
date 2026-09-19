@@ -1,6 +1,7 @@
 import path from 'node:path';
 import type { PhotoManifestItem } from '../photo-engine';
 import type { ResolvedProject } from '../projects';
+import { resolvePublicPhotoCollection } from './public-photos';
 
 export function localAssetPath(url: string | null | undefined): string | null {
   if (!url?.startsWith('/') || url.startsWith('//')) return null;
@@ -17,6 +18,7 @@ export function photoAssetPaths(photo: Pick<PhotoManifestItem, 'thumbnailUrl' | 
 export function publicOutputPaths(projects: readonly ResolvedProject[]): Set<string> {
   return new Set([
     'index.html', 'explore/index.html', 'map/index.html', '404.html', 'health.txt', 'favicon.svg', 'sitemap.xml', 'robots.txt', '_headers', 'social/default.jpg',
+    ...resolvePublicPhotoCollection({ listProjects: () => projects }).listPhotos().map(photo => `${photo.sharePath.slice(1)}index.html`),
     ...projects.filter(project => project.status === 'published').flatMap(project => [
       `projects/${project.slug}/index.html`,
       ...project.photos.flatMap(({ photoId, photo }) => [`projects/${project.slug}/photos/${photoId}.json`, ...photoAssetPaths(photo)]),

@@ -26,9 +26,11 @@
 
 照片分享链接仍保留照片参数以打开 Viewer；由于是静态站点，聊天平台抓取到的分享卡片属于当前 Project / Explore / Map 页面，不能为不同 query 返回不同照片卡片。
 
+Share Photo Page 第一阶段新增 `/photos/<short-public-id>/` 静态分享落地页，只从 Public Global Photo Collection 生成。每页使用当前照片自己的公开 JPEG thumbnail，并有独立 canonical、title/description、OG/Twitter 卡片；HTML 与 `/photos/*` 响应头均为 noindex，sitemap 不收录。`SiteLayout` 的 `shareable` 可以为 noindex 落地页保留分享元数据，404 和无正式地址预览继续省略 canonical/绝对分享地址。现有 Viewer Share 和 Gallery / Explore / Map 入口未接入新页面，规则与后续接口见 [Share Photo Page](SHARE_PHOTO_PAGE.md)。
+
 ## 索引边界与 404
 
-`/sitemap.xml` 只列首页、`/explore/`、`/map/` 与 `loadProjects().listProjects()` 返回的 published 项目，不包含 draft、后台、404、照片 JSON、构建信息或 Viewer 参数。不伪造 lastmod。
+`/sitemap.xml` 只列首页、`/explore/`、`/map/` 与 `loadProjects().listProjects()` 返回的 published 项目，不包含 Photo Page、draft、后台、404、照片 JSON、构建信息或 Viewer 参数。不伪造 lastmod。
 
 `/robots.txt` 指向相同正式地址下的 sitemap，允许公开网站，限制 `/admin` 与 `/api/`。不列出草稿 slug。构建生成的 Cloudflare Pages `_headers` 给照片元数据 JSON、health/build-version、后台路径和 404 加 `X-Robots-Tag: noindex, nofollow`。
 

@@ -1,0 +1,19 @@
+---
+import type { GetStaticPaths } from 'astro';
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import PhotoSharePage from '../../components/PhotoSharePage.astro';
+import { loadPublicPhotoCollection, type PublicPhotoPage } from '../../website/public-photos';
+import { photoDescription } from '../../website/seo';
+
+export const getStaticPaths = (() => {
+  const collection = loadPublicPhotoCollection();
+  return collection.listPhotos().map(photo => ({
+    params: { publicId: photo.publicId }, props: { photo: collection.getPhotoPage(photo.publicId)! },
+  }));
+}) satisfies GetStaticPaths;
+interface Props { photo: PublicPhotoPage; }
+const { photo } = Astro.props;
+---
+<SiteLayout title={photo.title || `照片 · ${photo.primaryProject.title}`} description={photoDescription(photo)} image={photo.image} gallery noindex shareable>
+  <PhotoSharePage photo={photo} />
+</SiteLayout>

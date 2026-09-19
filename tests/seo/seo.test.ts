@@ -12,6 +12,7 @@ import { softwareGPUOptions } from '../browser';
 import { DEFAULT_SITE_URL, resolveSiteURL } from '../../src/website/site-url';
 import { canonicalURL, projectDescription, textSummary } from '../../src/website/seo';
 import { buildRelease } from '../../scripts/ci/release';
+import { shortPublicPhotoId } from '../../src/website/public-photo-id';
 
 test('site addresses are explicit HTTPS origins; malformed/placeholder/local addresses fail', () => {
   assert.equal(resolveSiteURL(DEFAULT_SITE_URL), 'https://jason-gallery.pages.dev');
@@ -145,6 +146,8 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
     assert.deepEqual(Buffer.from(await icon.arrayBuffer()), await fs.readFile(path.join(repo, 'public/favicon.svg')));
     const metadata = await fetch(`${host}/projects/fixture-beta/photos/${fixture.photos[0]!.photoId}.json`);
     assert.equal(metadata.status, 200); assert.equal(metadata.headers.get('X-Robots-Tag'), 'noindex, nofollow');
+    const photoPage = await fetch(`${host}/photos/${shortPublicPhotoId(fixture.photos[0]!.photoId)}/`);
+    assert.equal(photoPage.status, 200); assert.equal(photoPage.headers.get('X-Robots-Tag'), 'noindex, nofollow');
     for (const url of ['/does-not-exist', '/projects/secret-draft/', '/admin/']) {
       const response = await fetch(host + url); assert.equal(response.status, 404);
       assert.match(await response.text(), /name="robots" content="noindex, nofollow"/);
@@ -169,6 +172,9 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
   assert(!(await fs.readFile(path.join(dist, 'sitemap.xml'), 'utf8')).includes('<loc>'));
   assert.equal(await fs.readFile(path.join(dist, 'robots.txt'), 'utf8'), 'User-agent: *\nDisallow: /\n');
   assert.equal(await fs.readFile(path.join(dist, '_headers'), 'utf8'), '/*\n  X-Robots-Tag: noindex, nofollow\n');
+  await page.goto(`${server.url}/photos/${shortPublicPhotoId(fixture.photos[0]!.photoId)}/`);
+  assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex, nofollow');
+  assert.equal(await page.locator('link[rel="canonical"],meta[property="og:url"],meta[property="og:image"],meta[name="twitter:image"]').count(), 0);
 
   // Publishing no projects still has a valid homepage and share image; no former routes remain.
   for (const name of await fs.readdir(path.dirname(content))) {
@@ -184,6 +190,8 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
   assert.equal(fallback.format, 'jpeg'); assert.equal(fallback.width, 1200); assert.equal(fallback.height, 630);
   assert.equal(((await fs.readFile(path.join(dist, 'sitemap.xml'), 'utf8')).match(/<loc>/g) ?? []).length, 3);
   assert.equal((await fetch(`${server.url}/projects/fixture-beta/`)).status, 404);
+  assert.equal((await fetch(`${server.url}/photos/${shortPublicPhotoId(fixture.photos[0]!.photoId)}/`)).status, 404);
+  assert(!(await fs.readdir(dist, { recursive: true })).some(file => /^photos\/[^/]+\/index\.html$/.test(file)));
   const invalid = spawnSync(process.execPath, [path.join(repo, 'node_modules/astro/bin/astro.mjs'), 'build'], { cwd: root, env: { ...process.env, SITE_URL: 'https://example.com' }, encoding: 'utf8' });
   assert.notEqual(invalid.status, 0); assert.match(invalid.stdout + invalid.stderr, /SITE_URL/);
 });

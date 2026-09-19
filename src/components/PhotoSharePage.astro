@@ -1,0 +1,58 @@
+---
+import type { PublicPhotoPage } from '../website/public-photos';
+import { SiteNavigation } from './SiteNavigation';
+import { LinearBlur } from './gallery/ui/LinearBlur';
+import Thumbnail from './ui/Thumbnail.astro';
+import './gallery/GalleryTokens.css';
+import './gallery/GalleryIcons.css';
+import '../styles/gallery.css';
+
+interface Props { photo: PublicPhotoPage; }
+const { photo } = Astro.props;
+---
+<article class="photo-share" aria-label={photo.title || '照片'}>
+  <header class="gallery-header">
+    <LinearBlur className="gallery-header-blur" tint="var(--color-background)" strength={128} side="top" aria-hidden="true" />
+    <div class="gallery-header-content">
+      <div class="gallery-heading"><SiteNavigation compact /><a href="/">Jason Gallery</a></div>
+    </div>
+  </header>
+  <figure class="photo-share-preview" style={{ '--photo-ratio': photo.image.width / photo.image.height }}>
+    <Thumbnail src={photo.image.path} alt={photo.image.alt} width={photo.image.width} height={photo.image.height} eager />
+  </figure>
+  <div class="photo-share-summary">
+    <div class="photo-share-copy">
+      {photo.title && <h1>{photo.title}</h1>}
+      {photo.caption && <p class="photo-share-caption">{photo.caption}</p>}
+      {(photo.date || photo.camera || photo.lens) && <dl class="photo-share-facts">
+        {photo.date && <div><dt>日期</dt><dd><time datetime={photo.date}>{photo.date.slice(0, 10)}</time></dd></div>}
+        {photo.camera && <div><dt>Camera</dt><dd>{photo.camera}</dd></div>}
+        {photo.lens && <div><dt>Lens</dt><dd>{photo.lens}</dd></div>}
+      </dl>}
+      <p class="photo-share-project"><span>Project</span><a href={`/projects/${photo.primaryProject.slug}/`}>{photo.primaryProject.title}</a></p>
+    </div>
+    <a class="button-link primary-button photo-share-open" href={photo.viewerHref}>查看原图 · Open in Viewer</a>
+  </div>
+</article>
+
+<style>
+  .photo-share { max-width: 1152px; margin-inline: auto; padding: calc(80px + env(safe-area-inset-top)) max(24px, env(safe-area-inset-left)) max(32px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-right)); }
+  .photo-share-preview { width: min(100%, calc(64dvh * var(--photo-ratio))); margin-inline: auto; }
+  .photo-share-preview :global(.thumbnail) { background: var(--color-fill-quaternary); }
+  .photo-share-preview :global(.thumbnail-error) { color: var(--color-text-secondary); }
+  .photo-share-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-top: 24px; }
+  .photo-share-copy { min-width: 0; display: grid; gap: 12px; overflow-wrap: anywhere; }
+  h1 { font-size: 18px; line-height: 1.5; font-weight: 500; }
+  .photo-share-caption { font-size: 14px; line-height: 1.7; white-space: pre-line; }
+  .photo-share-facts { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 0; font-size: 12px; line-height: 1.5; }
+  .photo-share-facts dt, .photo-share-project span { color: var(--color-text-secondary); }
+  .photo-share-facts dd { margin: 4px 0 0; }
+  .photo-share-project { display: flex; gap: 8px; font-size: 12px; line-height: 1.5; }
+  .photo-share-project a { text-decoration: underline; text-underline-offset: 4px; }
+  .photo-share-open { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-height: 44px; font-size: 14px; text-align: center; }
+  @media (max-width: 599px) {
+    .photo-share { padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); }
+    .photo-share-summary { flex-direction: column; }
+    .photo-share-open { width: 100%; }
+  }
+</style>

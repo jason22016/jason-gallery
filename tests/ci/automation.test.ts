@@ -11,6 +11,7 @@ import { parseSources, makeSnapshot, photoReference, LEGACY_SOURCE } from '../..
 import { processingFingerprint } from '../../scripts/photos/fingerprint.js';
 import { buildRelease, verifyRelease, type Release } from '../../scripts/ci/release.js';
 import { deployRelease, rollbackDeployment, type DeployIO } from '../../scripts/ci/deploy.js';
+import { shortPublicPhotoId } from '../../src/website/public-photo-id';
 
 const root = path.resolve('.cache/automation-test');
 const engine = path.join(root, 'engine');
@@ -102,6 +103,9 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   const destination = path.join(root,'release');
   const build = () => buildRelease({photos:collection,root:site,destination,websiteCommit:codeCommit,runId:'test',runNumber:10,production:false});
   const release = await build(); assert.equal(release.publicPhotos,1); assert.equal(release.publishedProjects,1);
+  assert(release.files[`photos/${shortPublicPhotoId(id)}/index.html`]);
+  assert(!release.files[`photos/${shortPublicPhotoId(hiddenId)}/index.html`]);
+  assert.equal(Object.keys(release.files).filter(name => /^photos\/[^/]+\/index.html$/.test(name)).length, release.publicPhotos);
   assert(release.files['explore/index.html']);
   const explore = await fs.readFile(path.join(destination, 'dist/explore/index.html'), 'utf8');
   assert(explore.includes(id)); assert(!explore.includes(hiddenId));

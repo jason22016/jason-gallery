@@ -5,6 +5,7 @@ import { resolveProjects, type ProjectIndex } from '../../src/projects/resolver'
 import { galleryPhotos } from '../../src/components/gallery/photos';
 import { loadPublicPhotoCollection, resolvePublicPhotoCollection } from '../../src/website/public-photos';
 import { projectPhotoDetails } from '../../src/website/photo-details';
+import { indexPublicPhotoIds, shortPublicPhotoId } from '../../src/website/public-photo-id';
 import { fixture, photo, project } from '../projects/fixtures';
 
 function publicFixture() {
@@ -46,12 +47,81 @@ test('global collection contains only published references, deduplicated with al
   assert.equal(shared.alt, 'First local alt');
   assert.equal(shared.caption, 'First local caption');
   assert.equal(shared.detailsUrl, '/projects/first/photos/shared.json');
-  const { projects, ...projection } = shared;
+  const { projects, publicId, sharePath, ...projection } = shared;
   const { projects: localProjects, ...existingProjection } = galleryPhotos(catalog.published.getProject('first-id')!)[0]!;
   assert.deepEqual(projection, existingProjection, 'global entries reuse the existing Gallery/Viewer projection');
   assert.equal(galleryPhotos(catalog.published.getProject('second-id')!)[1]!.caption, 'Second local caption');
   assert.equal(JSON.stringify(native), before);
   assert(!Object.isFrozen(native[0]), 'engine-owned inputs must not be frozen');
+});
+
+test('short public IDs pin the v1 algorithm, remain URL-safe and detect collisions before publication', () => {
+  for (const [id, expected] of [['shared', 'HWhRgdyx7wovNJkA'], ['source:photo', '3VS8e-Z5g0wzOlbr'], ['图库/雪山.jpg', 'Xg2qV9ag2S8VMggy']]) {
+    assert.equal(shortPublicPhotoId(id!), expected);
+    assert.equal(shortPublicPhotoId(id!), shortPublicPhotoId(id!));
+  }
+  const photos = Array.from({ length: 10_000 }, (_, index) => {
+    const id = `source-${index % 3}:photo-${index}`;
+    return { id, publicId: shortPublicPhotoId(id) };
+  });
+  assert(photos.every(photo => /^[A-Za-z0-9_-]{16}$/.test(photo.publicId)));
+  assert.equal(indexPublicPhotoIds(photos).size, photos.length);
+  assert.deepEqual([...indexPublicPhotoIds(photos).keys()].sort(), [...indexPublicPhotoIds([...photos].reverse()).keys()].sort());
+  assert.throws(() => indexPublicPhotoIds([{ id: 'first', publicId: 'collision' }, { id: 'second', publicId: 'collision' }]), /Public photo ID collision/);
+});
+
+test('Photo Page lookups use the public collection and expose only a small landing-page projection', () => {
+  const { catalog } = publicFixture();
+  const collection = resolvePublicPhotoCollection(catalog.published);
+  const photo = collection.getPhoto('shared')!;
+  assert.equal(photo.publicId, 'HWhRgdyx7wovNJkA');
+  assert.equal(photo.sharePath, `/photos/${photo.publicId}/`);
+  assert.equal(collection.getPhotoByPublicId(photo.publicId), photo);
+  const page = collection.getPhotoPage(photo.publicId)!;
+  assert.deepEqual(page, {
+    publicId: photo.publicId, path: photo.sharePath, title: 'Fixture shared', caption: 'First local caption',
+    image: { path: '/thumbnails/shared.jpg', alt: 'First local alt', width: 40, height: 20 },
+    date: '2024-03-01T08:00:00+08:00', camera: 'NIKON Z6', lens: '', primaryProject: photo.projects[0],
+    viewerHref: '/projects/first/?photo=shared',
+  });
+  assert(Object.isFrozen(page)); assert(Object.isFrozen(page.image)); assert(Object.isFrozen(page.primaryProject));
+  for (const id of ['draft-only', 'unreferenced', 'missing']) {
+    assert.equal(collection.getPhotoByPublicId(shortPublicPhotoId(id)), undefined);
+    assert.equal(collection.getPhotoPage(shortPublicPhotoId(id)), undefined);
+  }
+  assert.equal(collection.getPhotoPage(photo.id), undefined, 'internal IDs are not public route aliases');
+  for (const privateField of ['exif', 'toneAnalysis', 'location', 'src', 'filename', 'detailsUrl', 'projects']) assert(!(privateField in page));
+});
+
+test('primary Project and URL identity are stable across input order, editorial edits and membership changes', () => {
+  const { native, first, second, draft } = publicFixture();
+  const resolve = (projects: typeof first[]) => resolvePublicPhotoCollection(resolveProjects(projects.map(data => ({ source: data.slug, data })), { getPhoto: id => native.find(photo => photo.id === id) }).published);
+  const firstPage = resolve([second, draft, first]).getPhotoPage(shortPublicPhotoId('shared'))!;
+  assert.deepEqual(resolve([first, second, draft]).getPhotoPage(firstPage.publicId), firstPage);
+  const renamed = resolve([{ ...first, slug: 'renamed', title: 'Changed title', order: -10 }, second, draft]);
+  assert.equal(renamed.getPhoto('shared')!.sharePath, firstPage.path);
+  assert.equal(renamed.getPhotoPage(firstPage.publicId)!.primaryProject.slug, 'renamed');
+  const unpublished = resolve([{ ...first, status: 'draft' }, second, draft]);
+  assert.equal(unpublished.getPhotoPage(firstPage.publicId)!.path, firstPage.path);
+  assert.equal(unpublished.getPhotoPage(firstPage.publicId)!.primaryProject.slug, 'second');
+  assert.equal(unpublished.getPhotoPage(firstPage.publicId)!.caption, 'Second local caption');
+  assert.equal(resolve([draft]).getPhotoPage(firstPage.publicId), undefined);
+});
+
+test('Photo Pages preserve missing editorial fields, encode canonical IDs and reject non-JPEG share thumbnails', () => {
+  const image = photo('source:photo /雪?&#');
+  image.title = ''; image.description = '';
+  const resolve = () => resolvePublicPhotoCollection(resolveProjects([{ source: 'project', data: project({ coverPhotoId: image.id, photos: [{ photoId: image.id, caption: '  ' }] }) }], { getPhoto: () => image }).published);
+  // The normal engine emits URL-safe JPEG thumbnail paths independently of the Viewer query.
+  image.thumbnailUrl = '/thumbnails/public.jpg';
+  const page = resolve().getPhotoPage(shortPublicPhotoId(image.id))!;
+  assert.equal(page.title, ''); assert.equal(page.caption, ''); assert.equal(page.date, '');
+  assert.equal(page.viewerHref, `/projects/project-one/?photo=${encodeURIComponent(image.id)}`);
+  assert.equal(new URL(page.viewerHref, 'https://gallery.test').searchParams.get('photo'), image.id);
+  for (const extension of ['heic', 'tiff', 'hdr', 'webp']) {
+    image.thumbnailUrl = `/thumbnails/public.${extension}`;
+    assert.throws(() => resolve().getPhotoPage(page.publicId), /requires a JPEG thumbnail/);
+  }
 });
 
 test('public detail lookup uses the same whitelist as the Project route and refuses non-public IDs', () => {

@@ -3,6 +3,7 @@ import test from 'node:test';
 import { assertPublicOutput, localAssetPath, photoAssetPaths, publicOutputPaths } from '../../src/website/public-output';
 import { resolveProjects } from '../../src/projects/resolver';
 import { photo, project } from '../projects/fixtures';
+import { shortPublicPhotoId } from '../../src/website/public-photo-id';
 
 test('build and release share an exact public route/asset allowlist, including live media but excluding drafts', () => {
   const image = photo('public');
@@ -13,11 +14,13 @@ test('build and release share an exact public route/asset allowlist, including l
     { source: 'draft', data: project({ id: 'draft', slug: 'draft', status: 'draft', coverPhotoId: image.id, photos: [{ photoId: image.id }] }) },
   ], { getPhoto: () => image });
   const allowed = publicOutputPaths([...catalog.published.listProjects(), ...catalog.drafts.listProjects()]);
-  for (const name of ['explore/index.html', 'map/index.html', 'originals/public.mov', 'projects/project-one/photos/public.json']) assert(allowed.has(name), name);
+  const photoPage = `photos/${shortPublicPhotoId(image.id)}/index.html`;
+  for (const name of ['explore/index.html', 'map/index.html', 'originals/public.mov', 'projects/project-one/photos/public.json', photoPage]) assert(allowed.has(name), name);
   assert(!allowed.has('projects/draft/index.html'));
   assertPublicOutput([...allowed, '_astro/client.abc.js', '_astro/font.xyz.woff2'], allowed, true);
   assert.throws(() => assertPublicOutput([...allowed].filter(name => name !== 'map/index.html'), allowed, true), /Missing published asset: map/);
-  for (const name of ['explore/private.json', 'map/photos.json', 'photos/private.json', '_astro/photos-manifest.json', '_astro/client.js.map', 'projects/draft/photos/public.json']) {
+  assert.throws(() => assertPublicOutput([...allowed].filter(name => name !== photoPage), allowed, true), /Missing published asset: photos/);
+  for (const name of ['explore/private.json', 'map/photos.json', 'photos/private.json', 'photos/public/index.html', `photos/${shortPublicPhotoId('private')}/index.html`, `photos/${shortPublicPhotoId(image.id)}/metadata.json`, '_astro/photos-manifest.json', '_astro/client.js.map', 'projects/draft/photos/public.json']) {
     assert.throws(() => assertPublicOutput([...allowed, name], allowed), /Unexpected public file/);
   }
   assert.deepEqual(photoAssetPaths(image), ['thumbnails/public.jpg', 'originals/public.jpg', 'originals/public.mov']);

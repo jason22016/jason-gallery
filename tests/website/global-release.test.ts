@@ -141,7 +141,7 @@ test('plain production builds remove stale public assets and reject accidental M
   const clean = build(); assert.equal(clean.status, 0, clean.stdout + clean.stderr);
   await assert.rejects(fs.access(path.join(root, 'dist/thumbnails/removed-photo.jpg')));
   assert.equal(await fs.readFile(stale, 'utf8'), 'STALE PHOTO', 'cleanup must never mutate photo-engine inputs');
-  for (const name of ['photos-manifest.json', '_astro/private-metadata.json', 'explore/photos.json', 'projects/fixture-beta/photos/private.json']) {
+  for (const name of ['photos-manifest.json', '_astro/private-metadata.json', 'explore/photos.json', 'projects/fixture-beta/photos/private.json', 'photos/AAAAAAAAAAAAAAAA/index.html']) {
     const filename = path.join(root, 'public', name);
     await fs.mkdir(path.dirname(filename), { recursive: true });
     await fs.writeFile(filename, '{"private":"MUST NOT BE PUBLIC"}');

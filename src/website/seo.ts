@@ -1,4 +1,5 @@
 import type { ResolvedProject } from '../projects';
+import type { PublicPhotoPage } from './public-photos';
 
 export const SITE_NAME = 'Jason Gallery';
 export const SITE_DESCRIPTION = 'Jason 的摄影作品集，按项目记录旅途、城市与日常中的光影。';
@@ -13,6 +14,10 @@ export function textSummary(value: string): string {
 
 export function projectDescription(project: Pick<ResolvedProject, 'summary' | 'description' | 'title'>): string {
   return textSummary(project.summary?.trim() || project.description?.trim() || `浏览 Jason 的摄影项目「${project.title}」。`);
+}
+
+export function photoDescription(photo: Pick<PublicPhotoPage, 'title' | 'caption' | 'primaryProject'>): string {
+  return textSummary(photo.caption || (photo.title ? `${photo.title} · ${photo.primaryProject.title}` : `浏览 Jason 在「${photo.primaryProject.title}」中的照片。`));
 }
 
 /** Photo/filter query parameters are state within the same static Gallery page. */
@@ -43,6 +48,6 @@ export function robotsTXT(site: URL | undefined): string {
 }
 
 export function indexingHeaders(site: URL | undefined): string {
-  const paths = site ? ['/404', '/404.html', '/admin', '/admin/*', '/api/*', '/projects/:slug/photos/*', '/health.txt', '/build-version.json'] : ['/*'];
+  const paths = site ? ['/404', '/404.html', '/admin', '/admin/*', '/api/*', '/photos/*', '/projects/:slug/photos/*', '/health.txt', '/build-version.json'] : ['/*'];
   return paths.map(path => `${path}\n  X-Robots-Tag: ${NOINDEX}\n`).join('\n');
 }
