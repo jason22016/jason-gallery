@@ -127,7 +127,8 @@
     },
     {
       "local": "src/components/gallery/ProjectGallery.tsx",
-      "sha256": "5305c91b3045a5fde07eb10b618b0879149fa5082a026f61937d949dd7e423a1"
+      "sha256": "d59d32d496bc1a70064b640b7178098da683c7d87ff6e572bedccd0271b78182",
+      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation"
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",
@@ -139,7 +140,8 @@
     },
     {
       "local": "tests/website/website.test.ts",
-      "sha256": "09810073cb92a64b7479847d67749d167cde2e2ee6c737eb06b51f55ce17a07f"
+      "sha256": "37bc5cf145a669ec413d1f8f7c19b707166780e56388438a8ad4bc83c8d8c145",
+      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation"
     },
     {
       "local": "tests/website/map-fixture.ts",

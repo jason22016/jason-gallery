@@ -11,7 +11,9 @@ import { Icon } from './ui/Icon';
 import { mapPhotoURL, mapPhotoViewport, resolveMapPhoto, type MapViewport } from './map-state';
 import { MapNavigationContext } from './MapNavigation';
 import PhotoViewer from '../viewer/PhotoViewer';
-import { emptyFilters, selectPhotos, type Filters, type GalleryProject, type Sort, type ViewerPhoto } from '../viewer/photos';
+import type { GalleryProject, ViewerPhoto } from '../viewer/photos';
+import { emptyFilters, selectPhotos, type Filters, type Sort } from './filters';
+import { galleryStateURL, readGalleryState } from './url-state';
 import Panel from './Panel';
 import { ViewerAttribution } from '../viewer/ViewerAttribution';
 import { MapLoadingState } from './map/MapLoadingState';
@@ -63,10 +65,9 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
       if (nextView === 'list' || nextView === 'masonry') setView(nextView);
       const nextColumns = params.get('columns');
       if (nextColumns !== null && /^[0-8]$/.test(nextColumns)) setColumns(Number(nextColumns));
-      const nextFilters = { ...emptyFilters };
-      for (const key of Object.keys(nextFilters) as (keyof Filters)[]) nextFilters[key] = params.get(key) || '';
+      const { filters: nextFilters, sort: nextSort } = readGalleryState(params);
       setFilters(nextFilters);
-      setSort(params.get('sort') === 'asc' ? 'asc' : params.get('sort') === 'desc' ? 'desc' : 'project');
+      setSort(nextSort);
       const nextPanel = params.get('panel') === 'map' ? 'map' : null;
       setPanel(nextPanel);
       const mapPhoto = nextPanel ? resolveMapPhoto(selectPhotos(photos, nextFilters, 'project'), params.get('mapPhoto')) : null;
@@ -83,8 +84,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
       }
       if (id && nextPanel !== 'map' && !selectPhotos(photos, nextFilters, 'project').some(photo => photo.id === id)) {
         setFilters(emptyFilters);
-        const url = new URL(location.href);
-        for (const key of Object.keys(emptyFilters)) url.searchParams.delete(key);
+        const url = galleryStateURL(new URL(location.href), { filters: emptyFilters, sort: nextSort });
         history.replaceState(history.state, '', url);
         setNotice('此照片不符合链接中的筛选条件，已清除筛选。');
       }
@@ -136,7 +136,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
     history.pushState({ ...history.state, galleryViewer: null }, '', url);
     setMapPhotoId(null);
   };
-  const items = useMemo(() => visible.map((photo, index) => ({ photo: photo as GalleryPhoto, index, onOpen: open })), [visible, open]);
+  const items = useMemo(() => visible.map((photo, index) => ({ photo, index, onOpen: open })), [visible, open]);
   const saveView = (nextView: typeof view, nextColumns = columns) => {
     setView(nextView); setColumns(nextColumns);
     const url = new URL(location.href);
@@ -146,11 +146,7 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
     try { localStorage.setItem(settingsKey, JSON.stringify({ view: nextView, columns: nextColumns })); } catch { /* Optional preference. */ }
   };
   const replaceContext = (nextFilters: Filters, nextSort: Sort, map = false) => {
-    const url = new URL(location.href);
-    for (const key of Object.keys(nextFilters) as (keyof Filters)[]) {
-      if (nextFilters[key]) url.searchParams.set(key, nextFilters[key]); else url.searchParams.delete(key);
-    }
-    if (nextSort !== 'project') url.searchParams.set('sort', nextSort); else url.searchParams.delete('sort');
+    const url = galleryStateURL(new URL(location.href), { filters: nextFilters, sort: nextSort });
     if (map) url.searchParams.set('panel', 'map'); else url.searchParams.delete('panel');
     if (!map || !resolveMapPhoto(selectPhotos(photos, nextFilters, nextSort), mapPhotoId)) {
       url.searchParams.delete('mapPhoto');
@@ -196,6 +192,6 @@ export default function ProjectGallery({ photos, project }: { photos: readonly G
       {panel === 'settings' && <ViewPanel sort={sort} columns={columns} view={view} onView={saveView} onSort={value => { setSort(value); replaceContext(filters, value); }} />}
       {panel === 'map' && (PhotoMap ? <PhotoMap photos={visible} projectTitle={project.title} onSelect={selectMapPhoto} onClearSelection={clearMapSelection} selectedPhotoId={selectedMapPhoto?.id ?? null} initialViewport={mapViewport.current?.key === mapKey ? mapViewport.current.viewport : mapPhotoViewport(selectedMapPhoto)} onViewport={viewport => { mapViewport.current = { key: mapKey, viewport }; }} restoreFocusPhotoId={mapFocusPhoto.current} onOpen={(photo, element) => { mapFocusPhoto.current = element ? photo.id : null; open(photo, element ?? root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null); }} /> : mapError ? <div className="map-experience"><div className="map-right-chrome"><section className="map-fallback"><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><MapPhotoList photos={visible.filter(photo => validLocation(photo.location))} onOpen={photo => open(photo, null)} /></section></div></div> : <MapLoadingState />)}
     </Panel>}
-    {selectedPhoto && <PhotoViewer photos={sequence} projectTitle={project.title} index={sequence.findIndex(p => p.id === selected)} trigger={opener.current} onIndex={index => { const photo = sequence[index]; if (photo) { setSelected(photo.id); setPhotoURL(photo.id); } }} onClose={close} />}
+    {selectedPhoto && <PhotoViewer photos={sequence} collectionTitle={project.title} index={sequence.findIndex(p => p.id === selected)} trigger={opener.current} onIndex={index => { const photo = sequence[index]; if (photo) { setSelected(photo.id); setPhotoURL(photo.id); } }} onClose={close} />}
   </div></LazyMotion></MapNavigationContext.Provider>;
 }

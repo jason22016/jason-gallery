@@ -332,3 +332,16 @@ link outside the filtered set, remove redundant MapLibre host button semantics
 around the actual photo/cluster buttons, and remove obsolete half-height map CSS.
 Current adaptation hashes are recorded in `licenses/map-phase6-upstream.json`;
 the actively checked Viewer visual record updates the MiniMap hash only.
+
+## Global Gallery Phase 1 — Shared Collection Foundation
+
+2026-09-20: Local foundation changes reuse the existing Jason Gallery photo
+projection and Afilmory-derived UI. SearchPanel now consumes shared filter
+facets; FilterChip and ViewPanel use the shared filter types. ProjectGallery
+uses shared filter/URL helpers. PhotoViewer accepts a collection title with
+its existing photo array and index; its renderer, HDR, motion and gestures
+are unchanged. No additional upstream application code or visual components
+were imported. The existing attribution and licenses remain in effect.
+Affected local source hashes and adaptation links are updated in the existing
+Gallery, Viewer and Map provenance records. See
+[the architecture and interfaces](docs/gallery/GLOBAL_PHASE1.md).

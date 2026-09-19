@@ -92,8 +92,9 @@
     },
     {
       "local": "tests/website/website.test.ts",
-      "sha256": "09810073cb92a64b7479847d67749d167cde2e2ee6c737eb06b51f55ce17a07f",
-      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
+      "sha256": "37bc5cf145a669ec413d1f8f7c19b707166780e56388438a8ad4bc83c8d8c145",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome",
+      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation"
     }
   ]
 }

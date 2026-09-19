@@ -45,7 +45,7 @@ export function validateProjectReferences<T extends Pick<Project, 'id' | 'slug' 
   }
 }
 
-function freezeDeep<T>(value: T): DeepReadonly<T> {
+export function freezeDeep<T>(value: T): DeepReadonly<T> {
   if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
     for (const child of Object.values(value)) freezeDeep(child);
     Object.freeze(value);

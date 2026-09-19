@@ -2,7 +2,7 @@ import { aperture, captureDate, numericAltitude, photoLocation, unit } from './m
 import type { ResolvedProject } from '../../projects';
 import type { PhotoManifestItem } from '../../photo-engine';
 
-/** Public, project-scoped display data; never serialize the full engine manifest. */
+/** Public display data for the current collection; never serialize the full engine manifest. */
 export interface ViewerPhoto {
   readonly id: string;
   readonly src: string;
@@ -45,26 +45,5 @@ export function viewerPhotos(project: ResolvedProject): readonly ViewerPhoto[] {
     detailsUrl: `/projects/${project.slug}/photos/${encodeURIComponent(photoId)}.json`, isHDR: photo.isHDR ?? false,
   }));
 }
-export const emptyFilters = { query: '', start: '', end: '', camera: '', lens: '', tag: '' };
-export type Filters = typeof emptyFilters;
-export type Sort = 'project' | 'asc' | 'desc';
-export function selectPhotos(photos: readonly ViewerPhoto[], filters: Filters, sort: Sort): ViewerPhoto[] {
-  const words = filters.query.toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);
-  const result = photos.filter(p => {
-    const text = [p.title, p.filename, p.description, p.caption, ...p.tags].join(' ').toLocaleLowerCase();
-    const day = p.date?.slice(0, 10);
-    return words.every(w => text.includes(w)) && (!filters.camera || filters.camera === p.camera)
-      && (!filters.lens || filters.lens === p.lens) && (!filters.tag || p.tags.includes(filters.tag))
-      && (!filters.start || (!!day && day >= filters.start)) && (!filters.end || (!!day && day <= filters.end));
-  });
-  if (sort !== 'project') result.sort((a, b) => {
-    // Unzoned EXIF is ordered by its recorded wall clock, independent of the browser zone.
-    const time = (value: string) => Date.parse(value && !/(Z|[+-]\d{2}:\d{2})$/.test(value) ? `${value}Z` : value);
-    const left = time(a.date), right = time(b.date);
-    if (!Number.isFinite(left)) return Number.isFinite(right) ? 1 : 0;
-    if (!Number.isFinite(right)) return -1;
-    return (left - right) * (sort === 'asc' ? 1 : -1);
-  });
-  return result;
-}
+export { emptyFilters, selectPhotos, type Filters, type Sort } from '../gallery/filters';
 export const formatBytes = (size: number) => size >= 1048576 ? `${(size / 1048576).toFixed(1)} MiB` : `${Math.round(size / 1024)} KiB`;

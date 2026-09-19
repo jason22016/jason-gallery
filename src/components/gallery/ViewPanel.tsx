@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Sort } from '../viewer/photos';
+import type { Sort } from './filters';
 import { ViewModeSegment } from './ViewModeSegment';
 import { Icon } from './ui/Icon';
 import { LinearDivider } from './ui/LinearDivider';

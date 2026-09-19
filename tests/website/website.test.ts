@@ -13,6 +13,7 @@ import { serve } from './server';
 import { colorFixtures } from '../viewer/color-fixtures';
 import { browserReadyTimeout, softwareGPUOptions } from '../browser';
 import { coverGeometry } from '../../src/projects/cover';
+import { loadPublicPhotoCollection } from '../../src/website/public-photos';
 
 const expect = baseExpect.configure({ timeout: browserReadyTimeout(5_000) });
 
@@ -85,6 +86,21 @@ async function loaded(page: Page) { await expect(page.locator('.viewer-media')).
 async function assertGPUFailureInjected(page: Page) {
   assert(await page.evaluate(() => (window as unknown as { testGPUAdapterRequests: number }).testGPUAdapterRequests > 0), 'Viewer must actually call the injected failing WebGPU adapter');
 }
+
+test('global collection detail URLs serve the existing public Project projection in the production build', async () => {
+  const collection = loadPublicPhotoCollection({ directory: path.join(root, 'src/content/projects'), manifestFile: path.join(root, 'src/data/photos-manifest.json') });
+  const publicIds = new Set(fixture.projects.filter(project => project.status === 'published').flatMap(project => project.photos.map(photo => photo.photoId)));
+  assert.equal(collection.listPhotos().length, publicIds.size);
+  for (const photo of collection.listPhotos()) {
+    const response = await fetch(new URL(photo.detailsUrl, server.url));
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), collection.getPhotoDetails(photo.id));
+    assert.deepEqual(photo.projects.map(project => project.id).sort(), fixture.projects.filter(project => project.status === 'published' && project.photos.some(entry => entry.photoId === photo.id)).map(project => project.id).sort());
+  }
+  const privatePhoto = fixture.manifest.data.find(photo => photo.s3Key === 'private.jpg')!;
+  assert.equal(collection.getPhotoDetails(privatePhoto.id), undefined);
+  assert.equal((await fetch(`${server.url}/projects/fixture-beta/photos/${encodeURIComponent(privatePhoto.id)}.json`)).status, 404);
+});
 
 test('production routes, published order, cover, project fields and Gallery order work without JavaScript', async t => {
   const ctx = await context({ javaScriptEnabled: false }); t.after(() => ctx.close());

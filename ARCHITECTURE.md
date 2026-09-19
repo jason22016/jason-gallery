@@ -200,6 +200,18 @@ Project JSON 和上游来源/补丁提交 Git；Manifest、缩略图、缓存属
 - 地图保留懒加载、真实点位与聚合，以及无 GPS、网络/GPU/模块失败的列表回退；加载超时给出可重试提示。验收同时包含真实 CARTO 网络路径和独立本地样式的 WebGL 点位交互测试，二者不互相替代。
 - `src/website/public-assets.ts` 在 Astro 构建完成后只清理输出目录：保留 published Project 引用的本地照片资产，移除未引用/旧缩略图及 Manifest 中未公开的本地图片资产。源 `public/`、Manifest、Photo Engine 与 Project System 不变。正式项目为空时，公开产物无照片缩略图或详情 JSON。
 
+### Global Gallery Phase 1 — 共享公开集合（2026-09-20）
+
+- `src/website/public-photos.ts` 是 build/server-only 的 `loadPublicPhotoCollection()` / `resolvePublicPhotoCollection()` 入口，复用 `loadProjects()`、Project resolver 的 canonical ID、排序和只读快照。只汇总 `status === 'published'` 的 Project 引用；即使显式传入 draft/mixed index 也重新检查状态。不得从全量 Manifest 列表推导公开资格，draft-only、未引用照片与草稿 memberships 均不可进入。
+- `PublicGlobalPhoto` 直接扩展现有 `GalleryPhoto`，每张照片只出现一次，`projects` 保存公开 Project 的 `id`、`slug`、`title`。按 Project order/slug 和项目内照片顺序首次出现排列；默认 alt/caption 与 `detailsUrl` 沿用首个公开 membership 的现有 Gallery 投影，其余 Project 的本地说明保持不变。索引不公开原始 Project/Manifest，返回值递归只读并冻结；不持久化第二份照片事实库。
+- `src/components/gallery/filters.ts` 统一 `Filters`、`Sort`、`GalleryState`、泛型 `selectPhotos()` 和 `galleryFilterOptions()`；保留 query/start/end/camera/lens/tag 与日期排序语义，增加按 Project 永久 ID 匹配的 `project` 单值筛选。`sort=project` 为兼容现有 URL 保留的名称，语义是输入集合顺序。SearchPanel 使用同一 facet 统计，Project facet 可按需请求，本阶段不新增类别 UI。旧 `viewer/photos.ts` 的筛选导出保留为兼容转发。
+- `src/components/gallery/url-state.ts` 提供 `readGalleryState()` / `galleryStateURL()`，仅读写共享 filters/sort，保留 path、hash、photo、panel、mapPhoto、view、columns 和其他参数。ProjectGallery 使用该模块，继续自己持有 push/replace、history owner、焦点、滚动、panel 和 viewport；不引入 Explore/Map 各自的筛选系统。
+- Viewer 继续接受 `photos + index + onIndex + onClose + trigger`，标题参数由 `projectTitle` 改为 `collectionTitle`；不再要求单个 Project 上下文。渲染、HDR、缩放、手势、Swiper、动画、详情请求与 fallback 不变。Map/marker/motion 代码不变。
+- `src/website/photo-details.ts` 提取现有 EXIF 展示白名单，`projectPhotoDetails()` 在投影前检查 published 状态和 Project 内归属；原 Project JSON route 使用它并保持 URL/响应契约。Global collection 的 `getPhotoDetails(id)` 仅从已验证的公开 membership 查询同一投影，未知/非公开 ID 返回 undefined。Global entries 暂时复用现有公开 Project detail URL；未来可据此生成 `/photos/<id>.json`，本阶段不新增此路由、Photo Page、`/explore` 或全站 `/map`。
+- 继续遵守 [Afilmory DESIGN.md](https://github.com/Afilmory/afilmory/blob/main/DESIGN.md) 与当前 Jason Gallery 的照片优先、semantic token、material/glass、radius 和 motion 约定。本阶段没有新增视觉组件、样式或 Admin 改动。
+
+接口和验证记录见 [Global Gallery Phase 1](docs/gallery/GLOBAL_PHASE1.md)。
+
 ### Phase 5 — HDR / Color（2026-09-10）
 
 - 继续使用原图 URL 和原生 `isHDR`；SDR 缩略图不作为 GPU 原图输入。`HDR source` 仅说明 Engine 检测到源标记；`HDR active` 要求 Viewer 成功解析 gain map、配置 extended canvas、设备报告高动态范围且图片加载完成。普通 `<img>` 由浏览器自行色彩管理，其实际 HDR 状态不可由本 wrapper 证明，因此不标 active。

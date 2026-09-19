@@ -1,6 +1,6 @@
 // Adapted from Afilmory/Afilmory, apps/web/src/modules/viewer/PhotoViewer.tsx
 // Upstream 1f65cde6672e5231599182620116ac904e39f548; AGPL-3.0-or-later + ANL §4, Copyright (c) 2025 Afilmory Team.
-// Jason adapter: project/history owner, native dialog, existing media renderer and metadata.
+// Jason adapter: collection supplied by the history owner, native dialog, existing media renderer and metadata.
 import 'swiper/css';
 import './PhotoViewer.css';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
@@ -28,13 +28,13 @@ import { lockPageScroll } from '../gallery/modal';
 export { PhotoMedia } from './PhotoMedia';
 
 export interface ViewerProps {
-  photos: readonly ViewerPhoto[]; projectTitle: string; index: number; trigger: HTMLElement | null;
+  photos: readonly ViewerPhoto[]; collectionTitle: string; index: number; trigger: HTMLElement | null;
   onIndex: (index: number) => void; onClose: () => void;
 }
 export default function PhotoViewer(props: ViewerProps) {
   return <LazyMotion features={domAnimation}><PhotoDialog {...props} /></LazyMotion>;
 }
-function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }: ViewerProps) {
+function PhotoDialog({ photos, collectionTitle, index, trigger, onIndex, onClose }: ViewerProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const engine = useRef<Controls | null>(null);
   const swiperRef = useRef<SwiperType | null>(null);
@@ -126,7 +126,7 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
   const share = async () => {
     const url = location.href;
     try {
-      if (navigator.share && mobile) await navigator.share({ title: `${photo.title} — ${projectTitle}`, url });
+      if (navigator.share && mobile) await navigator.share({ title: `${photo.title} — ${collectionTitle}`, url });
       else if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(url); setMessage('照片链接已复制'); }
       else setMessage(url);
     } catch (error) { if ((error as Error).name !== 'AbortError') setMessage(url); }
@@ -193,7 +193,7 @@ function PhotoDialog({ photos, projectTitle, index, trigger, onIndex, onClose }:
           <div className="viewer-image-stage">
             <div className="viewer-chrome-presence" style={{ opacity: chromeVisible ? 1 : 0 }}>
               <m.div className="viewer-toolbar" inert={mobile && detailsVisible} style={mobile ? { opacity: gestures.chromeOpacity, y: gestures.chromeY } : undefined}>
-                <h2 id={titleId} className="sr-only">{projectTitle} — {photo.title}</h2>
+                <h2 id={titleId} className="sr-only">{collectionTitle} — {photo.title}</h2>
                 <span className="viewer-counter" aria-live="polite">{index + 1} / {photos.length}</span>
                 <div className="viewer-actions">
                   <ActionButton className="viewer-secondary-action" aria-label="放大" title="放大" disabled={!controlsReady} onClick={() => engine.current?.zoomIn(!reduced)}><ViewerIcon name="zoom-in-line" size={18}/></ActionButton>

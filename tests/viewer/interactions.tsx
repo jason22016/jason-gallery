@@ -16,7 +16,7 @@ function Fixture() {
   const [index, setIndex] = useState(0), [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   return <><button ref={trigger} data-viewer-trigger="photo-0" style={{ margin: 100, width: 120, height: 180, padding: 0 }} onClick={() => { setIndex(0); setOpen(true); }}><img src="/ordinary.jpg" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Open viewer"/></button>
-    {open && <PhotoViewer photos={photos} projectTitle="Interaction fixture" index={index} trigger={trigger.current}
+    {open && <PhotoViewer photos={photos} collectionTitle="Interaction fixture" index={index} trigger={trigger.current}
       onIndex={value => { setIndex(value); history.replaceState(null, '', `?photo=photo-${value}`); }} onClose={() => { setOpen(false); trigger.current?.focus(); }}/ >}
   </>;
 }

@@ -3,18 +3,23 @@ import type { ResolvedProject } from '../../projects';
 import { aperture, unit } from '../viewer/metadata';
 import { viewerPhotos, type ViewerPhoto } from '../viewer/photos';
 
+export type GalleryProjectMembership = Pick<ResolvedProject, 'id' | 'slug' | 'title'>;
+
 export interface GalleryPhoto extends ViewerPhoto {
+  readonly projects?: readonly GalleryProjectMembership[];
   readonly aspectRatio: number;
   readonly video?: PhotoManifestItem['video'];
   readonly capture: { focalLength: string; aperture: string; shutter: string; iso: string; exposureBias?: string };
 }
 
 export function galleryPhotos(project: ResolvedProject): readonly GalleryPhoto[] {
+  const projects = [{ id: project.id, slug: project.slug, title: project.title }];
   return viewerPhotos(project).map((photo, index) => {
     const source = project.photos[index]!.photo;
     const exif = source.exif;
     return {
       ...photo,
+      projects,
       aspectRatio: Number.isFinite(source.aspectRatio) && source.aspectRatio > 0 ? source.aspectRatio : photo.width / photo.height,
       video: source.video,
       capture: {

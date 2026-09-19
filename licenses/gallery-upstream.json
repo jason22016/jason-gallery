@@ -177,7 +177,7 @@
     },
     {
       "local": "src/components/gallery/SearchPanel.tsx",
-      "localSha256": "9257de5dfb483ba5c39d3ef6f1db7c90832fd3e1a6b70e0695a48e2069e231d5",
+      "localSha256": "66725f8e8cf8fd11d1517c572b9f337616c5ab3552781e6ddab9f9fca91fba0a",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adaptation": "Migrated command rows, filter category/icon/active hierarchy, keyboard selection and controls. Project-local props replace photoLoader/Jotai/router/i18n. Existing selectPhotos and URL filter semantics retained; no upstream fuzzy-photo filter algorithm, multi-tag logic or rating introduced.",
       "upstream": [
@@ -185,11 +185,12 @@
           "path": "apps/web/src/modules/cmdk/CommandPalette.tsx",
           "sha256": "9df7a6547e5609106706f25d375be19dd974062af900e191662aa40d9aadc839"
         }
-      ]
+      ],
+      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation"
     },
     {
       "local": "src/components/gallery/FilterChip.tsx",
-      "localSha256": "7496b6fb9059aae1c7a0782549fde0aebcca67352dd7827d8ebf52c35e254c70",
+      "localSha256": "217d47b15dd5a604f63b28a77d9e9292ff0d2492f94738a82cb7e576b68cf36c",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adaptation": "Migrated pill layout and snappy layout/scale spring; semantic tokens, accessible 28px removal, local icon and tooltip adapters.",
       "upstream": [
@@ -197,11 +198,12 @@
           "path": "apps/web/src/modules/gallery/ActiveFiltersHero/FilterChip.tsx",
           "sha256": "b2fd0e7d4cf5c784425757af8e1bf36477d2ee51507b541bbb3f27d492d734c3"
         }
-      ]
+      ],
+      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation"
     },
     {
       "local": "src/components/gallery/ViewPanel.tsx",
-      "localSha256": "f96a5363eef7f715182dc5c90b0c0208f5cf09fb5fbf37a969268bf495a3f659",
+      "localSha256": "0f230123dd0e70dee4a130b98f77fe8b1e0ffbb18097165b94bc90e7d6501a67",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adaptation": "Migrated sort rows and combined view sections/dividers. Preserved project order and full automatic/1–8 column range. Native accessible range replaces upstream pointer-only slider while retaining draft/commit behavior; monochrome semantic track and accent thumb correct legacy neutral/green colors.",
       "upstream": [
@@ -221,7 +223,8 @@
           "path": "apps/web/src/components/ui/slider.tsx",
           "sha256": "d37b123985781c633b673472f5e3ae74faab959400160257141284d1689bd71a"
         }
-      ]
+      ],
+      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation"
     },
     {
       "local": "src/components/gallery/Panel.tsx",

@@ -1,7 +1,7 @@
 import { usePanelDismiss } from './Panel';
 import { AnimatePresence } from 'motion/react';
 import { useId, useMemo, useRef, useState } from 'react';
-import { emptyFilters, type Filters } from '../viewer/photos';
+import { emptyFilters, galleryFilterOptions, type Filters } from './filters';
 import type { GalleryPhoto } from './photos';
 import { FilterChip, filterIcons, filterLabels } from './FilterChip';
 import { EllipsisWithTooltip } from './ui/EllipsisWithTooltip';
@@ -16,10 +16,7 @@ export function SearchPanel({ photos, filters, count, onChange, onAction }: {
   const listRef = useRef<HTMLDivElement>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [category, setCategory] = useState<'all' | 'camera' | 'lens' | 'tag'>('all');
-  const options = useMemo(() => (['camera', 'lens', 'tag'] as const).flatMap(field => {
-    const values = [...new Set(photos.flatMap(photo => field === 'tag' ? photo.tags : photo[field]).filter(Boolean))].sort();
-    return values.map(value => ({ field, value, count: photos.filter(photo => field === 'tag' ? photo.tags.includes(value) : photo[field] === value).length }));
-  }), [photos]);
+  const options = useMemo(() => galleryFilterOptions(photos), [photos]);
   const commands = options.filter(option => category === 'all' || option.field === category);
   const update = (field: keyof Filters, value: string) => onChange({ ...filters, [field]: value });
   const choose = (index: number) => { const option = commands[index]; if (option) update(option.field, filters[option.field] === option.value ? '' : option.value); };
@@ -52,10 +49,10 @@ export function SearchPanel({ photos, filters, count, onChange, onAction }: {
       setSelectedIndex(next); buttons[next]?.focus();
     }}>
       {commands.length ? commands.map((option, index) => <button type="button" data-command key={`${option.field}-${option.value}`} id={`${id}-${index}`} className="command-item"
-        data-highlighted={index === selectedIndex || undefined} aria-pressed={filters[option.field] === option.value} aria-label={`${filterLabels[option.field]}：${option.value}`}
+        data-highlighted={index === selectedIndex || undefined} aria-pressed={filters[option.field] === option.value} aria-label={`${filterLabels[option.field]}：${option.label}`}
         onClick={() => choose(index)} onFocus={() => setSelectedIndex(index)}>
         <span className="command-icon"><Icon name={filterIcons[option.field]} /></span>
-        <span className="command-text"><EllipsisWithTooltip>{option.value}</EllipsisWithTooltip><small>{filterLabels[option.field]}</small></span>
+        <span className="command-text"><EllipsisWithTooltip>{option.label}</EllipsisWithTooltip><small>{filterLabels[option.field]}</small></span>
         <span className="command-count">{option.count}</span>{filters[option.field] === option.value && <Icon name="check" className="selected-check" />}
       </button>) : <p className="command-empty">当前项目没有这类筛选项</p>}
     </div>
