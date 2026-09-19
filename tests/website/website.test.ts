@@ -6,7 +6,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { test, before, after } from 'node:test';
-import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
+import { chromium, type Browser, type BrowserContext, type Page, type Worker } from 'playwright';
 import { expect as baseExpect } from 'playwright/test';
 import { buildFixture, dist, repo, root, run } from './fixture';
 import { serve } from './server';
@@ -658,6 +658,127 @@ async function mapCircles(page: Page, kind: 'cluster' | 'photo') {
     return { x: box.x + box.width / 2 - canvas.x, y: box.y + box.height / 2 - canvas.y, area: box.width * box.height };
   }));
 }
+
+test('TileJSON attribution blocks adjacent XSS handlers in the production map while preserving provider links', async t => {
+  const ctx = await context({ reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage();
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript({ content: 'window.attributionXSS = [];' });
+  // GHSA-jrc7-96c5-q579: removing attributes from a live NamedNodeMap skipped
+  // the second adjacent handler. Exercise the real TileJSON -> control path.
+  await installMapFixture(page, server.url, [
+    'Map data © ',
+    '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · ',
+    '<a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>',
+    '<details open onload="void 0" ontoggle="window.attributionXSS.push(\'toggle\')">Attribution details</details>',
+    '<img src="/attribution-broken.png" onload="void 0" onerror="window.attributionXSS.push(\'error\')">',
+    '<a onmouseover="void 0" onclick="window.attributionXSS.push(\'click\')" href="javascript:window.attributionXSS.push(\'url\')">Untrusted credit</a>',
+  ].join(''));
+  await page.route('**/attribution-broken.png', route => route.fulfill({ contentType: 'image/png', body: 'invalid image' }));
+  await page.goto(`${server.url}/projects/fixture-alpha/?panel=map`);
+  await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+  const attribution = page.locator('.maplibregl-ctrl-attrib');
+  if (await attribution.getAttribute('open') === null) await attribution.locator('summary').click();
+  await expect(attribution).toContainText('Map data ©');
+  await expect(attribution.locator('details')).toContainText('Attribution details');
+  // Wait for a real image error, then exercise toggle/click even if compact
+  // attribution was initially hidden. CSP is not used to mask execution.
+  await expect.poll(() => attribution.locator('img').evaluate(img => (img as HTMLImageElement).complete)).toBe(true);
+  await attribution.locator('details').evaluate(details => details.dispatchEvent(new Event('toggle')));
+  await attribution.getByText('Untrusted credit', { exact: true }).click();
+  assert.deepEqual(await page.evaluate(() => (window as any).attributionXSS), [], 'TileJSON payload must never execute');
+  const unsafeAttributes = await attribution.locator('*').evaluateAll(elements => elements.flatMap(element =>
+    Array.from(element.attributes).filter(attribute => /^on/i.test(attribute.name) || /^javascript:/i.test(attribute.value)).map(attribute => attribute.name)));
+  assert.deepEqual(unsafeAttributes, [], 'all dangerous attributes must be removed');
+  for (const [name, url] of [['OpenStreetMap', 'https://www.openstreetmap.org/copyright'], ['CARTO', 'https://carto.com/attributions']]) {
+    const link = attribution.getByRole('link', { name, exact: true });
+    await expect(link).toBeVisible(); await expect(link).toHaveAttribute('href', url!);
+    await ctx.route(url!, route => route.fulfill({ contentType: 'text/html', body: '<title>Provider attribution</title>' }));
+    const popup = page.waitForEvent('popup');
+    await link.click();
+    const provider = await popup;
+    await expect(provider).toHaveURL(url!); await provider.close();
+  }
+  assert.deepEqual(errors, []);
+});
+
+test('production MapLibre workers initialize from MiniMap first and release map resources across Viewer remounts', async t => {
+  const ctx = await context({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const page = await ctx.newPage(); await installMapFixture(page, server.url);
+  const errors: string[] = [], workerURLs: string[] = [];
+  const liveWorkers = new Set<Worker>();
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('worker', worker => {
+    if (!worker.url().includes('maplibre-gl-worker')) return;
+    workerURLs.push(worker.url()); liveWorkers.add(worker);
+    worker.once('close', () => liveWorkers.delete(worker));
+  });
+  page.on('requestfailed', request => {
+    if (request.url().includes('maplibre-gl-worker')) errors.push(`Worker request failed: ${request.url()}`);
+  });
+  // Both v5 and v6 retain a shared RTL/global dispatcher worker. Verify that
+  // remove() releases each map's actual worker state, rather than expecting
+  // the shared pool itself to terminate while the page remains open.
+  const expectReleasedMaps = async () => {
+    await expect.poll(async () => {
+      const counts = await Promise.all([...liveWorkers].map(worker => worker.evaluate(() => {
+        const state = (self as any).worker;
+        return [state.workerSources, state.layerIndexes, state.availableImages].map(entries => Object.keys(entries).length);
+      })));
+      return counts.flat().every(count => count === 0);
+    }).toBe(true);
+  };
+  await page.goto(`${server.url}/projects/fixture-zeta/`);
+  const id = fixture.photos[0]!.photoId;
+  for (let cycle = 0; cycle < 2; cycle++) {
+    const before = workerURLs.length;
+    // MiniMap must configure the worker without first importing PhotoMap.
+    await open(page); await loaded(page);
+    await page.getByRole('button', { name: '照片信息', exact: true }).click();
+    const mini = page.locator('.viewer-minimap');
+    await mini.scrollIntoViewIfNeeded();
+    await expect(mini).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+    await expect(mini.locator('.viewer-minimap-marker')).toBeVisible();
+    await expect(mini.locator('.viewer-minimap-attribution')).toContainText('© OpenStreetMap · © CARTO');
+    assert(workerURLs.length > before, 'MiniMap started a production worker');
+    assert(liveWorkers.size > 0);
+    const poolSize = workerURLs.length;
+    const miniCanvas = await mini.locator('canvas').elementHandle();
+    await page.getByRole('button', { name: '关闭照片' }).click();
+    await expect(page.locator('.viewer-minimap canvas')).toHaveCount(0);
+    await expect.poll(() => miniCanvas!.evaluate(canvas => (canvas as HTMLCanvasElement).getContext('webgl2')!.isContextLost())).toBe(true);
+    await miniCanvas!.dispose();
+    await expectReleasedMaps();
+
+    await page.getByRole('button', { name: '地图探索', exact: true }).click();
+    await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+    await page.locator('.photo-marker-pin').click(); await assertMapSelection(page, id);
+    const mapURL = page.url();
+    const mapCanvas = await page.locator('.photo-map canvas').elementHandle();
+    await page.locator('[data-card-kind="selected"] .photo-marker-card-title').click(); await loaded(page);
+    await expect(page.locator('.photo-map canvas')).toHaveCount(0);
+    await expect.poll(() => mapCanvas!.evaluate(canvas => (canvas as HTMLCanvasElement).getContext('webgl2')!.isContextLost())).toBe(true);
+    await mapCanvas!.dispose();
+    await expectReleasedMaps();
+    await page.getByRole('button', { name: '关闭照片' }).click(); await assertMapSelection(page, id);
+    await expect(page).toHaveURL(mapURL);
+    assert(liveWorkers.size > 0, 'Map uses a live worker after returning from Viewer');
+    await page.getByRole('button', { name: '返回项目相册', exact: true }).click();
+    await expect(page.locator('.photo-map canvas, .viewer-minimap canvas')).toHaveCount(0);
+    await expectReleasedMaps();
+    assert.equal(workerURLs.length, poolSize, 'remounts reuse the shared pool without accumulating workers');
+    await page.reload();
+    await expect.poll(() => liveWorkers.size).toBe(0);
+  }
+  for (const url of new Set(workerURLs)) {
+    assert.equal(new URL(url).origin, server.url);
+    assert.match(new URL(url).pathname, /^\/_astro\/maplibre-gl-worker-[^/]+\.js$/);
+    const response = await ctx.request.get(url);
+    assert.equal(response.status(), 200, 'worker exists in the static production output');
+    assert.match(response.headers()['content-type']!, /javascript/);
+  }
+  assert.deepEqual(errors, []);
+});
 
 test('real MapLibre renders photo markers, expands a native cluster, selects a point and restores the filtered map', async t => {
   const ctx = await context({ reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());

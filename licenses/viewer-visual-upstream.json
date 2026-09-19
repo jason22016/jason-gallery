@@ -82,7 +82,7 @@
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",
-      "sha256": "2714ce09c2f248f1b1e65e3729e874452833207221b2a602ac641b4242724097",
+      "sha256": "3b6ed241a40e11c742e49499fb306c7d2d28d4293b52b08524e2c2d22a15fb2f",
       "adapted": true,
       "upstream": [
         {
@@ -91,7 +91,8 @@
         }
       ],
       "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome",
-      "mapPhase6Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-6--final-audit-and-stabilization"
+      "mapPhase6Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-6--final-audit-and-stabilization",
+      "maplibreSecurityAdaptation": "R1 / GHSA-jrc7-96c5-q579: load the shared MapLibre v6 ESM/Worker entry and retain v5 tile overscaling; style, attribution and lifecycle unchanged."
     },
     {
       "local": "src/components/viewer/MapLibreStyle.json",

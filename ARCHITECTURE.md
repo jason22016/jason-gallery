@@ -187,6 +187,7 @@ Project JSON 和上游来源/补丁提交 Git；Manifest、缩略图、缓存属
 - **看图**：动态加载 Viewer、GPU 引擎与详细元数据，使用同 commit 的 MIT viewer-motion 开合/手势库。模糊背景、两侧按钮、底部缩略图条、320px 桌面信息栏、手机底部信息抽屉；缩放时禁用切图手势。浏览器解码直方图在打开信息栏时计算，跨域失败尝试同源缩略图并标明来源。沿用 GPU 降级与真实 HDR 状态；普通图片降级也支持缩放/平移。原生 dialog 提供隔离，引用计数式滚动锁覆盖加载弹窗到灯箱的交接。
 - **分享与历史**：`?photo=<id>` 表示当前项目照片，首开 push、切图 replace；支持直达、刷新、前进/后退与关闭后恢复位置/焦点。非法 ID 移除参数并显示提示。分享按钮使用 Web Share 或复制 URL，失败时显示可复制链接。静态分享链接不新增逐照片 OG 页面。
 - **地图**：仅加载当前筛选结果中有效坐标；MapLibre + CARTO Dark Matter，保留地图 attribution，支持点和聚合。地图按需加载，不请求用户当前位置；无 GPS 显示空状态，底图或 GPU 失败时仍可用照片列表打开相应照片。
+- **MapLibre 安全升级（R1，2026-09-16）**：固定 `maplibre-gl@6.10.0`，使用官方修复解决 [GHSA-jrc7-96c5-q579](https://github.com/maplibre/maplibre-gl-js/security/advisories/GHSA-jrc7-96c5-q579) 的 TileJSON attribution XSS（最低修复版 6.4.1）；此版本同时包含 6.7.0 的 GPU 初始化失败抛错修复，保留无 WebGL2 时的既有失败回退。Map 和 MiniMap 共用按需加载的 ESM 入口，由 Vite `?worker&url` 打包独立 Worker 及其依赖。按 [v6 migration guide](https://maplibre.org/maplibre-gl-js/docs/guides/v5-to-v6-migration-guide/) 显式设置 `zoomLevelsToOverscale: undefined`，保留 v5 的瓦片缩放行为；CARTO style、CSS 和署名策略保持原样。安全回归使用生产构建中的真实 attribution control，不另加 sanitizer。
 - **独立预览**：`pnpm ui:preview` 使用已导出的真实照片及缩略图，在 `.cache/ui-preview/` 生成四个临时选集并于 `127.0.0.1:4324` 提供预览。此内容不写入正式 Project、Manifest 或缩略图。`tests/website` 继续使用独立、合成且有确定元数据的 fixture，覆盖全部交互和失败分支。
 - **明确差异**：保留 Jason Gallery 品牌及 Project 层级，首页使用用户给定白色封面风格；不包含 Afilmory 的账号、社交和后台服务；地图、EXIF 等仅展示现有照片数据。源站视觉对照不包含复制第三方应用代码。
 

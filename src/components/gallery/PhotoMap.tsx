@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from './map/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { validLocation } from '../viewer/metadata';
 import type { ViewerPhoto } from '../viewer/photos';
@@ -60,7 +60,7 @@ export default function PhotoMap({ photos, projectTitle, onOpen, onSelect, onCle
       .filter(photo => photo.id !== currentProps.current.selectedPhotoId)
       .map(photo => ({ type: 'Feature' as const, properties: { id: photo.id, ...clusterCaptureProperties(photo.date) }, geometry: { type: 'Point' as const, coordinates: [photo.location!.longitude, photo.location!.latitude] } })) });
     try {
-      map = new maplibregl.Map({ container: container.current, style: getMapStyle(), center: [located[0]!.location!.longitude, located[0]!.location!.latitude], zoom: 9, ...initialViewport, attributionControl: { compact: true } });
+      map = new maplibregl.Map({ container: container.current, style: getMapStyle(), center: [located[0]!.location!.longitude, located[0]!.location!.latitude], zoom: 9, ...initialViewport, attributionControl: { compact: true }, zoomLevelsToOverscale: undefined });
       setMapInstance(map);
       observer = new ResizeObserver(() => map?.resize());
       observer.observe(container.current);

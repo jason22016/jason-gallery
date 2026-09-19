@@ -9,3 +9,4 @@ minimumReleaseAgeExclude:
   - astro@7.3.2
   - '@zip.js/zip.js@2.14.0'
   - '@cloudflare/workers-types@5.20260910.1'
+  - maplibre-gl@6.10.0

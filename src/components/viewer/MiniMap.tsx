@@ -22,10 +22,10 @@ export function MiniMap({ latitude, longitude }: { latitude: number; longitude: 
     const fail = () => { if (active) { failed = true; clearTimeout(timeout); setState('error'); } };
     const initialize = () => {
       timeout = window.setTimeout(fail, 15000);
-      void import('maplibre-gl').then(({ Map }) => {
+      void import('../gallery/map/maplibre').then(({ Map }) => {
       if (!active || !container.current) return;
       map = new Map({ container: container.current, center: [longitude, latitude], zoom: 15,
-        style: getMapStyle(), interactive: false, attributionControl: false });
+        style: getMapStyle(), interactive: false, attributionControl: false, zoomLevelsToOverscale: undefined });
       map.on('error', fail);
       map.getCanvas().addEventListener('webglcontextlost', fail);
       map.once('idle', () => { if (active && !failed) { clearTimeout(timeout); setState('ready'); } });
