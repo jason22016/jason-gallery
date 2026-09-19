@@ -6,7 +6,8 @@ import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { serve } from '../website/server';
 import { softwareGPUOptions } from '../browser';
-import { createServer } from 'node:http';
+import { createServer, type RequestListener, type ServerResponse } from 'node:http';
+import { imageLoadingPolicy } from '../../src/lib/image-loading-policy';
 
 let browser: Browser, server: Awaited<ReturnType<typeof serve>>;
 before(async () => { server = await serve('.cache/viewer-dist'); browser = await chromium.launch(softwareGPUOptions()); });
@@ -30,6 +31,130 @@ async function loaded(page: Page, renderer?: string) {
   await expect(media).toHaveAttribute('data-media-state', 'loaded', { timeout: 30_000 });
   await expect(media.locator('.viewer-preview')).toHaveCount(0);
 }
+async function serveStream(handler: RequestListener) {
+  const stream = createServer(handler);
+  await new Promise<void>(resolve => stream.listen(0, '127.0.0.1', resolve));
+  return { url: `http://127.0.0.1:${(stream.address() as { port: number }).port}/photo.jpg`,
+    close: () => { stream.closeAllConnections(); return new Promise<void>(resolve => stream.close(() => resolve())); } };
+}
+async function pauseClock(page: Page) {
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
+}
+
+for (const partial of [false, true]) {
+  test(`${partial ? 'partially received' : 'zero-byte'} open response becomes retryable and a fresh XHR recovers`, async () => {
+    const original = await readFile('.cache/viewer-fixtures/ordinary.jpg');
+    let requests = 0, cancelled = false;
+    let oldResponse: ServerResponse | undefined;
+    const stream = await serveStream((_request, response) => {
+      requests++;
+      response.writeHead(200, { 'Content-Type': 'image/jpeg', 'Access-Control-Allow-Origin': '*' });
+      if (requests > 1) { response.end(original); return; }
+      oldResponse = response;
+      response.on('close', () => { cancelled = true; });
+      response.flushHeaders();
+      if (partial) response.write(Buffer.concat([original, Buffer.alloc(500_000 - original.length)]));
+    });
+    const page = await pageFor('no-gpu');
+    try {
+      await page.clock.install();
+      const request = page.waitForRequest(stream.url);
+      await page.goto(`${server.url}/loader.html?src=${encodeURIComponent(stream.url)}`); await request;
+      if (partial) await expect(page.locator('.viewer-loading-bytes')).toHaveText('0.5 MB / 总量未知');
+      await pauseClock(page);
+      await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loading');
+      await page.clock.fastForward(imageLoadingPolicy.downloadIdleTimeoutMs);
+      await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'error');
+      await expect(page.locator('.viewer-media')).toHaveAttribute('aria-busy', 'false');
+      await expect(page.getByRole('button', { name: '重新加载' })).toBeVisible();
+      await expect(page.locator('.viewer-status, .viewer-fallback')).toHaveCount(0);
+      await expect.poll(() => cancelled).toBe(true);
+      assert.equal(requests, 1, 'Stalls must not start an untracked native request');
+      assert.equal((await page.evaluate(() => window.mediaTest.getImageCacheStats())).regular.size, 0);
+
+      await page.clock.resume();
+      await page.getByRole('button', { name: '重新加载' }).click(); await loaded(page, 'image');
+      assert.equal(requests, 2);
+      oldResponse!.end(original);
+      assert.deepEqual((await page.evaluate(() => window.mediaTest.getImageCacheStats())).regular.keys, [stream.url]);
+      const blob = await page.locator('.viewer-fallback').getAttribute('src');
+      assert(blob?.startsWith('blob:'));
+      await page.evaluate(() => { window.mediaTest.clearImageCaches(); window.mediaTest.close(); });
+      await expect(page.locator('.viewer-media')).toHaveCount(0);
+      assert.equal(await page.evaluate(async src => { try { await fetch(src!); return true; } catch { return false; } }, blob), false);
+      assert.equal(await page.evaluate(() => window.mediaTest.getState().scale), undefined);
+    } finally { await page.close(); await stream.close(); }
+  });
+}
+
+test('continuously growing chunked response survives multiple idle windows and finishes', async () => {
+  const original = await readFile('.cache/viewer-fixtures/ordinary.jpg');
+  const body = Buffer.concat([original, Buffer.alloc(1_000_000 - original.length)]);
+  let response!: ServerResponse;
+  const stream = await serveStream((_request, res) => {
+    response = res;
+    res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Access-Control-Allow-Origin': '*' });
+    res.write(body.subarray(0, 100_000));
+  });
+  const page = await pageFor('no-gpu');
+  try {
+    await page.clock.install();
+    await page.goto(`${server.url}/loader.html?src=${encodeURIComponent(stream.url)}`);
+    await expect(page.locator('.viewer-loading-bytes')).toHaveText('0.1 MB / 总量未知');
+    await pauseClock(page);
+    for (let chunks = 2; chunks <= 6; chunks++) {
+      await page.clock.fastForward(imageLoadingPolicy.downloadIdleTimeoutMs / 2);
+      response.write(body.subarray((chunks - 1) * 100_000, chunks * 100_000));
+      await expect(page.locator('.viewer-loading-bytes')).toHaveText(`${(chunks / 10).toFixed(1)} MB / 总量未知`);
+      await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loading');
+    }
+    response.end(body.subarray(600_000));
+    await page.clock.resume(); await loaded(page, 'image');
+    assert.equal(await page.evaluate(() => window.mediaTest.getState().ready), true);
+  } finally { await page.close(); await stream.close(); }
+});
+
+test('hung native fallback has a deadline, detaches its source and late events, and retry succeeds', async () => {
+  const original = await readFile('.cache/viewer-fixtures/ordinary.jpg');
+  let recover = false, cancelled = false, requests = 0;
+  const stream = await serveStream((_request, response) => {
+    requests++;
+    response.writeHead(200, { 'Content-Type': 'image/jpeg', 'Access-Control-Allow-Origin': '*' });
+    if (recover) response.end(original);
+    else { response.flushHeaders(); response.on('close', () => { cancelled = true; }); }
+  });
+  const page = await pageFor('no-gpu');
+  try {
+    await page.clock.install();
+    await page.route(stream.url, route => route.request().resourceType() === 'xhr' ? route.abort() : route.continue());
+    await page.goto(`${server.url}/loader.html?src=${encodeURIComponent(stream.url)}`);
+    await expect(page.locator('.viewer-fallback')).toHaveAttribute('src', stream.url);
+    await expect.poll(() => requests).toBe(1);
+    const oldImage = (await page.locator('.viewer-fallback').elementHandle())!;
+    await pauseClock(page);
+    await page.clock.fastForward(imageLoadingPolicy.nativeImageTimeoutMs);
+    await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'error');
+    await expect(page.locator('.viewer-media')).toHaveAttribute('aria-busy', 'false');
+    await expect(page.locator('.viewer-status, .viewer-fallback')).toHaveCount(0);
+    assert.equal(await oldImage.getAttribute('src'), null);
+    await expect.poll(() => cancelled).toBe(true);
+    await oldImage.evaluate(image => image.dispatchEvent(new Event('load')));
+    assert.equal(await page.evaluate(() => window.mediaTest.getState().ready), false);
+    await expect(page.getByRole('button', { name: '重新加载' })).toBeVisible();
+
+    recover = true; await page.unroute(stream.url); await page.clock.resume();
+    await page.getByRole('button', { name: '重新加载' }).click(); await loaded(page, 'image');
+    assert.equal(requests, 2);
+    await oldImage.evaluate(image => image.dispatchEvent(new Event('error')));
+    await pauseClock(page); await page.clock.fastForward(imageLoadingPolicy.nativeImageTimeoutMs * 2);
+    await loaded(page, 'image');
+    await page.evaluate(() => { window.mediaTest.clearImageCaches(); window.mediaTest.close(); });
+    await expect(page.locator('.viewer-media')).toHaveCount(0);
+    const events = await page.evaluate(() => window.mediaTest.getState().events);
+    await page.clock.fastForward(imageLoadingPolicy.nativeImageTimeoutMs * 2);
+    assert.deepEqual(await page.evaluate(() => window.mediaTest.getState().events), events);
+  } finally { await page.close(); await stream.close(); }
+});
 
 test('streamed download reports real bytes and percentage at bottom right, then hides on display', async () => {
   const original = await readFile('.cache/viewer-fixtures/ordinary.jpg');
@@ -263,13 +388,27 @@ test('actual post-load WebGPU device loss returns to preview, then WebGL, then n
 
 test('retry invalidates an undecodable cached original before downloading corrected bytes', async () => {
   const page = await pageFor('no-gpu');
+  let originals = 0;
+  page.on('request', request => { if (request.resourceType() === 'xhr' && request.url().endsWith('/corrupt.jpg')) originals++; });
   try {
     await page.route('**/corrupt.jpg', route => route.fulfill({ contentType: 'image/jpeg', body: Buffer.from([255, 216, 255, 224, 0, 16, 74, 70, 73, 70, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0]) }));
     await page.goto(`${server.url}/loader.html?src=%2Fcorrupt.jpg`);
     await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'error');
     assert.equal((await page.evaluate(() => window.mediaTest.getImageCacheStats())).regular.size, 1);
+    const oldBlob = await page.evaluate(async () => {
+      const manager = new window.mediaTest.ImageLoaderManager();
+      const result = await manager.loadImage(new URL('/corrupt.jpg', location.href).href);
+      manager.cleanup(); return result.blobSrc;
+    });
     await page.unroute('**/corrupt.jpg');
     await page.route('**/corrupt.jpg', route => route.fulfill({ path: '.cache/viewer-fixtures/ordinary.jpg', contentType: 'image/jpeg' }));
     await page.getByRole('button', { name: '重新加载' }).click(); await loaded(page, 'image');
+    const newBlob = await page.locator('.viewer-fallback').getAttribute('src');
+    assert.notEqual(newBlob, oldBlob); assert.equal(originals, 2);
+    assert.equal(await page.evaluate(async src => { try { await fetch(src); return true; } catch { return false; } }, oldBlob), false);
+    assert.equal((await page.evaluate(() => window.mediaTest.getImageCacheStats())).regular.size, 1);
+    await page.evaluate(() => { window.mediaTest.clearImageCaches(); window.mediaTest.close(); });
+    await expect(page.locator('.viewer-media')).toHaveCount(0);
+    assert.equal(await page.evaluate(async src => { try { await fetch(src!); return true; } catch { return false; } }, newBlob), false);
   } finally { await page.close(); }
 });

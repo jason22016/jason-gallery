@@ -1,6 +1,11 @@
 // Afilmory image-only loader adapter. Upstream source/commit: licenses/viewer-upstream.json.
 import { fileTypeFromBlob } from 'file-type';
 import { imageConverterManager } from './image-convert';
+import { imageLoadingPolicy } from './image-loading-policy';
+
+export class ImageDownloadStalledError extends Error {
+  constructor() { super('Image download stopped making progress'); this.name = 'ImageDownloadStalledError'; }
+}
 
 export interface LoadingState {
   isVisible: boolean;
@@ -125,11 +130,24 @@ export class ImageLoaderManager {
   private download(src: string, signal: AbortSignal, update: (state: Partial<LoadingState>) => void): Promise<Blob> {
     return new Promise((resolve, reject) => {
       let xhr: XMLHttpRequest | null = null;
+      let settled = false, loadedBytes = 0;
+      let idleTimer: ReturnType<typeof setTimeout> | undefined;
       const finish = (error?: unknown, blob?: Blob) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer); clearTimeout(idleTimer);
         signal.removeEventListener('abort', cancel);
+        if (xhr) xhr.onload = xhr.onerror = xhr.onabort = xhr.onprogress = null;
         if (error) reject(error); else resolve(blob!);
       };
-      const cancel = () => { clearTimeout(timer); xhr?.abort(); finish(signal.reason); };
+      // Settle and detach handlers before abort, preserving the stall error and
+      // ignoring even queued events from the previous request after a retry.
+      const abort = (error: unknown) => { finish(error); xhr?.abort(); };
+      const cancel = () => abort(signal.reason);
+      const watchProgress = () => {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => abort(new ImageDownloadStalledError()), imageLoadingPolicy.downloadIdleTimeoutMs);
+      };
       // Upstream's 300ms delay avoids downloads during quick photo navigation.
       const timer = setTimeout(() => {
         try {
@@ -138,11 +156,18 @@ export class ImageLoaderManager {
           xhr.onload = () => xhr!.status === 200 ? finish(undefined, xhr!.response as Blob) : finish(new Error(`HTTP ${xhr!.status}`));
           xhr.onerror = () => finish(new Error('Network error'));
           xhr.onabort = () => finish(new DOMException('Image request aborted', 'AbortError'));
-          xhr.onprogress = event => update({ loadedBytes: event.loaded, totalBytes: event.lengthComputable && event.total > 0 ? event.total : undefined,
-            loadingProgress: event.lengthComputable && event.total > 0 ? event.loaded / event.total * 100 : undefined });
+          xhr.onprogress = event => {
+            if (settled) return;
+            // Repeated progress events (including headers/zero bytes) are not
+            // progress. Content-Length is only needed for the percentage UI.
+            if (event.loaded > loadedBytes) { loadedBytes = event.loaded; watchProgress(); }
+            update({ loadedBytes, totalBytes: event.lengthComputable && event.total > 0 ? event.total : undefined,
+              loadingProgress: event.lengthComputable && event.total > 0 ? loadedBytes / event.total * 100 : undefined });
+          };
+          watchProgress();
           xhr.send();
         } catch (error) { finish(error); }
-      }, 300);
+      }, imageLoadingPolicy.requestDelayMs);
       signal.addEventListener('abort', cancel, { once: true });
       if (signal.aborted) cancel();
     });

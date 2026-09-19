@@ -57,6 +57,32 @@ test('entry catch-up remains until the slide is visually ready; only current sli
   assert.equal(resolvePhotoViewerEntryState({ hasTransitionTrigger: true, isCurrentImageVisualReady: false, isEntryTransitionActive: true, isOpen: true, isViewerContentVisible: false }).shouldMountImageStage, false);
 });
 
+test('Viewer next-photo and close buttons abort in-flight originals and reopening starts a fresh load', async t => {
+  const { page, context } = await fixture({ reducedMotion: 'reduce' }); t.after(() => context.close());
+  const held: (() => Promise<void>)[] = [];
+  await page.route('**/viewer-*.jpg?photo=*', route => {
+    held.push(() => route.fulfill({ contentType: 'image/jpeg', path: '.cache/viewer-fixtures/ordinary.jpg' }).catch(() => {}));
+  });
+  const original = (index: number) => (request: import('playwright').Request) => request.resourceType() === 'xhr' && request.url().endsWith(`?photo=${index}`);
+  const first = page.waitForRequest(original(0));
+  await page.getByRole('button', { name: 'Open viewer' }).click(); await first;
+  await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loading');
+  const firstCancelled = page.waitForEvent('requestfailed', original(0));
+  const second = page.waitForRequest(original(1));
+  await page.getByRole('button', { name: '下一张照片' }).click(); await firstCancelled; await second;
+  await expect(page.locator('.viewer-counter')).toHaveText('2 / 180');
+  await held[0]!();
+  await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loading');
+  await expect(page.locator('.viewer-swiper .swiper-slide-active')).toHaveAttribute('data-photo-id', 'photo-1');
+  const secondCancelled = page.waitForEvent('requestfailed', original(1));
+  await page.getByRole('button', { name: '关闭照片' }).click(); await secondCancelled;
+  await expect(page.locator('.photo-dialog, .viewer-media, .viewer-status')).toHaveCount(0);
+  await held[1]!(); await page.unroute('**/viewer-*.jpg?photo=*');
+  const fresh = page.waitForRequest(original(0));
+  await open(page); await fresh;
+  await expect(page.locator('.viewer-counter')).toHaveText('1 / 180');
+});
+
 test('Swiper Virtual slides follow the finger continuously with the adjacent photo before release', async t => {
   const { page, context } = await fixture(mobile); t.after(() => context.close()); await open(page);
   const cdp = await context.newCDPSession(page);

@@ -3,6 +3,7 @@ import type { ImageViewer } from '../../photo-engine/browser';
 import type { ViewerPhoto } from './photos';
 import { useImageLoader } from './useImageLoader';
 import { removeImageCacheByUrl } from '../../lib/image-loader-manager';
+import { imageLoadingPolicy } from '../../lib/image-loading-policy';
 import { imageViewerConfig } from './image-viewer-config';
 import { LoadingIndicator } from './LoadingIndicator';
 export type Controls = { zoomIn: (animated?: boolean) => void; zoomOut: (animated?: boolean) => void; resetView: () => void; getScale: () => number };
@@ -24,7 +25,11 @@ function MediaAttempt({ photo, onRetry, engineRef, onZoom, onReady, smooth, enab
     void import('../../photo-engine/browser').then(module => { if (active.current) setEngine(() => module.ImageViewer); }).catch(() => { if (active.current) setMode('image'); });
     return () => { active.current = false; engineRef.current = null; };
   }, [engineRef]);
-  useEffect(() => { if (loadError) setMode('image'); }, [loadError]);
+  useEffect(() => {
+    // A stalled transfer needs user recovery, not another untracked transfer.
+    if (loadError === 'stalled') setState('error');
+    else if (loadError) setMode('image');
+  }, [loadError]);
   const failed = () => { if (active.current) { setHDR(false); setState('loading'); setMode('image'); onZoom(false); onReady(false); } };
   return <div className="viewer-media" aria-busy={state === 'loading'} data-media-state={state} data-renderer={mode === 'image' ? 'image' : renderer} data-load-progress={loading.loadingProgress} data-converting={loading.isConverting || undefined} data-queue-waiting={loading.isQueueWaiting || undefined}>
     {state !== 'loaded' && <img className="viewer-preview" src={photo.thumbnail} alt=""/>}
@@ -32,14 +37,37 @@ function MediaAttempt({ photo, onRetry, engineRef, onZoom, onReady, smooth, enab
       onLoadStart={() => { if (active.current) { setState('loading'); setHDR(false); onReady(false); } }}
       onLoad={() => { if (active.current) { setState('loaded'); onReady(true); } }} onZoomChange={(_original, relative) => onZoom(relative > 1.02)}
       onHDRChange={value => { if (active.current) setHDR(value); }} onRendererChange={value => { if (active.current) setRenderer(value); }} onError={failed} />}
-    {mode === 'image' && (blobSrc || loadError) && state !== 'error' && <FallbackImage src={blobSrc ?? photo.src} photo={photo} engineRef={engineRef} onZoom={onZoom} onLoad={() => { setState('loaded'); onReady(true); }} onError={() => { setState('error'); onReady(false); }}/ >}
-    {state === 'loading' && <LoadingIndicator loading={loading} size={photo.size} untracked={loadError}/>}
+    {mode === 'image' && (blobSrc || loadError === 'failed') && state !== 'error' && <FallbackImage src={blobSrc ?? photo.src} photo={photo} engineRef={engineRef} onZoom={onZoom} onLoad={() => { setState('loaded'); onReady(true); }} onError={() => { setState('error'); onReady(false); }}/ >}
+    {state === 'loading' && <LoadingIndicator loading={loading} size={photo.size} untracked={!!loadError}/>}
     {state === 'error' && <div className="viewer-error"><p role="alert">照片加载失败</p><button type="button" onClick={event => { event.currentTarget.closest('dialog')?.querySelector<HTMLButtonElement>('.viewer-close')?.focus(); onRetry(); }}>重新加载</button><a href={photo.src} target="_blank" rel="noreferrer">打开原图 ↗</a></div>}
     {photo.isHDR && <span className="hdr-status">{hdr && state === 'loaded' ? 'HDR active' : 'HDR source'}</span>}
   </div>;
 }
 function FallbackImage({ src, photo, engineRef, onZoom, onLoad, onError }: { src: string; photo: ViewerPhoto; engineRef: React.RefObject<Controls | null>; onZoom: (zoomed: boolean) => void; onLoad: () => void; onError: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const callbacks = useRef({ onLoad, onError });
+  callbacks.current = { onLoad, onError };
+  // One deadline per source; parent renders must not extend a fallback attempt.
+  useEffect(() => {
+    const image = imageRef.current!;
+    let pending = true;
+    const finish = (loaded: boolean) => {
+      if (!pending) return;
+      pending = false; clearTimeout(timer);
+      if (loaded) callbacks.current.onLoad(); else callbacks.current.onError();
+    };
+    const loaded = () => finish(true), failed = () => finish(false);
+    const timer = setTimeout(failed, imageLoadingPolicy.nativeImageTimeoutMs);
+    image.addEventListener('load', loaded); image.addEventListener('error', failed);
+    image.src = src;
+    return () => {
+      pending = false; clearTimeout(timer);
+      image.removeEventListener('load', loaded); image.removeEventListener('error', failed);
+      // Removing a native request's source also covers retry/navigation/unmount.
+      image.removeAttribute('src');
+    };
+  }, [src]);
   const transform = useRef({ scale: 1, x: 0, y: 0 });
   const points = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef(0);
@@ -75,6 +103,6 @@ function FallbackImage({ src, photo, engineRef, onZoom, onLoad, onError }: { src
       if (e.pointerType === 'touch' && tapStart.current && !tapStart.current.moved) { const now = performance.now(); if (now - lastTap.current < 300) { update(transform.current.scale > 1 ? 1 : 2); lastTap.current = 0; } else lastTap.current = now; }
       tapStart.current = null;
     }} onPointerCancel={e => { points.current.delete(e.pointerId); pinch.current = 0; tapStart.current = null; }}>
-    <img className="viewer-fallback" src={src} alt={photo.alt} draggable={false} style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${position.scale})` }} onLoad={onLoad} onError={onError}/>
+    <img ref={imageRef} className="viewer-fallback" alt={photo.alt} draggable={false} style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${position.scale})` }}/>
   </div>;
 }
