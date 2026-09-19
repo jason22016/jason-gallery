@@ -79,7 +79,8 @@ test('completed source sync adds exactly ten new photos to existing/new Projects
     await page.reload(); await syncTab(); await batch().click();
     await page.getByRole('dialog').getByRole('button', { name: /在路上，慢一点/ }).click();
     assert.equal(await page.locator('.sequence-row').count(), 14);
-    // Reload discards the repeated local edit; create a new Project with the same batch.
+    // Explicitly accept the unsaved-edit warning before discarding the repeated edit.
+    page.once('dialog', async dialog => { assert.equal(dialog.type(), 'beforeunload'); await dialog.accept(); });
     await page.reload(); await syncTab(); await batch().click();
     await page.getByRole('dialog').getByRole('button', { name: '新建 Project', exact: true }).click();
     assert.equal(await page.locator('.sequence-row').count(), 10);

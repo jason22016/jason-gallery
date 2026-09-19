@@ -13,14 +13,20 @@ import { appendProjectPhotos, projectMembership, sortProjectPhotos, type Preview
 
 type Page = 'photos' | 'projects' | 'sources' | 'tasks';
 type ProjectSwitch = { next: Project | null; dirty: boolean; clearSelection: boolean };
+type ProjectAction = { kind: 'switch'; intent: ProjectSwitch } | { kind: 'source'; sources: PhotoSource[] };
+type SavedProjects = { head: string; projects: Project[] };
 type ArtifactState = 'ready' | 'empty' | 'expired' | 'failed';
 const names = { photos: '照片', projects: 'Project', sources: '照片源', tasks: '发布与记录' };
 const icons = { photos: Images, projects: FolderOpen, sources: Layers3, tasks: CloudUpload };
 const badge = (text: string, kind = '') => <span className={`badge ${kind}`}>{text}</span>;
+function preventDraftLoss(event: BeforeUnloadEvent) {
+  event.preventDefault();
+  event.returnValue = '';
+}
 function Modal({ title, children, close }: { title: string; children: ReactNode; close: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { ref.current?.showModal(); }, []);
-  return <dialog ref={ref} onCancel={close}><div className="dialog-head"><h2>{title}</h2><button aria-label="关闭对话框" onClick={close}><X size={18} /></button></div>{children}</dialog>;
+  return <dialog ref={ref} onCancel={event => { event.preventDefault(); close(); }}><div className="dialog-head"><h2>{title}</h2><button aria-label="关闭对话框" onClick={close}><X size={18} /></button></div>{children}</dialog>;
 }
 function PhotoCard({ item, selected, toggle, source }: { item: PreviewPhoto; selected: boolean; toggle: () => void; source?: string }) {
   const p = item.photo;
@@ -73,7 +79,12 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
   const [taskMode, setTaskMode] = useState('sync');
   const [publishConfirm, setPublishConfirm] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [projectSwitch, setProjectSwitch] = useState<ProjectSwitch | null>(null);
+  useEffect(() => {
+    if (!dirty) return;
+    window.addEventListener('beforeunload', preventDraftLoss);
+    return () => window.removeEventListener('beforeunload', preventDraftLoss);
+  }, [dirty]);
+  const [projectAction, setProjectAction] = useState<ProjectAction | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const sourceName = (id: string) => sources.find(s => s.sourceId === id)?.name ?? id;
   const photo = (id: string) => photos.find(p => p.photo.id === (media?.aliases?.[id] ?? id));
@@ -109,7 +120,7 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
     if (deleteTarget.kind === 'project') {
       setProjects(ps => ps.filter(p => p.id !== deleteTarget.project.id));
       setProjectFilter('all');
-      setProject(null); setDirty(false); setProjectSwitch(null); setAddTarget(false);
+      setProject(null); setDirty(false); setProjectAction(null); setAddTarget(false);
       setNotice(management ? 'Project 已删除并提交 GitHub。网站尚未发布，原图已保留。' : 'Project 已从本次预览删除。');
     } else {
       const id = deleteTarget.source.sourceId;
@@ -124,10 +135,10 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
   function applyProjectSwitch(intent: ProjectSwitch) {
     setProject(intent.next && structuredClone(intent.next)); setDirty(intent.dirty);
     if (intent.clearSelection) setSelected([]);
-    setProjectSwitch(null); setAddTarget(false); navigate('projects');
+    setProjectAction(null); setAddTarget(false); navigate('projects');
   }
   function requestProjectSwitch(intent: ProjectSwitch) {
-    if (dirty && project) { setProjectSwitch(intent); setAddTarget(false); setError(''); }
+    if (dirty && project) { setProjectAction({ kind: 'switch', intent }); setAddTarget(false); setError(''); }
     else applyProjectSwitch(intent);
   }
   const edit = (next: Project, nextDirty = false, clearSelection = false) => requestProjectSwitch({ next, dirty: nextDirty, clearSelection });
@@ -138,22 +149,29 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
   const newProject = (ids = selected) => {
     requestProjectSwitch({ next: { schemaVersion: 1, id: `project-${crypto.randomUUID()}`, slug: '', title: '', summary: '', location: '', coverPhotoId: ids[0] ?? '', photos: ids.map(photoId => ({ photoId })), order: sortedProjects.length ? sortedProjects.at(-1)!.order + 1 : 0, status: 'draft' }, dirty: true, clearSelection: true });
   };
-  async function saveProject() {
+  async function saveProject(): Promise<SavedProjects | false> {
     if (!project) return false;
     const result = ProjectSchema.safeParse(project);
     if (!result.success) { setError(result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('\n')); return false; }
     if (projects.some(p => p.id !== project.id && p.slug === project.slug)) { setError('此 slug 已被其他 Project 使用。'); return false; }
     if (project.photos.some(p => !available.some(a => a.photo.id === (media?.aliases?.[p.photoId] ?? p.photoId)))) { setError('照片引用已失效，请检查照片源。'); return false; }
+    let nextHead = head;
     if (management) {
       setBusy(true);
-      try { const saved = await request('/api/save', { kind: 'project', expectedHead: head, project: result.data, ...(saveProof ? { saveProof } : {}) }); setHead(saved.head); setSaveProof(saved.saveProof); }
+      try { const saved = await request('/api/save', { kind: 'project', expectedHead: head, project: result.data, ...(saveProof ? { saveProof } : {}) }); nextHead = saved.head; setHead(saved.head); setSaveProof(saved.saveProof); }
       catch (e) { fail(e); return false; } finally { setBusy(false); }
     }
-    setProjects(ps => [...ps.filter(p => p.id !== project.id), result.data]); setDirty(false); setError(''); setNotice(management ? 'Project 已提交 GitHub。网站尚未发布。' : 'Project 已保存到本次预览内存。未提交 GitHub，未发布网站。');
-    return true;
+    const nextProjects = [...projects.filter(p => p.id !== project.id), result.data];
+    setProjects(nextProjects); setProject(result.data); setDirty(false); setError(''); setNotice(management ? 'Project 已提交 GitHub。网站尚未发布。' : 'Project 已保存到本次预览内存。未提交 GitHub，未发布网站。');
+    return { head: nextHead, projects: nextProjects };
   }
-  const localImpacts = source && originalSource && (!source.enabled || ['owner', 'repo', 'branch', 'path'].some(k => source[k as keyof PhotoSource] !== originalSource[k as keyof PhotoSource]))
-    ? projects.filter(p => p.photos.some(r => photo(r.photoId)?.sourceId === originalSource.sourceId)) : [];
+  function localSourceImpacts(next: PhotoSource[], currentProjects: Project[]) {
+    if (!originalSource) return [];
+    const after = next.find(s => s.sourceId === originalSource.sourceId);
+    return !after || !after.enabled || (['owner', 'repo', 'branch', 'path'] as const).some(k => originalSource[k] !== after[k])
+      ? currentProjects.filter(p => p.photos.some(r => photo(r.photoId)?.sourceId === originalSource.sourceId)) : [];
+  }
+  const localImpacts = source ? localSourceImpacts(originalSource ? sources.map(s => s.sourceId === originalSource.sourceId ? source : s) : [...sources, source], projects) : [];
   const impacts = management ? (serverImpacts ?? []) : localImpacts;
   useEffect(() => {
     if (!management || !source) return;
@@ -163,7 +181,7 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
       catch (e) { if (active) setImpactError(e instanceof Error ? e.message : '影响分析失败'); }
     }, 350);
     return () => { active = false; clearTimeout(timer); };
-  }, [source, sources, originalSource]);
+  }, [source, sources, originalSource, head]);
   function fail(e: unknown) { if (e instanceof RequestError && (e.details as any)?.requestId) { setPending(e.details as any); setPage('tasks'); } setError(e instanceof Error ? e.message : '操作失败'); if (e instanceof RequestError && e.status === 409) setConflict(true); }
   async function saveSource() {
     if (!source) return;
@@ -171,13 +189,40 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
     if (!result.success) { setError(result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('\n')); return; }
     const next = originalSource ? sources.map(s => s.sourceId === originalSource.sourceId ? result.data : s) : [...sources, result.data];
     if (!SourcesSchema.safeParse({ schemaVersion: 1, sources: next }).success) { setError('来源 ID 重复或配置无效。'); return; }
-    if (impacts.length) { setError('请先从受影响的 Project 中移除或迁移照片引用，再修改来源。'); return; }
-    if (management) {
-      setBusy(true);
-      try { const saved = await request('/api/save', { kind: 'sources', expectedHead: head, config: { schemaVersion: 1, sources: next } }); setHead(saved.head); setSaveProof(undefined); setState('expired'); setSelected([]); setMedia((m: any) => ({ ...m, reason: '来源配置已更新，请同步照片后继续选图' })); }
-      catch (e) { fail(e); return; } finally { setBusy(false); }
+    if (dirty && project) { setProjectAction({ kind: 'source', sources: next }); setError(''); return; }
+    await commitSource(next, { head, projects });
+  }
+  async function commitSource(next: PhotoSource[], current: SavedProjects) {
+    setBusy(true);
+    try {
+      // A Project save can change both HEAD and references before React renders.
+      // Recheck against the saved state, never the earlier impact preview.
+      const checked = management ? (await request('/api/impact', { schemaVersion: 1, sources: next })).impacts : localSourceImpacts(next, current.projects);
+      if (management) { setServerImpacts(checked); setImpactError(''); }
+      if (checked.length) { setError('请先从受影响的 Project 中移除或迁移照片引用，再修改来源。'); return; }
+      if (management) {
+        const saved = await request('/api/save', { kind: 'sources', expectedHead: current.head, config: { schemaVersion: 1, sources: next } });
+        setHead(saved.head); setSaveProof(undefined); setState('expired'); setSelected([]); setMedia((m: any) => ({ ...m, reason: '来源配置已更新，请同步照片后继续选图' }));
+      }
+      setSources(next); setSource(null); setNotice(management ? '照片源配置已提交 GitHub。请前往“照片 → 同步照片”检查变化并同步。' : '照片源配置已保存到预览内存。实际接入后需单独同步照片。'); setError('');
+    } catch (e) { fail(e); } finally { setBusy(false); }
+  }
+  function discardProject() {
+    setProject(structuredClone(projects.find(p => p.id === project?.id) ?? null)); setDirty(false);
+    // Explicit discard may reload immediately, before the effect cleanup runs.
+    window.removeEventListener('beforeunload', preventDraftLoss);
+  }
+  async function continueProjectAction(save: boolean) {
+    if (!projectAction || busy) return;
+    const action = projectAction;
+    const current = save ? await saveProject() : { head, projects };
+    if (!current) return;
+    if (action.kind === 'switch') applyProjectSwitch(action.intent);
+    else {
+      if (!save) discardProject();
+      setProjectAction(null);
+      await commitSource(action.sources, current);
     }
-    setSources(next); setSource(null); setNotice(management ? '照片源配置已提交 GitHub。请前往“照片 → 同步照片”检查变化并同步。' : '照片源配置已保存到预览内存。实际接入后需单独同步照片。'); setError('');
   }
   function move(index: number, direction: number) {
     if (!project) return;
@@ -246,14 +291,14 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
     </main>
     {editingCover && project && photo(project.coverPhotoId) && <Modal title="调整 Project 封面" close={() => setEditingCover(false)}><CoverEditor item={photo(project.coverPhotoId)!} initial={project.coverCrop} close={() => setEditingCover(false)} apply={coverCrop => { changeProject({ coverCrop }); setEditingCover(false); }} /></Modal>}
     {deleteTarget && <DeleteDialog target={deleteTarget} head={head} connected={!!management} sources={sources} dirty={dirty} close={() => setDeleteTarget(null)} deleted={finishDelete} localImpacts={deleteTarget.kind === 'source' ? projects.flatMap(p => { const count = p.photos.filter(r => photo(r.photoId)?.sourceId === deleteTarget.source.sourceId).length; return count ? [{ projectId: p.id, title: p.title, status: p.status, count }] : []; }) : []} />}
-    {source && <Modal title={originalSource ? '编辑照片源' : '新增照片源'} close={() => { setSource(null); setError(''); }}><div className="source-form" inert={busy}><p className="muted">照片从 GitHub 只读同步，凭据在服务端配置。</p>{([['name', '显示名称'], ['sourceId', '稳定来源 ID'], ['owner', 'GitHub 用户 / 组织'], ['repo', '仓库名称'], ['branch', '分支'], ['path', '图片目录']] as const).map(([key, label]) => <label key={key}>{label}<input value={source[key]} disabled={key === 'sourceId' && !!originalSource} onChange={e => setSource({ ...source, [key]: e.target.value })} /></label>)}<label className="checkbox-label"><input type="checkbox" checked={source.enabled} onChange={e => setSource({ ...source, enabled: e.target.checked })} />启用此照片源</label><div className={impacts.length ? 'impact error' : 'impact'}><strong>Project 引用影响</strong>{impacts.length ? <><p>此修改将使以下 Project 的照片引用失效：</p>{impacts.map(p => <p key={'projectId' in p ? p.projectId : p.id}>{p.title} · {p.status} · {'count' in p ? p.count : p.photos.filter((r: any) => photo(r.photoId)?.sourceId === originalSource!.sourceId).length} 张</p>)}<p>请先迁移或移除这些引用，不能静默替换。</p></> : <p>{management ? impactError || (serverImpacts === null ? '正在检查 Project 引用影响…' : '服务端未发现失效的 Project 引用。') : '当前修改未发现失效的预览 Project 引用。'}</p>}</div>{error && <p role="alert" className="error">{error}</p>}<div className="dialog-actions"><button className="secondary" onClick={() => { setSource(null); setError(''); }}>取消</button><button className="primary" disabled={busy || impacts.length > 0 || !!management && (serverImpacts === null || !!impactError)} onClick={saveSource}>{management ? '保存配置到 GitHub' : '保存配置到预览'}</button></div></div></Modal>}
+    {source && <Modal title={originalSource ? '编辑照片源' : '新增照片源'} close={() => { if (!busy) { setSource(null); setError(''); } }}><div className="source-form" inert={busy}><p className="muted">照片从 GitHub 只读同步，凭据在服务端配置。</p>{([['name', '显示名称'], ['sourceId', '稳定来源 ID'], ['owner', 'GitHub 用户 / 组织'], ['repo', '仓库名称'], ['branch', '分支'], ['path', '图片目录']] as const).map(([key, label]) => <label key={key}>{label}<input value={source[key]} disabled={key === 'sourceId' && !!originalSource} onChange={e => setSource({ ...source, [key]: e.target.value })} /></label>)}<label className="checkbox-label"><input type="checkbox" checked={source.enabled} onChange={e => setSource({ ...source, enabled: e.target.checked })} />启用此照片源</label><div className={impacts.length ? 'impact error' : 'impact'}><strong>Project 引用影响</strong>{impacts.length ? <><p>此修改将使以下 Project 的照片引用失效：</p>{impacts.map(p => <p key={'projectId' in p ? p.projectId : p.id}>{p.title} · {p.status} · {'count' in p ? p.count : p.photos.filter((r: any) => photo(r.photoId)?.sourceId === originalSource!.sourceId).length} 张</p>)}<p>请先迁移或移除这些引用，不能静默替换。</p></> : <p>{management ? impactError || (serverImpacts === null ? '正在检查 Project 引用影响…' : '服务端未发现失效的 Project 引用。') : '当前修改未发现失效的预览 Project 引用。'}</p>}</div>{error && <p role="alert" className="error">{error}</p>}<div className="dialog-actions"><button className="secondary" onClick={() => { setSource(null); setError(''); }}>取消</button><button className="primary" disabled={busy || !dirty && impacts.length > 0 || !!management && (serverImpacts === null || !!impactError)} onClick={saveSource}>{management ? '保存配置到 GitHub' : '保存配置到预览'}</button></div></div></Modal>}
     {addTarget && <Modal title={`将 ${selected.length} 张照片加入 Project`} close={() => setAddTarget(false)}><div className="choose-project">{project && <button className="panel" onClick={addToCurrentProject}>继续编辑：{project.title || '新的 Project'}<ArrowRight size={16} /></button>}{sortedProjects.filter(p => p.id !== project?.id).map(p => <button className="panel" key={p.id} onClick={() => { edit({ ...p, photos: appendProjectPhotos(p.photos, selected, media?.aliases) }, true, true); }}>{p.title}{badge(p.status)}<ArrowRight size={16} /></button>)}<button className="primary" onClick={() => newProject()}><Plus size={16} />新建 Project</button></div></Modal>}
-    {projectSwitch && <Modal title="当前 Project 有未保存修改" close={() => { if (!busy) setProjectSwitch(null); }}><div className="publish-info" inert={busy}>
-      <p>“{project?.title || '新的 Project'}”尚未保存。切换后，这些编辑将被替换。</p>
+    {projectAction && <Modal title="当前 Project 有未保存修改" close={() => { if (!busy) setProjectAction(null); }}><div className="publish-info" inert={busy}>
+      <p>“{project?.title || '新的 Project'}”尚未保存。{projectAction.kind === 'source' ? '请先保存或放弃 Project 编辑，再提交照片源配置。' : '切换后，这些编辑将被替换。'}</p>
       {error && <p role="alert" className="error">{error}</p>}
-      <div className="dialog-actions"><button className="secondary" onClick={() => setProjectSwitch(null)}>保留编辑，取消切换</button><button className="secondary" onClick={() => applyProjectSwitch(projectSwitch)}>放弃编辑并继续</button><button className="primary" disabled={!!management && state !== 'ready'} onClick={async () => { const intent = projectSwitch; if (await saveProject()) applyProjectSwitch(intent); }}>保存后继续</button></div>
+      <div className="dialog-actions"><button className="secondary" onClick={() => setProjectAction(null)}>保留编辑，{projectAction.kind === 'source' ? '取消来源提交' : '取消切换'}</button><button className="secondary" onClick={() => continueProjectAction(false)}>放弃编辑并继续</button><button className="primary" disabled={!!management && state !== 'ready'} onClick={() => continueProjectAction(true)}>保存后继续</button></div>
     </div></Modal>}
-    {conflict && <Modal title="保存版本冲突" close={() => setConflict(false)}><div className="publish-info"><p>其他修改已经进入仓库。当前编辑仍保留，请复制需要的文字，再加载最新内容并手动合并。</p><pre style={{ maxHeight: 250, overflow: 'auto', whiteSpace: 'pre-wrap' }}>{JSON.stringify(source ?? project, null, 2)}</pre><button className="secondary" onClick={() => setConflict(false)}>保留编辑，返回检查</button><button className="primary" onClick={() => location.reload()}>放弃本地编辑，加载最新版本</button></div></Modal>}
+    {conflict && <Modal title="保存版本冲突" close={() => setConflict(false)}><div className="publish-info"><p>其他修改已经进入仓库。当前编辑仍保留，请复制需要的文字，再加载最新内容并手动合并。</p><pre style={{ maxHeight: 250, overflow: 'auto', whiteSpace: 'pre-wrap' }}>{JSON.stringify(source ?? project, null, 2)}</pre><button className="secondary" onClick={() => setConflict(false)}>保留编辑，返回检查</button><button className="primary" onClick={() => { discardProject(); location.reload(); }}>放弃本地编辑，加载最新版本</button></div></Modal>}
     {publishConfirm && <Modal title="发布网站" close={() => setPublishConfirm(false)}><div className="publish-info"><CloudUpload size={30} /><h3>{management ? (publishEnabled ? '发布当前已保存内容' : '后台发布入口未启用') : '仅界面预览'}</h3><p>正式操作会校验当前 GitHub 版本、Project 引用和照片快照，再运行已有 publish 工作流。</p>{management ? <><p>版本 {head.slice(0, 7)} · 照片任务 #{media?.runId ?? '无'}。这会调用已有 publish 工作流。</p><p>只会公开已保存且状态为 published 的 Project；草稿不会展示。删除 Project 后，主站会在下一次发布成功后更新。</p>{!publishEnabled && <p>此开关仅控制后台能否发起发布，不代表主站尚未部署。已有发布结果请查看下方 Actions 执行记录。</p>}{publishEnabled && state !== 'ready' && <p role="status">照片产物尚未就绪，请前往“照片 → 同步照片”，完成同步后再发布。</p>}{publishEnabled && state !== 'ready' && <button className="secondary" onClick={() => { setPublishConfirm(false); openSync(); }}>前往照片库</button>}{publishEnabled && dirty && <p role="status">请先保存或放弃当前 Project 的修改，再发布。</p>}{publishEnabled && <button className="primary" disabled={busy || dirty || !!source || state !== 'ready'} onClick={() => startTask('publish')}>确认发布已保存版本</button>}</> : <p>本预览无法执行发布，也没有线上成功状态。</p>}<button className="primary" onClick={() => setPublishConfirm(false)}>知道了</button></div></Modal>}
   </div>;
 }
