@@ -48,11 +48,15 @@ async function loaded(page: Page) {
 async function filterURL(page: Page, query: string) {
   await page.evaluate(query => { history.pushState(null, '', `/map/${query}`); window.dispatchEvent(new PopStateEvent('popstate')); }, query);
 }
-async function offset(page: Page, id: string) {
+async function markerOffset(page: Page, id: string) {
   return page.locator(`.photo-marker-host[data-photo-id="${id}"]`).evaluate(element => {
     const marker = element.getBoundingClientRect(), canvas = document.querySelector('.photo-map canvas')!.getBoundingClientRect();
-    return { x: Math.round(marker.x + marker.width / 2 - canvas.x - canvas.width / 2), y: Math.round(marker.y + marker.height / 2 - canvas.y - canvas.height / 2) };
+    return { x: marker.x + marker.width / 2 - canvas.x - canvas.width / 2, y: marker.y + marker.height / 2 - canvas.y - canvas.height / 2 };
   });
+}
+async function offset(page: Page, id: string) {
+  const point = await markerOffset(page, id);
+  return { x: Math.round(point.x), y: Math.round(point.y) };
 }
 
 test('Global Map serializes only deduplicated public photos with valid GPS; private, unused and invalid GPS links stay excluded', async t => {
@@ -182,25 +186,40 @@ test('native clusters, thumbnails, marker preview and Viewer use the unique filt
   assert(!new URL(page.url()).searchParams.has('photo'));
 });
 
-test('initial bounds fit the results; filtering updates the same map without recentering until Fit Results', async t => {
-  const { ctx, page } = await pageFor(); t.after(() => ctx.close());
+for (const height of [900, 901]) test(`initial bounds fit the results; filtering updates the same map without recentering until Fit Results (${height}px viewport)`, async t => {
+  const { ctx, page } = await pageFor({ viewport: { width: 1440, height } }); t.after(() => ctx.close());
   await ready(page);
   await expect(page.locator('.cluster-marker')).toHaveCount(1);
   await expect(page.locator('.photo-marker-pin')).toHaveCount(1);
   const far = photoId('map-far.jpg');
-  const initial = await offset(page, far);
+  const initial = await markerOffset(page, far);
   assert(Math.abs(initial.x) > 30 && Math.abs(initial.y) > 30);
   const box = (await page.locator('.photo-map canvas').boundingBox())!;
   const canvas = await page.locator('.photo-map canvas').elementHandle();
+  const marker = await page.locator(`.photo-marker-host[data-photo-id="${far}"]`).elementHandle();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 - 90, box.y + box.height / 2 + 40, { steps: 15 }); await page.mouse.up();
-  await expect.poll(async () => (await offset(page, far)).x).not.toBe(initial.x);
-  const moved = await offset(page, far);
+  await expect.poll(async () => {
+    const point = await markerOffset(page, far);
+    return Math.max(Math.abs(point.x - initial.x + 90), Math.abs(point.y - initial.y - 40));
+  }).toBeLessThanOrEqual(.5);
+  const moved = await markerOffset(page, far);
   await filterURL(page, '?query=map-far');
   await expect(page.locator('.map-photo-list button')).toHaveCount(1);
   await expect(page.locator('.cluster-marker')).toHaveCount(0);
   assert(await canvas!.evaluate(element => element === document.querySelector('.photo-map canvas')));
-  await expect.poll(() => offset(page, far)).toEqual(moved);
+  assert(await marker!.evaluate((element, id) => element === document.querySelector(`.photo-marker-host[data-photo-id="${id}"]`), far));
+  // The filter summary changes the canvas height by an odd number of pixels.
+  // Wait for MapLibre's ResizeObserver update: a fast runner otherwise compares
+  // the old canvas before it resizes. Native markers snap to whole pixels while
+  // the canvas centre moves by half a pixel; rounding the offset again turns that
+  // valid half-pixel difference into a spurious one-pixel viewport change.
+  const mapHeight = await page.locator('.photo-map').evaluate(element => element.clientHeight);
+  assert.notEqual(mapHeight, box.height, 'the filter summary changes the available map height');
+  await expect.poll(() => canvas!.evaluate(element => element.clientHeight)).toBe(mapHeight);
+  const filtered = await markerOffset(page, far);
+  assert(Math.abs(filtered.x - moved.x) <= .5 && Math.abs(filtered.y - moved.y) <= .5,
+    `filtering preserves the viewport within native marker pixel snapping: ${JSON.stringify({ moved, filtered })}`);
   await page.getByRole('button', { name: '适配筛选结果（Fit Results）', exact: true }).click();
   await expect.poll(async () => { const point = await offset(page, far); return Math.max(Math.abs(point.x), Math.abs(point.y)); }).toBeLessThan(2);
   await filterURL(page, '?tag=天空');

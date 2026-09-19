@@ -67,17 +67,23 @@ Explore island props 为 271,171 bytes（gzip 23,026），Map 为 246,387 bytes�
 | `pnpm check` | 通过 |
 | Projects | 48/48 |
 | Viewer | 65/65；bundle/worker 与上游来源校验通过 |
-| Website / Gallery / Global Collection | 128/128 |
+| Website / Gallery / Global Collection | 129/129 |
 | SEO / Pages runtime | 4/4 |
 | Automation / Release | 23/23 |
 | Admin 回归 | 101/101；未修改 Admin |
 | 真实 metadata | 1/1，逐个检查 154 张真实照片 |
-| `CI=1 pnpm test` | 完整链成功，370 项测试，无失败、无跳过；包含照片 smoke 和最终 build |
-| Global Map 最终专项复验 | 11/11，包含 Viewer → Map / marker 连续激活只增加一个 history entry |
+| `CI=1 pnpm test` | 完整链成功，371 项测试，无失败、无跳过；包含照片 smoke 和最终 build |
+| Global Map（完整 Website 检查链内） | 12/12，包含奇偶视口、Viewer → Map / marker 连续激活只增加一个 history entry |
 | `pnpm build` | 通过，6 个页面，包含 Explore / Global Map |
 | 真实生产浏览器审计 | 1440×900、320×568 均通过；真实底图 ready，0 页面错误 |
 | `git diff --check` | 通过 |
 
 `CI=1` 使用仓库现有的浏览器就绪超时倍率，不关闭动画、缩小测试范围或跳过断言。最初在沙箱内运行浏览器测试遇到本地端口 `EPERM`，随后在允许本地服务器/Chromium 的环境完成全部验证。新增回归先复现滚动、视图和重复 history 问题，再确认修复。
 
-Release readiness：本阶段没有未解决的发布阻塞项，Global Explore + Global Map 已具备合并发布条件。当前操作只在原分支提交；没有 push、触发线上发布或修改部署配置。后续真正发布仍由原 automation 的快照、摘要、版本与部署检查约束。
+### Actions 地图坐标回归修正
+
+[Actions run 35463651273](https://github.com/jason22016/jason-gallery/actions/runs/35463651273) 的 Website 检查有 1 项失败：筛选后保持地图视口的断言得到 `y: -211`，期望 `-212`。筛选条让画布高度从 848px 变成 789px，中心出现半像素变化；MapLibre 原生 marker 在 `moveend` / resize 时取整，测试再次对相对坐标取整，把正常的 0.5px 差异变成 1px。快机器还可能在 ResizeObserver 更新画布前就完成断言，掩盖该问题。
+
+回归现在等待完整拖动位移和画布尺寸更新，直接比较未再次取整的 marker 相对坐标，允许原生像素对齐所需的最大 0.5px 差异。保留初始 bounds、筛选数量、原地图实例、Fit Results 重定位及空结果断言，并增加 marker 实例保持和 900px / 901px 奇偶视口覆盖。没有修改生产地图实现或延长测试超时。原测量在 6 倍 CPU 降速下 8 次均复现错误；修复后的正常 / 6 倍降速、奇偶高度共 16 次重复验证全部通过。
+
+Release readiness：本地完整验证通过，未发现 Global Explore + Global Map 的功能阻塞。当前操作只在原分支提交；没有 push、触发线上发布或修改部署配置。GitHub 上的历史失败运行仍对应修复前的提交，需推送包含此修复的提交并重新通过原 automation 的快照、摘要、版本与部署检查后发布。
