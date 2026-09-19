@@ -86,4 +86,6 @@ Explore island props 为 271,171 bytes（gzip 23,026），Map 为 246,387 bytes�
 
 回归现在等待完整拖动位移和画布尺寸更新，直接比较未再次取整的 marker 相对坐标，允许原生像素对齐所需的最大 0.5px 差异。保留初始 bounds、筛选数量、原地图实例、Fit Results 重定位及空结果断言，并增加 marker 实例保持和 900px / 901px 奇偶视口覆盖。没有修改生产地图实现或延长测试超时。原测量在 6 倍 CPU 降速下 8 次均复现错误；修复后的正常 / 6 倍降速、奇偶高度共 16 次重复验证全部通过。
 
-Release readiness：本地完整验证通过，未发现 Global Explore + Global Map 的功能阻塞。当前操作只在原分支提交；没有 push、触发线上发布或修改部署配置。GitHub 上的历史失败运行仍对应修复前的提交，需推送包含此修复的提交并重新通过原 automation 的快照、摘要、版本与部署检查后发布。
+推送修复后的 [Actions run 35467502543](https://github.com/jason22016/jason-gallery/actions/runs/35467502543) 显示，完整回归在 Ubuntu runner 上运行超过 20 分钟。PR / 非 main 分支的 `Gallery checks` 运行同一条 `pnpm test:checks`，因此把其总任务时限从 20 分钟调整为与 `Gallery automation` 一致的 45 分钟，容纳完整浏览器回归；所有单项测试超时与断言保持不变。
+
+Release readiness：本地完整验证通过，未发现 Global Explore + Global Map 的功能阻塞。用户已授权推送并跟进 Actions，修复已在原分支推送。发布仍需对应提交通过原 automation 的快照、摘要、版本与部署检查；运行中的工作流不视为已通过。
