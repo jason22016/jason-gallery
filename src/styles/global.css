@@ -25,16 +25,16 @@ ul, ol { list-style: none; padding: 0; margin: 0; }
 .project-card .thumbnail { aspect-ratio: 5 / 6; }
 .project-card .thumbnail img { object-fit: cover; }
 .thumbnail[data-state='error'] img { opacity: 0; }
-.thumbnail-error { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; text-align: center; font-size: 13px; color: #777; }
+.thumbnail-error { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; text-align: center; font-size: 13px; color: #666; }
 .project-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; padding: 24px; text-align: center; color: #fff; background: #0006; opacity: 0; transition: opacity 200ms ease; }
 .project-overlay h2 { font-size: 18px; font-weight: 500; overflow-wrap: anywhere; }
 .project-overlay time { font-size: 16px; font-variant-numeric: tabular-nums; }
 @media (hover: hover) and (pointer: fine) { .project-link:hover .project-overlay { opacity: 1; } }
 .project-link:focus-visible .project-overlay, .project-link[data-revealed] .project-overlay { opacity: 1; }
-.site-footer { display: flex; justify-content: space-between; margin-top: 64px; padding-block: 28px; color: #a7adb0; font-size: 12px; }
+.site-footer { display: flex; justify-content: space-between; margin-top: 64px; padding-block: 28px; color: #6b7275; font-size: 12px; }
 .empty-state, .not-found { min-height: 45vh; padding-block: 60px; }
 .empty-state h2, .not-found h1 { font-size: 32px; font-weight: 500; }
-.empty-state p, .not-found p { color: #888; line-height: 1.7; margin-block: 20px; }
+.empty-state p, .not-found p { color: #707070; line-height: 1.7; margin-block: 20px; }
 .text-link { display: inline-block; padding-block: 16px; }
 @media (max-width: 1199px) { .project-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 899px) { .project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; } .shell { margin-inline: 24px; } }
@@ -45,4 +45,7 @@ ul, ol { list-style: none; padding: 0; margin: 0; }
 @media (prefers-color-scheme: dark) {
   :root { color-scheme: dark; color: #eee; background: #161616; }
   .thumbnail { background: #282828; }
+  .thumbnail-error { color: #aaa; }
+  .site-footer { color: #a7adb0; }
+  .empty-state p, .not-found p { color: #888; }
 }

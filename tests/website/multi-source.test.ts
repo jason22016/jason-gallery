@@ -23,6 +23,8 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
   const site = path.join(root,'site');
   await fs.cp('src',path.join(site,'src'),{recursive:true,filter:file => !['data','content'].includes(path.relative('src',file).split(path.sep)[0]!)});
   await fs.copyFile('package.json',path.join(site,'package.json'));
+  await fs.mkdir(path.join(site,'public'),{recursive:true});
+  await fs.copyFile('public/favicon.svg',path.join(site,'public/favicon.svg'));
   await fs.writeFile(path.join(site,'astro.config.mjs'), `export {default} from ${JSON.stringify(new URL('../../astro.config.mjs',import.meta.url).href)};`);
   const config = parseSources({schemaVersion:1,sources:[LEGACY_SOURCE,{...LEGACY_SOURCE,sourceId:'travel',name:'Travel',owner:'fixture',repo:'travel'}]});
   await fs.mkdir(path.join(site,'config')); await fs.writeFile(path.join(site,'config/photo-sources.json'),JSON.stringify(config));

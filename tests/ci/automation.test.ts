@@ -86,6 +86,9 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   await fs.cp('src',path.join(site,'src'),{recursive:true,filter: name => !['content','data'].includes(path.relative('src',name).split(path.sep)[0]!)});
   await fs.mkdir(path.join(site,'src/content/projects'),{recursive:true});
   await fs.copyFile('package.json',path.join(site,'package.json'));
+  await fs.mkdir(path.join(site,'public'),{recursive:true});
+  const favicon = await fs.readFile('public/favicon.svg');
+  await fs.writeFile(path.join(site,'public/favicon.svg'),favicon);
   await fs.mkdir(path.join(site,'config'),{recursive:true});
   await fs.writeFile(path.join(site,'config/photo-sources.json'),JSON.stringify(fixtureConfig));
   await fs.writeFile(path.join(site,'astro.config.mjs'),`export {default} from ${JSON.stringify(new URL('../../astro.config.mjs',import.meta.url).href)};`);
@@ -100,6 +103,12 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   const build = () => buildRelease({photos:collection,root:site,destination,websiteCommit:codeCommit,runId:'test',runNumber:10,production:false});
   const release = await build(); assert.equal(release.publicPhotos,1); assert.equal(release.publishedProjects,1);
   await verifyRelease(destination,false); await assert.rejects(verifyRelease(destination,true),/provenance/);
+  assert.equal(release.files['favicon.svg'],sha256(favicon));
+  assert.deepEqual(await fs.readFile(path.join(destination,'dist/favicon.svg')),favicon);
+  await fs.appendFile(path.join(destination,'dist/favicon.svg'),'<!-- tampered -->');
+  await assert.rejects(verifyRelease(destination,false),/Release file digest mismatch/);
+  await fs.writeFile(path.join(destination,'dist/favicon.svg'),favicon);
+  await verifyRelease(destination,false);
   assert(!(await fileHashes(path.join(destination,'dist')))[`thumbnails/${hiddenId}.jpg`]);
   const beforeFingerprint = await processingFingerprint();
   project.title = 'Only Project changed'; await fs.writeFile(projectFile,JSON.stringify(project));
@@ -113,6 +122,10 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   await fs.mkdir(path.join(site,'public/previews'),{recursive:true}); await fs.writeFile(path.join(site,'public/previews/selection.json'),'{}');
   await assert.rejects(build(),/Unexpected public file/); assert.deepEqual(await fileHashes(destination),previousRelease);
   await fs.rm(path.join(site,'public/previews'),{recursive:true});
+  await fs.writeFile(path.join(site,'public/extra-icon.svg'),favicon);
+  await assert.rejects(build(),/Unexpected public file: extra-icon\.svg/);
+  assert.deepEqual(await fileHashes(destination),previousRelease);
+  await fs.rm(path.join(site,'public/extra-icon.svg'));
   await fs.mkdir(path.join(site,'public/_astro'),{recursive:true}); await fs.writeFile(path.join(site,'public/_astro/fixture.json'),'{}');
   await assert.rejects(build(),/Unexpected public file/); await fs.rm(path.join(site,'public/_astro'),{recursive:true});
 

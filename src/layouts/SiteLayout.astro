@@ -13,6 +13,7 @@ const shareImage = Astro.site && !noindex ? new URL(image.path, Astro.site).href
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="description" content={pageDescription} />
     <meta name="robots" content={noindex || !Astro.site ? NOINDEX : 'index, follow, max-image-preview:large'} />
     {canonical && <link rel="canonical" href={canonical} />}

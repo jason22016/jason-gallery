@@ -1,15 +1,40 @@
 Jason Gallery is a static photography portfolio built with Astro, featuring curated projects, HDR viewing, and automated photo synchronization from multiple GitHub repositories.
 
-Phase 7 adds an independent Cloudflare Worker admin with Cloudflare Access email OTP, source management, Project editing, version-checked GitHub saves, and separate sync/publish actions.
+架构采用 Astro 静态网站、Project 内容层和 Afilmory Photo Engine；独立 Cloudflare Worker Admin 使用 Cloudflare Access 邮箱 OTP，管理照片源、Project 和独立的同步/发布操作。边界与历史变更见 [ARCHITECTURE.md](ARCHITECTURE.md)。
 
-Public SEO and sharing use `https://jason-gallery.pages.dev/` by default. Set the `SITE_URL` environment/repository variable when changing domains, then rebuild and publish. Public pages include canonical, Open Graph and Twitter metadata; sitemap excludes drafts and admin; 404 and admin responses prohibit indexing while admin authentication remains required. See [configuration and validation](docs/SEO_AND_SHARING.md). Run `pnpm test:seo` for the focused checks.
+## 部署与验收状态
 
-- `pnpm admin:fixture` — isolated UI preview at `http://127.0.0.1:4325/`; `pnpm admin:preview` uses existing local thumbnails.
-- `pnpm admin:build` — build the real admin UI; `pnpm admin:dev` starts its protected local Worker.
-- `pnpm test:admin` — admin API/UI and local workerd checks; `pnpm test` runs the full regression suite.
+- **已部署**：公开网站使用 Cloudflare Pages Direct Upload，地址为 [jason-gallery.pages.dev](https://jason-gallery.pages.dev/)。Admin 已部署到 [管理入口](https://jason-gallery-admin.jiasheng22016.workers.dev)，仍受 Access 和服务端身份校验保护。主站上线后的后台手动发布接入见 [提交记录](https://github.com/jason22016/jason-gallery/commit/5e1e01fcd1d05aad6adf8cc59eaa1f0de78a9266)及 [Admin 配置说明](docs/ADMIN_SETUP.md#已上线主站与后台发布入口)。
+- **已验证的范围**：仓库已有本地回归、真实 Actions 同步和部署记录。2026-09-11 的 [Admin 部署短测](docs/ADMIN_DEPLOYED_2026-09-11.md)记录了 1 次真实保存成功并回读 GitHub、154/154 张缩略图最终解码成功；这是该次部署的证据，不代表当前分支所有改动均已部署。
+- **仍待真实环境验收**：Admin 整体 Workers Free 验收仍未通过。该次短测的 `/api/state` CPU 为 42 ms，保存成功样本仅 1 次；不能用本地测试或成功上传替代完整的平台 CPU、并发和保存验收。紧凑读取修复已有部署，剩余门槛见 [实现与验收状态](docs/ADMIN_COMPACT_READ.md)和 [真实 Free 测量](docs/ADMIN_COMPACT_LIVE_2026-09-11.md)。当前代码的线上功能、SEO 与实体 HDR 显示效果也须按实际发布版本另行验收。
 
-The deployed Workers Free backend has reproduced 1102/exceededCpu failures. A compact CI artifact read path is being validated; migration and real Free acceptance remain pending. See [the compact-read implementation and acceptance status](docs/ADMIN_COMPACT_READ.md). See [CPU measurements and remaining work](docs/ADMIN_CPU_PROFILE.md). Unsaved Project edits now require save/discard confirmation before replacing the editor.
+网站版本以成功的 Actions 执行摘要和线上 `/build-version.json` 为准。`PUBLISH_ENABLED` 只控制后台发布入口，`AUTO_DEPLOY_ENABLED` 控制 Actions 自动部署，两者不表示主站是否已经部署；保存、删除、同步也不等于发布。早期 [Phase 6](PHASE6_REPORT.md)、[Phase 7](PHASE7_REPORT.md)及部署准备文档中的“未配置/未部署”是当时的历史状态。
 
-Cloudflare is not configured yet. The real Worker fails closed without valid Access authentication; fixture preview edits stay in memory. No production deployment or real Project creation was performed. See [admin setup and deployment prerequisites](docs/ADMIN_SETUP.md), [Phase 7 report](PHASE7_REPORT.md), and [architecture](ARCHITECTURE.md).
+## Fresh clone 后运行
 
-Viewer upstream alignment: `pnpm check:upstream` verifies the pinned Afilmory core offline; add `--remote` to check current upstream and fixed-commit source hashes. See [loading flow, deliberate differences and validation](docs/AFILMORY_VIEWER_ALIGNMENT.md).
+在仓库根目录使用 Node **24.19.0**（[.node-version](.node-version)）和 pnpm **11.19.0**（[package.json](package.json)）。照片 Manifest、统一索引和缩略图不提交 Git；首次开发、真实数据测试和构建前必须生成并导出它们。
+
+首次照片同步需要联网访问 GitHub，并有足够的只读 API 额度。在 shell 中提供 `JASON_PHOTOS_READ_TOKEN`；多来源可用 `JASON_PHOTOS_READ_TOKENS`（sourceId → token 的 JSON 对象）。若已有 GitHub Git credential，可将下方照片命令替换为 `pnpm photos --export --git-credential`。公共来源允许匿名读取，但冷启动可能耗尽匿名 API 额度；照片原图仍须匿名可读。
+
+```sh
+pnpm install --frozen-lockfile
+pnpm exec playwright install --with-deps chromium
+pnpm photos --export
+pnpm test
+```
+
+`pnpm photos --export` 按 [config/photo-sources.json](config/photo-sources.json) 固定各来源快照，验证全部照片与 Project 引用后，导出 `src/data/photo-index.json`、`src/data/sources/*/photos-manifest.json` 和 `public/thumbnails/`。它只读取远端照片，不写照片仓库，也不发布网站。省略 `--export` 只生成 `.cache/photo-engine/output` 产物，不能替代网站所需的本地导出。
+
+`pnpm test` 依次运行 `pnpm test:checks`、真实导出数据检查 `pnpm test:metadata-real` 和生产构建 `pnpm build`，成功后网站位于 `dist/`。`test:checks` 包含上游校验、TypeScript、Projects、照片 smoke、Viewer、Website、SEO、automation/release 和 Admin 测试；测试使用隔离 fixture 与本地运行时，不执行线上发布。
+
+开发预览运行 `pnpm dev`；仅重新构建运行 `pnpm build`。浏览器测试需要前述 Chromium 安装；只运行隔离回归可用 `pnpm test:checks`，但这不能替代真实数据检查和生产构建。
+
+## 常用验证与配置
+
+- `pnpm check` — TypeScript 检查。
+- `pnpm test:website`、`pnpm test:seo`、`pnpm test:automation` — 网站交互、SEO 和 release 白名单/完整性及发布事务的隔离回归。
+- `pnpm admin:fixture` — `http://127.0.0.1:4325/` 的内存 UI 预览；`pnpm admin:preview` 使用已有本地缩略图。
+- `pnpm admin:build` — 构建真实 Admin UI；`pnpm admin:dev` 启动受保护的本地 Worker，配置前提见 [Admin 设置](docs/ADMIN_SETUP.md)。`pnpm test:admin` 检查 API/UI 和本地 workerd。
+- `pnpm check:upstream` — 离线核对固定 Afilmory 核心；`pnpm check:upstream --remote` 另核对远端版本和固定提交源码摘要。见 [上游对齐与验证](docs/AFILMORY_VIEWER_ALIGNMENT.md)。
+
+公开 SEO 与分享默认使用 `https://jason-gallery.pages.dev/`。换域名时设置 `SITE_URL` 环境/仓库变量，再重新构建和发布；canonical、Open Graph、Twitter 和 sitemap 共用该地址，草稿与 Admin 不进入 sitemap，404/Admin 禁止索引。配置与验收见 [SEO_AND_SHARING.md](docs/SEO_AND_SHARING.md)。favicon 为单个静态 `public/favicon.svg`，随生产构建进入 release 文件摘要。

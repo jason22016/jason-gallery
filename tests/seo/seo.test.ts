@@ -61,6 +61,9 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
     const project = index === 0 ? undefined : published[index - 1]!;
     const response = await page.goto(`${server.url}${url}?photo=selected&tag=city#viewer`);
     assert.equal(response!.status(), 200);
+    assert.equal(await page.locator('link[rel="icon"]').count(), 1);
+    assert.equal(await page.locator('link[rel="icon"]').getAttribute('href'), '/favicon.svg');
+    assert.equal(await page.locator('link[rel="icon"]').getAttribute('type'), 'image/svg+xml');
     assert.equal(await page.locator('link[rel="canonical"]').count(), 1);
     assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), origin + url);
     assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), origin + url);
@@ -81,6 +84,10 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
     assert.equal((await sharp(Buffer.from(await fetched.arrayBuffer())).metadata()).format, 'jpeg');
   }
   const sitemap = await (await fetch(`${server.url}/sitemap.xml`)).text();
+  const favicon = await fetch(`${server.url}/favicon.svg`);
+  assert.equal(favicon.status, 200);
+  assert.equal(favicon.headers.get('content-type'), 'image/svg+xml');
+  assert.deepEqual(Buffer.from(await favicon.arrayBuffer()), await fs.readFile(path.join(repo, 'public/favicon.svg')));
   const entries = await page.evaluate(xml => {
     const parsed = new DOMParser().parseFromString(xml, 'application/xml');
     if (parsed.querySelector('parsererror')) throw new Error('Invalid sitemap XML');
@@ -95,6 +102,7 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
   for (const url of ['/missing', '/projects/secret-draft/', '/admin/', privatePhoto.thumbnailUrl]) {
     const response = await page.goto(server.url + url);
     assert.equal(response!.status(), 404);
+    assert.equal(await page.locator('link[rel="icon"]').getAttribute('href'), '/favicon.svg');
     assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex, nofollow');
     assert.equal(await page.locator('link[rel="canonical"],meta[property="og:url"]').count(), 0);
     assert.equal(await page.getByRole('link', { name: '返回项目 →' }).getAttribute('href'), '/');
@@ -122,6 +130,9 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
     assert(ready, log);
     assert(!/invalid header|invalid rule/i.test(log), log);
     const home = await fetch(host); assert.equal(home.status, 200); assert.equal(home.headers.get('X-Robots-Tag'), null);
+    const icon = await fetch(`${host}/favicon.svg`); assert.equal(icon.status, 200);
+    assert.match(icon.headers.get('content-type')!, /^image\/svg\+xml/);
+    assert.deepEqual(Buffer.from(await icon.arrayBuffer()), await fs.readFile(path.join(repo, 'public/favicon.svg')));
     const metadata = await fetch(`${host}/projects/fixture-beta/photos/${fixture.photos[0]!.photoId}.json`);
     assert.equal(metadata.status, 200); assert.equal(metadata.headers.get('X-Robots-Tag'), 'noindex, nofollow');
     for (const url of ['/does-not-exist', '/projects/secret-draft/', '/admin/']) {

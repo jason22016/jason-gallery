@@ -63,6 +63,7 @@ export async function buildFixture(options: { root?: string; siteURL?: string } 
   await fs.mkdir(path.join(root, 'src/data'), { recursive: true });
   await fs.writeFile(path.join(root, 'src/data/photos-manifest.json'), JSON.stringify(manifest));
   await fs.cp(path.join(engine, 'output/public'), path.join(root, 'public'), { recursive: true });
+  await fs.copyFile(path.join(repo, 'public/favicon.svg'), path.join(root, 'public/favicon.svg'));
   await fs.cp(path.join(root, 'sources'), path.join(root, 'public/originals'), { recursive: true });
   const id = (key: string) => manifest.data.find(photo => photo.s3Key === key)!.id;
   const photos = [
