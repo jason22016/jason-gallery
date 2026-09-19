@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { emptyFilters, galleryFilterOptions, selectPhotos } from '../../src/components/gallery/filters';
-import { galleryStateURL, globalGalleryHref, readGalleryState } from '../../src/components/gallery/url-state';
+import { galleryStateURL, galleryViewURL, globalGalleryHref, readGalleryState, readGalleryView } from '../../src/components/gallery/url-state';
 import { galleryPhotos } from '../../src/components/gallery/photos';
 import { resolveMapPhoto } from '../../src/components/gallery/map-state';
 import { resolvePublicPhotoCollection } from '../../src/website/public-photos';
@@ -89,4 +89,17 @@ test('global page navigation round-trips only shared filters and sort with URL e
     assert.deepEqual(readGalleryState(url.searchParams), state);
     assert.equal(globalGalleryHref(page), `/${page}/`);
   }
+});
+
+test('view URL state overrides preferences and absent/invalid values resolve independently on every history entry', () => {
+  const preferences = { view: 'list' as const, columns: 4 };
+  assert.deepEqual(readGalleryView(new URLSearchParams()), { view: 'masonry', columns: 0 });
+  assert.deepEqual(readGalleryView(new URLSearchParams('view=bad&columns=99'), preferences), preferences);
+  assert.deepEqual(readGalleryView(new URLSearchParams('view=masonry&columns=0'), preferences), { view: 'masonry', columns: 0 });
+  const current = new URL('https://gallery.test/explore/?project=one&photo=two&other=kept#anchor');
+  const updated = galleryViewURL(current, preferences);
+  assert.deepEqual(readGalleryView(updated.searchParams), preferences);
+  for (const [key, value] of current.searchParams) assert.equal(updated.searchParams.get(key), value);
+  assert.equal(updated.hash, current.hash);
+  assert(!current.searchParams.has('view'));
 });

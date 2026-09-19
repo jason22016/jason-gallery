@@ -2,6 +2,24 @@ import { emptyFilters, type Filters, type GalleryState } from './filters';
 
 const filterKeys = Object.keys(emptyFilters) as (keyof Filters)[];
 
+export interface GalleryView { view: 'masonry' | 'list'; columns: number }
+export const defaultGalleryView: GalleryView = { view: 'masonry', columns: 0 };
+
+export function readGalleryView(params: URLSearchParams, defaults: GalleryView = defaultGalleryView): GalleryView {
+  const view = params.get('view'), columns = params.get('columns');
+  return {
+    view: view === 'list' || view === 'masonry' ? view : defaults.view,
+    columns: columns !== null && /^[0-8]$/.test(columns) ? Number(columns) : defaults.columns,
+  };
+}
+
+export function galleryViewURL(current: URL, { view, columns }: GalleryView): URL {
+  const url = new URL(current);
+  url.searchParams.set('view', view);
+  url.searchParams.set('columns', String(columns));
+  return url;
+}
+
 export function readGalleryState(params: URLSearchParams): GalleryState {
   const filters = { ...emptyFilters };
   for (const key of filterKeys) filters[key] = params.get(key) || '';

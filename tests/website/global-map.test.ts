@@ -148,8 +148,10 @@ test('native clusters, thumbnails, marker preview and Viewer use the unique filt
   await expect(page.locator('.cluster-marker')).toHaveCount(0);
   await expect(page.locator('.photo-marker-pin')).toHaveCount(2);
   const pin = page.locator(`.photo-marker-host[data-photo-id="${photoId('portrait.jpg')}"] .photo-marker-pin`);
-  await pin.click();
+  const historyLength = await page.evaluate(() => history.length);
+  await pin.evaluate(element => { (element as HTMLElement).click(); (element as HTMLElement).click(); });
   await expect(page.locator('[data-card-kind="selected"]')).toBeVisible();
+  assert.equal(await page.evaluate(() => history.length), historyLength + 1, 'repeated marker activation does not duplicate history');
   await page.getByRole('button', { name: '搜索和筛选', exact: true }).click();
   await expect(page.locator('[data-card-kind="selected"]')).toHaveCount(0);
   await page.getByRole('dialog', { name: '搜索和筛选' }).getByRole('button', { name: '查看 3 张照片', exact: true }).click();
@@ -169,8 +171,10 @@ test('native clusters, thumbnails, marker preview and Viewer use the unique filt
   await page.reload(); await loaded(page);
   await expect(page.locator('.viewer-counter')).toHaveText('3 / 3');
   await page.getByRole('button', { name: '照片信息', exact: true }).click();
-  await page.getByRole('link', { name: '在地图中查看', exact: true }).first().click();
+  const beforeMap = await page.evaluate(() => history.length);
+  await page.getByRole('link', { name: '在地图中查看', exact: true }).first().evaluate(element => { (element as HTMLElement).click(); (element as HTMLElement).click(); });
   await expect(page.locator('.photo-map')).toHaveAttribute('data-selected-photo', photoId('map-far.jpg'));
+  assert.equal(await page.evaluate(() => history.length), beforeMap + 1, 'repeated Viewer-to-Map activation does not duplicate history');
   await expect.poll(async () => { const point = await offset(page, photoId('map-far.jpg')); return Math.max(Math.abs(point.x), Math.abs(point.y)); }).toBeLessThan(2);
   await ready(page, `?tag=城市&photo=${photoId('map-near.jpg')}&mapPhoto=${photoId('map-near.jpg')}`);
   await expect(page.locator('.photo-dialog')).toHaveCount(0);

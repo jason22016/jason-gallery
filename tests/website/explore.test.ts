@@ -55,7 +55,7 @@ test('Explore builds from the public collection exactly once per photo, with bou
     const url = request.url();
     if (url.includes('/originals/')) originals.push(url);
     if (/\/photos\/.*\.json/.test(url)) details.push(url);
-    if (/\/(browser\.|webgpu-texture\.worker-|PhotoMap-)/.test(url)) heavy.push(url);
+    if (/\/(?:browser[.-]|webgpu-texture\.worker-|PhotoMap[.-]|maplibre[.-]|heic-to[.-])/.test(url)) heavy.push(url);
   });
   await ready(page);
   await expect.poll(() => ids(page)).toEqual(photos.map(photo => photo.id));

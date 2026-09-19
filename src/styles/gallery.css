@@ -26,7 +26,7 @@
 .site-navigation-menu { position: relative; flex-shrink: 0; }
 .site-navigation-menu summary { list-style: none; cursor: pointer; }
 .site-navigation-menu summary::-webkit-details-marker { display: none; }
-.site-navigation-menu .site-navigation { position: absolute; top: 40px; left: 0; min-width: 156px; display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 8px; border-radius: 12px; background: var(--color-material-thick); color: var(--color-text); border: .5px solid var(--gallery-border); backdrop-filter: blur(var(--gallery-blur-panel)); box-shadow: var(--gallery-shadow); }
+.site-navigation-menu .site-navigation { position: absolute; top: 40px; left: 0; min-width: 156px; display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 8px; border-radius: 12px; background: var(--color-material-thick); color: var(--color-text); border: .5px solid var(--gallery-border); backdrop-filter: blur(var(--gallery-blur-panel)); -webkit-backdrop-filter: blur(var(--gallery-blur-panel)); box-shadow: var(--gallery-shadow); }
 .site-navigation-menu .site-navigation > * { padding: 8px 12px; border-radius: 8px; }
 .site-navigation-menu .site-navigation a { transition: background-color 200ms; }
 .site-navigation-menu .site-navigation a:hover, .site-navigation-menu .site-navigation a[aria-current] { background: var(--color-fill); text-decoration: none; }

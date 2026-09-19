@@ -330,3 +330,13 @@ Explore 只序列化一次公开 Gallery 投影，静态首屏预览限制为 24
 `/map/` 只消费 Global Public Photo Collection 中有效 GPS 的公开投影，复用 `PhotoGallery` 的 `mapPage` 模式和同一个 `PhotoMap`，不新增地图系统或数据源。Project Map 的面板和相机语义保持不变；Global 模式首次 fitBounds，随后原地更新 GeoJSON 并保留用户视角，显式 Fit Results 适配当前结果。原 cluster、expansion、marker、preview、MapLibre fallback、controls 和 Viewer 全部复用。
 
 Explore / Map 的导航由共享 filter/sort state 生成 URL；`mapPhoto` 与 Viewer `photo` 仍分开，Global Map 无需 `panel=map`。Viewer 序列严格等于当前筛选/排序后的 GPS 结果，地图视口不额外筛选 Viewer，重复 membership 不增加照片。无 GPS 或筛选外深链接不扩大结果集。页面刷新、popstate、Viewer 返回和 MiniMap 定位沿用现有 state/history 机制。`/map/` 加入 sitemap、canonical/OG 和 release 精确白名单。详见 [Global Gallery Phase 3](docs/gallery/GLOBAL_PHASE3.md)。
+
+## Global Gallery — 整合与 Release Gate（2026-09-20）
+
+三个入口继续共用原 `PhotoGallery`、虚拟化视图、PhotoMap 和 Viewer。本阶段将 view/columns 的解析与序列化收进 `url-state.ts`，初始化直接应用 URL，history 中缺省参数重新解析为保存的偏好。Viewer 与 marker 连续激活只写入一次相同 URL，切图和筛选仍 replace。Viewer 自有 history、焦点及 Project Map 例外语义保留。
+
+`scroll-restoration.ts` 只补足完整文档刷新/Back/Forward 时虚拟化内容晚于静态预览展开的问题：pagehide 把底层滚动位置存入 sessionStorage，reload/back_forward 在布局足够高后恢复，并在用户输入时取消待恢复操作。普通新导航不读取旧位置；不把 UI 状态写入照片数据，也不额外 push history。原 Viewer 开关的焦点和滚动恢复仍由 Gallery 持有。
+
+`src/website/public-output.ts` 是普通 Astro 构建与 `scripts/ci/release.ts` 的共享公开文件白名单。公开路径只来自固定站点页面、published Project 的详情与照片资产、允许的构建 chunks；Release 还要求所有期望文件存在并继续验证照片摘要与来源。构建前拒绝 `public/` 中的意外 Manifest、metadata、额外页面和伪装 `_astro/` 文件，构建后清理未公开/过期资产并再次核对输出。现有公开 metadata 投影和路径继续复用，没有 Global JSON 副本。
+
+回归、真实生产数据和性能证据见 [Global Gallery Phase 4](docs/gallery/GLOBAL_PHASE4.md)。未修改 Admin、Photo Engine、HDR/color 或核心 Viewer/Map 实现。

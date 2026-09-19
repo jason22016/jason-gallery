@@ -19,7 +19,7 @@ export function run(args: string[], cwd: string, env: Record<string, string | un
 }
 
 /** Dedicated root: never swap out production content or its generated assets. */
-export async function buildFixture(options: { root?: string; siteURL?: string; configure?: (manifest: AfilmoryManifest) => void } = {}) {
+export async function buildFixture(options: { root?: string; siteURL?: string; configure?: (manifest: AfilmoryManifest) => void; configureProjects?: (projects: Project[], manifest: AfilmoryManifest) => void } = {}) {
   const root = options.root ?? path.join(repo, '.cache/website-fixture');
   await fs.rm(root, { force: true, recursive: true });
   await fs.mkdir(root, { recursive: true });
@@ -86,6 +86,7 @@ export async function buildFixture(options: { root?: string; siteURL?: string; c
     { ...base, id: 'secret-draft', slug: 'secret-draft', title: 'DRAFT WEBSITE SECRET', summary: 'PRIVATE PROJECT SUMMARY', order: -100, status: 'draft', coverPhotoId: id('private.jpg'), photos: [{ photoId: id('private.jpg'), caption: 'PRIVATE PROJECT CAPTION' }] },
   ];
   const content = path.join(root, 'src/content/projects');
+  options.configureProjects?.(projects, manifest);
   await fs.mkdir(content, { recursive: true });
   for (const project of projects) await fs.writeFile(path.join(content, `${project.slug}.json`), JSON.stringify(project));
   await fs.writeFile(path.join(root, 'build.log'), run([path.join(repo, 'node_modules/astro/bin/astro.mjs'), 'build'], root, { SITE_URL: options.siteURL ?? 'https://gallery.seo-fixture.com' }));

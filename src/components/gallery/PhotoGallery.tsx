@@ -13,12 +13,13 @@ import { MapNavigationContext } from './MapNavigation';
 import PhotoViewer from '../viewer/PhotoViewer';
 import type { GalleryProject, ViewerPhoto } from '../viewer/photos';
 import { emptyFilters, galleryFilterOptions, selectPhotos, type Filters, type Sort, type FilterField } from './filters';
-import { galleryStateURL, globalGalleryHref, readGalleryState } from './url-state';
+import { defaultGalleryView, galleryStateURL, galleryViewURL, globalGalleryHref, readGalleryState, readGalleryView } from './url-state';
 import Panel from './Panel';
 import { ViewerAttribution } from '../viewer/ViewerAttribution';
 import { MapLoadingState } from './map/MapLoadingState';
 import { MapPhotoList } from './map/MapPhotoList';
 import { validLocation } from '../viewer/metadata';
+import { useGalleryScrollRestoration } from './scroll-restoration';
 
 type MapComponent = typeof import('./PhotoMap').default;
 const settingsKey = 'jason-gallery:view:v1';
@@ -32,12 +33,22 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
   const mapViewport = useRef<{ key: string; viewport: MapViewport } | null>(null);
   const mapFocusPhoto = useRef<string | null>(null);
   const ownHistoryEntry = useRef(false);
+  const activePhoto = useRef<string | null>(null);
   const historyOwner = useRef(crypto.randomUUID());
-  const [initialState] = useState(() => readGalleryState(new URLSearchParams(typeof location === 'undefined' ? '' : location.search)));
+  const [initialState] = useState(() => {
+    const params = new URLSearchParams(typeof location === 'undefined' ? '' : location.search);
+    let preferences = defaultGalleryView;
+    try {
+      const saved = JSON.parse(localStorage.getItem(settingsKey) || '{}');
+      preferences = readGalleryView(new URLSearchParams({ view: saved.view, columns: String(saved.columns) }));
+    } catch { /* Storage can be disabled; defaults remain usable. */ }
+    return { ...readGalleryState(params), ...readGalleryView(params, preferences), preferences };
+  });
+  const preferences = useRef(initialState.preferences);
   const [filters, setFilters] = useState<Filters>(initialState.filters);
   const [sort, setSort] = useState<Sort>(initialState.sort);
-  const [view, setView] = useState<'masonry' | 'list'>('masonry');
-  const [columns, setColumns] = useState(0);
+  const [view, setView] = useState(initialState.view);
+  const [columns, setColumns] = useState(initialState.columns);
   const [panelRequest, setPanelRequest] = useState(0);
   const [panel, setPanel] = useState<'info' | 'search' | 'settings' | 'map' | null>(null);
   const [mapPhotoId, setMapPhotoId] = useState<string | null>(null);
@@ -54,23 +65,18 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
   const selectedPhoto = (project ? photos : visible).find(p => p.id === selected);
   const sequence = project && selectedPhoto && !visible.some(p => p.id === selected) ? photos : visible;
   const setPhotoURL = useCallback((id: string | null, push = false) => {
+    activePhoto.current = id;
     const url = new URL(location.href);
     if (id) url.searchParams.set('photo', id); else url.searchParams.delete('photo');
+    if (url.href === location.href) return;
     history[push ? 'pushState' : 'replaceState']({ ...history.state, galleryViewer: id ? (push ? historyOwner.current : history.state?.galleryViewer) : null }, '', url);
   }, []);
   useEffect(() => {
     root.current?.closest('[data-photo-gallery], [data-project-gallery]')?.setAttribute('data-enhanced', 'true');
-    try {
-      const settings = JSON.parse(localStorage.getItem(settingsKey) || '{}');
-      if (settings.view === 'list' || settings.view === 'masonry') setView(settings.view);
-      if (Number.isInteger(settings.columns) && settings.columns >= 0 && settings.columns <= 8) setColumns(settings.columns);
-    } catch { /* Storage can be disabled; defaults remain usable. */ }
     const sync = () => {
       const params = new URL(location.href).searchParams;
-      const nextView = params.get('view');
-      if (nextView === 'list' || nextView === 'masonry') setView(nextView);
-      const nextColumns = params.get('columns');
-      if (nextColumns !== null && /^[0-8]$/.test(nextColumns)) setColumns(Number(nextColumns));
+      const nextView = readGalleryView(params, preferences.current);
+      setView(nextView.view); setColumns(nextView.columns);
       const { filters: nextFilters, sort: nextSort } = readGalleryState(params);
       setFilters(nextFilters);
       setSort(nextSort);
@@ -85,6 +91,8 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
         history.replaceState(history.state, '', url);
       }
       const id = params.get('photo');
+      const wasOpen = activePhoto.current !== null;
+      activePhoto.current = id;
       ownHistoryEntry.current = history.state?.galleryViewer === historyOwner.current;
       if (id && !photos.some(p => p.id === id && (!mapPage || validLocation(p.location)))) {
         setPhotoURL(null); setNotice(project ? '此照片不在当前项目中。' : mapPage ? '此照片不在当前地图结果中。' : '此照片不在公开图库中。'); setSelected(null); return;
@@ -98,9 +106,9 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
         history.replaceState(history.state, '', url);
         setNotice('此照片不符合链接中的筛选条件，已清除筛选。');
       }
-      if (id) scrollPosition.current = window.scrollY;
+      if (id && !wasOpen) scrollPosition.current = window.scrollY;
       if (!id) {
-        if (!mapPage && nextPanel !== 'map') requestAnimationFrame(() => { window.scrollTo(0, scrollPosition.current); opener.current?.isConnected && opener.current.focus({ preventScroll: true }); });
+        if (wasOpen && !mapPage && nextPanel !== 'map') requestAnimationFrame(() => { window.scrollTo(0, scrollPosition.current); opener.current?.isConnected && opener.current.focus({ preventScroll: true }); });
         ownHistoryEntry.current = false;
       }
       setSelected(id);
@@ -108,6 +116,7 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
     sync(); window.addEventListener('popstate', sync);
     return () => { window.removeEventListener('popstate', sync); };
   }, [photos, project, mapPage, setPhotoURL]);
+  useGalleryScrollRestoration(root, scrollPosition, activePhoto, mapPage);
   useEffect(() => {
     if ((!mapPage && panel !== 'map') || PhotoMap || mapError) return;
     let active = true;
@@ -127,8 +136,9 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
     if (!resolveMapPhoto(visible, photo.id)) return;
     const url = mapPhotoURL(new URL(location.href), photo.id, !project);
     if (!project && !mapPage) { location.assign(url); return; }
-    history.pushState({ ...history.state, galleryViewer: null }, '', url);
+    if (url.href !== location.href) history.pushState({ ...history.state, galleryViewer: null }, '', url);
     ownHistoryEntry.current = false;
+    activePhoto.current = null;
     mapViewport.current = null;
     mapFocusPhoto.current = null;
     setMapPhotoId(photo.id);
@@ -138,22 +148,22 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
   };
   const selectMapPhoto = (photo: ViewerPhoto) => {
     if (photo.id === mapPhotoId || !resolveMapPhoto(visible, photo.id)) return;
-    history.pushState({ ...history.state, galleryViewer: null }, '', mapPhotoURL(new URL(location.href), photo.id, !project));
+    const url = mapPhotoURL(new URL(location.href), photo.id, !project);
+    if (url.href !== location.href) history.pushState({ ...history.state, galleryViewer: null }, '', url);
     setMapPhotoId(photo.id);
   };
   const clearMapSelection = () => {
     if (!mapPhotoId) return;
     const url = new URL(location.href);
     url.searchParams.delete('mapPhoto');
-    history.pushState({ ...history.state, galleryViewer: null }, '', url);
+    if (url.href !== location.href) history.pushState({ ...history.state, galleryViewer: null }, '', url);
     setMapPhotoId(null);
   };
   const items = useMemo(() => visible.map((photo, index) => ({ photo, index, onOpen: open })), [visible, open]);
   const saveView = (nextView: typeof view, nextColumns = columns) => {
     setView(nextView); setColumns(nextColumns);
-    const url = new URL(location.href);
-    url.searchParams.set('view', nextView);
-    url.searchParams.set('columns', String(nextColumns));
+    preferences.current = { view: nextView, columns: nextColumns };
+    const url = galleryViewURL(new URL(location.href), preferences.current);
     history.replaceState(history.state, '', url);
     try { localStorage.setItem(settingsKey, JSON.stringify({ view: nextView, columns: nextColumns })); } catch { /* Optional preference. */ }
   };

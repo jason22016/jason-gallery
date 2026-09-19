@@ -7,6 +7,7 @@ import { loadSources, verifySnapshot, type PhotoSnapshot } from '../../src/photo
 import { processingFingerprint } from '../photos/fingerprint.js';
 import { loadProjectCatalog } from '../../src/projects/loader.js';
 import { DEFAULT_SITE_URL, resolveSiteURL } from '../../src/website/site-url.js';
+import { assertPublicOutput, publicOutputPaths } from '../../src/website/public-output.js';
 
 export interface Release {
   schemaVersion: 2; websiteCommit: string; photoSnapshot: PhotoSnapshot; photoArtifactVersion: string;
@@ -57,9 +58,7 @@ export async function buildRelease(options: { photos: string; root: string; dest
     if (sha256(await fs.readFile(path.join(options.root, 'src/data', name))) !== photos.files[name]) throw new Error('Native source Manifest changed during build');
   }
   const files = await fileHashes(output);
-  const expected = new Set(['index.html', 'explore/index.html', 'map/index.html', '404.html', 'health.txt', 'favicon.svg', 'sitemap.xml', 'robots.txt', '_headers', 'social/default.jpg', ...projects.flatMap(p => [`projects/${p.slug}/index.html`, ...p.photos.map(x => `projects/${p.slug}/photos/${x.photoId}.json`)]), ...[...ids].map(id => `thumbnails/${id}.jpg`)]);
-  for (const name of expected) if (!files[name]) throw new Error(`Missing published asset: ${name}`);
-  for (const name of Object.keys(files)) if (!expected.has(name) && !name.startsWith('_astro/')) throw new Error(`Unexpected public file: ${name}`);
+  assertPublicOutput(Object.keys(files), publicOutputPaths(projects), true);
   if (files['favicon.svg'] !== faviconHash) throw new Error('Published favicon mismatch');
   for (const id of ids) if (files[`thumbnails/${id}.jpg`] !== photos.files[`public/thumbnails/${id}.jpg`]) throw new Error('Published thumbnail mismatch');
   const secrets = ['JASON_PHOTOS_READ_TOKEN', 'CLOUDFLARE_API_TOKEN', 'GITHUB_TOKEN'].map(k => process.env[k]).filter((x): x is string => Boolean(x));

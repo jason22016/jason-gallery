@@ -17,18 +17,18 @@
 
 ## 页面与分享
 
-首页及所有 published Project 的 HTML 在构建时输出：
+首页、Explore、Global Map 及所有 published Project 的 HTML 在构建时输出：
 
 - 独立标题和描述；Project 优先 summary，其次 description，最后使用包含标题的默认描述。描述压缩空白、按 Unicode 字符截断至 160 字以内，交给 Astro 正常转义。
-- 自身的绝对 canonical 与 `og:url`，页面地址统一末尾 `/`。`photo`、筛选、排序、地图参数与 hash 都属于同一项目，不产生独立索引页。
+- 自身的绝对 canonical 与 `og:url`，页面地址统一末尾 `/`。`photo`、筛选、排序、地图参数与 hash 都属于当前 Gallery 页面，不产生独立索引页。
 - Open Graph 的网站名、类型、语言、标题、描述、绝对图片 URL/替代文字，以及 Twitter 大图卡片。
-- Project 分享图使用该项目已发布的 JPEG 封面缩略图；首页使用排序第一的公开项目封面。空站点使用构建生成的 `1200×630` 品牌 JPEG，地址为 `/social/default.jpg`。不依赖原始 HDR/HEIC 或后台图片接口。
+- Project 分享图使用该项目已发布的 JPEG 封面缩略图；首页使用排序第一的公开项目封面。Explore、Global Map 和空站点使用构建生成的 `1200×630` 品牌 JPEG，地址为 `/social/default.jpg`。不依赖原始 HDR/HEIC 或后台图片接口。
 
-照片分享链接仍保留照片参数以打开 Viewer；由于是静态站点，聊天平台抓取到的分享卡片属于 Project，不能为不同 query 返回不同照片卡片。
+照片分享链接仍保留照片参数以打开 Viewer；由于是静态站点，聊天平台抓取到的分享卡片属于当前 Project / Explore / Map 页面，不能为不同 query 返回不同照片卡片。
 
 ## 索引边界与 404
 
-`/sitemap.xml` 只列首页与 `loadProjects().listProjects()` 返回的 published 项目，不包含 draft、后台、404、照片 JSON、构建信息或 Viewer 参数。不伪造 lastmod。
+`/sitemap.xml` 只列首页、`/explore/`、`/map/` 与 `loadProjects().listProjects()` 返回的 published 项目，不包含 draft、后台、404、照片 JSON、构建信息或 Viewer 参数。不伪造 lastmod。
 
 `/robots.txt` 指向相同正式地址下的 sitemap，允许公开网站，限制 `/admin` 与 `/api/`。不列出草稿 slug。构建生成的 Cloudflare Pages `_headers` 给照片元数据 JSON、health/build-version、后台路径和 404 加 `X-Robots-Tag: noindex, nofollow`。
 
@@ -41,6 +41,8 @@
 `pnpm test:seo` 使用独立合成图库检查实际 HTML/XML、图片解码、域名覆盖、无地址预览、空项目、草稿和未知页面，并启动本地 Cloudflare Pages 验证真实 404 与 `_headers`。测试已接入 `pnpm test:checks`。
 
 另由现有 website、automation 与 admin 测试覆盖照片分享、发布产物白名单、只变更域名的部署，以及未认证访问仍被拒绝。所有测试均不部署真实站点。
+
+Global Gallery 的普通构建和 Release 共用 `src/website/public-output.ts` 的精确路径白名单；`public/` 中意外放入的 Manifest、metadata 或额外页面在复制前被拒绝，未公开和过期缩略图从输出清理。Global 页面使用现有公开 Project metadata URL，没有额外 `/photos/` JSON 路由。当前完整发布验收见 [Global Gallery Release Gate](gallery/GLOBAL_PHASE4.md)。
 
 2026-09-16 本地验证：`pnpm check`、`pnpm build`、`pnpm check:upstream` 通过；SEO 4/4、Website 84/84、Projects 48/48、Automation 23/23、后台 backend/runtime 10/10，共 169 项通过。真实构建的 sitemap 包含首页和两个公开项目，三个页面的 canonical 与 JPEG 分享图地址均使用当前 Pages origin。没有执行线上部署。
 
