@@ -1,0 +1,11 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import Gallery from '../components/Gallery.astro';
+import { loadPublicPhotoCollection } from '../website/public-photos';
+import { validLocation } from '../components/viewer/metadata';
+
+const photos = loadPublicPhotoCollection().listPhotos().filter(photo => validLocation(photo.location));
+---
+<SiteLayout title="Global Map" description="在地图上探索 Jason 的公开照片，按项目、拍摄日期、相机、镜头和标签筛选。" gallery>
+  <Gallery title="Global Map" photos={photos} mapPage />
+</SiteLayout>

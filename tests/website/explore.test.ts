@@ -80,7 +80,7 @@ test('Explore builds from the public collection exactly once per photo, with bou
   await page.screenshot({ path: path.join(root, 'explore-desktop.png') });
 });
 
-test('Projects remains the home entry; shared navigation reaches Explore and Map has no fake route', async t => {
+test('Projects remains the home entry; shared navigation reaches Explore and the public Map route', async t => {
   for (const javaScriptEnabled of [false, true]) {
     const { ctx, page } = await pageFor({ javaScriptEnabled }); t.after(() => ctx.close());
     await page.goto(server.url);
@@ -92,13 +92,12 @@ test('Projects remains the home entry; shared navigation reaches Explore and Map
     await header.locator('summary[aria-label="网站导航"]').click();
     const nav = header.getByRole('navigation', { name: '网站导航' });
     await expect(nav.getByRole('link', { name: 'Explore' })).toHaveAttribute('aria-current', 'page');
-    await expect(nav.locator('[aria-disabled="true"]')).toHaveText('Map');
-    await expect(nav.getByRole('link', { name: 'Map', exact: true })).toHaveCount(0);
+    await expect(nav.getByRole('link', { name: 'Map', exact: true })).toHaveAttribute('href', '/map/');
     if (!javaScriptEnabled) assert.deepEqual(await page.locator('[data-static-gallery] [data-photo-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-photo-id'))), photos.map(photo => photo.id));
     await nav.getByRole('link', { name: 'Projects' }).click();
     await expect(page.locator('[data-project-slug]')).toHaveCount(3);
   }
-  assert.equal((await fetch(server.url + '/map/')).status, 404);
+  assert.equal((await fetch(server.url + '/map/')).status, 200);
 });
 
 test('shared SearchPanel composes Project, Search, Date, Camera, Lens and Tag, and clear preserves sort/view', async t => {
@@ -182,7 +181,7 @@ test('Explore Viewer uses the filtered/sorted sequence, restores history/focus, 
   await expect(page.locator('.viewer-inspector')).toContainText('Fixture artist');
   assert.deepEqual(detailRequests, [server.url + photos.find(photo => photo.id === photoId('portrait.jpg'))!.detailsUrl]);
   await expect(page.locator('.viewer-minimap')).toHaveCount(1);
-  await expect(page.getByRole('link', { name: '在地图中查看', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: '在地图中查看', exact: true }).first()).toHaveAttribute('href', /\/map\/.*mapPhoto=/);
   const shared = page.url();
   for (let i = 0; i < 10; i++) {
     await page.keyboard.press('Tab');

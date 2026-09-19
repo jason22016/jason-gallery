@@ -19,7 +19,7 @@ export function run(args: string[], cwd: string, env: Record<string, string | un
 }
 
 /** Dedicated root: never swap out production content or its generated assets. */
-export async function buildFixture(options: { root?: string; siteURL?: string } = {}) {
+export async function buildFixture(options: { root?: string; siteURL?: string; configure?: (manifest: AfilmoryManifest) => void } = {}) {
   const root = options.root ?? path.join(repo, '.cache/website-fixture');
   await fs.rm(root, { force: true, recursive: true });
   await fs.mkdir(root, { recursive: true });
@@ -60,6 +60,7 @@ export async function buildFixture(options: { root?: string; siteURL?: string } 
   near.exif = { DateTimeOriginal: '2024-03-01T01:00:00', GPSLatitude: 22.301, GPSLongitude: 114.171 } as typeof near.exif;
   const far = manifest.data.find(p => p.s3Key === 'map-far.jpg')!;
   far.exif = null; far.location = { latitude: 22.34, longitude: 114.22 };
+  options.configure?.(manifest);
   await fs.mkdir(path.join(root, 'src/data'), { recursive: true });
   await fs.writeFile(path.join(root, 'src/data/photos-manifest.json'), JSON.stringify(manifest));
   await fs.cp(path.join(engine, 'output/public'), path.join(root, 'public'), { recursive: true });

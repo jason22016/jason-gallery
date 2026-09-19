@@ -109,14 +109,16 @@
   "files": [
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "14648bc9cefd1bb5d9368ac6be617b4e40fdd3a74470e5c11f48927d76556e08"
+      "sha256": "9b5f52a53e5fbb9583eb220e080335a7a9103a18b3e4e0c543adaad930858b2c",
+      "globalGalleryPhase3Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-3--global-map"
     },
     {
       "local": "src/components/gallery/PhotoGallery.tsx",
-      "sha256": "780fa40ed3c74371e375b3a47f5046af6631b0b99b268088397baea8b09fbcf3",
+      "sha256": "4a3bb7b50df8da290ee6d625adca63cd69d8a001f3998a5410878edce751e9f5",
       "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation",
       "movedFrom": "src/components/gallery/ProjectGallery.tsx",
-      "globalGalleryPhase2Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-2--explore"
+      "globalGalleryPhase2Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-2--explore",
+      "globalGalleryPhase3Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-3--global-map"
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",
@@ -132,8 +134,9 @@
     },
     {
       "local": "tests/website/website.test.ts",
-      "sha256": "37bc5cf145a669ec413d1f8f7c19b707166780e56388438a8ad4bc83c8d8c145",
-      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation"
+      "sha256": "adee57c0a3b171f065d283b9b0348f035758ea934c011090e267953fda999cad",
+      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation",
+      "globalGalleryPhase3Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-3--global-map"
     }
   ]
 }

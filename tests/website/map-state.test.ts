@@ -29,3 +29,13 @@ test('map selection resolves only within visible Project photos, using valid GPS
   assert.deepEqual(mapPhotoViewport(resolveMapPhoto(visible, 'zero')), { center: [0, 0], zoom: 15, bearing: 0, pitch: 0 });
   assert.deepEqual(mapPhotoViewport(resolveMapPhoto(visible, 'south')), { center: [-70.5, -33.5], zoom: 15, bearing: 0, pitch: 0 });
 });
+
+test('global map links reuse map selection state without a Project panel and retain shared filters', () => {
+  const source = new URL('https://gallery.test/explore/?photo=old&project=travel&camera=sony&tag=night&sort=asc&panel=map');
+  const url = mapPhotoURL(source, 'photo /&中', true);
+  assert.equal(url.pathname, '/map/');
+  assert.equal(url.searchParams.get('mapPhoto'), 'photo /&中');
+  assert(!url.searchParams.has('photo')); assert(!url.searchParams.has('panel'));
+  for (const key of ['project', 'camera', 'tag', 'sort']) assert.equal(url.searchParams.get(key), source.searchParams.get(key));
+  assert.equal(source.pathname, '/explore/');
+});

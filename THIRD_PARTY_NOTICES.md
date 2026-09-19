@@ -358,3 +358,16 @@ from a newly opened surface. Existing Gallery tokens, motion presets and
 Viewer implementation remain in use; no additional upstream source was
 imported. The affected current Gallery and Map provenance records are updated.
 See [Global Gallery Phase 2](docs/gallery/GLOBAL_PHASE2.md).
+
+## Global Gallery Phase 3 — Global Map
+
+2026-09-20: The shared PhotoGallery and PhotoMap now also render the public
+Global Map page. The existing MapLibre lifecycle, cluster and marker registries,
+previews, Viewer integration, map navigation, controls and semantic styles remain
+the implementation. Local extensions add a collection title, explicit Fit Results
+mode with in-place source updates, temporary preview suppression under filters,
+and Explore/Map links built from shared filter state. Project Map retains its
+panel behavior. No additional upstream code or map system was imported. Current
+adaptation hashes are updated only for changed local sources; upstream baselines,
+licenses and visible attribution are retained.
+See [Global Gallery Phase 3](docs/gallery/GLOBAL_PHASE3.md).

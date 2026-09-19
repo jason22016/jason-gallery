@@ -18,3 +18,8 @@ export function galleryStateURL(current: URL, { filters, sort }: GalleryState): 
   if (sort !== 'project') url.searchParams.set('sort', sort); else url.searchParams.delete('sort');
   return url;
 }
+
+export function globalGalleryHref(page: 'explore' | 'map', state?: GalleryState): string {
+  const url = new URL(`/${page}/`, 'https://gallery.local');
+  return state ? `/${page}/${galleryStateURL(url, state).search}` : url.pathname;
+}

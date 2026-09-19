@@ -1,10 +1,12 @@
 import { Icon } from './gallery/ui/Icon';
+import type { GalleryState } from './gallery/filters';
+import { globalGalleryHref } from './gallery/url-state';
 
-export function SiteNavigation({ current, compact = false }: { current?: 'projects' | 'explore'; compact?: boolean }) {
+export function SiteNavigation({ current, compact = false, state }: { current?: 'projects' | 'explore' | 'map'; compact?: boolean; state?: GalleryState }) {
   const links = <nav className="site-navigation" aria-label="网站导航">
     <a href="/" aria-current={current === 'projects' ? 'page' : undefined}>Projects</a>
-    <a href="/explore/" aria-current={current === 'explore' ? 'page' : undefined}>Explore</a>
-    <span aria-disabled="true" title="尚未开放">Map</span>
+    <a href={globalGalleryHref('explore', state)} aria-current={current === 'explore' ? 'page' : undefined}>Explore</a>
+    <a href={globalGalleryHref('map', state)} aria-current={current === 'map' ? 'page' : undefined}>Map</a>
   </nav>;
   return compact ? <details className="site-navigation-menu" onKeyDown={event => {
     if (event.key === 'Escape') {

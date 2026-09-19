@@ -7,7 +7,7 @@ import { Icon } from '../ui/Icon';
 import { LinearDivider } from '../ui/LinearDivider';
 import { useReducedMotion } from '../ui/useReducedMotion';
 
-export function MapControls({ map, disabled }: { map: Map | null; disabled: boolean }) {
+export function MapControls({ map, disabled, onFitResults }: { map: Map | null; disabled: boolean; onFitResults?: () => void }) {
   const reduced = useReducedMotion();
   const [locating, setLocating] = useState(false);
   const [message, setMessage] = useState('');
@@ -36,16 +36,17 @@ export function MapControls({ map, disabled }: { map: Map | null; disabled: bool
       }, failed, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
     } catch { failed(); }
   };
-  const button = (label: string, icon: string, onClick: () => void, busy = false) => <m.button type="button" aria-label={label} title={label}
+  const button = (label: string, icon: string, onClick: () => void, busy = false, text?: string) => <m.button type="button" aria-label={label} title={label}
     disabled={disabled || !map || busy} aria-busy={busy || undefined} onClick={onClick}
     whileHover={reduced ? undefined : { scale: 1.1 }} whileTap={reduced ? undefined : { scale: .95 }} transition={Spring.presets.snappy}>
-    <Icon name={icon} />
+    <Icon name={icon} />{text}
   </m.button>;
   return <m.div className="map-controls" role="group" aria-label="地图控件" initial={reduced ? false : { opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }} transition={Spring.presets.smooth}>
     <div className="map-control-glass">{button('放大地图', 'add', () => zoom(1))}<LinearDivider />{button('缩小地图', 'minimize', () => zoom(-1))}</div>
     <div className="map-control-glass">{button('重置地图方向和倾斜', 'navigation', compass)}</div>
     <div className="map-control-glass">{button('定位当前位置', 'location', geolocate, locating)}</div>
+    {onFitResults && <div className="map-control-glass map-fit-results">{button('适配筛选结果（Fit Results）', 'map-pin', onFitResults, false, 'Fit Results')}</div>}
     {message && <p className="map-geolocation-status" role="status">{message}</p>}
   </m.div>;
 }

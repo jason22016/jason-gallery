@@ -93,13 +93,17 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
     if (parsed.querySelector('parsererror')) throw new Error('Invalid sitemap XML');
     return [...parsed.querySelectorAll('loc')].map(node => node.textContent);
   }, sitemap);
-  assert.deepEqual(entries, ['/', '/explore/', ...urls.slice(1)].map(url => origin + url));
+  assert.deepEqual(entries, ['/', '/explore/', '/map/', ...urls.slice(1)].map(url => origin + url));
   await page.goto(`${server.url}/explore/?project=fixture-beta&photo=selected&tag=city#viewer`);
   assert.equal(await page.title(), 'Explore — Jason Gallery');
   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), `${origin}/explore/`);
   assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), `${origin}/explore/`);
   assert.equal(await page.locator('meta[property="og:image"]').getAttribute('content'), `${origin}/social/default.jpg`);
   assert.match((await page.locator('meta[name="robots"]').getAttribute('content'))!, /^index, follow/);
+  await page.goto(`${server.url}/map/?camera=sony&tag=night`);
+  assert.equal(await page.title(), 'Global Map — Jason Gallery');
+  assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), `${origin}/map/`);
+  assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), `${origin}/map/`);
   assert(!/secret-draft|404|admin|\.json|\?/.test(sitemap.replace(/^<\?xml[^>]+>/, '')));
   const robots = await (await fetch(`${server.url}/robots.txt`)).text();
   assert.match(robots, /Allow: \/\n/); assert(robots.includes(`Sitemap: ${origin}/sitemap.xml`));
@@ -178,7 +182,7 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), `${DEFAULT_SITE_URL}/`);
   const fallback = await sharp(path.join(dist, 'social/default.jpg')).metadata();
   assert.equal(fallback.format, 'jpeg'); assert.equal(fallback.width, 1200); assert.equal(fallback.height, 630);
-  assert.equal(((await fs.readFile(path.join(dist, 'sitemap.xml'), 'utf8')).match(/<loc>/g) ?? []).length, 2);
+  assert.equal(((await fs.readFile(path.join(dist, 'sitemap.xml'), 'utf8')).match(/<loc>/g) ?? []).length, 3);
   assert.equal((await fetch(`${server.url}/projects/fixture-beta/`)).status, 404);
   const invalid = spawnSync(process.execPath, [path.join(repo, 'node_modules/astro/bin/astro.mjs'), 'build'], { cwd: root, env: { ...process.env, SITE_URL: 'https://example.com' }, encoding: 'utf8' });
   assert.notEqual(invalid.status, 0); assert.match(invalid.stdout + invalid.stderr, /SITE_URL/);

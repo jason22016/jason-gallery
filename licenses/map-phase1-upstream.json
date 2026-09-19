@@ -32,7 +32,8 @@
   "files": [
     {
       "local": "src/components/gallery/map-state.ts",
-      "sha256": "09877367763c08ec12085945602bde40b6ed6cf68c0bf8cb399ea73d95fe78f3"
+      "sha256": "595c0f1754b4f9a00986d7501889f7fe0bec9b18a9eecf4ebbee0be83eeec434",
+      "globalGalleryPhase3Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-3--global-map"
     },
     {
       "local": "src/components/gallery/MapNavigation.tsx",

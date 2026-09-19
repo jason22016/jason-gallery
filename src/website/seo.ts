@@ -32,7 +32,7 @@ export function projectShareImage(project?: ResolvedProject) {
 
 export function sitemapXML(site: URL | undefined, slugs: readonly string[]): string {
   const escape = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-  const urls = site ? ['/', '/explore/', ...slugs.map(slug => `/projects/${slug}/`)] : [];
+  const urls = site ? ['/', '/explore/', '/map/', ...slugs.map(slug => `/projects/${slug}/`)] : [];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(path => `  <url><loc>${escape(canonicalURL(path, site)!)}</loc></url>`).join('\n')}\n</urlset>\n`;
 }
 

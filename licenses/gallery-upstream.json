@@ -86,7 +86,7 @@
     },
     {
       "local": "src/components/gallery/PageHeader.tsx",
-      "localSha256": "e4fc5b7dd9a3bce2639f7dc568eb6cbdc219b4d34793cebf85a6a4e49401bfb0",
+      "localSha256": "3793db78b2da3745c57e0cbe7f1335abaf26f77586b37fea9f84b092f9106327",
       "license": "AGPL-3.0-or-later + ANL §4",
       "upstream": [
         {
@@ -103,7 +103,8 @@
         }
       ],
       "phase4Adaptation": "DESIGN.md semantic tokens, local overflow tooltips, and spring-only spatial motion.",
-      "globalGalleryPhase2Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-2--explore"
+      "globalGalleryPhase2Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-2--explore",
+      "globalGalleryPhase3Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-3--global-map"
     },
     {
       "local": "src/components/gallery/ViewModeSegment.tsx",
@@ -178,7 +179,7 @@
     },
     {
       "local": "src/components/gallery/SearchPanel.tsx",
-      "localSha256": "1f42d6172e814f1b0509a0e242af4fe593f73d67dcc3d82b80c3b96914caddd7",
+      "localSha256": "4e3c8765b0ad9301d796792949720bedff1ab816e53cef51694a22f94d076334",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adaptation": "Migrated command rows, filter category/icon/active hierarchy, keyboard selection and controls. Project-local props replace photoLoader/Jotai/router/i18n. Existing selectPhotos and URL filter semantics retained; no upstream fuzzy-photo filter algorithm, multi-tag logic or rating introduced.",
       "upstream": [
@@ -188,7 +189,8 @@
         }
       ],
       "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation",
-      "globalGalleryPhase2Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-2--explore"
+      "globalGalleryPhase2Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-2--explore",
+      "globalGalleryPhase3Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-3--global-map"
     },
     {
       "local": "src/components/gallery/FilterChip.tsx",
@@ -205,7 +207,7 @@
     },
     {
       "local": "src/components/gallery/ViewPanel.tsx",
-      "localSha256": "0f230123dd0e70dee4a130b98f77fe8b1e0ffbb18097165b94bc90e7d6501a67",
+      "localSha256": "231a270f51fc829a3ee76e46889689f6d97fb2e455ffa1170d53880eef969b6f",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adaptation": "Migrated sort rows and combined view sections/dividers. Preserved project order and full automatic/1–8 column range. Native accessible range replaces upstream pointer-only slider while retaining draft/commit behavior; monochrome semantic track and accent thumb correct legacy neutral/green colors.",
       "upstream": [
@@ -226,7 +228,8 @@
           "sha256": "d37b123985781c633b673472f5e3ae74faab959400160257141284d1689bd71a"
         }
       ],
-      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation"
+      "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation",
+      "globalGalleryPhase3Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-3--global-map"
     },
     {
       "local": "src/components/gallery/Panel.tsx",

@@ -13,7 +13,7 @@ import { MapNavigationContext } from './MapNavigation';
 import PhotoViewer from '../viewer/PhotoViewer';
 import type { GalleryProject, ViewerPhoto } from '../viewer/photos';
 import { emptyFilters, galleryFilterOptions, selectPhotos, type Filters, type Sort, type FilterField } from './filters';
-import { galleryStateURL, readGalleryState } from './url-state';
+import { galleryStateURL, globalGalleryHref, readGalleryState } from './url-state';
 import Panel from './Panel';
 import { ViewerAttribution } from '../viewer/ViewerAttribution';
 import { MapLoadingState } from './map/MapLoadingState';
@@ -24,7 +24,7 @@ type MapComponent = typeof import('./PhotoMap').default;
 const settingsKey = 'jason-gallery:view:v1';
 const projectFields: readonly FilterField[] = ['camera', 'lens', 'tag'];
 const globalFields: readonly FilterField[] = ['project', ...projectFields];
-export default function PhotoGallery({ photos, title, project }: { photos: readonly GalleryPhoto[]; title: string; project?: GalleryProject }) {
+export default function PhotoGallery({ photos, title, project, mapPage = false }: { photos: readonly GalleryPhoto[]; title: string; project?: GalleryProject; mapPage?: boolean }) {
   const root = useRef<HTMLDivElement>(null);
   const panelAnchor = useRef<HTMLElement | null>(null);
   const opener = useRef<HTMLElement | null>(null);
@@ -48,8 +48,8 @@ export default function PhotoGallery({ photos, title, project }: { photos: reado
   const fields = project ? projectFields : globalFields;
   const options = useMemo(() => galleryFilterOptions(photos, fields), [photos, fields]);
   const projectLabel = options.find(option => option.field === 'project' && option.value === filters.project)?.label;
-  const visible = useMemo(() => selectPhotos(photos, filters, sort), [photos, filters, sort]);
-  const mapKey = project ? visible.map(photo => photo.id).join(',') : '';
+  const visible = useMemo(() => selectPhotos(photos, filters, sort).filter(photo => !mapPage || validLocation(photo.location)), [photos, filters, sort, mapPage]);
+  const mapKey = mapPage ? 'global' : visible.map(photo => photo.id).join(',');
   const selectedMapPhoto = resolveMapPhoto(visible, mapPhotoId);
   const selectedPhoto = (project ? photos : visible).find(p => p.id === selected);
   const sequence = project && selectedPhoto && !visible.some(p => p.id === selected) ? photos : visible;
@@ -76,20 +76,20 @@ export default function PhotoGallery({ photos, title, project }: { photos: reado
       setSort(nextSort);
       const nextPanel = project && params.get('panel') === 'map' ? 'map' : null;
       setPanel(nextPanel);
-      const mapPhoto = nextPanel ? resolveMapPhoto(selectPhotos(photos, nextFilters, 'project'), params.get('mapPhoto')) : null;
+      const mapPhoto = mapPage || nextPanel ? resolveMapPhoto(selectPhotos(photos, nextFilters, 'project'), params.get('mapPhoto')) : null;
       setMapPhotoId(mapPhoto?.id ?? null);
       if ((params.has('mapPhoto') && !mapPhoto) || (!project && params.get('panel') === 'map')) {
         const url = new URL(location.href);
-        url.searchParams.delete('mapPhoto');
+        if (!mapPhoto) url.searchParams.delete('mapPhoto');
         if (!project) url.searchParams.delete('panel');
         history.replaceState(history.state, '', url);
       }
       const id = params.get('photo');
       ownHistoryEntry.current = history.state?.galleryViewer === historyOwner.current;
-      if (id && !photos.some(p => p.id === id)) {
-        setPhotoURL(null); setNotice(project ? '此照片不在当前项目中。' : '此照片不在公开图库中。'); setSelected(null); return;
+      if (id && !photos.some(p => p.id === id && (!mapPage || validLocation(p.location)))) {
+        setPhotoURL(null); setNotice(project ? '此照片不在当前项目中。' : mapPage ? '此照片不在当前地图结果中。' : '此照片不在公开图库中。'); setSelected(null); return;
       }
-      if (id && nextPanel !== 'map' && !selectPhotos(photos, nextFilters, 'project').some(photo => photo.id === id)) {
+      if (id && (!project || nextPanel !== 'map') && !selectPhotos(photos, nextFilters, 'project').some(photo => photo.id === id)) {
         if (!project) {
           setPhotoURL(null); setNotice('此照片不符合当前筛选条件。'); setSelected(null); return;
         }
@@ -100,20 +100,20 @@ export default function PhotoGallery({ photos, title, project }: { photos: reado
       }
       if (id) scrollPosition.current = window.scrollY;
       if (!id) {
-        if (nextPanel !== 'map') requestAnimationFrame(() => { window.scrollTo(0, scrollPosition.current); opener.current?.isConnected && opener.current.focus({ preventScroll: true }); });
+        if (!mapPage && nextPanel !== 'map') requestAnimationFrame(() => { window.scrollTo(0, scrollPosition.current); opener.current?.isConnected && opener.current.focus({ preventScroll: true }); });
         ownHistoryEntry.current = false;
       }
       setSelected(id);
     };
     sync(); window.addEventListener('popstate', sync);
     return () => { window.removeEventListener('popstate', sync); };
-  }, [photos, project, setPhotoURL]);
+  }, [photos, project, mapPage, setPhotoURL]);
   useEffect(() => {
-    if (panel !== 'map' || PhotoMap || mapError) return;
+    if ((!mapPage && panel !== 'map') || PhotoMap || mapError) return;
     let active = true;
     void import('./PhotoMap').then(module => { if (active) setPhotoMap(() => module.default); }).catch(() => { if (active) setMapError(true); });
     return () => { active = false; };
-  }, [panel, PhotoMap, mapError]);
+  }, [panel, mapPage, PhotoMap, mapError]);
   const open = useCallback((photo: ViewerPhoto, element: HTMLElement | null) => {
     opener.current = element; scrollPosition.current = window.scrollY;
     ownHistoryEntry.current = true; setPhotoURL(photo.id, true); setSelected(photo.id);
@@ -125,18 +125,20 @@ export default function PhotoGallery({ photos, title, project }: { photos: reado
   }, [setPhotoURL]);
   const showPhotoOnMap = (photo: ViewerPhoto) => {
     if (!resolveMapPhoto(visible, photo.id)) return;
-    history.pushState({ ...history.state, galleryViewer: null }, '', mapPhotoURL(new URL(location.href), photo.id));
+    const url = mapPhotoURL(new URL(location.href), photo.id, !project);
+    if (!project && !mapPage) { location.assign(url); return; }
+    history.pushState({ ...history.state, galleryViewer: null }, '', url);
     ownHistoryEntry.current = false;
     mapViewport.current = null;
     mapFocusPhoto.current = null;
     setMapPhotoId(photo.id);
-    setPanel('map');
+    setPanel(mapPage ? null : 'map');
     setPanelRequest(value => value + 1);
     setSelected(null);
   };
   const selectMapPhoto = (photo: ViewerPhoto) => {
     if (photo.id === mapPhotoId || !resolveMapPhoto(visible, photo.id)) return;
-    history.pushState({ ...history.state, galleryViewer: null }, '', mapPhotoURL(new URL(location.href), photo.id));
+    history.pushState({ ...history.state, galleryViewer: null }, '', mapPhotoURL(new URL(location.href), photo.id, !project));
     setMapPhotoId(photo.id);
   };
   const clearMapSelection = () => {
@@ -157,8 +159,8 @@ export default function PhotoGallery({ photos, title, project }: { photos: reado
   };
   const replaceContext = (nextFilters: Filters, nextSort: Sort, map = false) => {
     const url = galleryStateURL(new URL(location.href), { filters: nextFilters, sort: nextSort });
-    if (map) url.searchParams.set('panel', 'map'); else url.searchParams.delete('panel');
-    if (!map || !resolveMapPhoto(selectPhotos(photos, nextFilters, nextSort), mapPhotoId)) {
+    if (map && !mapPage) url.searchParams.set('panel', 'map'); else url.searchParams.delete('panel');
+    if ((!map && !mapPage) || !resolveMapPhoto(selectPhotos(photos, nextFilters, nextSort), mapPhotoId)) {
       url.searchParams.delete('mapPhoto');
       setMapPhotoId(null);
     }
@@ -180,27 +182,32 @@ export default function PhotoGallery({ photos, title, project }: { photos: reado
     window.addEventListener('keydown', shortcut);
     return () => window.removeEventListener('keydown', shortcut);
   }, [selected, panel, filters, sort]);
-  const mapNavigation = project && selectedPhoto && resolveMapPhoto(visible, selectedPhoto.id) ? {
-    href: mapPhotoURL(new URL(location.href), selectedPhoto.id).href,
+  const mapNavigation = selectedPhoto && resolveMapPhoto(visible, selectedPhoto.id) ? {
+    href: mapPhotoURL(new URL(location.href), selectedPhoto.id, !project).href,
     navigate: () => showPhotoOnMap(selectedPhoto),
   } : null;
-  return <MapNavigationContext.Provider value={mapNavigation}><LazyMotion features={domMax}><div ref={root} className="gallery-live" data-viewer-ready="true">
-    <PageHeader title={title} count={visible.length} view={view} onView={saveView} panel={panel} project={!!project}
+  const mapContent = PhotoMap ? <PhotoMap photos={visible} collectionTitle={title} fitResults={mapPage} previewEnabled={!mapPage || !panel} onSelect={selectMapPhoto} onClearSelection={clearMapSelection} selectedPhotoId={selectedMapPhoto?.id ?? null}
+    initialViewport={mapViewport.current?.key === mapKey ? mapViewport.current.viewport : mapPhotoViewport(selectedMapPhoto)} onViewport={viewport => { mapViewport.current = { key: mapKey, viewport }; }} restoreFocusPhotoId={mapFocusPhoto.current}
+    onOpen={(photo, element) => { mapFocusPhoto.current = element ? photo.id : null; open(photo, element ?? root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null); }} />
+    : mapError ? <div className="map-experience"><div className="map-right-chrome"><section className="map-fallback"><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><MapPhotoList photos={visible.filter(photo => validLocation(photo.location))} onOpen={photo => open(photo, null)} /></section></div></div> : <MapLoadingState />;
+  return <MapNavigationContext.Provider value={mapNavigation}><LazyMotion features={domMax}><div ref={root} className={`gallery-live${mapPage ? ' gallery-map-page' : ''}`} data-viewer-ready="true">
+    <PageHeader title={title} count={visible.length} view={view} onView={saveView} panel={panel} project={!!project} mapPage={mapPage} state={{ filters, sort }}
       onPanel={(next, anchor) => { setPanelRequest(value => value + 1); panelAnchor.current = anchor; setPanel(next); replaceContext(filters, sort, next === 'map'); }}
-      hasFilters={hasFilters} customized={columns !== 0 || sort !== 'project'} />
+      hasFilters={hasFilters} customized={(!mapPage && columns !== 0) || sort !== 'project'} />
     {notice && <p className="gallery-notice" role="status">{notice}<button className="icon-button" onClick={() => setNotice('')} aria-label="关闭提示"><Icon name="close" /></button></p>}
     {hasFilters && <div className="filter-summary"><div className="filter-chips"><AnimatePresence initial={false}>{(Object.keys(filters) as (keyof Filters)[]).filter(field => filters[field]).map(field => <FilterChip key={field} field={field} value={field === 'project' ? projectLabel ?? filters[field] : filters[field]} onRemove={() => changeFilters({ ...filters, [field]: '' })} />)}</AnimatePresence></div><div className="filter-summary-count"><span role="status">找到 {visible.length} / {photos.length} 张照片</span><button onClick={() => changeFilters(emptyFilters)}>清除筛选 <Icon name="close" /></button></div></div>}
-    {visible.length === 0 ? <div className="gallery-empty"><Icon name="search" /><h2>{photos.length ? '没有符合条件的照片' : '尚无公开照片'}</h2><p>{photos.length ? '试试其他关键词，或清除筛选。' : '发布后的照片会展示在这里。'}</p>{hasFilters && <button onClick={() => changeFilters(emptyFilters)}>清除筛选</button>}</div> : view === 'masonry' ? (
+    {mapPage ? <div className="gallery-map-stage">{!selectedPhoto && mapContent}</div> : visible.length === 0 ? <div className="gallery-empty"><Icon name="search" /><h2>{photos.length ? '没有符合条件的照片' : '尚无公开照片'}</h2><p>{photos.length ? '试试其他关键词，或清除筛选。' : '发布后的照片会展示在这里。'}</p>{hasFilters && <button onClick={() => changeFilters(emptyFilters)}>清除筛选</button>}</div> : view === 'masonry' ? (
       <MasonryView items={items} columns={columns} />
     ) : <ListView items={items} />}
     {panel && !selected && <Panel key={`${panel}-${panelRequest}`} anchor={panelAnchor.current} kind={panel === 'settings' ? 'settings' : panel === 'search' ? 'search' : panel === 'map' ? 'map' : 'dialog'} title={{ info: '项目信息', search: '搜索和筛选', settings: '显示设置', map: '地图探索' }[panel]} onClose={closePanel} wide={panel === 'map'}>
       {panel === 'info' && project && <><h3 className="project-panel-title">{project.title}</h3>{project.summary && <p>{project.summary}</p>}<dl className="metadata-rows project-details">{project.location && <><dt>地点</dt><dd>{project.location}</dd></>}{project.period && <><dt>日期</dt><dd>{project.period.start}{project.period.end && project.period.end !== project.period.start && ` — ${project.period.end}`}</dd></>}<dt>照片</dt><dd>{photos.length}</dd></dl>{project.description && <p className="project-description">{project.description}</p>}<ul className="tags">{project.tags?.map(tag => <li key={tag}>{tag}</li>)}</ul><ViewerAttribution /></>}
-      {panel === 'search' && <SearchPanel options={options} fields={fields} project={!!project} filters={filters} count={visible.length} onChange={changeFilters} onAction={action => {
+      {panel === 'search' && <SearchPanel options={options} fields={fields} project={!!project} mapPage={mapPage} filters={filters} count={visible.length} onChange={changeFilters} onAction={action => {
         if (action === 'masonry' || action === 'list') { saveView(action); closePanel(); }
+        else if (action === 'map' && !project) location.assign(globalGalleryHref('map', { filters, sort }));
         else { setPanel(action); replaceContext(filters, sort, action === 'map'); }
       }} />}
-      {panel === 'settings' && <ViewPanel sort={sort} columns={columns} view={view} onView={saveView} onSort={value => { setSort(value); replaceContext(filters, value); }} />}
-      {panel === 'map' && project && (PhotoMap ? <PhotoMap photos={visible} projectTitle={project.title} onSelect={selectMapPhoto} onClearSelection={clearMapSelection} selectedPhotoId={selectedMapPhoto?.id ?? null} initialViewport={mapViewport.current?.key === mapKey ? mapViewport.current.viewport : mapPhotoViewport(selectedMapPhoto)} onViewport={viewport => { mapViewport.current = { key: mapKey, viewport }; }} restoreFocusPhotoId={mapFocusPhoto.current} onOpen={(photo, element) => { mapFocusPhoto.current = element ? photo.id : null; open(photo, element ?? root.current?.querySelector<HTMLButtonElement>('[aria-label="地图探索"]') ?? null); }} /> : mapError ? <div className="map-experience"><div className="map-right-chrome"><section className="map-fallback"><p role="alert">地图组件加载失败。<button onClick={() => setMapError(false)}>重试</button></p><MapPhotoList photos={visible.filter(photo => validLocation(photo.location))} onOpen={photo => open(photo, null)} /></section></div></div> : <MapLoadingState />)}
+      {panel === 'settings' && <ViewPanel sort={sort} columns={columns} view={view} mapPage={mapPage} onView={saveView} onSort={value => { setSort(value); replaceContext(filters, value); }} />}
+      {panel === 'map' && project && mapContent}
     </Panel>}
     {selectedPhoto && <PhotoViewer photos={sequence} collectionTitle={title} index={sequence.findIndex(p => p.id === selected)} trigger={opener.current} onIndex={index => { const photo = sequence[index]; if (photo) { setSelected(photo.id); setPhotoURL(photo.id); } }} onClose={close} />}
   </div></LazyMotion></MapNavigationContext.Provider>;

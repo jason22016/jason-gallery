@@ -323,4 +323,10 @@ Final Gate 的独立命令为 `pnpm photos:verify --run <completed-workdir> --ex
 
 `/` 仍为 Projects，新增静态 `/explore/`，共用 `Gallery.astro` 与从 `ProjectGallery` 提取的 `PhotoGallery`。后者持有相同的筛选、虚拟化、Viewer、URL/history、滚动与焦点状态；`ProjectGallery` 保留为薄适配器。全局筛选沿用共享 `filters.ts` / `url-state.ts`，Project 参数是永久 ID。Explore Viewer 的序列严格等于当前筛选/排序结果；不匹配的 `photo` 深链接不会扩大结果集或清空筛选。
 
-Explore 只序列化一次公开 Gallery 投影，静态首屏预览限制为 24 张，完整浏览由原虚拟化 Gallery 承载；完整 Manifest、draft、详细 EXIF 不进入 island。GPU/图片引擎、metadata、地图等重模块保持既有加载边界。公开导航为 Projects / Explore / Map，全站 Map 暂不可用，项目内地图继续保留。SEO sitemap 和 release 精确白名单纳入 Explore，不放宽其他公开输出限制。详见 [Global Gallery Phase 2](docs/gallery/GLOBAL_PHASE2.md)。
+Explore 只序列化一次公开 Gallery 投影，静态首屏预览限制为 24 张，完整浏览由原虚拟化 Gallery 承载；完整 Manifest、draft、详细 EXIF 不进入 island。GPU/图片引擎、metadata、地图等重模块保持既有加载边界。公开导航为 Projects / Explore / Map，Phase 2 时全站 Map 暂不可用，项目内地图继续保留。SEO sitemap 和 release 精确白名单纳入 Explore，不放宽其他公开输出限制。详见 [Global Gallery Phase 2](docs/gallery/GLOBAL_PHASE2.md)。
+
+## Global Gallery — Global Map（2026-09-20）
+
+`/map/` 只消费 Global Public Photo Collection 中有效 GPS 的公开投影，复用 `PhotoGallery` 的 `mapPage` 模式和同一个 `PhotoMap`，不新增地图系统或数据源。Project Map 的面板和相机语义保持不变；Global 模式首次 fitBounds，随后原地更新 GeoJSON 并保留用户视角，显式 Fit Results 适配当前结果。原 cluster、expansion、marker、preview、MapLibre fallback、controls 和 Viewer 全部复用。
+
+Explore / Map 的导航由共享 filter/sort state 生成 URL；`mapPhoto` 与 Viewer `photo` 仍分开，Global Map 无需 `panel=map`。Viewer 序列严格等于当前筛选/排序后的 GPS 结果，地图视口不额外筛选 Viewer，重复 membership 不增加照片。无 GPS 或筛选外深链接不扩大结果集。页面刷新、popstate、Viewer 返回和 MiniMap 定位沿用现有 state/history 机制。`/map/` 加入 sitemap、canonical/OG 和 release 精确白名单。详见 [Global Gallery Phase 3](docs/gallery/GLOBAL_PHASE3.md)。

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { emptyFilters, galleryFilterOptions, selectPhotos } from '../../src/components/gallery/filters';
-import { galleryStateURL, readGalleryState } from '../../src/components/gallery/url-state';
+import { galleryStateURL, globalGalleryHref, readGalleryState } from '../../src/components/gallery/url-state';
 import { galleryPhotos } from '../../src/components/gallery/photos';
 import { resolveMapPhoto } from '../../src/components/gallery/map-state';
 import { resolvePublicPhotoCollection } from '../../src/website/public-photos';
@@ -79,4 +79,14 @@ test('Gallery URL state round-trips all filters/sort while preserving Viewer, Ma
   }
   assert.deepEqual(readGalleryState(new URLSearchParams('query=old&sort=asc')), { filters: { ...emptyFilters, query: 'old' }, sort: 'asc' });
   for (const sort of ['', 'invalid', 'project']) assert.deepEqual(readGalleryState(new URLSearchParams({ sort })), { filters: emptyFilters, sort: 'project' });
+});
+
+test('global page navigation round-trips only shared filters and sort with URL encoding', () => {
+  const state = { filters: { ...emptyFilters, query: '夜景 & /', camera: 'Sony α7', lens: '35mm', project: 'travel', tag: 'night', start: '2024-01-01', end: '2024-02-01' }, sort: 'asc' as const };
+  for (const page of ['explore', 'map'] as const) {
+    const url = new URL(globalGalleryHref(page, state), 'https://gallery.test');
+    assert.equal(url.pathname, `/${page}/`);
+    assert.deepEqual(readGalleryState(url.searchParams), state);
+    assert.equal(globalGalleryHref(page), `/${page}/`);
+  }
 });

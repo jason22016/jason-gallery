@@ -29,7 +29,7 @@ pnpm test
 
 开发预览运行 `pnpm dev`；仅重新构建运行 `pnpm build`。浏览器测试需要前述 Chromium 安装；只运行隔离回归可用 `pnpm test:checks`，但这不能替代真实数据检查和生产构建。
 
-公开导航为 Projects / Explore / Map：`/` 继续展示项目，`/explore/` 汇集所有 published Projects 引用的公开照片，按照片 ID 去重。Explore 与 Project 共用 Gallery 和 Viewer；支持搜索、日期、相机、镜头、标签、项目筛选及排序，URL 可分享和恢复。Map 的全站入口暂未开放。实现、URL 参数与验证见 [Global Gallery Phase 2](docs/gallery/GLOBAL_PHASE2.md)。
+公开导航为 Projects / Explore / Map：`/` 继续展示项目，`/explore/` 汇集所有 published Projects 引用的公开照片，按照片 ID 去重；`/map/` 使用其中有有效 GPS 的照片。Explore、Map 与 Project 共用 Gallery、filters 和 Viewer；Explore ↔ Map 保留搜索、日期、相机、镜头、标签、项目筛选及排序。地图复用 PhotoMap，首次适配结果，筛选后保留视角，可用 Fit Results 重新定位。实现与验证见 [Global Gallery Phase 2](docs/gallery/GLOBAL_PHASE2.md) 和 [Phase 3](docs/gallery/GLOBAL_PHASE3.md)。
 
 ## 常用验证与配置
 

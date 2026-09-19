@@ -14,10 +14,11 @@ export function mapPhotoViewport(photo: ViewerPhoto | null): MapViewport | undef
   return { center: [photo.location.longitude, photo.location.latitude], zoom: 15, bearing: 0, pitch: 0 };
 }
 
-export function mapPhotoURL(current: URL, id: string): URL {
+export function mapPhotoURL(current: URL, id: string, global = false): URL {
   const url = new URL(current);
   url.searchParams.delete('photo');
-  url.searchParams.set('panel', 'map');
+  if (global) { url.pathname = '/map/'; url.searchParams.delete('panel'); }
+  else url.searchParams.set('panel', 'map');
   url.searchParams.set('mapPhoto', id);
   return url;
 }

@@ -87,15 +87,18 @@
     },
     {
       "local": "src/components/gallery/map/MapControls.tsx",
-      "sha256": "5fca8597fbe1f0c85253160265043edeee2ef34b3a4fb28ad4f1ce03772e9997"
+      "sha256": "3428934a115b45846eec33f18ca9cdf2779991ce234d9171e187b007107239f1",
+      "globalGalleryPhase3Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-3--global-map"
     },
     {
       "local": "src/components/gallery/map/MapExperience.css",
-      "sha256": "3cc40de852cfece905b3435972df3804a4a0be8d3bc1c970e7d063d92ffb225b"
+      "sha256": "6e0c29afee6dd19bf5f6fdce8bd97fe48154ad856ef8de42d28f63859cddb40b",
+      "globalGalleryPhase3Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-3--global-map"
     },
     {
       "local": "src/components/gallery/map/MapInfoPanel.tsx",
-      "sha256": "d815643dc5d0180e910a990d43eebc57f0fdf97baf6ebc2bd1edfa257b78813a"
+      "sha256": "cf81aa7c919f9791da26cf70c5b9328824d7ac71e78e4416b8fedc35980b9728",
+      "globalGalleryPhase3Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-3--global-map"
     },
     {
       "local": "src/components/gallery/map/MapLoadingState.tsx",

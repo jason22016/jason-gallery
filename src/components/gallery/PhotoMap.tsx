@@ -20,7 +20,7 @@ import { MapLoadingState } from './map/MapLoadingState';
 import { MapPhotoList } from './map/MapPhotoList';
 import { Icon } from './ui/Icon';
 
-export default function PhotoMap({ photos, projectTitle, onOpen, onSelect, onClearSelection, selectedPhotoId, initialViewport, onViewport, restoreFocusPhotoId }: { photos: readonly ViewerPhoto[]; projectTitle: string; onOpen: (photo: ViewerPhoto, element?: HTMLElement) => void; onSelect: (photo: ViewerPhoto) => void; onClearSelection: () => void; selectedPhotoId: string | null; initialViewport?: MapViewport; onViewport?: (viewport: MapViewport) => void; restoreFocusPhotoId?: string | null }) {
+export default function PhotoMap({ photos, collectionTitle, onOpen, onSelect, onClearSelection, selectedPhotoId, initialViewport, onViewport, restoreFocusPhotoId, fitResults = false, previewEnabled = true }: { photos: readonly ViewerPhoto[]; collectionTitle: string; onOpen: (photo: ViewerPhoto, element?: HTMLElement) => void; onSelect: (photo: ViewerPhoto) => void; onClearSelection: () => void; selectedPhotoId: string | null; initialViewport?: MapViewport; onViewport?: (viewport: MapViewport) => void; restoreFocusPhotoId?: string | null; fitResults?: boolean; previewEnabled?: boolean }) {
   const container = useRef<HTMLDivElement>(null);
   const mobile = useMobile();
   const [error, setError] = useState(false);
@@ -33,7 +33,8 @@ export default function PhotoMap({ photos, projectTitle, onOpen, onSelect, onCle
   const located = useMemo(() => photos.filter(p => validLocation(p.location)), [photos]);
   const byId = useMemo(() => new Map(located.map(photo => [photo.id, photo])), [located]);
   const photoBounds = useMemo(() => calculateMapBounds(located), [located]);
-  const photosKey = JSON.stringify(located.map(photo => [photo.id, photo.location!.longitude, photo.location!.latitude]));
+  const hasLocations = located.length > 0;
+  const mapDataKey = fitResults ? hasLocations : JSON.stringify(located.map(photo => [photo.id, photo.location!.longitude, photo.location!.latitude]));
   const currentProps = useRef({ located, byId, selectedPhotoId, onViewport });
   currentProps.current = { located, byId, selectedPhotoId, onViewport };
   const updateSelection = useRef<(() => void) | null>(null);
@@ -66,7 +67,7 @@ export default function PhotoMap({ photos, projectTitle, onOpen, onSelect, onCle
       observer.observe(container.current);
       const bounds = new maplibregl.LngLatBounds();
       located.forEach(p => bounds.extend([p.location!.longitude, p.location!.latitude]));
-      if (!initialViewport && located.length > 1) map.fitBounds(bounds, { padding: 60, maxZoom: 13, duration: 0 });
+      if (!initialViewport && (fitResults || located.length > 1)) map.fitBounds(bounds, { padding: 60, maxZoom: 13, duration: 0 });
       const saveViewport = () => { if (active && map) currentProps.current.onViewport?.({ center: map.getCenter().toArray(), zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() }); };
       map.on('moveend', saveViewport);
       map.on('error', failed);
@@ -153,20 +154,22 @@ export default function PhotoMap({ photos, projectTitle, onOpen, onSelect, onCle
       });
     } catch { failed(); }
     return () => { active = false; clearTimeout(timeout); observer?.disconnect(); setMapInstance(null); updateSelection.current = null; clusterRegistry.current = null; nativeClusters?.clear(); registry?.clear(); map?.getCanvas().removeEventListener('webglcontextlost', failed); map?.remove(); };
-  }, [photosKey, attempt]);
-  useEffect(() => { updateSelection.current?.(); }, [selectedPhotoId]);
-  if (!located.length) return <div className="map-experience"><div className="map-right-chrome"><MapInfoPanel projectTitle={projectTitle} markersCount={0} bounds={null} /></div><div className="map-empty gallery-empty"><Icon name="map-pin" /><h3>没有可显示的位置</h3><p>当前照片没有 GPS 坐标。</p></div></div>;
+  }, [mapDataKey, attempt]);
+  useEffect(() => { updateSelection.current?.(); }, [located, selectedPhotoId]);
+  if (!located.length) return <div className="map-experience"><div className="map-right-chrome"><MapInfoPanel collectionTitle={collectionTitle} markersCount={0} bounds={null} /></div><div className="map-empty gallery-empty" role="status"><Icon name="map-pin" /><h3>没有可显示的位置</h3><p>当前筛选结果没有带有效 GPS 的照片。</p></div></div>;
   return <div className="map-experience"><div className="photo-map" ref={container} aria-label="照片位置地图" data-selected-photo={selectedPhotoId ?? undefined} aria-busy={!ready && !error} data-map-state={error ? 'error' : ready ? 'ready' : 'loading'} />
     <div className="map-right-chrome">
-    <MapInfoPanel projectTitle={projectTitle} markersCount={located.length} bounds={photoBounds} />
+    <MapInfoPanel collectionTitle={collectionTitle} markersCount={located.length} bounds={photoBounds} />
     {error ? <section className="map-fallback" aria-label="地图照片列表"><p className="map-error" role="status">底图暂时不可用，你仍可从下方打开照片。<button onClick={() => setAttempt(n => n + 1)}>重试地图</button></p><MapPhotoList photos={located} selectedPhotoId={selectedPhotoId} onOpen={onOpen} /></section>
       : <details className="map-photo-drawer"><summary><Icon name="pic" />照片列表 · {located.length}</summary><MapPhotoList photos={located} selectedPhotoId={selectedPhotoId} onOpen={onOpen} /></details>}
     </div>
-    <MapControls map={mapInstance} disabled={!ready || error} />
+    <MapControls map={mapInstance} disabled={!ready || error} onFitResults={fitResults && photoBounds ? () => {
+      mapInstance?.fitBounds([[photoBounds.minLng, photoBounds.minLat], [photoBounds.maxLng, photoBounds.maxLat]], { padding: 60, maxZoom: 13, duration: 0 });
+    } : undefined} />
     {!ready && !error && <MapLoadingState />}
     {markers.map(entry => createPortal(<PhotoMarkerPin photo={entry.photo}
-      isSelected={entry.photo.id === selectedPhotoId} enableHover={!mobile} onClick={() => onSelect(entry.photo)} onClose={onClearSelection} onOpen={onOpen} />, entry.element, entry.photo.id))}
-    {clusters.map(entry => createPortal(<ClusterMarker cluster={entry} enableHover={!mobile}
+      isSelected={previewEnabled && entry.photo.id === selectedPhotoId} enableHover={previewEnabled && !mobile} onClick={() => onSelect(entry.photo)} onClose={onClearSelection} onOpen={onOpen} />, entry.element, entry.photo.id))}
+    {clusters.map(entry => createPortal(<ClusterMarker cluster={entry} enableHover={previewEnabled && !mobile}
       onPreview={() => { void clusterRegistry.current?.load(entry); }} onExpand={() => { void clusterRegistry.current?.expand(entry); }} />, entry.element, String(entry.clusterId)))}
   </div>;
 }

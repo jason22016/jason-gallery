@@ -362,6 +362,10 @@ test('empty public catalog builds a useful home page, even when draft content ex
     await expect(page.getByRole('heading', { name: '尚无公开照片' })).toBeVisible();
     await expect(page.locator('.gallery-live [data-gallery-index]')).toHaveCount(0);
     assert(!(await fs.readFile(path.join(emptyDist, 'explore/index.html'), 'utf8')).includes('DRAFT WEBSITE SECRET'));
+    await page.goto(host.url + '/map/');
+    await expect(page.getByRole('heading', { name: '没有可显示的位置' })).toBeVisible();
+    await expect(page.locator('.photo-map canvas, .map-photo-list button')).toHaveCount(0);
+    assert(!(await fs.readFile(path.join(emptyDist, 'map/index.html'), 'utf8')).includes('DRAFT WEBSITE SECRET'));
   } finally {
     for (const project of published) await fs.writeFile(path.join(directory, `${project.slug}.json`), JSON.stringify(project));
   }
@@ -1062,7 +1066,7 @@ test('Phase 5 Project information follows filtered GPS bounds and returns to the
   const page = await ctx.newPage(); await mapFixture(page);
   await page.goto(`${server.url}/projects/fixture-alpha/?panel=map&sort=asc&view=list#gallery`);
   await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready');
-  const info = page.getByRole('complementary', { name: '项目地图信息' });
+  const info = page.getByRole('complementary', { name: '照片地图信息' });
   await expect(info.locator('h3')).toHaveText('Fixture — shared photographs');
   await expect(info.locator('[data-map-photo-count]')).toHaveAttribute('data-map-photo-count', '3');
   await info.getByRole('button', { name: '展开拍摄范围' }).click();

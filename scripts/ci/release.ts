@@ -57,7 +57,7 @@ export async function buildRelease(options: { photos: string; root: string; dest
     if (sha256(await fs.readFile(path.join(options.root, 'src/data', name))) !== photos.files[name]) throw new Error('Native source Manifest changed during build');
   }
   const files = await fileHashes(output);
-  const expected = new Set(['index.html', 'explore/index.html', '404.html', 'health.txt', 'favicon.svg', 'sitemap.xml', 'robots.txt', '_headers', 'social/default.jpg', ...projects.flatMap(p => [`projects/${p.slug}/index.html`, ...p.photos.map(x => `projects/${p.slug}/photos/${x.photoId}.json`)]), ...[...ids].map(id => `thumbnails/${id}.jpg`)]);
+  const expected = new Set(['index.html', 'explore/index.html', 'map/index.html', '404.html', 'health.txt', 'favicon.svg', 'sitemap.xml', 'robots.txt', '_headers', 'social/default.jpg', ...projects.flatMap(p => [`projects/${p.slug}/index.html`, ...p.photos.map(x => `projects/${p.slug}/photos/${x.photoId}.json`)]), ...[...ids].map(id => `thumbnails/${id}.jpg`)]);
   for (const name of expected) if (!files[name]) throw new Error(`Missing published asset: ${name}`);
   for (const name of Object.keys(files)) if (!expected.has(name) && !name.startsWith('_astro/')) throw new Error(`Unexpected public file: ${name}`);
   if (files['favicon.svg'] !== faviconHash) throw new Error('Published favicon mismatch');

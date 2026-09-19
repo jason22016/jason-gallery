@@ -105,7 +105,8 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   assert(release.files['explore/index.html']);
   const explore = await fs.readFile(path.join(destination, 'dist/explore/index.html'), 'utf8');
   assert(explore.includes(id)); assert(!explore.includes(hiddenId));
-  assert(!(await fs.readdir(path.join(destination, 'dist'))).includes('map'));
+  assert(release.files['map/index.html']);
+  assert(!(await fs.readFile(path.join(destination, 'dist/map/index.html'), 'utf8')).includes(hiddenId));
   await verifyRelease(destination,false); await assert.rejects(verifyRelease(destination,true),/provenance/);
   assert.equal(release.files['favicon.svg'],sha256(favicon));
   assert.deepEqual(await fs.readFile(path.join(destination,'dist/favicon.svg')),favicon);

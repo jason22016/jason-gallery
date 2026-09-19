@@ -6,8 +6,9 @@ import { FilterChip, filterIcons, filterLabels } from './FilterChip';
 import { EllipsisWithTooltip } from './ui/EllipsisWithTooltip';
 import { Icon } from './ui/Icon';
 
-export function SearchPanel({ options, fields, project, filters, count, onChange, onAction }: {
+export function SearchPanel({ options, fields, project, mapPage = false, filters, count, onChange, onAction }: {
   options: readonly FilterOption[]; fields: readonly FilterField[]; project: boolean;
+  mapPage?: boolean;
   filters: Filters; count: number; onChange: (filters: Filters) => void;
   onAction: (action: 'settings' | 'info' | 'map' | 'masonry' | 'list') => void;
 }) {
@@ -60,7 +61,7 @@ export function SearchPanel({ options, fields, project, filters, count, onChange
       <div className="date-fields"><label>开始日期<input type="date" value={filters.start} max={filters.end || undefined} onChange={event => update('start', event.target.value)} /></label><label>结束日期<input type="date" value={filters.end} min={filters.start || undefined} onChange={event => update('end', event.target.value)} /></label></div>
     </details>
     <details className="palette-actions"><summary><Icon name="settings-3" />图库操作</summary><div>
-      {([['settings', '显示设置'], ['map', '地图探索'], ['info', '项目信息'], ['masonry', '瀑布流'], ['list', '列表视图']] as const).filter(([action]) => project || (action !== 'map' && action !== 'info')).map(([action, label]) => <button type="button" key={action} onClick={() => onAction(action)}>{label}<Icon name="arrow-right" /></button>)}
+      {([['settings', '显示设置'], ['map', '地图探索'], ['info', '项目信息'], ['masonry', '瀑布流'], ['list', '列表视图']] as const).filter(([action]) => action === 'settings' || (action === 'info' ? project : !mapPage)).map(([action, label]) => <button type="button" key={action} onClick={() => onAction(action)}>{label}<Icon name="arrow-right" /></button>)}
     </div></details>
     <footer className="search-footer"><span className="keyboard-hint"><kbd>↑↓</kbd> 选择 <kbd>↵</kbd> 应用</span><div className="form-actions"><button type="button" onClick={() => { onChange(emptyFilters); setSelectedIndex(-1); }}>重置</button><button type="submit" className="primary-button">查看 {count} 张照片</button></div></footer>
   </form>;
