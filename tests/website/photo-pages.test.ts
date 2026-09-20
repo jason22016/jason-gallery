@@ -200,6 +200,8 @@ test('Photo Page enters the primary Project Viewer, retains media/metadata/navig
   await expect.poll(() => page.locator('.viewer-fallback').evaluate(image => new DOMMatrixReadOnly(getComputedStyle(image).transform).a)).toBe(1);
   await page.getByRole('button', { name: '照片信息', exact: true }).click();
   await expect(page.locator('.metadata-content')).toContainText('Fixture artist');
+  // MiniMap starts loading only when its lazy canvas enters the inspector viewport.
+  await page.locator('.viewer-minimap').scrollIntoViewIfNeeded();
   await expect(page.locator('.viewer-minimap')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
   assert.deepEqual(metadata, [server.url + photo.detailsUrl]);
   await page.getByRole('button', { name: '照片信息', exact: true }).click();

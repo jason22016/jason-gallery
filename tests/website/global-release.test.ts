@@ -103,10 +103,14 @@ test('mobile masonry restores the underlying scroll after refreshing an open Vie
   await page.goto(`${server.url}/explore/?tag=even`); await ready(page);
   await page.evaluate(() => scrollTo(0, 3000));
   await expect.poll(() => page.evaluate(() => scrollY)).toBe(3000);
-  const index = await page.locator('.gallery-live [data-gallery-index]').evaluateAll(nodes => nodes.find(node => {
-    const rect = node.getBoundingClientRect(); return rect.top >= 100 && rect.bottom < innerHeight - 20;
-  })?.getAttribute('data-gallery-index'));
-  assert(index);
+  // Scroll position updates before the virtualized window has rendered its cards.
+  let index: string | null | undefined;
+  await expect.poll(async () => {
+    index = await page.locator('.gallery-live [data-gallery-index]').evaluateAll(nodes => nodes.find(node => {
+      const rect = node.getBoundingClientRect(); return rect.top >= 100 && rect.bottom < innerHeight - 20;
+    })?.getAttribute('data-gallery-index'));
+    return index;
+  }, { message: 'a fully visible photo must render at the restored scroll position' }).toBeTruthy();
   await page.locator(`.gallery-live [data-gallery-index="${index}"]`).tap();
   await expect(page.locator('.photo-dialog')).toBeVisible();
   await page.reload(); await expect(page.locator('.photo-dialog')).toBeVisible();

@@ -372,7 +372,20 @@ test('hover metadata, full-card gradient, 1.05 reveal, compact rules, keyboard a
 });
 
 test('single-row mobile header exposes map and retains views in settings at narrow widths', async t => {
-  const { ctx, page } = await pageFor({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); t.after(() => ctx.close()); await ready(page);
+  const { ctx, page } = await pageFor({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  let completed = false;
+  t.after(async () => {
+    try {
+      if (completed) await ctx.tracing.stop();
+      else {
+        const diagnostics = path.join(repo, '.cache/website-diagnostics');
+        await fs.mkdir(diagnostics, { recursive: true });
+        await ctx.tracing.stop({ path: path.join(diagnostics, 'single-row-mobile-header.zip') });
+      }
+    } finally { await ctx.close(); }
+  });
+  await ctx.tracing.start({ screenshots: true, snapshots: true, sources: true });
+  await ready(page);
   await expect(page.locator('.gallery-header-content')).toHaveCSS('height', '48px');
   await expect(page.locator('.gallery-header')).toHaveCSS('z-index', '30');
   assert.equal(await page.locator('.linear-blur-layer').count(), 8);
@@ -392,15 +405,27 @@ test('single-row mobile header exposes map and retains views in settings at narr
     assert(first && first.y >= 52, 'photos start below the single-row header');
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   }
-  await page.getByRole('button', { name: '显示设置' }).tap();
-  await page.getByRole('dialog', { name: '显示设置' }).getByRole('button', { name: '列表视图' }).tap();
-  await page.getByRole('button', { name: '关闭面板', exact: true }).tap();
+  const settingsTrigger = page.getByRole('button', { name: '显示设置', exact: true });
+  const settings = page.getByRole('dialog', { name: '显示设置', exact: true });
+  const changeMobileView = async (name: '列表视图' | '瀑布流', view: 'list' | 'masonry') => {
+    await settingsTrigger.tap();
+    // The controls move with the drawer spring. Wait for its settled position
+    // before dispatching touch input on software-rendered CI browsers.
+    await expect(settings).toHaveCSS('transform', 'none');
+    const option = settings.getByRole('button', { name, exact: true });
+    await option.tap();
+    await expect(option).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => new URL(page.url()).searchParams.get('view')).toBe(view);
+    await settings.getByRole('button', { name: '关闭面板', exact: true }).tap();
+    await expect(settings).toHaveCount(0);
+    await expect(settingsTrigger).toHaveAttribute('aria-expanded', 'false');
+    await expect(settingsTrigger).toBeFocused();
+  };
+  await changeMobileView('列表视图', 'list');
   await expect(page.locator('.list-card').first()).toBeVisible();
   await page.reload();
   await expect(page.locator('.list-card').first()).toBeVisible();
-  await page.getByRole('button', { name: '显示设置' }).tap();
-  await page.getByRole('dialog', { name: '显示设置' }).getByRole('button', { name: '瀑布流' }).tap();
-  await page.getByRole('button', { name: '关闭面板', exact: true }).tap();
+  await changeMobileView('瀑布流', 'masonry');
   await expect(cards(page).first()).toBeVisible();
   await page.getByRole('button', { name: '地图探索', exact: true }).tap();
   await expect(page.getByRole('dialog', { name: '地图探索', exact: true })).toBeVisible();
@@ -418,6 +443,7 @@ test('single-row mobile header exposes map and retains views in settings at narr
   await page.screenshot({ path: path.join(screenshots, 'mobile.png') });
   await page.getByRole('button', { name: '项目信息' }).tap();
   await expect(page.getByRole('dialog', { name: '项目信息' })).toContainText('Project — 长标题');
+  completed = true;
 });
 
 test('Live/Motion/MOV play after 200ms hover, reset on leave/end and preserve card geometry', async t => {
