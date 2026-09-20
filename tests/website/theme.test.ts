@@ -137,6 +137,22 @@ test('all public pages and the native photo dialog share the theme on narrow scr
     const button = await toggle(page).boundingBox();
     assert(button && button.x >= 0 && button.x + button.width <= 390);
   }
+  const moonSpacing = await page.evaluate(() => {
+    const moon = document.querySelector('.site-theme-control .theme-moon')!.getBoundingClientRect();
+    const glyph = document.querySelector('.site-theme-control .theme-moon-light')!.getBoundingClientRect();
+    const toggle = document.querySelector('.site-theme-control .theme-toggle')!.getBoundingClientRect();
+    const arrow = document.querySelector('.site-theme-control .theme-menu > summary svg')!.getBoundingClientRect();
+    return { clipWidth: moon.width, glyphWidth: glyph.width, leftBuffer: glyph.left - moon.left,
+      rightBuffer: moon.right - glyph.right, separation: arrow.left - moon.right,
+      clipLeft: moon.left, clipRight: moon.right, toggleLeft: toggle.left, toggleRight: toggle.right };
+  });
+  assert.equal(moonSpacing.clipWidth, 26);
+  assert.equal(moonSpacing.glyphWidth, 22);
+  assert.equal(moonSpacing.leftBuffer, 2);
+  assert.equal(moonSpacing.rightBuffer, 2);
+  assert.equal(moonSpacing.separation, 17);
+  assert(moonSpacing.clipLeft >= moonSpacing.toggleLeft && moonSpacing.clipRight <= moonSpacing.toggleRight,
+    'the expanded moon clip stays inside its touch target');
   await ready(page, '/projects/fixture-beta/');
   await page.locator('[data-viewer-ready="true"]').waitFor({ state: 'attached' });
   await page.locator('.gallery-live [data-gallery-index="0"]').click();

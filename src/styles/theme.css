@@ -11,7 +11,7 @@
 :root[data-theme='dark'] { --theme-light: 0%; color-scheme: dark; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme]) { --theme-light: 0%; color-scheme: dark; } }
 
-.theme-control { display: inline-flex; align-items: center; flex-shrink: 0; position: relative; color: var(--color-text); }
+.theme-control { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; position: relative; color: var(--color-text); }
 .theme-control .theme-toggle, .theme-control .theme-menu > summary {
   display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0;
   color: inherit; background: transparent; border: 0; border-radius: 8px; cursor: pointer;
@@ -21,8 +21,8 @@
 .theme-menu > summary::-webkit-details-marker { display: none; }
 .theme-control .theme-toggle:hover, .theme-control .theme-menu > summary:hover { background: var(--color-fill-tertiary); }
 .theme-control :is(button, summary):focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-.theme-moon { --moon-size: 22px; display: block; width: var(--moon-size); height: var(--moon-size); overflow: hidden; font: var(--moon-size)/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; }
-.theme-moon-rest, .theme-moon-rest > span, .theme-moon-orbit > span { display: block; width: var(--moon-size); height: var(--moon-size); }
+.theme-moon { --moon-size: 22px; display: block; box-sizing: content-box; width: var(--moon-size); height: var(--moon-size); padding-inline: 2px; overflow: hidden; font: var(--moon-size)/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; }
+.theme-moon-rest, .theme-moon-rest > span, .theme-moon-orbit > span { display: block; width: var(--moon-size); height: var(--moon-size); text-align: center; }
 .theme-moon-dark, .theme-moon-orbit { display: none !important; }
 :root[data-theme='dark'] .theme-moon-light { display: none; }
 :root[data-theme='dark'] .theme-moon-dark { display: block !important; }
