@@ -384,8 +384,9 @@ test('Stats ships only aggregates and public scope metadata, with no Gallery, Vi
   await page.getByRole('button', { name: 'Year', exact: true }).click();
   await buckets(page, 'media').first().click();
   await expect(chart(page, 'media').getByRole('tooltip')).toBeVisible();
-  await expect(page.locator('astro-island[client]')).toHaveCount(1);
-  const props = await page.locator('astro-island[client]').getAttribute('props');
+  const statsIsland = page.locator('.gallery-main astro-island[client]');
+  await expect(statsIsland).toHaveCount(1);
+  const props = await statsIsland.getAttribute('props');
   assert(props);
   for (const field of ['exif', 'photos', 'capture', 's3Key', 'digest', 'regions', 'toneAnalysis', 'originalUrl', 'thumbnailUrl', 'detailsUrl', 'videoUrl', 'lastModified']) {
     assert(!props.includes(`"${field}"`), `Stats props must not contain per-photo field ${field}`);
