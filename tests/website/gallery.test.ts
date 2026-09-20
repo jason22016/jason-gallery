@@ -409,9 +409,10 @@ test('single-row mobile header exposes map and retains views in settings at narr
   const settings = page.getByRole('dialog', { name: '显示设置', exact: true });
   const changeMobileView = async (name: '列表视图' | '瀑布流', view: 'list' | 'masonry') => {
     await settingsTrigger.tap();
-    // The controls move with the drawer spring. Wait for its settled position
-    // before dispatching touch input on software-rendered CI browsers.
-    await expect(settings).toHaveCSS('transform', 'none');
+    // A cold 1023px ListView plus the drawer's backdrop blur can stall software
+    // rasterization beyond the ordinary assertion deadline. Keep the real spring
+    // and exact settled transform; give readiness the same budget as a cold map.
+    await expect(settings).toHaveCSS('transform', 'none', { timeout: browserReadyTimeout(15_000) });
     const option = settings.getByRole('button', { name, exact: true });
     await option.tap();
     await expect(option).toHaveAttribute('aria-pressed', 'true');
