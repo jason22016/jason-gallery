@@ -549,11 +549,18 @@ test('shared navigation exposes Projects / Explore / Map / Stats on desktop and 
       else if (pathname !== '/') await expect(page.locator('.gallery-live')).toBeVisible();
       const header = page.locator(pathname === '/' ? '.site-header' : pathname === '/stats/' ? '.stats-page .gallery-header' : '.gallery-live .gallery-header');
       const menu = header.locator('summary');
-      if (pathname !== '/') await menu.click();
+      if (pathname !== '/') {
+        if (mobile) await menu.tap(); else await menu.click();
+      }
       const nav = header.getByRole('navigation', { name: '网站导航' });
+      if (mobile && pathname !== '/') {
+        await menu.evaluate(element => element.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null })));
+        await expect(nav).toBeVisible();
+      }
       assert.deepEqual(await nav.getByRole('link').allTextContents(), ['Projects', 'Explore', 'Map', 'Stats']);
       await expect(nav.getByRole('link', { name: current, exact: true })).toHaveAttribute('aria-current', 'page');
-      await nav.getByRole('link', { name: 'Stats', exact: true }).click();
+      if (mobile) await nav.getByRole('link', { name: 'Stats', exact: true }).tap();
+      else await nav.getByRole('link', { name: 'Stats', exact: true }).click();
       await expect(page).toHaveURL(server.url + '/stats/');
       await expect(page.locator('[data-stats-ready]')).toHaveAttribute('data-stats-ready', 'true');
     }

@@ -15,7 +15,10 @@ export function SiteNavigation({ current, compact = false, state }: { current?: 
       event.currentTarget.querySelector('summary')?.focus();
     }
   }} onBlur={event => {
-    if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
+    // Mobile Safari can report a null relatedTarget while a link inside the
+    // menu is being tapped. Treat that as an unknown destination: closing the
+    // details element here removes the link before its click can navigate.
+    if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
   }}>
     <summary className="gallery-action" aria-label="网站导航" title="Projects / Explore / Map / Stats"><Icon name="list-ordered" /></summary>
     {links}
