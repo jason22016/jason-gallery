@@ -10,8 +10,9 @@ import { globalGalleryHref } from '../gallery/url-state';
 import { Icon } from '../gallery/ui/Icon';
 import { LinearDivider } from '../gallery/ui/LinearDivider';
 import { useReducedMotion } from '../gallery/ui/useReducedMotion';
+import { FocalLengthChart } from './FocalLengthChart';
 import { DistributionBars, ProportionBar, RankedBars, TimelineChart, TimeOfDayChart } from './StatsVisualizations';
-import { statsGalleryState, statsPeriodURL, statsResultFromSearch, statsScopeURL } from './url-state';
+import { statsFocalIntervalFromSearch, statsFocalIntervalURL, statsGalleryState, statsPeriodURL, statsResultFromSearch, statsScopeURL } from './url-state';
 import './StatsPage.css';
 
 const subscribe = (notify: () => void) => {
@@ -30,7 +31,6 @@ const exposureNumber = new Intl.NumberFormat('en', { maximumSignificantDigits: 5
 const dateLabel = (date: string | null) => date ? date.slice(0, 10).replaceAll('-', ' / ') : 'Not recorded';
 const mediaLabels = { hdr: 'HDR', sdr: 'SDR', 'live-photo': 'Live Photo', 'motion-photo': 'Motion Photo', still: 'Still', landscape: 'Landscape', portrait: 'Portrait', square: 'Square' };
 const shutterLabel = (seconds: number) => seconds < 1 && Number.isFinite(1 / seconds) ? `1/${exposureNumber.format(1 / seconds)} s` : `${exposureNumber.format(seconds)} s`;
-const focalLabel = (value: number) => `${number.format(value)} mm`;
 const apertureLabel = (value: number) => `ƒ/${number.format(value)}`;
 const isoLabel = (value: number) => `ISO ${integer.format(value)}`;
 const hourLabel = (value: number) => `${String(value).padStart(2, '0')}:00`;
@@ -95,6 +95,7 @@ export default function StatsPage({ data }: { data: PhotographyStatsPageData }) 
   const result = search === null ? undefined : statsResultFromSearch(search, data);
   const scope = result?.project?.slug ?? (result ? 'all' : 'unavailable');
   const period = new URLSearchParams(search ?? '').get('period') === 'year' ? 'year' : 'month';
+  const focalInterval = statsFocalIntervalFromSearch(search ?? '');
   const [panel, setPanel] = useState(false);
   const [panelRequest, setPanelRequest] = useState(0);
   const anchor = useRef<HTMLButtonElement>(null);
@@ -125,7 +126,7 @@ export default function StatsPage({ data }: { data: PhotographyStatsPageData }) 
         </div></section>
         <LinearDivider />
         <section className="stats-section" aria-labelledby="focal-heading"><header className="stats-section-heading"><span className="stats-eyebrow">02 / Perspective</span><h2 id="focal-heading">Focal Length</h2><p>As shown in the gallery: 35mm equivalent where recorded, otherwise the recorded focal length.</p></header>
-          <DistributionBars id="focal-length" title="Focal length distribution" distribution={stats.focalLength} formatValue={focalLabel} />
+          <FocalLengthChart distribution={stats.focalLength} interval={focalInterval} onIntervalChange={next => writeURL(statsFocalIntervalURL(new URL(location.href), next))} />
         </section>
         <LinearDivider />
         <section className="stats-section" aria-labelledby="exposure-heading"><header className="stats-section-heading"><span className="stats-eyebrow">03 / Light</span><h2 id="exposure-heading">Exposure</h2></header><div className="stats-three-column">

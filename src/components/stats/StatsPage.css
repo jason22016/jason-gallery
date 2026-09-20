@@ -35,6 +35,15 @@
 .stats-period-control { display: flex; gap: 4px; padding: 4px; width: fit-content; margin-bottom: 24px; border-radius: 8px; background: var(--color-material-thin); backdrop-filter: blur(var(--gallery-blur-panel)); border: .5px solid var(--gallery-border); }
 .gallery-page .stats-period-control button { padding: 4px 12px; min-height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--color-text-secondary); font-size: 12px; }
 .gallery-page .stats-period-control button[aria-pressed='true'] { color: var(--color-accent); background: var(--gallery-wash); }
+.stats-focal-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 24px; }
+.stats-focal-presets { flex-wrap: wrap; max-width: 100%; margin: 0; }
+.gallery-page .stats-focal-presets button { min-width: 44px; min-height: 36px; padding-inline: 6px; white-space: nowrap; }
+.stats-focal-custom { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--color-text-secondary); font-size: 12px; }
+.stats-focal-input { display: flex; align-items: center; gap: 4px; padding-right: 8px; border: .5px solid var(--gallery-border); border-radius: 8px; background: var(--color-material-thin); backdrop-filter: blur(var(--gallery-blur-panel)); -webkit-backdrop-filter: blur(var(--gallery-blur-panel)); }
+.stats-focal-input input { width: 72px; min-width: 0; min-height: 36px; padding: 4px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--color-text); font: 13px var(--gallery-font-mono); }
+.gallery-page .stats-focal-custom button { min-height: 36px; padding: 4px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--color-text-secondary); font-size: 12px; }
+.gallery-page .stats-focal-custom button:hover { color: var(--color-text); background: var(--gallery-wash); }
+.stats-focal-length .stats-chart-value { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .stats-section [data-stats-chart='shooting-hours'] { margin-top: 36px; }
 .stats-footer { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; padding-top: 28px; color: var(--color-text-secondary); font-size: 12px; line-height: 1.8; }
 .stats-footer p { max-width: 620px; }
@@ -58,6 +67,8 @@
 }
 @media (pointer: coarse) {
   .stats-context-link { min-height: 44px; }
+  .gallery-page .stats-focal-presets button, .gallery-page .stats-focal-custom button, .stats-focal-input input { min-height: 44px; }
+  .stats-focal-input input { font-size: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .stats-context-link { transition: none; }

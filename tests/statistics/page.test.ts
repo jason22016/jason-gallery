@@ -12,6 +12,7 @@ import { resolvePhotographyStats, type PhotographyStats, type StatsDistribution 
 import { readGalleryState } from '../../src/components/gallery/url-state';
 import { selectPhotos } from '../../src/components/gallery/filters';
 import { installMapFixture } from '../website/map-fixture';
+import { groupFocalLengths } from '../../src/components/stats/focal-length';
 
 const expect = baseExpect.configure({ timeout: browserReadyTimeout(5_000) });
 // Stats runs alongside the other Statistics tests and can also run alongside Website.
@@ -73,16 +74,16 @@ async function overview(page: Page, stats: PhotographyStats) {
   await expect(page.locator('[data-stat="date-range"]')).toBeVisible();
   await expect(page.locator('[data-stat="date-range"]')).toHaveAttribute('data-value', `${stats.captureDateRange.start ?? ''}/${stats.captureDateRange.end ?? ''}`);
 }
-function distributions(stats: PhotographyStats, period: 'month' | 'year' = 'month'): [string, StatsDistribution<string | number>][] {
+function distributions(stats: PhotographyStats, period: 'month' | 'year' = 'month', focalInterval = 10): [string, StatsDistribution<string | number>][] {
   return [
-    ['cameras', stats.cameras], ['lenses', stats.lenses], ['focal-length', stats.focalLength],
+    ['cameras', stats.cameras], ['lenses', stats.lenses], ['focal-length', groupFocalLengths(stats.focalLength, focalInterval)],
     ['aperture', stats.aperture], ['iso', stats.iso], ['shutter-speed', stats.shutterSpeed],
     ['timeline', period === 'month' ? stats.months : stats.years], ['shooting-hours', stats.shootingHours],
     ['dynamic-range', stats.dynamicRange], ['media', stats.media], ['orientation', stats.orientation],
   ];
 }
-async function assertCharts(page: Page, stats: PhotographyStats, period: 'month' | 'year' = 'month') {
-  for (const [id, distribution] of distributions(stats, period)) {
+async function assertCharts(page: Page, stats: PhotographyStats, period: 'month' | 'year' = 'month', focalInterval = 10) {
+  for (const [id, distribution] of distributions(stats, period, focalInterval)) {
     await expect(chart(page, id)).toBeVisible();
     await expect(chart(page, id)).toHaveAttribute('data-stats-samples', String(distribution.sampleCount));
     await expect(chart(page, id)).toHaveAttribute('data-stats-missing', String(distribution.missingCount));
@@ -91,7 +92,7 @@ async function assertCharts(page: Page, stats: PhotographyStats, period: 'month'
     })));
     const expected = distribution.buckets.map(bucket => ({ ...bucket, value: String(bucket.value) }));
     const byValue = (a: { value: string | null }, b: { value: string | null }) => String(a.value).localeCompare(String(b.value));
-    assert.deepEqual(actual.sort(byValue), expected.sort(byValue), `${id} must consume the Statistics Engine's aggregate buckets`);
+    assert.deepEqual(actual.sort(byValue), expected.sort(byValue), `${id} must preserve the Statistics Engine's aggregate counts at the selected interval`);
   }
   assert(!/NaN|Infinity/.test(await page.locator('[data-stats-ready]').innerText()));
   assert.equal(await page.locator('[data-stats-ready] [style]').evaluateAll(nodes => nodes.some(node => /NaN|Infinity/.test(node.getAttribute('style') ?? ''))), false);
@@ -198,6 +199,73 @@ test('draft, unknown, malformed and ambiguous Project URLs never become a statis
     await expect(page).toHaveURL(/\/stats\/$/);
     await overview(page, engineStats());
   }
+});
+
+test('focal interval presets and custom values regroup counts and restore through scope, refresh and history', async t => {
+  const { ctx, page } = await pageFor(); t.after(() => ctx.close());
+  await ready(page, '?period=year');
+  const presets = page.getByRole('group', { name: 'Focal length interval', exact: true });
+  await expect(presets.getByRole('button', { name: '10 mm', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await buckets(page, 'focal-length').first().click();
+  await presets.getByRole('button', { name: '50 mm', exact: true }).click();
+  await expect(chart(page, 'focal-length').locator('[aria-pressed="true"]')).toHaveCount(0);
+  await assertCharts(page, engineStats(), 'year', 50);
+  assert.equal(new URL(page.url()).searchParams.get('focalInterval'), '50');
+  const custom = page.getByRole('spinbutton', { name: 'Custom focal length interval (mm)' });
+  await custom.fill('25'); await custom.press('Enter');
+  await expect(presets.locator('[aria-pressed="true"]')).toHaveCount(0);
+  await assertCharts(page, engineStats(), 'year', 25);
+  const first = buckets(page, 'focal-length').first();
+  await first.focus(); await first.press('Enter');
+  await expect(chart(page, 'focal-length').getByRole('tooltip')).toContainText('0–<25 mm');
+  await expect(first).toHaveAttribute('aria-pressed', 'true');
+  await custom.fill('75');
+  await assertCharts(page, engineStats(), 'year', 25);
+  await custom.press('Escape'); await expect(custom).toHaveValue('25');
+  const url = page.url();
+  for (const invalid of ['', '0', '1.5', '1001']) {
+    await custom.fill(invalid); await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    assert.equal(page.url(), url);
+    assert.equal(await custom.evaluate(input => (input as HTMLInputElement).validity.valid), false);
+  }
+  await custom.fill('25');
+  await page.reload();
+  await expect(custom).toHaveValue('25');
+  await assertCharts(page, engineStats(), 'year', 25);
+  await chooseScope(page, 'Fixture — ordered gallery');
+  await assertCharts(page, engineStats('fixture-beta'), 'year', 25);
+  await page.goBack(); await assertCharts(page, engineStats(), 'year', 25);
+  await page.goBack(); await assertCharts(page, engineStats(), 'year', 50);
+  await page.goForward(); await assertCharts(page, engineStats(), 'year', 25);
+  await expect(custom).toHaveValue('25');
+  await presets.getByRole('button', { name: '10 mm', exact: true }).click();
+  assert.equal(new URL(page.url()).searchParams.has('focalInterval'), false);
+  await assertCharts(page, engineStats(), 'year');
+});
+
+test('focal interval controls support narrow touch screens, keyboard focus and reduced motion', async t => {
+  const { ctx, page } = await pageFor({ viewport: { width: 320, height: 740 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  await ready(page);
+  const preset = page.getByRole('group', { name: 'Focal length interval', exact: true }).getByRole('button', { name: '20 mm', exact: true });
+  await preset.tap(); await expect(preset).toHaveAttribute('aria-pressed', 'true');
+  assert((await preset.boundingBox())!.height >= 44);
+  const presetRows = await page.getByRole('group', { name: 'Focal length interval', exact: true }).getByRole('button').evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().top)));
+  assert.equal(new Set(presetRows).size, 1, 'All five presets fit on one row at 320px');
+  const custom = page.getByRole('spinbutton', { name: 'Custom focal length interval (mm)' });
+  await custom.fill('75'); await custom.press('Tab');
+  const apply = page.getByRole('button', { name: 'Apply', exact: true });
+  await expect(apply).toBeFocused();
+  assert.equal(await apply.evaluate(node => getComputedStyle(node).outlineStyle), 'solid');
+  await apply.tap();
+  await assertCharts(page, engineStats(), 'month', 75);
+  assert.equal(await chart(page, 'focal-length').locator('.stats-chart-fill').evaluateAll(nodes => nodes.some(node => node.getAnimations({ subtree: true }).some(animation => animation.playState === 'running'))), false);
+  await buckets(page, 'focal-length').first().tap();
+  await expect(chart(page, 'focal-length').getByRole('tooltip')).toContainText('0–<75 mm');
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+  await page.getByRole('region', { name: 'Focal Length', exact: true }).screenshot({ path: path.join(root, 'stats-focal-mobile.png') });
+  await chooseScope(page, 'Fixture — missing metadata');
+  await expect(custom).toHaveValue('75');
+  await expect(chart(page, 'focal-length').locator('[data-stats-empty]')).toBeVisible();
 });
 
 test('desktop hover and keyboard reveal details; click selection persists until Escape or scope change', async t => {

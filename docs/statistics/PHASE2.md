@@ -32,6 +32,14 @@ count、percentage、sampleCount、missingCount、coveragePercentage；排名排
 图形尺寸只是展示转换，不生成第二套统计结果。缺失数据单独显示，不伪造零值 EXIF。
 日期和小时保留拍摄时钟，不转换为浏览器时区。焦距文案明确沿用 Gallery 的混合口径。
 
+焦距图后续增加了展示区间：默认 10 mm，预设 1 / 5 / 10 / 20 / 50 mm，可输入
+1–1000 mm 的整数自定义值，点击 Apply 或按 Enter 应用。`FocalLengthChart` 只合并
+已有公开 aggregate buckets 的计数；覆盖率、缺失数量和引擎结果不变，也不读取照片。
+区间从 0 对齐，左闭右开，仅展示有照片的区间，并在图表说明及详情中明确边界。
+`focalInterval` 查询参数复用 Stats 的 URL 订阅及历史更新方式；默认值省略参数，
+scope / period 切换、刷新、Back / Forward 均保留或恢复间隔。计算按输入聚合及间隔
+记忆化，空区间不会随焦距跨度大量分配；触控目标至少 44px，保留键盘和 reduced motion。
+
 每个 bucket 都有原生按钮、完整 accessible name、可见值和 count。hover / focus
 显示玻璃详情区；tap、Enter、Space 固定选择；再次选择或 Escape 清除。方向键及
 Home / End 移动焦点。切换 scope 清理旧选择。横向较长的分布在自己的图表内滚动，

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { statsPeriodURL, statsResultFromSearch, statsScopeURL } from '../../src/components/stats/url-state';
+import { statsFocalIntervalFromSearch, statsFocalIntervalURL, statsPeriodURL, statsResultFromSearch, statsScopeURL } from '../../src/components/stats/url-state';
 import { allPhotographyStatsScope, resolvePhotographyStats } from '../../src/statistics';
 import type { PhotographyStatsPageData } from '../../src/website/photography-stats';
 import { assertDeepFrozen, publicFixture, statsPhoto } from './fixtures';
@@ -120,4 +120,29 @@ test('scope and period history entries can be replayed backward and forward from
   assert.equal(start.searchParams.has('project'), false);
   assert.equal(first.searchParams.has('period'), false);
   assert.equal(yearly.searchParams.get('period'), 'year');
+});
+
+test('focal interval URLs accept bounded whole millimetres and default safely for invalid or ambiguous input', () => {
+  for (const interval of [1, 5, 10, 20, 25, 50, 75, 1000]) assert.equal(statsFocalIntervalFromSearch(`?focalInterval=${interval}`), interval);
+  for (const search of ['', '?focalInterval=', '?focalInterval=0', '?focalInterval=-5', '?focalInterval=1.5', '?focalInterval=1001', '?focalInterval=Infinity', '?focalInterval=1e2', '?focalInterval=20&focalInterval=50']) {
+    assert.equal(statsFocalIntervalFromSearch(search), 10, search);
+  }
+});
+
+test('focal interval changes preserve scope, period and other URL state; returning to the default removes only that parameter', () => {
+  const current = new URL('https://gallery.example/stats/?project=second&period=year&focalInterval=5&focalInterval=20&tag=a&tag=b#focal-heading');
+  const original = current.href;
+  const custom = statsFocalIntervalURL(current, 25);
+  assert.deepEqual(custom.searchParams.getAll('focalInterval'), ['25']);
+  assert.equal(custom.searchParams.get('project'), 'second');
+  assert.equal(custom.searchParams.get('period'), 'year');
+  assert.deepEqual(custom.searchParams.getAll('tag'), ['a', 'b']);
+  assert.equal(custom.hash, '#focal-heading');
+  const nextScope = statsScopeURL(custom, { type: 'project', slug: 'first' });
+  const nextPeriod = statsPeriodURL(nextScope, 'month');
+  assert.equal(statsFocalIntervalFromSearch(nextPeriod.search), 25);
+  const defaultInterval = statsFocalIntervalURL(nextPeriod, 10);
+  assert.equal(defaultInterval.searchParams.has('focalInterval'), false);
+  assert.equal(defaultInterval.searchParams.get('project'), 'first');
+  assert.equal(current.href, original);
 });

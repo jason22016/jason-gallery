@@ -11,6 +11,7 @@ export interface StatsVisualizationProps<T extends string | number> {
   title: string;
   distribution: StatsDistribution<T>;
   formatValue?: (value: T) => string;
+  formatTick?: (value: T) => string;
   description?: string;
   emptyLabel?: string;
   onSelectionChange?: (bucket: StatsBucket<T> | null) => void;
@@ -29,7 +30,7 @@ const calendarIndex = (value: string | number) => typeof value === 'number'
   : /^\d{4}-(0[1-9]|1[0-2])$/.test(value) ? Number(value.slice(0, 4)) * 12 + Number(value.slice(5)) - 1 : NaN;
 
 function StatsChartView<T extends string | number>({
-  id, title, distribution, formatValue = String, description, emptyLabel, onSelectionChange, exploreHrefs, variant,
+  id, title, distribution, formatValue = String, formatTick = formatValue, description, emptyLabel, onSelectionChange, exploreHrefs, variant,
 }: StatsVisualizationProps<T> & { variant: Visualization }) {
   const reduced = useReducedMotion();
   const root = useRef<HTMLElement>(null);
@@ -133,7 +134,7 @@ function StatsChartView<T extends string | number>({
           transition={transition}
         />
       </span>}
-      {variant !== 'ranked' && <span className="stats-chart-value">{label}</span>}
+      {variant !== 'ranked' && <span className="stats-chart-value">{formatTick(bucket.value)}</span>}
       {variant === 'ranked' && <span className="stats-ranked-percentage">{percentText(percentage)}</span>}
       {variant === 'proportion' && <span className="stats-proportion-count">{countText(count)} · {percentText(percentage)}</span>}
     </m.button>;
