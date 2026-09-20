@@ -14,6 +14,6 @@ export const getStaticPaths = (() => {
 interface Props { photo: PublicPhotoPage; }
 const { photo } = Astro.props;
 ---
-<SiteLayout title={photo.title || `照片 · ${photo.primaryProject.title}`} description={photoDescription(photo)} image={photo.image} gallery noindex shareable>
+<SiteLayout title={photo.title || `照片 · ${photo.primaryProject.title}`} description={photoDescription(photo)} image={photo.image} gallery noindex shareable themeControl={false}>
   <PhotoSharePage photo={photo} />
 </SiteLayout>

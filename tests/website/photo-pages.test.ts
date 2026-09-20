@@ -16,6 +16,7 @@ import { assertPublicOutput, publicOutputPaths } from '../../src/website/public-
 import { loadProjects } from '../../src/projects';
 import { photoDescription } from '../../src/website/seo';
 import { installMapFixture, openMapPhotoList } from './map-fixture';
+import { expectColor } from './viewer-assertions';
 
 const expect = baseExpect.configure({ timeout: browserReadyTimeout(5_000) });
 const root = path.join(repo, '.cache/photo-pages-fixture');
@@ -315,7 +316,7 @@ test('minimal Photo Page uses existing chrome, handles missing fields and opens 
   assert.equal(await page.locator('.photo-share-facts').innerText(), '日期\n2024-03-02\nCamera\nNIKON Z6\nLens\n35mm');
   assert.equal(await page.locator('.photo-share-preview img').evaluate(image => (image as HTMLImageElement).naturalWidth > 0), true);
   assert.equal(await page.locator('body').evaluate(element => getComputedStyle(element).fontFamily.includes('Geist')), true);
-  assert.equal(await page.locator('.photo-share-open').evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(0, 122, 255)');
+  await expectColor(page.locator('.photo-share-open'), 'background-color', '#006bd6');
   assert(!requests.some(url => /\/originals\/|\/photos\/[^/]+\.json|PhotoViewer|PhotoGallery/.test(url)), 'landing page must not load the Viewer or details');
   await fs.mkdir(path.join(root, 'screenshots'), { recursive: true });
   for (const width of [1280, 390]) {

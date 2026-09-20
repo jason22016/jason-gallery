@@ -4,8 +4,8 @@ import { ThemeControl } from '../components/ThemeControl';
 import themeBootstrap from '../theme/bootstrap.js?raw';
 import { SiteNavigation } from '../components/SiteNavigation';
 import { canonicalURL, DEFAULT_SHARE_IMAGE, NOINDEX, SITE_DESCRIPTION, SITE_NAME, textSummary } from '../website/seo';
-interface Props { title?: string; description?: string; gallery?: boolean; noindex?: boolean; shareable?: boolean; image?: { path: string; alt: string }; }
-const { title, description = SITE_DESCRIPTION, gallery = false, noindex = false, shareable = !noindex, image = { path: DEFAULT_SHARE_IMAGE, alt: `${SITE_NAME} — Photography` } } = Astro.props;
+interface Props { title?: string; description?: string; gallery?: boolean; noindex?: boolean; shareable?: boolean; themeControl?: boolean; image?: { path: string; alt: string }; }
+const { title, description = SITE_DESCRIPTION, gallery = false, noindex = false, shareable = !noindex, themeControl = true, image = { path: DEFAULT_SHARE_IMAGE, alt: `${SITE_NAME} — Photography` } } = Astro.props;
 const pageTitle = title ? `${title.trim()} — ${SITE_NAME}` : `${SITE_NAME} — Photography`;
 const pageDescription = textSummary(description) || SITE_DESCRIPTION;
 const canonical = shareable ? canonicalURL(Astro.url.pathname, Astro.site) : undefined;
@@ -42,7 +42,7 @@ const shareImage = Astro.site && shareable ? new URL(image.path, Astro.site).hre
   </head>
   <body class={gallery ? 'gallery-page' : 'portfolio-page'}>
     <a class="skip-link" href="#main">跳至内容</a>
-    <div class="site-theme-control"><ThemeControl client:load /></div>
+    {themeControl && <div class="site-theme-control"><ThemeControl client:load /></div>}
     {!gallery && <header class="site-header shell"><a class="wordmark" href="/" aria-label="Jason Gallery 首页">Jason Gallery<span>.</span></a><SiteNavigation current={Astro.url.pathname === '/' ? 'projects' : undefined} /></header>}
     <main id="main" class={gallery ? 'gallery-main' : 'shell'} tabindex="-1"><slot /></main>
     {!gallery && <footer class="site-footer shell"><span>© Jason Gallery</span><a href="/">Projects</a></footer>}

@@ -36,6 +36,9 @@ The moon button displays 🌕 in light mode and 🌑 in dark mode. Its transitio
 🌑🌒🌓🌔🌕 and 🌕🌖🌗🌘🌑. The adjacent menu offers 🌓 system, 🌕 light and 🌑 dark.
 The button lives on the page and in the admin; the photo viewer inherits the theme
 without adding another theme control to its toolbar.
+Static `/photos/<public-id>/` share pages also inherit the pre-paint preference and
+system fallback, but omit the interactive control so their zero-hydration, no
+external JavaScript release contract remains intact.
 Manual choices persist under `jason-gallery:theme` in localStorage and synchronize
 across same-origin tabs. System changes animate only while system mode is selected.
 Storage restrictions leave switching usable for the current page. A pre-paint

@@ -389,7 +389,7 @@ test('Light home: responsive cover geometry, hover/focus overlay, and two delibe
   const mobile = await touchContext.newPage(); await mobile.goto(server.url);
   const first = mobile.locator('.project-link').first();
   await first.tap(); await expect(first).toHaveAttribute('data-revealed', 'true'); await expect(mobile).toHaveURL(`${server.url}/`);
-  await mobile.locator('.site-header').tap({ position: { x: 300, y: 60 } }); await expect(first).not.toHaveAttribute('data-revealed', 'true');
+  await mobile.locator('.site-header').tap({ position: { x: 300, y: 110 } }); await expect(first).not.toHaveAttribute('data-revealed', 'true');
   await first.tap(); await first.tap(); await expect(mobile).toHaveURL(/projects\/fixture-beta\/$/);
 });
 

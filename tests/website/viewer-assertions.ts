@@ -1,19 +1,23 @@
 import assert from 'node:assert/strict';
 import type { Locator, Page } from 'playwright';
 import { expect } from 'playwright/test';
+import { browserReadyTimeout } from '../browser';
 
 /** Compare rendered color channels, including color-mix() and legacy rgb syntax. */
 export async function expectColor(locator: Locator, property: string, expected: string) {
-  await expect.poll(() => locator.evaluate((element, [property, expected]) => {
+  const channels = (element: Element, value: string) => {
+    const context = document.createElement('canvas').getContext('2d')!;
+    context.fillStyle = value;
+    context.fillRect(0, 0, 1, 1);
+    return [...context.getImageData(0, 0, 1, 1).data];
+  };
+  const target = await locator.evaluate(channels, expected);
+  await expect.poll(() => locator.evaluate((element, property) => {
     const context = document.createElement('canvas').getContext('2d')!;
     context.fillStyle = getComputedStyle(element).getPropertyValue(property!);
     context.fillRect(0, 0, 1, 1);
-    const actual = [...context.getImageData(0, 0, 1, 1).data].join(',');
-    context.clearRect(0, 0, 1, 1);
-    context.fillStyle = expected!;
-    context.fillRect(0, 0, 1, 1);
-    return actual === [...context.getImageData(0, 0, 1, 1).data].join(',');
-  }, [property, expected])).toBe(true);
+    return [...context.getImageData(0, 0, 1, 1).data];
+  }, property), { timeout: browserReadyTimeout(5_000) }).toEqual(target);
 }
 
 /** Blob URLs are opaque: verify actual bytes and the retained original-link

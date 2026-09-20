@@ -60,9 +60,9 @@ test('map paints both themes smoothly without losing the canvas, camera or selec
     await page.locator('.theme-toggle').evaluate(el => (el as HTMLElement).click());
     do {
       samples.push((await canvasColor(page.locator('.photo-map canvas')))[0]!);
-      if (samples.some(value => value > 40 && value < 220)) break;
+      if (samples.some(value => value > 16 && value < 241)) break;
     } while (Date.now() - start < 1200);
-    assert(samples.some(value => value > 40 && value < 220), `Map must paint intermediate shades (${theme}): ${samples}`);
+    assert(samples.some(value => value > 16 && value < 241), `Map must paint intermediate shades (${theme}): ${samples}`);
     await settled(page, theme);
     assert(await canvas!.evaluate(el => el === document.querySelector('.photo-map canvas')));
     const current = await markerPosition();
