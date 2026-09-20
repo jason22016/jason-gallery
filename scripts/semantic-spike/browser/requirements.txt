@@ -1,0 +1,4 @@
+# Install into the existing Phase 1 venv, not global Python.
+onnx==1.19.0
+onnxruntime==1.23.2
+onnxconverter-common==1.16.0

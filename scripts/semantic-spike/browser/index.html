@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>SigLIP2 text-only browser spike</title>
+<style>body{max-width:1050px;margin:40px auto;padding:20px;font:16px system-ui;background:#15171b;color:#e8e8eb}button,select,input{font:inherit;padding:10px;margin:5px;border:1px solid #657084;border-radius:6px}input{width:60%}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#22262d;padding:20px}small{color:#aab2c0}</style>
+<h1>SigLIP2 · text-only browser spike</h1>
+<p>隔离实验：固定 revision 的 text tower + 原 tokenizer，768 维；图像向量复用 Phase 1。</p>
+<p><select id="variant"><option>int8wo</option><option>fp16</option><option>int8</option><option>fp32</option></select>
+<select id="backend"><option>auto</option><option>webgpu</option><option>wasm</option></select><button id="run">Cold load + benchmark</button></p>
+<p><input id="query" placeholder="输入中文或英文照片描述"><button id="search" disabled>Query</button></p>
+<small>首次加载会下载数百 MB 到约 1.2 GB 的 text-only 模型。此 harness 禁用 HTTP cache，实测 cold transfer；模型常驻后测 warm query。不会请求视觉塔或完整 checkpoint。</small>
+<pre id="status">Ready</pre><pre id="results"></pre>
+<script type="module" src="/app.mjs"></script>
