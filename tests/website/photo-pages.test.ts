@@ -329,7 +329,7 @@ test('minimal Photo Page uses existing chrome, handles missing fields and opens 
     await page.screenshot({ path: path.join(root, `screenshots/photo-page-${width}.png`), fullPage: true });
   }
   await page.locator('summary[aria-label="网站导航"]').click();
-  assert.deepEqual(await page.locator('.site-navigation a').allTextContents(), ['Projects', 'Explore', 'Map']);
+  assert.deepEqual(await page.locator('.site-navigation a').allTextContents(), ['Projects', 'Explore', 'Map', 'Stats']);
   await page.locator('summary[aria-label="网站导航"]').click();
   await page.getByRole('link', { name: '查看原图 · Open in Viewer', exact: true }).click();
   await expect(page.locator('.photo-dialog')).toBeVisible();

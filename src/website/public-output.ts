@@ -17,7 +17,7 @@ export function photoAssetPaths(photo: Pick<PhotoManifestItem, 'thumbnailUrl' | 
 
 export function publicOutputPaths(projects: readonly ResolvedProject[]): Set<string> {
   return new Set([
-    'index.html', 'explore/index.html', 'map/index.html', '404.html', 'health.txt', 'favicon.svg', 'sitemap.xml', 'robots.txt', '_headers', 'social/default.jpg',
+    'index.html', 'explore/index.html', 'map/index.html', 'stats/index.html', '404.html', 'health.txt', 'favicon.svg', 'sitemap.xml', 'robots.txt', '_headers', 'social/default.jpg',
     ...resolvePublicPhotoCollection({ listProjects: () => projects }).listPhotos().map(photo => `${photo.sharePath.slice(1)}index.html`),
     ...projects.filter(project => project.status === 'published').flatMap(project => [
       `projects/${project.slug}/index.html`,

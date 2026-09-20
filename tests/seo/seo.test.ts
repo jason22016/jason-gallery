@@ -94,7 +94,7 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
     if (parsed.querySelector('parsererror')) throw new Error('Invalid sitemap XML');
     return [...parsed.querySelectorAll('loc')].map(node => node.textContent);
   }, sitemap);
-  assert.deepEqual(entries, ['/', '/explore/', '/map/', ...urls.slice(1)].map(url => origin + url));
+  assert.deepEqual(entries, ['/', '/explore/', '/map/', '/stats/', ...urls.slice(1)].map(url => origin + url));
   await page.goto(`${server.url}/explore/?project=fixture-beta&photo=selected&tag=city#viewer`);
   assert.equal(await page.title(), 'Explore — Jason Gallery');
   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), `${origin}/explore/`);
@@ -188,7 +188,7 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), `${DEFAULT_SITE_URL}/`);
   const fallback = await sharp(path.join(dist, 'social/default.jpg')).metadata();
   assert.equal(fallback.format, 'jpeg'); assert.equal(fallback.width, 1200); assert.equal(fallback.height, 630);
-  assert.equal(((await fs.readFile(path.join(dist, 'sitemap.xml'), 'utf8')).match(/<loc>/g) ?? []).length, 3);
+  assert.equal(((await fs.readFile(path.join(dist, 'sitemap.xml'), 'utf8')).match(/<loc>/g) ?? []).length, 4);
   assert.equal((await fetch(`${server.url}/projects/fixture-beta/`)).status, 404);
   assert.equal((await fetch(`${server.url}/photos/${shortPublicPhotoId(fixture.photos[0]!.photoId)}/`)).status, 404);
   assert(!(await fs.readdir(dist, { recursive: true })).some(file => /^photos\/[^/]+\/index\.html$/.test(file)));

@@ -1,0 +1,26 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import StatsPage from '../components/stats/StatsPage';
+import { loadPhotographyStatsPageData } from '../website/photography-stats';
+import '../styles/photo-tokens.css';
+import '../styles/gallery.css';
+import '../components/gallery/GalleryIcons.css';
+
+const data = loadPhotographyStatsPageData();
+---
+<SiteLayout title="Photography Stats" description="Explore the cameras, focal lengths, exposure and rhythms behind Jason Gallery’s published photographs." gallery>
+  <StatsPage data={data} client:load />
+  <noscript>
+    <style is:inline>.stats-scope-line, .stats-state { display: none; }</style>
+    <section class="stats-noscript" aria-label="All Photos overview">
+      <h2>All Photos</h2>
+      <dl>
+        <dt>Photos</dt><dd data-stat="photos" data-value={data.all.stats.photoCount}>{data.all.stats.photoCount}</dd>
+        <dt>Projects</dt><dd data-stat="projects" data-value={data.all.stats.projectCount}>{data.all.stats.projectCount}</dd>
+        <dt>Geotagged</dt><dd data-stat="geotagged" data-value={data.all.stats.geotagged.count}>{data.all.stats.geotagged.count}</dd>
+        <dt>Date Range</dt><dd data-stat="date-range">{data.all.stats.captureDateRange.start?.slice(0, 10) ?? 'Not recorded'} — {data.all.stats.captureDateRange.end?.slice(0, 10) ?? 'Not recorded'}</dd>
+      </dl>
+      <p>Enable JavaScript to apply a project scope from a link and explore the interactive distributions.</p>
+    </section>
+  </noscript>
+</SiteLayout>
