@@ -105,6 +105,22 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
   assert.equal(await page.title(), 'Global Map — Jason Gallery');
   assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), `${origin}/map/`);
   assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), `${origin}/map/`);
+  for (const query of ['', '?project=fixture-beta&period=year#when']) {
+    await page.goto(`${server.url}/stats/${query}`);
+    assert.equal(await page.title(), 'Photography Stats — Jason Gallery');
+    assert.equal(await page.locator('link[rel="canonical"]').count(), 1);
+    assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), `${origin}/stats/`);
+    assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), `${origin}/stats/`);
+    assert.equal(await page.locator('meta[property="og:title"]').getAttribute('content'), await page.title());
+    const description = await page.locator('meta[name="description"]').getAttribute('content');
+    assert(description && /cameras.*photographs/.test(description));
+    assert.equal(await page.locator('meta[property="og:description"]').getAttribute('content'), description);
+    assert.equal(await page.locator('meta[property="og:type"]').getAttribute('content'), 'website');
+    assert.equal(await page.locator('meta[property="og:image"]').getAttribute('content'), `${origin}/social/default.jpg`);
+    assert.equal(await page.locator('meta[name="twitter:image"]').getAttribute('content'), `${origin}/social/default.jpg`);
+    assert.equal(await page.locator('meta[name="twitter:card"]').getAttribute('content'), 'summary_large_image');
+    assert.match((await page.locator('meta[name="robots"]').getAttribute('content'))!, /^index, follow/);
+  }
   assert(!/secret-draft|404|admin|\.json|\?/.test(sitemap.replace(/^<\?xml[^>]+>/, '')));
   const robots = await (await fetch(`${server.url}/robots.txt`)).text();
   assert.match(robots, /Allow: \/\n/); assert(robots.includes(`Sitemap: ${origin}/sitemap.xml`));
@@ -141,6 +157,7 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
     assert(ready, log);
     assert(!/invalid header|invalid rule/i.test(log), log);
     const home = await fetch(host); assert.equal(home.status, 200); assert.equal(home.headers.get('X-Robots-Tag'), null);
+    const stats = await fetch(`${host}/stats/?project=fixture-beta`); assert.equal(stats.status, 200); assert.equal(stats.headers.get('X-Robots-Tag'), null);
     const icon = await fetch(`${host}/favicon.svg`); assert.equal(icon.status, 200);
     assert.match(icon.headers.get('content-type')!, /^image\/svg\+xml/);
     assert.deepEqual(Buffer.from(await icon.arrayBuffer()), await fs.readFile(path.join(repo, 'public/favicon.svg')));
@@ -172,6 +189,9 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
   assert(!(await fs.readFile(path.join(dist, 'sitemap.xml'), 'utf8')).includes('<loc>'));
   assert.equal(await fs.readFile(path.join(dist, 'robots.txt'), 'utf8'), 'User-agent: *\nDisallow: /\n');
   assert.equal(await fs.readFile(path.join(dist, '_headers'), 'utf8'), '/*\n  X-Robots-Tag: noindex, nofollow\n');
+  await page.goto(`${server.url}/stats/?project=fixture-beta`);
+  assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex, nofollow');
+  assert.equal(await page.locator('link[rel="canonical"],meta[property="og:url"],meta[property="og:image"]').count(), 0);
   await page.goto(`${server.url}/photos/${shortPublicPhotoId(fixture.photos[0]!.photoId)}/`);
   assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex, nofollow');
   assert.equal(await page.locator('link[rel="canonical"],meta[property="og:url"],meta[property="og:image"],meta[name="twitter:image"]').count(), 0);

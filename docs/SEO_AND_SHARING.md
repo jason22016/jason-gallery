@@ -17,12 +17,14 @@
 
 ## 页面与分享
 
-首页、Explore、Global Map 及所有 published Project 的 HTML 在构建时输出：
+首页、Explore、Global Map、Photography Stats 及所有 published Project 的 HTML 在构建时输出：
 
 - 独立标题和描述；Project 优先 summary，其次 description，最后使用包含标题的默认描述。描述压缩空白、按 Unicode 字符截断至 160 字以内，交给 Astro 正常转义。
 - 自身的绝对 canonical 与 `og:url`，页面地址统一末尾 `/`。`photo`、筛选、排序、地图参数与 hash 都属于当前 Gallery 页面，不产生独立索引页。
 - Open Graph 的网站名、类型、语言、标题、描述、绝对图片 URL/替代文字，以及 Twitter 大图卡片。
-- Project 分享图使用该项目已发布的 JPEG 封面缩略图；首页使用排序第一的公开项目封面。Explore、Global Map 和空站点使用构建生成的 `1200×630` 品牌 JPEG，地址为 `/social/default.jpg`。不依赖原始 HDR/HEIC 或后台图片接口。
+- Project 分享图使用该项目已发布的 JPEG 封面缩略图；首页使用排序第一的公开项目封面。Explore、Global Map、Stats 和空站点使用构建生成的 `1200×630` 品牌 JPEG，地址为 `/social/default.jpg`。不依赖原始 HDR/HEIC 或后台图片接口。
+
+Stats 是正常可索引的公开页面，title 为 `Photography Stats — Jason Gallery`。All Photos、Project scope 和 Month / Year 共用 `/stats/` 的 canonical 与 OG URL；`project`、`period` 和 hash 不产生独立索引页。`stats/index.html` 已纳入构建与 Release 的精确公开白名单，不开放 Stats metadata JSON 或其他派生路由。
 
 Viewer 浏览状态仍使用 Project / Explore / Map 页面的 `?photo=<internal-id>` 和现有筛选参数。点击分享时，Web Share、复制链接及失败时显示的地址统一使用当前照片的 `/photos/<short-public-id>/`，不会修改浏览 URL 或 history，也不携带筛选与 hash。
 
@@ -30,7 +32,7 @@ Share Photo Page 第一阶段新增 `/photos/<short-public-id>/` 静态分享落
 
 ## 索引边界与 404
 
-`/sitemap.xml` 只列首页、`/explore/`、`/map/` 与 `loadProjects().listProjects()` 返回的 published 项目，不包含 Photo Page、draft、后台、404、照片 JSON、构建信息或 Viewer 参数。不伪造 lastmod。
+`/sitemap.xml` 只列首页、`/explore/`、`/map/`、`/stats/` 与 `loadProjects().listProjects()` 返回的 published 项目，不包含 Photo Page、draft、后台、404、照片 JSON、构建信息或 Viewer 参数。不伪造 lastmod。
 
 `/robots.txt` 指向相同正式地址下的 sitemap，允许公开网站，限制 `/admin` 与 `/api/`。不列出草稿 slug。构建生成的 Cloudflare Pages `_headers` 给照片元数据 JSON、health/build-version、后台路径和 404 加 `X-Robots-Tag: noindex, nofollow`。
 

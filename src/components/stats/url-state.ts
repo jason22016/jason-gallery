@@ -1,5 +1,10 @@
-import { readPhotographyStatsScope, type PhotographyStatsScope } from '../../statistics/scope';
+import { readPhotographyStatsScope, type PhotographyStatsScope, type ScopedPhotographyStats } from '../../statistics/scope';
 import type { PhotographyStatsPageData } from '../../website/photography-stats';
+import { emptyFilters, type GalleryState } from '../gallery/filters';
+
+export function statsGalleryState(result: ScopedPhotographyStats): GalleryState {
+  return { filters: { ...emptyFilters, project: result.project?.id ?? '' }, sort: 'project' };
+}
 
 export function statsResultFromSearch(search: string, data: PhotographyStatsPageData) {
   const scope = readPhotographyStatsScope(new URLSearchParams(search));

@@ -9,6 +9,9 @@ import { serve } from '../website/server';
 import { browserReadyTimeout, softwareGPUOptions } from '../browser';
 import { loadPublicPhotoCollection } from '../../src/website/public-photos';
 import { resolvePhotographyStats, type PhotographyStats, type StatsDistribution } from '../../src/statistics';
+import { readGalleryState } from '../../src/components/gallery/url-state';
+import { selectPhotos } from '../../src/components/gallery/filters';
+import { installMapFixture } from '../website/map-fixture';
 
 const expect = baseExpect.configure({ timeout: browserReadyTimeout(5_000) });
 // Stats runs alongside the other Statistics tests and can also run alongside Website.
@@ -23,7 +26,7 @@ let photos: ReturnType<ReturnType<typeof loadPublicPhotoCollection>['listPhotos'
 before(async () => {
   fixture = await buildFixture({ root, configure(manifest) {
     const ordinary = manifest.data.find(photo => photo.s3Key === 'ordinary.jpg')!;
-    ordinary.exif = { ...ordinary.exif, DateTimeOriginal: '2023-12-31T23:30:00-12:00', Make: 'Canon', Model: 'EOS R6', LensModel: 'RF 24mm', FocalLength: '24 mm', FNumber: 8, ISO: 400, ExposureTime: '1/250' } as typeof ordinary.exif;
+    ordinary.exif = { ...ordinary.exif, DateTimeOriginal: '2023-12-31T23:30:00-12:00', Make: 'Canon ', Model: ' EOS R6', LensModel: ' RF 24mm ', FocalLength: '24 mm', FNumber: 8, ISO: 400, ExposureTime: '1/250' } as typeof ordinary.exif;
     ordinary.video = { type: 'motion-photo', offset: 123, size: 456, presentationTimestamp: 789 };
     const hdr = manifest.data.find(photo => photo.s3Key === 'hdr.jpg')!;
     hdr.exif = { ...hdr.exif, DateTimeOriginal: '2024-01-01T06:00:00+14:00', Make: 'SONY', Model: 'ILCE-7M4', LensModel: 'FE 85mm', FocalLength: '85 mm', FNumber: 1.8, ISO: 800, ExposureTime: '1/60' } as typeof hdr.exif;
@@ -33,6 +36,7 @@ before(async () => {
     const privatePhoto = manifest.data.find(photo => photo.s3Key === 'private.jpg')!;
     privatePhoto.exif = { Make: 'PRIVATE STATS CAMERA', Model: 'PRIVATE STATS MODEL' } as typeof privatePhoto.exif;
   }, configureProjects(projects, manifest) {
+    projects.find(project => project.slug === 'fixture-beta')!.id = 'fixture-beta-id';
     const missing = manifest.data.find(photo => photo.s3Key === 'map-far.jpg')!;
     projects.push({ ...projects.find(project => project.status === 'published')!, id: 'fixture-missing', slug: 'fixture-missing', title: 'Fixture — missing metadata', order: 10, coverPhotoId: missing.id, photos: [{ photoId: missing.id }] });
   } });
@@ -262,6 +266,17 @@ test('mobile tap retains selection, selector uses the existing drawer, and the p
 test('reduced motion disables chart transitions while retaining scope and selection interactions', async t => {
   const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close()); await ready(page);
   for (const [id] of distributions(engineStats())) await expect(chart(page, id)).toHaveAttribute('data-reduced-motion', 'true');
+  for (const [id, distribution] of distributions(engineStats()).slice(0, 8)) {
+    const geometry = await buckets(page, id).evaluateAll(nodes => nodes.map(node => {
+      const track = node.querySelector('.stats-chart-track')!.getBoundingClientRect();
+      const fill = node.querySelector('.stats-chart-fill')!.getBoundingClientRect();
+      return { value: node.getAttribute('data-stats-value'), fraction: node.classList.contains('stats-chart-bucket-ranked') ? fill.width / track.width : fill.height / track.height };
+    }));
+    for (const bar of geometry) {
+      const expected = distribution.buckets.find(bucket => String(bucket.value) === bar.value)!.count / distribution.mostUsed!.count;
+      assert(Math.abs(bar.fraction - expected) < 0.001, `${id}: rendered bar ${bar.value} must match its count`);
+    }
+  }
   await chooseScope(page, 'Fixture — ordered gallery');
   await overview(page, engineStats('fixture-beta'));
   await assertCharts(page, engineStats('fixture-beta'));
@@ -336,4 +351,181 @@ test('Stats is a public navigation destination and server HTML provides a useful
   await expect(page.locator('noscript [data-stat="date-range"]')).toContainText(stats.captureDateRange.start!.slice(0, 10));
   await expect(page.locator('noscript [data-stat="date-range"]')).toContainText(stats.captureDateRange.end!.slice(0, 10));
   assert(!/NaN|Infinity/.test(await page.locator('main').innerText()));
+});
+
+test('Camera and Lens Explore links show exactly the represented photos in All Photos and Project scopes', async t => {
+  const { ctx, page } = await pageFor(); t.after(() => ctx.close());
+  for (const slug of [undefined, 'fixture-beta']) {
+    const query = slug ? `?project=${slug}&period=year&camera=unrelated#equipment` : '?period=year&lens=unrelated';
+    await ready(page, query);
+    for (const [field, metric] of [['camera', 'cameras'], ['lens', 'lenses']] as const) {
+      for (const bucket of engineStats(slug)[metric].buckets) {
+        const target = chart(page, metric).locator(`[data-stats-value=${JSON.stringify(bucket.value)}]`);
+        await target.hover();
+        const link = chart(page, metric).getByRole('link', { name: `Explore ${bucket.value} photos`, exact: true });
+        await expect(link).toBeVisible();
+        const href = await link.getAttribute('href'); assert(href);
+        const url = new URL(href, server.url);
+        assert.equal(url.pathname, '/explore/');
+        assert.deepEqual([...url.searchParams.keys()].sort(), (slug ? ['project', field] : [field]).sort());
+        assert.equal(url.searchParams.get('project'), slug ? 'fixture-beta-id' : null);
+        assert.equal(url.hash, '');
+        const state = readGalleryState(url.searchParams);
+        const expected = selectPhotos(photos, state.filters, state.sort);
+        assert.equal(expected.length, bucket.count);
+        await page.mouse.move(0, 0);
+        await expect(link).toHaveAttribute('href', href);
+        await link.click();
+        await expect(page).toHaveURL(url.href);
+        await expect(page.locator('[data-photo-gallery]')).toHaveAttribute('data-enhanced', 'true');
+        await expect(page.locator('.gallery-live .gallery-count')).toHaveText(String(bucket.count));
+        await expect.poll(() => page.locator('.gallery-live [data-gallery-index]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-photo-id')))).toEqual(expected.map(photo => photo.id));
+        await page.goBack();
+        await expect(page.locator('[data-stats-scope]')).toHaveAttribute('data-stats-scope', slug ?? 'all');
+        await overview(page, engineStats(slug));
+      }
+    }
+    assert.equal(await page.locator('[data-stats-chart]:not([data-stats-chart="cameras"]):not([data-stats-chart="lenses"]) a').count(), 0);
+  }
+});
+
+test('keyboard focus keeps the displayed equipment link stable through Tab and Enter', async t => {
+  const { ctx, page } = await pageFor(); t.after(() => ctx.close());
+  await ready(page, '?project=fixture-beta');
+  const last = buckets(page, 'cameras').last();
+  const value = await last.getAttribute('data-stats-value'); assert(value);
+  assert.notEqual(value, engineStats('fixture-beta').cameras.mostUsed!.value, 'test a value other than the fallback');
+  await last.focus();
+  const link = chart(page, 'cameras').getByRole('link', { name: `Explore ${value} photos`, exact: true });
+  const href = await link.getAttribute('href');
+  await last.press('Tab');
+  await expect(link).toBeFocused();
+  await expect(link).toHaveAttribute('href', href!);
+  assert.equal(await link.evaluate(node => getComputedStyle(node).outlineStyle), 'solid');
+  assert.equal(await link.evaluate(node => {
+    const probe = document.createElement('span'); probe.style.color = 'var(--color-accent)'; node.append(probe);
+    const expected = getComputedStyle(probe).color; probe.remove();
+    return getComputedStyle(node).outlineColor === expected;
+  }), true);
+  assert.equal(await link.locator('xpath=ancestor::*[@role="tooltip"]').count(), 0, 'interactive actions must be outside tooltip semantics');
+  await link.press('Enter');
+  await expect(page).toHaveURL(server.url + href);
+  await expect(page.locator('.gallery-live .gallery-count')).toHaveText('1');
+  await page.goBack();
+  await expect(page.locator('[data-stats-scope]')).toHaveAttribute('data-stats-scope', 'fixture-beta');
+  await page.goForward();
+  await expect(page).toHaveURL(server.url + href);
+  await expect(page.locator('.gallery-live .gallery-count')).toHaveText('1');
+});
+
+test('View on Map reuses Global Map and keeps the selected Project across refresh and history', async t => {
+  const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  await installMapFixture(page, server.url);
+  for (const slug of [undefined, 'fixture-beta']) {
+    await ready(page, slug ? `?project=${slug}&period=year&mapPhoto=unrelated#when` : '?camera=unrelated');
+    const link = page.getByRole('link', { name: 'View on Map', exact: true });
+    const href = slug ? '/map/?project=fixture-beta-id' : '/map/';
+    await expect(link).toHaveAttribute('href', href);
+    await link.click();
+    await expect(page).toHaveURL(server.url + href);
+    await expect(page.locator('.photo-map')).toHaveAttribute('data-map-state', 'ready', { timeout: browserReadyTimeout(15_000) });
+    await expect(page.locator('.gallery-live .gallery-count')).toHaveText(String(engineStats(slug).geotagged.count));
+    await expect(page.locator('.map-photo-list button')).toHaveCount(engineStats(slug).geotagged.count);
+    await page.reload();
+    await expect(page.locator('.map-photo-list button')).toHaveCount(engineStats(slug).geotagged.count);
+    await page.goBack();
+    await expect(page.locator('[data-stats-scope]')).toHaveAttribute('data-stats-scope', slug ?? 'all');
+    await page.goForward();
+    await expect(page).toHaveURL(server.url + href);
+    await expect(page.locator('.map-photo-list button')).toHaveCount(engineStats(slug).geotagged.count);
+  }
+  await ready(page, '', emptyServer.url);
+  await page.getByRole('link', { name: 'View on Map', exact: true }).click();
+  await expect(page).toHaveURL(emptyServer.url + '/map/');
+  await expect(page.locator('.gallery-live .gallery-count')).toHaveText('0');
+});
+
+test('mobile equipment and Map links remain tappable after scope selection, with visible focus and no overflow', async t => {
+  const { ctx, page } = await pageFor({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  await ready(page);
+  await chooseScope(page, 'Fixture — ordered gallery');
+  const lens = buckets(page, 'lenses').last();
+  const value = await lens.getAttribute('data-stats-value');
+  await lens.tap();
+  const link = chart(page, 'lenses').getByRole('link', { name: `Explore ${value} photos`, exact: true });
+  await expect(lens).toHaveAttribute('aria-pressed', 'true');
+  assert((await link.boundingBox())!.height >= 44);
+  const href = await link.getAttribute('href');
+  await link.tap();
+  await expect(page).toHaveURL(server.url + href);
+  await expect(page.locator('.gallery-live .gallery-count')).toHaveText('1');
+  await page.goBack();
+  await expect(page.locator('[data-stats-scope]')).toHaveAttribute('data-stats-scope', 'fixture-beta');
+  const map = page.getByRole('link', { name: 'View on Map', exact: true });
+  await map.scrollIntoViewIfNeeded();
+  assert((await map.boundingBox())!.height >= 44);
+  await installMapFixture(page, server.url);
+  await map.tap();
+  await expect(page).toHaveURL(server.url + '/map/?project=fixture-beta-id');
+  await expect(page.locator('.gallery-live .gallery-count')).toHaveText(String(engineStats('fixture-beta').geotagged.count));
+});
+
+test('shared navigation exposes Projects / Explore / Map / Stats on desktop and mobile, with current-page and keyboard state', async t => {
+  for (const mobile of [false, true]) {
+    const { ctx, page } = await pageFor(mobile ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } : {}); t.after(() => ctx.close());
+    await installMapFixture(page, server.url);
+    for (const [pathname, current] of [['/', 'Projects'], ['/explore/', 'Explore'], ['/map/', 'Map'], ['/projects/fixture-beta/', 'Projects'], ['/stats/', 'Stats']]) {
+      await page.goto(server.url + pathname);
+      if (pathname === '/stats/') await expect(page.locator('[data-stats-ready]')).toHaveAttribute('data-stats-ready', 'true');
+      else if (pathname !== '/') await expect(page.locator('.gallery-live')).toBeVisible();
+      const header = page.locator(pathname === '/' ? '.site-header' : pathname === '/stats/' ? '.stats-page .gallery-header' : '.gallery-live .gallery-header');
+      const menu = header.locator('summary');
+      if (pathname !== '/') await menu.click();
+      const nav = header.getByRole('navigation', { name: '网站导航' });
+      assert.deepEqual(await nav.getByRole('link').allTextContents(), ['Projects', 'Explore', 'Map', 'Stats']);
+      await expect(nav.getByRole('link', { name: current, exact: true })).toHaveAttribute('aria-current', 'page');
+      await nav.getByRole('link', { name: 'Stats', exact: true }).click();
+      await expect(page).toHaveURL(server.url + '/stats/');
+      await expect(page.locator('[data-stats-ready]')).toHaveAttribute('data-stats-ready', 'true');
+    }
+    await chooseScope(page, 'Fixture — ordered gallery');
+    const menu = page.locator('.stats-page summary');
+    await menu.focus(); await page.keyboard.press('Enter');
+    const nav = page.locator('.stats-page .site-navigation');
+    await expect(nav.getByRole('link', { name: 'Explore', exact: true })).toHaveAttribute('href', '/explore/?project=fixture-beta-id');
+    await expect(nav.getByRole('link', { name: 'Map', exact: true })).toHaveAttribute('href', '/map/?project=fixture-beta-id');
+    await page.keyboard.press('Escape');
+    await expect(nav).not.toBeVisible();
+    await expect(menu).toBeFocused();
+  }
+});
+
+test('repeated resize, hover, scope and period changes keep listeners bounded and render no stale actions', async t => {
+  const { ctx, page } = await pageFor(); t.after(() => ctx.close());
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await ready(page);
+  const session = await ctx.newCDPSession(page);
+  const listeners = async () => (await session.send('Runtime.evaluate', { expression: 'Object.fromEntries(Object.entries(getEventListeners(window)).map(([key, values]) => [key, values.length]))', includeCommandLineAPI: true, returnByValue: true })).result.value;
+  await chooseScope(page, 'Fixture — ordered gallery'); await chooseScope(page, 'All Photos');
+  const baseline = await listeners();
+  for (let index = 0; index < 8; index++) {
+    await page.setViewportSize({ width: index % 2 ? 1440 : 390, height: 900 });
+    await chooseScope(page, 'Fixture — ordered gallery');
+    await buckets(page, 'cameras').last().hover();
+    await buckets(page, 'cameras').last().click();
+    await page.getByRole('button', { name: index % 2 ? 'Year' : 'Month', exact: true }).click();
+    await chooseScope(page, 'All Photos');
+    await expect(page.locator('[data-stats-chart] button[aria-pressed="true"]')).toHaveCount(0);
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+    await expect(page.getByRole('link', { name: 'View on Map', exact: true })).toHaveAttribute('href', '/map/');
+  }
+  assert.deepEqual(await listeners(), baseline, 'URL, resize and motion listeners must not accumulate');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('[data-stats-scope]')).toHaveAttribute('data-reduced-motion', 'true');
+  await chooseScope(page, 'Fixture — ordered gallery');
+  await overview(page, engineStats('fixture-beta'));
+  await expect(page.getByRole('link', { name: 'View on Map', exact: true })).toHaveCSS('transition-duration', '0s');
+  await expect(chart(page, 'cameras').getByRole('link')).toBeVisible();
+  await session.detach();
+  assert.deepEqual(errors, []);
 });

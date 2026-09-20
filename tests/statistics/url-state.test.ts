@@ -4,13 +4,14 @@ import { statsPeriodURL, statsResultFromSearch, statsScopeURL } from '../../src/
 import { allPhotographyStatsScope, resolvePhotographyStats } from '../../src/statistics';
 import type { PhotographyStatsPageData } from '../../src/website/photography-stats';
 import { assertDeepFrozen, publicFixture, statsPhoto } from './fixtures';
+import { freezeDeep } from '../../src/projects/resolver';
 
 function pageData(): PhotographyStatsPageData {
   const { collection, catalog } = publicFixture();
   const photos = collection.listPhotos();
-  return Object.freeze({
-    all: resolvePhotographyStats(photos, allPhotographyStatsScope)!,
-    projects: Object.freeze(catalog.published.listProjects().map(project => resolvePhotographyStats(photos, { type: 'project', slug: project.slug })!)),
+  return freezeDeep({
+    all: { ...resolvePhotographyStats(photos, allPhotographyStatsScope)!, explore: { cameras: {}, lenses: {} } },
+    projects: catalog.published.listProjects().map(project => ({ ...resolvePhotographyStats(photos, { type: 'project', slug: project.slug })!, explore: { cameras: {}, lenses: {} } })),
   });
 }
 
@@ -47,8 +48,8 @@ test('draft, unknown, malformed and repeated Project parameters never widen to A
 test('valid published slugs named all or unavailable remain Project scopes', () => {
   const photos = ['all', 'unavailable'].map(slug => statsPhoto(slug, { projects: [{ id: slug, slug, title: slug }] }));
   const data: PhotographyStatsPageData = {
-    all: resolvePhotographyStats(photos, allPhotographyStatsScope)!,
-    projects: photos.map(photo => resolvePhotographyStats(photos, { type: 'project', slug: photo.id })!),
+    all: { ...resolvePhotographyStats(photos, allPhotographyStatsScope)!, explore: { cameras: {}, lenses: {} } },
+    projects: photos.map(photo => ({ ...resolvePhotographyStats(photos, { type: 'project', slug: photo.id })!, explore: { cameras: {}, lenses: {} } })),
   };
   assert.strictEqual(statsResultFromSearch('', data), data.all);
   assert.strictEqual(statsResultFromSearch('?project=all', data), data.projects[0]);

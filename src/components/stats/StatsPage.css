@@ -1,6 +1,10 @@
 .stats-page { min-height: 100dvh; }
 .stats-home { font-size: 14px; font-weight: 600; }
 .stats-header-label { color: var(--color-text-secondary); font-size: 12px; }
+.stats-context-link { display: inline-flex; align-items: center; gap: 8px; width: fit-content; min-height: 32px; padding: 4px 8px; margin-inline: -8px; border-radius: 6px; color: var(--color-text-secondary); font-size: 12px; line-height: 1.5; transition: color .2s, background-color .2s; touch-action: manipulation; }
+.stats-context-link:hover, .stats-context-link:focus-visible { color: var(--color-text); background: var(--gallery-wash); }
+.stats-context-link .gallery-icon { flex-shrink: 0; font-size: 14px; }
+.stats-map-link { margin-top: 8px; }
 .stats-content { max-width: 1152px; margin-inline: auto; padding: calc(112px + env(safe-area-inset-top)) max(32px, env(safe-area-inset-right)) max(32px, env(safe-area-inset-bottom)) max(32px, env(safe-area-inset-left)); }
 .stats-eyebrow { color: var(--color-text-secondary); font-size: 12px; font-weight: 400; line-height: 1.5; }
 .stats-intro { padding-bottom: 56px; }
@@ -51,4 +55,10 @@
   .stats-section { padding-block: 36px; }
   .stats-footer { flex-direction: column; gap: 16px; }
   .stats-date-range dd { font-size: 14px; }
+}
+@media (pointer: coarse) {
+  .stats-context-link { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stats-context-link { transition: none; }
 }

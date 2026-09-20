@@ -25,11 +25,13 @@ pnpm test
 
 `pnpm photos --export` 按 [config/photo-sources.json](config/photo-sources.json) 固定各来源快照，验证全部照片与 Project 引用后，导出 `src/data/photo-index.json`、`src/data/sources/*/photos-manifest.json` 和 `public/thumbnails/`。它只读取远端照片，不写照片仓库，也不发布网站。省略 `--export` 只生成 `.cache/photo-engine/output` 产物，不能替代网站所需的本地导出。
 
-`pnpm test` 依次运行 `pnpm test:checks`、真实导出数据检查 `pnpm test:metadata-real` 和生产构建 `pnpm build`，成功后网站位于 `dist/`。`test:checks` 包含上游校验、TypeScript、Projects、照片 smoke、Viewer、Website、SEO、automation/release 和 Admin 测试；测试使用隔离 fixture 与本地运行时，不执行线上发布。
+`pnpm test` 依次运行 `pnpm test:checks`、真实导出数据检查 `pnpm test:metadata-real` 和生产构建 `pnpm build`，成功后网站位于 `dist/`。`test:checks` 包含上游校验、TypeScript、Projects、Statistics、照片 smoke、Viewer、Website、SEO、automation/release 和 Admin 测试；测试使用隔离 fixture 与本地运行时，不执行线上发布。
 
 开发预览运行 `pnpm dev`；仅重新构建运行 `pnpm build`。浏览器测试需要前述 Chromium 安装；只运行隔离回归可用 `pnpm test:checks`，但这不能替代真实数据检查和生产构建。
 
-公开导航为 Projects / Explore / Map：`/` 继续展示项目，`/explore/` 汇集所有 published Projects 引用的公开照片，按照片 ID 去重；`/map/` 使用其中有有效 GPS 的照片。Explore、Map 与 Project 共用 Gallery、filters 和 Viewer；Explore ↔ Map 保留搜索、日期、相机、镜头、标签、项目筛选及排序。地图复用 PhotoMap，首次适配结果，筛选后保留视角，可用 Fit Results 重新定位。实现与验证见 [Global Gallery Phase 2](docs/gallery/GLOBAL_PHASE2.md)、[Phase 3](docs/gallery/GLOBAL_PHASE3.md) 和 [最终整合 / Release Gate](docs/gallery/GLOBAL_PHASE4.md)。
+公开导航为 Projects / Explore / Map / Stats：`/` 继续展示项目，`/explore/` 汇集所有 published Projects 引用的公开照片，按照片 ID 去重；`/map/` 使用其中有有效 GPS 的照片。Explore、Map 与 Project 共用 Gallery、filters 和 Viewer；Explore ↔ Map 保留搜索、日期、相机、镜头、标签、项目筛选及排序。地图复用 PhotoMap，首次适配结果，筛选后保留视角，可用 Fit Results 重新定位。实现与验证见 [Global Gallery Phase 2](docs/gallery/GLOBAL_PHASE2.md)、[Phase 3](docs/gallery/GLOBAL_PHASE3.md) 和 [最终整合 / Release Gate](docs/gallery/GLOBAL_PHASE4.md)。
+
+`/stats/` 显示 All Photos 的公开聚合统计，`?project=<slug>` 选择 published Project。设备详情可打开对应 Explore 筛选，Geotagged 的 View on Map 打开同一 scope 的 Global Map；跳转复用现有 helpers，将 Stats slug 转为 Explore / Map 约定的 Project 永久 ID。浏览器仅接收聚合结果、公开 Project 身份和精确设备链接，不加载照片集合、Viewer、MapLibre 或完整 EXIF。见 [Photography Stats Release Gate](docs/statistics/PHASE3.md)。
 
 普通 `pnpm build` 与自动发布共用公开输出白名单。只把 favicon 和 Photo Engine 输出放入 `public/`；Manifest、私有 metadata、预览和 Admin 数据不能放在其中。构建清理未公开及过期照片资产，只修改输出，不修改本地照片输入。新增 release 回归已包含在 `test:website` / `test:checks` 中，无需另行配置自动化。
 

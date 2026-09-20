@@ -340,3 +340,11 @@ Explore / Map 的导航由共享 filter/sort state 生成 URL；`mapPhoto` 与 V
 `src/website/public-output.ts` 是普通 Astro 构建与 `scripts/ci/release.ts` 的共享公开文件白名单。公开路径只来自固定站点页面、published Project 的详情与照片资产、允许的构建 chunks；Release 还要求所有期望文件存在并继续验证照片摘要与来源。构建前拒绝 `public/` 中的意外 Manifest、metadata、额外页面和伪装 `_astro/` 文件，构建后清理未公开/过期资产并再次核对输出。现有公开 metadata 投影和路径继续复用，没有 Global JSON 副本。
 
 回归、真实生产数据和性能证据见 [Global Gallery Phase 4](docs/gallery/GLOBAL_PHASE4.md)。未修改 Admin、Photo Engine、HDR/color 或核心 Viewer/Map 实现。
+
+## Photography Stats（2026-09-20）
+
+`src/statistics` 在现有 PublicPhotoCollection 上聚合公开事实；All Photos 按 canonical photo ID 去重，Project scope 只收窄公开 memberships。`src/website/photography-stats.ts` 在构建时一次读取公开快照，输出所有公开 scope 的聚合结果、最小 Project 身份与经现有 filter helpers 验证的设备链接。客户端不接收完整照片集合、Manifest、详细 EXIF、坐标或存储字段，不重新运行聚合引擎。
+
+`/stats/` 默认 All Photos，`?project=<slug>` 标识公开 Project，`?period=year` 切换时间图。无效/草稿/重复 scope 参数不回退至全部。页面复用 SiteNavigation、PageHeader 的公共框架、Gallery Panel、tokens 与 Spring；一级导航为 Projects / Explore / Map / Stats。Camera / Lens 的详情链接和 Geotagged 的 View on Map 使用 `globalGalleryHref()`，把公开 Project slug 转为现有 Explore / Map 使用的永久 ID。设备空白规范化后的 bucket 仅在一个原始 filter 值能完整表达它时提供跳转，不扩展或复制 filter system。
+
+Stats 遵循现有公开页面的 canonical、Open Graph、sitemap 与精确白名单，只有聚合图表，不嵌入第二套 Viewer 或地图。接口、边界、交互与最终验证分别见 [Phase 1](docs/statistics/PHASE1.md)、[Phase 2](docs/statistics/PHASE2.md) 和 [Release Gate](docs/statistics/PHASE3.md)。

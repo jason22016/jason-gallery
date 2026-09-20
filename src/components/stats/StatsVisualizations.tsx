@@ -1,7 +1,8 @@
 import { Spring } from '@afilmory/utils';
 import { m } from 'motion/react';
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { StatsBucket, StatsDistribution } from '../../statistics/types';
+import { Icon } from '../gallery/ui/Icon';
 import { useReducedMotion } from '../gallery/ui/useReducedMotion';
 import './StatsVisualizations.css';
 
@@ -13,6 +14,7 @@ export interface StatsVisualizationProps<T extends string | number> {
   description?: string;
   emptyLabel?: string;
   onSelectionChange?: (bucket: StatsBucket<T> | null) => void;
+  exploreHrefs?: Readonly<Record<string, string>>;
 }
 
 type Visualization = 'ranked' | 'distribution' | 'timeline' | 'time-of-day' | 'proportion';
@@ -26,8 +28,8 @@ const calendarIndex = (value: string | number) => typeof value === 'number'
   ? Number.isInteger(value) ? value : NaN
   : /^\d{4}-(0[1-9]|1[0-2])$/.test(value) ? Number(value.slice(0, 4)) * 12 + Number(value.slice(5)) - 1 : NaN;
 
-function StatsChart<T extends string | number>({
-  id, title, distribution, formatValue = String, description, emptyLabel, onSelectionChange, variant,
+function StatsChartView<T extends string | number>({
+  id, title, distribution, formatValue = String, description, emptyLabel, onSelectionChange, exploreHrefs, variant,
 }: StatsVisualizationProps<T> & { variant: Visualization }) {
   const reduced = useReducedMotion();
   const root = useRef<HTMLElement>(null);
@@ -35,18 +37,21 @@ function StatsChart<T extends string | number>({
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [focused, setFocused] = useState<string | null>(null);
-  const buckets = variant === 'ranked'
+  const [inspected, setInspected] = useState<string | null>(null);
+  const buckets = useMemo(() => variant === 'ranked'
     ? [...distribution.buckets].sort((a, b) => finiteCount(b.count) - finiteCount(a.count))
-    : distribution.buckets;
+    : distribution.buckets, [distribution, variant]);
   const activeKey = hovered ?? focused ?? selected;
   const active = buckets.find(bucket => keyFor(bucket.value) === activeKey);
-  const detail = active ?? distribution.mostUsed;
+  const retained = exploreHrefs ? buckets.find(bucket => keyFor(bucket.value) === inspected) : undefined;
+  const detail = active ?? retained ?? distribution.mostUsed;
+  const exploreHref = detail && exploreHrefs && Object.hasOwn(exploreHrefs, String(detail.value)) ? exploreHrefs[String(detail.value)] : undefined;
   const maxCount = finiteCount(distribution.mostUsed?.count ?? 0) || 1;
   const sampleCount = finiteCount(distribution.sampleCount);
   const missingCount = finiteCount(distribution.missingCount);
   const transition = reduced ? { duration: 0 } : Spring.presets.smooth;
   const vertical = variant === 'distribution' || variant === 'timeline' || variant === 'time-of-day';
-  const calendarPositions = variant === 'timeline' ? buckets.map(bucket => calendarIndex(bucket.value)) : [];
+  const calendarPositions = useMemo(() => variant === 'timeline' ? buckets.map(bucket => calendarIndex(bucket.value)) : [], [buckets, variant]);
   const calendarStart = calendarPositions[0] ?? 0;
   const calendarSpan = (calendarPositions.at(-1) ?? 0) - calendarStart + 1;
   const calendarSpacing = variant === 'timeline' && calendarPositions.every(Number.isFinite) && calendarSpan > 0 && calendarSpan <= 120;
@@ -60,6 +65,7 @@ function StatsChart<T extends string | number>({
     setSelected(null);
     setHovered(null);
     setFocused(null);
+    setInspected(null);
     selectionChange.current?.(null);
   }, [distribution]);
 
@@ -67,6 +73,7 @@ function StatsChart<T extends string | number>({
     setSelected(null);
     setHovered(null);
     setFocused(null);
+    setInspected(null);
     onSelectionChange?.(null);
   };
   const select = (bucket: StatsBucket<T>) => {
@@ -74,14 +81,10 @@ function StatsChart<T extends string | number>({
     const next = selected === key ? null : key;
     setSelected(next);
     setHovered(null);
+    if (exploreHrefs) setInspected(next);
     onSelectionChange?.(next ? bucket : null);
   };
   const navigate = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      clear();
-      return;
-    }
     const steps: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
     const step = steps[event.key];
     if (step === undefined && event.key !== 'Home' && event.key !== 'End') return;
@@ -106,7 +109,7 @@ function StatsChart<T extends string | number>({
       className={`stats-chart-bucket stats-chart-bucket-${variant}`}
       key={key}
       style={style}
-      layout={reduced ? false : 'position'}
+      layout={!reduced && variant === 'ranked' ? 'position' : false}
       transition={transition}
       data-stats-value={String(bucket.value)}
       data-stats-count={count}
@@ -115,9 +118,8 @@ function StatsChart<T extends string | number>({
       aria-label={`${label}: ${countText(count)} ${count === 1 ? 'photo' : 'photos'}, ${percentText(percentage)} of recorded data`}
       aria-describedby={activeKey === key ? `${id}-detail` : undefined}
       aria-pressed={pressed}
-      onPointerEnter={event => { if (event.pointerType !== 'touch') setHovered(key); }}
-      onFocus={() => setFocused(key)}
-      onBlur={() => setFocused(null)}
+      onPointerEnter={event => { if (event.pointerType !== 'touch') { setHovered(key); if (exploreHrefs) setInspected(key); } }}
+      onFocus={() => { setFocused(key); if (exploreHrefs) setInspected(key); }}
       onClick={() => select(bucket)}
       onKeyDown={event => navigate(event, index)}
     >
@@ -127,7 +129,7 @@ function StatsChart<T extends string | number>({
         <m.span
           className="stats-chart-fill"
           initial={false}
-          animate={vertical ? { height: `${height}%` } : { width: `${height}%` }}
+          animate={vertical ? { scaleY: height / 100 } : { scaleX: height / 100 }}
           transition={transition}
         />
       </span>}
@@ -148,6 +150,8 @@ function StatsChart<T extends string | number>({
     data-timeline-spacing={variant === 'timeline' ? calendarSpacing ? 'calendar' : 'recorded' : undefined}
     aria-labelledby={`${id}-title`}
     onPointerLeave={() => setHovered(null)}
+    onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(null); }}
+    onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); clear(); } }}
   >
     <header className="stats-chart-heading">
       <h3 id={`${id}-title`}>{title}</h3>
@@ -172,7 +176,6 @@ function StatsChart<T extends string | number>({
           transition={transition}
           onPointerEnter={event => { if (event.pointerType !== 'touch') setHovered(keyFor(bucket.value)); }}
           onFocus={() => setFocused(keyFor(bucket.value))}
-          onBlur={() => setFocused(null)}
           onClick={() => select(bucket)}
           onKeyDown={event => navigate(event, index)}
         ><span /></m.button>)}
@@ -195,18 +198,26 @@ function StatsChart<T extends string | number>({
         </div>
       </div>
       {variant === 'timeline' && !calendarSpacing && <p className="stats-timeline-spacing">Recorded periods only; gaps are omitted.</p>}
-      <div
-        id={`${id}-detail`}
-        className="stats-chart-detail"
-        role={active ? 'tooltip' : 'status'}
-        aria-live={active ? 'off' : 'polite'}
-        data-selected={active !== undefined && selected === keyFor(active.value) || undefined}
-      >
-        {detail && <>
-          <span className="stats-detail-value">{formatValue(detail.value)}</span>
-          <span className="stats-detail-count">{countText(detail.count)} {detail.count === 1 ? 'photo' : 'photos'} <span>· {percentText(detail.percentage)} of recorded data</span></span>
-          <span className="stats-detail-hint">{active && selected === keyFor(active.value) ? 'Selected · tap again or press Escape to clear' : active ? 'Tap or press Enter to keep this detail' : 'Most used · select a value for details'}</span>
-        </>}
+      <div className="stats-chart-detail-surface">
+        <div
+          id={`${id}-detail`}
+          className="stats-chart-detail"
+          role={active ? 'tooltip' : 'status'}
+          aria-live={active ? 'off' : 'polite'}
+          data-selected={active !== undefined && selected === keyFor(active.value) || undefined}
+        >
+          {detail && <>
+            <span className="stats-detail-value">{formatValue(detail.value)}</span>
+            <span className="stats-detail-count">{countText(detail.count)} {detail.count === 1 ? 'photo' : 'photos'} <span>· {percentText(detail.percentage)} of recorded data</span></span>
+            <span className="stats-detail-hint">{selected === keyFor(detail.value) ? 'Selected · tap again or press Escape to clear' : active ? 'Tap or press Enter to keep this detail' : retained ? 'Last viewed · select a value for details' : 'Most used · select a value for details'}</span>
+          </>}
+        </div>
+        {detail && exploreHref && <a
+          className="stats-context-link stats-explore-link"
+          href={exploreHref}
+          aria-label={`Explore ${formatValue(detail.value)} photos`}
+          onFocus={() => setFocused(keyFor(detail.value))}
+        >View in Explore <Icon name="arrow-right" /></a>}
       </div>
     </> : <p className="stats-chart-empty" data-stats-empty>
       {sampleCount + missingCount === 0 ? 'No photos in this scope yet.' : emptyLabel ?? `No recorded ${title.toLowerCase()} data.`}
@@ -218,6 +229,8 @@ function StatsChart<T extends string | number>({
     </p>
   </section>;
 }
+
+const StatsChart = memo(StatsChartView) as typeof StatsChartView;
 
 export function RankedBars<T extends string | number>(props: StatsVisualizationProps<T>) {
   return <StatsChart {...props} variant="ranked" />;

@@ -15,12 +15,13 @@ test('build and release share an exact public route/asset allowlist, including l
   ], { getPhoto: () => image });
   const allowed = publicOutputPaths([...catalog.published.listProjects(), ...catalog.drafts.listProjects()]);
   const photoPage = `photos/${shortPublicPhotoId(image.id)}/index.html`;
-  for (const name of ['explore/index.html', 'map/index.html', 'originals/public.mov', 'projects/project-one/photos/public.json', photoPage]) assert(allowed.has(name), name);
+  for (const name of ['explore/index.html', 'map/index.html', 'stats/index.html', 'originals/public.mov', 'projects/project-one/photos/public.json', photoPage]) assert(allowed.has(name), name);
   assert(!allowed.has('projects/draft/index.html'));
   assertPublicOutput([...allowed, '_astro/client.abc.js', '_astro/font.xyz.woff2'], allowed, true);
   assert.throws(() => assertPublicOutput([...allowed].filter(name => name !== 'map/index.html'), allowed, true), /Missing published asset: map/);
+  assert.throws(() => assertPublicOutput([...allowed].filter(name => name !== 'stats/index.html'), allowed, true), /Missing published asset: stats/);
   assert.throws(() => assertPublicOutput([...allowed].filter(name => name !== photoPage), allowed, true), /Missing published asset: photos/);
-  for (const name of ['explore/private.json', 'map/photos.json', 'photos/private.json', 'photos/public/index.html', `photos/${shortPublicPhotoId('private')}/index.html`, `photos/${shortPublicPhotoId(image.id)}/metadata.json`, '_astro/photos-manifest.json', '_astro/client.js.map', 'projects/draft/photos/public.json']) {
+  for (const name of ['stats/photos.json', 'stats/private.json', 'stats/secret-draft/index.html', 'explore/private.json', 'map/photos.json', 'photos/private.json', 'photos/public/index.html', `photos/${shortPublicPhotoId('private')}/index.html`, `photos/${shortPublicPhotoId(image.id)}/metadata.json`, '_astro/photos-manifest.json', '_astro/client.js.map', 'projects/draft/photos/public.json']) {
     assert.throws(() => assertPublicOutput([...allowed, name], allowed), /Unexpected public file/);
   }
   assert.deepEqual(photoAssetPaths(image), ['thumbnails/public.jpg', 'originals/public.jpg', 'originals/public.mov']);
