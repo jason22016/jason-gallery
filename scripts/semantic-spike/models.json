@@ -1,0 +1,18 @@
+{
+  "siglip2": {
+    "id": "google/siglip2-base-patch16-224",
+    "revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+    "dimension": 768,
+    "max_length": 64,
+    "weights": "model.safetensors",
+    "role": "Multilingual candidate; native Chinese and English, no translation"
+  },
+  "clip": {
+    "id": "openai/clip-vit-base-patch32",
+    "revision": "3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268",
+    "dimension": 512,
+    "max_length": 77,
+    "weights": "pytorch_model.bin",
+    "role": "Smaller English baseline; Chinese tested directly, outside documented language support"
+  }
+}

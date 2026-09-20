@@ -1,0 +1,7 @@
+torch==2.8.0
+transformers==4.57.1
+huggingface-hub==0.36.0
+numpy==2.2.6
+pillow==11.3.0
+sentencepiece==0.2.1
+protobuf==6.32.1
