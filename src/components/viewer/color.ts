@@ -67,17 +67,17 @@ export const clampAccentContrast = (
     }
     return mix(accent, bg, 0.8)
   }
-  // Too low contrast → move away from bg towards white
-  const white = { r: 255, g: 255, b: 255 }
+  // Move away from the actual surface in either theme.
+  const contrast = luminance(bg) > 0.5 ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 }
   for (let t = 0.05; t <= 1; t += 0.05) {
-    const candidate = mix(accent, white, t)
+    const candidate = mix(accent, contrast, t)
     const c = contrastRatio(candidate, bg)
     if (c >= min) return candidate
   }
-  return mix(accent, white, 0.8)
+  return mix(accent, contrast, 0.8)
 }
 
-export const averageColorFromImage = (img: HTMLImageElement): string | null => {
+export const averageColorFromImage = (img: HTMLImageElement, background = BG_HEX): string | null => {
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d', { willReadFrequently: true })
   if (!ctx) return null
@@ -104,7 +104,7 @@ export const averageColorFromImage = (img: HTMLImageElement): string | null => {
     r = Math.round(r / count)
     g = Math.round(g / count)
     b = Math.round(b / count)
-    const clamped = clampAccentContrast({ r, g, b })
+    const clamped = clampAccentContrast({ r, g, b }, background)
     return rgbToHex(clamped)
   } catch {
     return null
@@ -125,6 +125,7 @@ export const dataUrlFromThumbhash = (thumbHash: string): string | null => {
 export const deriveAccentFromSources = async (opts: {
   thumbHash?: string | null
   thumbnailUrl?: string | null
+  background?: string
 }): Promise<string | null> => {
   const { thumbHash, thumbnailUrl } = opts
 
@@ -148,7 +149,7 @@ export const deriveAccentFromSources = async (opts: {
 
   try {
     const img = await loadImage(src)
-    return averageColorFromImage(img)
+    return averageColorFromImage(img, opts.background)
   } catch {
     return null
   }

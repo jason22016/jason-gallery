@@ -114,7 +114,8 @@
     },
     {
       "local": "src/components/gallery/map/map-style.ts",
-      "sha256": "ecc91099ebc9382e211d1d50b06bce22d4aef39e7ede769961f7fc681de224cc"
+      "sha256": "f0e43b27ac75991bfc440ef3f8a9a6d11ad201fe02395fc2a4e1cf30a734a933",
+      "themeAdaptation": "Derive only light paint colors from the unchanged pinned dark style; retain all sources, layers, zoom stops, opacity and attribution."
     },
     {
       "local": "src/components/gallery/GalleryIcons.css",
@@ -126,7 +127,8 @@
     },
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "2dd911fe3958fa9ae1a4b06ecc24676dd5c6f63ab33fd1bedbde53186ecb017a"
+      "sha256": "8b1d56f60abd92cc6e95056e92a8287e66f09fd47d6e042a5acf25df3e2269e9",
+      "themeAdaptation": "Follow the shared theme with in-place paint transitions, retaining map camera, sources, markers and selection; preserve all original dark style colors."
     },
     {
       "local": "src/components/gallery/ProjectGallery.tsx",
@@ -135,7 +137,8 @@
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",
-      "sha256": "f5fdc5981247990476e8437a7ab414d8e4caffc8e502d9f24ee3836de2c0aebf"
+      "sha256": "85ed5218056d990c9f3c458943e449b4be4ae455e5c3076b5a172d5613adc565",
+      "themeAdaptation": "Follow the shared theme with in-place paint transitions and lifecycle cleanup; preserve the pinned dark style and existing lazy initialization."
     },
     {
       "local": "tests/website/gallery.test.ts",

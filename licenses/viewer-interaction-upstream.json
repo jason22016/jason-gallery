@@ -119,11 +119,12 @@
       "local": "src/components/viewer/PhotoViewer.tsx",
       "upstream": "apps/web/src/modules/viewer/PhotoViewer.tsx",
       "upstreamSha256": "012063d75551a288540ee764fc168a50b898c74750914626bfef3ad8c89d53b3",
-      "sha256": "20e8eb61286d22b0292c224540020517b62a6707c13b3e9f1251ac9886487426",
+      "sha256": "7d9eade8043adf9a4afbf3e8dfde6f1476ed6da72c6af0761fd1f709372726c7",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adapted": true,
       "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation",
-      "sharePhotoPageAdaptation": "THIRD_PARTY_NOTICES.md#share-photo-page--step-2"
+      "sharePhotoPageAdaptation": "THIRD_PARTY_NOTICES.md#share-photo-page--step-2",
+      "themeAdaptation": "Inherit the shared theme and adapt photo accent contrast to its surface, retaining the original dark behavior and keeping the viewer toolbar free of theme controls."
     },
     {
       "local": "src/components/viewer/GalleryThumbnail.tsx",
@@ -153,11 +154,12 @@
       "local": "src/components/viewer/PhotoViewer.css",
       "upstream": "apps/web/src/modules/viewer/PhotoViewer.css",
       "upstreamSha256": "367f5b7586549ce44fbdb7b67606c9f5495b2d1fa10b0cce5490f72666b76c05",
-      "sha256": "be469cac196a477ba0130b8dbef24c75e2072e34efb7982e8893b6791d8ffb50",
+      "sha256": "968bcfc7acbfea28110bd36966a23bbaaeeeff2b0fb9dae8f1be71e40388e062",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adapted": true,
       "phase4Adaptation": "Share photo-tokens.css with Gallery; use semantic RGB legend tokens and control-role blur on minimap status. No Viewer gesture or rendering logic changed.",
-      "metadataLoadingAdaptation": "Increase Inspector metadata and headings by 1px; style a bottom-right download badge with byte counts and reduced-motion support; hide the mobile gesture hint while loading to prevent overlap."
+      "metadataLoadingAdaptation": "Increase Inspector metadata and headings by 1px; style a bottom-right download badge with byte counts and reduced-motion support; hide the mobile gesture hint while loading to prevent overlap.",
+      "themeAdaptation": "Adapt surface controls for the independent light palette while preserving all original dark color and opacity endpoints."
     },
     {
       "local": "src/components/viewer/entry-animation-state.ts",

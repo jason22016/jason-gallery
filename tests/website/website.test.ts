@@ -1,5 +1,5 @@
 import { installMapFixture, openMapPhotoList } from './map-fixture';
-import { expectFallbackSource } from './viewer-assertions';
+import { expectColor, expectFallbackSource } from './viewer-assertions';
 import { browserBundleForAudit } from '../viewer/bundle-audit';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -183,7 +183,7 @@ test('preloaded Viewer, selection, buttons, keyboard limits, focus trap/restorat
   await page.locator('[data-viewer-ready="true"]').waitFor({ state: 'attached' });
   assert.deepEqual(originals, [], 'closed Gallery loads only thumbnails');
   assert.deepEqual(engineRequests, [], 'GPU module and worker are deferred until opening');
-  const props = await page.locator('astro-island').getAttribute('props');
+  const props = await page.locator('.gallery-main astro-island[client="only"]').getAttribute('props');
   for (const field of ['exif', 's3Key', 'toneAnalysis', 'thumbnailUrl', 'lastModified']) assert(!props!.includes(`"${field}"`), `Viewer props contain unnecessary ${field}`);
   assert.equal(await page.evaluate(() => 'fixtureInjection' in window), false);
   await open(page, 1); await loaded(page);
@@ -807,7 +807,7 @@ test('production MapLibre workers initialize from MiniMap first and release map 
 });
 
 test('real MapLibre renders photo markers, expands a native cluster, selects a point and restores the filtered map', async t => {
-  const ctx = await context({ reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
+  const ctx = await context({ reducedMotion: 'reduce', colorScheme: 'dark' }, 'native'); t.after(() => ctx.close());
   const page = await projectPage(ctx, 'fixture-alpha');
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   // Deterministic local style. Empty glyph fixture avoids dependence on external font services;
@@ -827,7 +827,7 @@ test('real MapLibre renders photo markers, expands a native cluster, selects a p
     return { background: surface.backgroundColor, color: link.color, font: surface.fontFamily };
   });
   assert.notEqual(attributionColors.background, 'rgb(255, 255, 255)', 'lazy MapLibre compact CSS must not override the dark attribution surface');
-  assert.equal(attributionColors.color, 'rgba(255, 255, 255, 0.85)', 'attribution links remain legible on the dark map');
+  await expectColor(attribution.locator('a').first(), 'color', 'rgba(255, 255, 255, 0.85)');
   assert.match(attributionColors.font, /Geist/);
   await attribution.locator('summary').click();
   await expect(attribution.getByRole('link')).toBeHidden();
@@ -936,33 +936,35 @@ test('HDR active requires successful reconstruction; capability changes, malform
   await expect(page.locator('.hdr-status')).toHaveText('HDR source');
 });
 
-test('home follows the device while Project Gallery and Viewer keep DESIGN.md dark materials', async t => {
+test('home, Project Gallery and Viewer follow the device while preserving the dark materials', async t => {
   const ctx = await context({ colorScheme: 'light' }); t.after(() => ctx.close());
   const page = await ctx.newPage();
   await page.goto(server.url);
   assert.equal(await page.locator('html').evaluate(el => getComputedStyle(el).colorScheme), 'light');
   await page.emulateMedia({ colorScheme: 'dark' });
-  assert.equal(await page.locator('html').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(22, 22, 22)');
+  await expectColor(page.locator('html'), 'background-color', 'rgb(22, 22, 22)');
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto(`${server.url}/projects/fixture-beta/`);
   await page.locator('[data-viewer-ready="true"]').waitFor({ state: 'attached' });
-  assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(28, 28, 30)');
+  await expectColor(page.locator('body'), 'background-color', '#f7f8fa');
   await open(page); await loaded(page);
-  assert.equal(await page.locator('.viewer-backdrop-base').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(40, 40, 40)');
+  await expectColor(page.locator('.viewer-backdrop-base'), 'background-color', 'rgb(245, 246, 248)');
   await page.getByRole('button', { name: '照片信息', exact: true }).click();
   await expect(page.locator('.viewer-inspector')).toBeVisible();
-  assert.equal(await page.locator('.viewer-inspector .photo-caption').evaluate(el => getComputedStyle(el).color), 'rgba(255, 255, 255, 0.5)');
-  assert.equal(await page.locator('.viewer-inspector').evaluate(el => getComputedStyle(el).backgroundColor), 'rgba(40, 40, 40, 0.6)');
-  assert.equal(await page.locator('.photo-dialog').evaluate(el => getComputedStyle(el).colorScheme), 'dark');
+  await expectColor(page.locator('.viewer-inspector .photo-caption'), 'color', 'rgba(32, 36, 43, 0.62)');
+  await expectColor(page.locator('.viewer-inspector'), 'background-color', 'rgba(250, 251, 252, 0.8)');
+  await expect(page.locator('.photo-dialog')).toHaveCSS('color-scheme', 'light');
   await page.screenshot({ path: '.cache/website-viewer-light.png' });
   await page.emulateMedia({ colorScheme: 'dark' });
-  assert.equal(await page.locator('.viewer-backdrop-base').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(40, 40, 40)');
+  await expectColor(page.locator('.viewer-backdrop-base'), 'background-color', 'rgb(40, 40, 40)');
+  await expectColor(page.locator('.viewer-inspector .photo-caption'), 'color', 'rgba(255, 255, 255, 0.5)');
+  await expectColor(page.locator('.viewer-inspector'), 'background-color', 'rgba(40, 40, 40, 0.6)');
   assert.equal(await page.locator('body').evaluate(el => getComputedStyle(el).colorScheme), 'dark');
   const staticCtx = await browser.newContext({ javaScriptEnabled: false, colorScheme: 'light' });
   t.after(() => staticCtx.close());
   const staticPage = await staticCtx.newPage();
   await staticPage.goto(`${server.url}/projects/fixture-beta/`);
-  assert.equal(await staticPage.locator('body').evaluate(el => getComputedStyle(el).colorScheme), 'dark');
+  assert.equal(await staticPage.locator('body').evaluate(el => getComputedStyle(el).colorScheme), 'light');
 });
 
 test('Swiper thumbnail and keyboard navigation preserve the Project history entry, scroll offset and opener focus', async t => {

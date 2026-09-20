@@ -58,8 +58,9 @@
   "files": [
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "2dd911fe3958fa9ae1a4b06ecc24676dd5c6f63ab33fd1bedbde53186ecb017a",
-      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
+      "sha256": "8b1d56f60abd92cc6e95056e92a8287e66f09fd47d6e042a5acf25df3e2269e9",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome",
+      "themeAdaptation": "Follow the shared theme with in-place paint transitions, retaining map camera, sources, markers and selection; preserve all original dark style colors."
     },
     {
       "local": "src/components/gallery/map/ClusterMarker.tsx",

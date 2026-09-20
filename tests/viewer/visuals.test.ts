@@ -3,6 +3,7 @@ import { test, before, after } from 'node:test';
 import { chromium, type Browser, type BrowserContextOptions } from 'playwright';
 import { expect } from 'playwright/test';
 import { serve } from '../website/server';
+import { expectColor } from '../website/viewer-assertions';
 import { softwareGPUOptions } from '../browser';
 import { BIN_COUNT, calculateHistogram } from '../../src/components/viewer/HistogramChart';
 import { clampAccentContrast, contrastRatio, dataUrlFromThumbhash } from '../../src/components/viewer/color';
@@ -57,8 +58,8 @@ test('photo accents stay in the upstream contrast band and malformed hashes are 
   assert.equal(dataUrlFromThumbhash('malformed-hash'), null);
 });
 
-test('dark-only materials, local icons/font, quiet desktop controls and spring Inspector stay usable', async t => {
-  const { page, context } = await fixture({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' }); t.after(() => context.close());
+test('dark materials, local icons/font, quiet desktop controls and spring Inspector stay usable', async t => {
+  const { page, context } = await fixture({ viewport: { width: 1280, height: 900 }, colorScheme: 'dark' }); t.after(() => context.close());
   await open(page);
   await expect(page.locator('.viewer-inspector')).toHaveCount(0);
   await expect(page.locator('.viewer-inspector-slot')).toHaveCSS('width', '0px');
@@ -67,7 +68,7 @@ test('dark-only materials, local icons/font, quiet desktop controls and spring I
   await expect(page.locator('.viewer-next')).toHaveCSS('opacity', '0');
   await expect(page.getByRole('button', { name: '放大', exact: true })).toHaveCSS('opacity', '0');
   await expect(page.locator('.photo-dialog')).toHaveCSS('color-scheme', 'dark');
-  await expect(page.locator('.viewer-backdrop-base')).toHaveCSS('background-color', 'rgb(40, 40, 40)');
+  await expectColor(page.locator('.viewer-backdrop-base'), 'background-color', 'rgb(40, 40, 40)');
   await expect(page.locator('.viewer-close')).toHaveCSS('width', '32px');
   await expect(page.locator('.viewer-close')).toHaveCSS('border-radius', '999px');
   assert((await page.locator('.viewer-close i').evaluate(el => getComputedStyle(el).maskImage)).includes('data:image/svg+xml'));
@@ -78,7 +79,7 @@ test('dark-only materials, local icons/font, quiet desktop controls and spring I
   await page.keyboard.press('ArrowRight');
   await expect.poll(() => page.locator('.photo-dialog').evaluate(el => getComputedStyle(el).getPropertyValue('--color-accent'))).not.toBe(accent);
   await page.emulateMedia({ colorScheme: 'dark' });
-  await expect(page.locator('.viewer-backdrop-base')).toHaveCSS('background-color', 'rgb(40, 40, 40)');
+  await expectColor(page.locator('.viewer-backdrop-base'), 'background-color', 'rgb(40, 40, 40)');
   await page.getByRole('button', { name: '照片信息', exact: true }).click();
   await expect(page.locator('.viewer-inspector-slot')).toHaveCSS('width', '320px');
   await expect(page.locator('.viewer-desktop-inspector')).toHaveCSS('backdrop-filter', 'blur(40px)');

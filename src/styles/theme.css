@@ -1,0 +1,61 @@
+@import "./theme-palette.css";
+/* One inherited, animatable value keeps gradients and translucent materials in
+   step without overriding the gallery's gesture, opacity or layout animations. */
+@property --theme-light { syntax: '<percentage>'; inherits: true; initial-value: 100%; }
+:root {
+  --theme-light: 100%;
+  --theme-duration: 800ms;
+  color-scheme: light;
+  transition: --theme-light var(--theme-duration) cubic-bezier(.4, 0, .2, 1);
+}
+:root[data-theme='dark'] { --theme-light: 0%; color-scheme: dark; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) { --theme-light: 0%; color-scheme: dark; } }
+
+.theme-control { display: inline-flex; align-items: center; flex-shrink: 0; position: relative; color: var(--color-text); }
+.theme-control .theme-toggle, .theme-control .theme-menu > summary {
+  display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0;
+  color: inherit; background: transparent; border: 0; border-radius: 8px; cursor: pointer;
+}
+.theme-control .theme-toggle { width: 32px; }
+.theme-control .theme-menu > summary { width: 22px; list-style: none; color: var(--color-text-secondary); }
+.theme-menu > summary::-webkit-details-marker { display: none; }
+.theme-control .theme-toggle:hover, .theme-control .theme-menu > summary:hover { background: var(--color-fill-tertiary); }
+.theme-control :is(button, summary):focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.theme-moon { --moon-size: 22px; display: block; width: var(--moon-size); height: var(--moon-size); overflow: hidden; font: var(--moon-size)/1 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; }
+.theme-moon-rest, .theme-moon-rest > span, .theme-moon-orbit > span { display: block; width: var(--moon-size); height: var(--moon-size); }
+.theme-moon-dark, .theme-moon-orbit { display: none !important; }
+:root[data-theme='dark'] .theme-moon-light { display: none; }
+:root[data-theme='dark'] .theme-moon-dark { display: block !important; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .theme-moon-light { display: none; }
+  :root:not([data-theme]) .theme-moon-dark { display: block !important; }
+}
+:root[data-theme-transition] .theme-moon-rest { display: none; }
+:root[data-theme-transition] .theme-moon-orbit { display: block !important; }
+:root[data-theme-transition='light'] .theme-moon-orbit { animation: moon-wax var(--theme-duration) steps(4, end) both; }
+:root[data-theme-transition='dark'] .theme-moon-orbit { animation: moon-wane var(--theme-duration) steps(4, end) both; }
+@keyframes moon-wax { from { transform: translateY(0); } to { transform: translateY(calc(var(--moon-size) * -4)); } }
+@keyframes moon-wane { from { transform: translateY(calc(var(--moon-size) * -4)); } to { transform: translateY(calc(var(--moon-size) * -8)); } }
+.theme-menu { position: relative; }
+.theme-options { position: absolute; z-index: 60; top: calc(100% + 8px); right: 0; min-width: 166px; padding: 6px; background: var(--color-material-thick); color: var(--color-text); border: 1px solid var(--color-fill); border-radius: 12px; backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); box-shadow: var(--gallery-shadow, 0 8px 32px var(--color-fill-tertiary)); }
+.theme-options button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 8px 10px !important; border: 0 !important; border-radius: 7px; background: transparent !important; color: inherit !important; font: 13px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; text-align: left; cursor: pointer; }
+.theme-options button:hover, .theme-options button[aria-pressed='true'] { background: var(--color-fill-tertiary) !important; }
+.theme-option-check { width: 14px; margin-left: auto; }
+.site-theme-control { position: absolute; top: 24px; right: 2vw; z-index: 40; }
+.gallery-page .site-theme-control { position: fixed; top: calc(8px + env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
+.gallery-page:has(.site-theme-control) .gallery-header-content { padding-right: calc(78px + env(safe-area-inset-right)); }
+@media (max-width: 599px) { .portfolio-page .site-theme-control { right: 16px; } }
+@media (pointer: coarse) {
+  .theme-control .theme-toggle { width: 40px; height: 44px; }
+  .theme-control .theme-menu > summary { width: 28px; height: 44px; }
+  .theme-options button { min-height: 44px; }
+  .gallery-page .site-theme-control { top: calc(2px + env(safe-area-inset-top)); }
+  .gallery-page:has(.site-theme-control) .gallery-header-content { padding-right: calc(88px + env(safe-area-inset-right)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --theme-duration: 0s; }
+  :root[data-theme-transition] .theme-moon-rest { display: block; }
+  :root[data-theme-transition] .theme-moon-orbit { display: none !important; }
+}
+
+:root:not([data-theme]) .site-theme-control { display: none; }

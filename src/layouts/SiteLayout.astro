@@ -1,5 +1,7 @@
 ---
 import '../styles/global.css';
+import { ThemeControl } from '../components/ThemeControl';
+import themeBootstrap from '../theme/bootstrap.js?raw';
 import { SiteNavigation } from '../components/SiteNavigation';
 import { canonicalURL, DEFAULT_SHARE_IMAGE, NOINDEX, SITE_DESCRIPTION, SITE_NAME, textSummary } from '../website/seo';
 interface Props { title?: string; description?: string; gallery?: boolean; noindex?: boolean; shareable?: boolean; image?: { path: string; alt: string }; }
@@ -14,6 +16,7 @@ const shareImage = Astro.site && shareable ? new URL(image.path, Astro.site).hre
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script is:inline set:html={themeBootstrap} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="description" content={pageDescription} />
     <meta name="robots" content={noindex || !Astro.site ? NOINDEX : 'index, follow, max-image-preview:large'} />
@@ -34,12 +37,12 @@ const shareImage = Astro.site && shareable ? new URL(image.path, Astro.site).hre
     <meta name="twitter:description" content={pageDescription} />
     {shareImage && <><meta name="twitter:image" content={shareImage} /><meta name="twitter:image:alt" content={image.alt} /></>}
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#161616" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" />
     <title>{pageTitle}</title>
   </head>
   <body class={gallery ? 'gallery-page' : 'portfolio-page'}>
     <a class="skip-link" href="#main">跳至内容</a>
+    <div class="site-theme-control"><ThemeControl client:load /></div>
     {!gallery && <header class="site-header shell"><a class="wordmark" href="/" aria-label="Jason Gallery 首页">Jason Gallery<span>.</span></a><SiteNavigation current={Astro.url.pathname === '/' ? 'projects' : undefined} /></header>}
     <main id="main" class={gallery ? 'gallery-main' : 'shell'} tabindex="-1"><slot /></main>
     {!gallery && <footer class="site-footer shell"><span>© Jason Gallery</span><a href="/">Projects</a></footer>}

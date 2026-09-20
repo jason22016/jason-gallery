@@ -13,6 +13,7 @@ import { ClusterMarkerRegistry, type ClusterCandidate, type ClusterMarkerEntry }
 import { clusterCaptureProperties, clusterDateProperties } from './map/cluster-preview';
 import './map/ClusterMarker.css';
 import { getMapStyle } from './map/map-style';
+import { bindMapTheme, getMapTheme } from './map/map-theme';
 import { calculateMapBounds } from './map/map-bounds';
 import { MapControls } from './map/MapControls';
 import { MapInfoPanel } from './map/MapInfoPanel';
@@ -51,6 +52,7 @@ export default function PhotoMap({ photos, collectionTitle, onOpen, onSelect, on
     let registry: PhotoMarkerRegistry | undefined;
     let nativeClusters: ClusterMarkerRegistry | undefined;
     let observer: ResizeObserver | undefined;
+    let releaseTheme: (() => void) | undefined;
     let active = true;
     setError(false); setReady(false);
     const failed = () => { if (active) setError(true); };
@@ -61,7 +63,8 @@ export default function PhotoMap({ photos, collectionTitle, onOpen, onSelect, on
       .filter(photo => photo.id !== currentProps.current.selectedPhotoId)
       .map(photo => ({ type: 'Feature' as const, properties: { id: photo.id, ...clusterCaptureProperties(photo.date) }, geometry: { type: 'Point' as const, coordinates: [photo.location!.longitude, photo.location!.latitude] } })) });
     try {
-      map = new maplibregl.Map({ container: container.current, style: getMapStyle(), center: [located[0]!.location!.longitude, located[0]!.location!.latitude], zoom: 9, ...initialViewport, attributionControl: { compact: true }, zoomLevelsToOverscale: undefined });
+      map = new maplibregl.Map({ container: container.current, style: getMapStyle(getMapTheme()), center: [located[0]!.location!.longitude, located[0]!.location!.latitude], zoom: 9, ...initialViewport, attributionControl: { compact: true }, zoomLevelsToOverscale: undefined });
+      releaseTheme = bindMapTheme(map);
       setMapInstance(map);
       observer = new ResizeObserver(() => map?.resize());
       observer.observe(container.current);
@@ -153,7 +156,7 @@ export default function PhotoMap({ photos, collectionTitle, onOpen, onSelect, on
         syncMarkers();
       });
     } catch { failed(); }
-    return () => { active = false; clearTimeout(timeout); observer?.disconnect(); setMapInstance(null); updateSelection.current = null; clusterRegistry.current = null; nativeClusters?.clear(); registry?.clear(); map?.getCanvas().removeEventListener('webglcontextlost', failed); map?.remove(); };
+    return () => { active = false; clearTimeout(timeout); observer?.disconnect(); releaseTheme?.(); setMapInstance(null); updateSelection.current = null; clusterRegistry.current = null; nativeClusters?.clear(); registry?.clear(); map?.getCanvas().removeEventListener('webglcontextlost', failed); map?.remove(); };
   }, [mapDataKey, attempt]);
   useEffect(() => { updateSelection.current?.(); }, [located, selectedPhotoId]);
   if (!located.length) return <div className="map-experience"><div className="map-right-chrome"><MapInfoPanel collectionTitle={collectionTitle} markersCount={0} bounds={null} /></div><div className="map-empty gallery-empty" role="status"><Icon name="map-pin" /><h3>没有可显示的位置</h3><p>当前筛选结果没有带有效 GPS 的照片。</p></div></div>;

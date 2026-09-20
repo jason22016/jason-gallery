@@ -1,6 +1,20 @@
 import assert from 'node:assert/strict';
-import type { Page } from 'playwright';
+import type { Locator, Page } from 'playwright';
 import { expect } from 'playwright/test';
+
+/** Compare rendered color channels, including color-mix() and legacy rgb syntax. */
+export async function expectColor(locator: Locator, property: string, expected: string) {
+  await expect.poll(() => locator.evaluate((element, [property, expected]) => {
+    const context = document.createElement('canvas').getContext('2d')!;
+    context.fillStyle = getComputedStyle(element).getPropertyValue(property!);
+    context.fillRect(0, 0, 1, 1);
+    const actual = [...context.getImageData(0, 0, 1, 1).data].join(',');
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = expected!;
+    context.fillRect(0, 0, 1, 1);
+    return actual === [...context.getImageData(0, 0, 1, 1).data].join(',');
+  }, [property, expected])).toBe(true);
+}
 
 /** Blob URLs are opaque: verify actual bytes and the retained original-link
  * identity, rather than comparing img.src with a network URL as before. */

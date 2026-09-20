@@ -109,8 +109,9 @@
   "files": [
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "9b5f52a53e5fbb9583eb220e080335a7a9103a18b3e4e0c543adaad930858b2c",
-      "globalGalleryPhase3Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-3--global-map"
+      "sha256": "8b1d56f60abd92cc6e95056e92a8287e66f09fd47d6e042a5acf25df3e2269e9",
+      "globalGalleryPhase3Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-3--global-map",
+      "themeAdaptation": "Follow the shared theme with in-place paint transitions, retaining map camera, sources, markers and selection; preserve all original dark style colors."
     },
     {
       "local": "src/components/gallery/PhotoGallery.tsx",
@@ -122,11 +123,13 @@
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",
-      "sha256": "2714ce09c2f248f1b1e65e3729e874452833207221b2a602ac641b4242724097"
+      "sha256": "85ed5218056d990c9f3c458943e449b4be4ae455e5c3076b5a172d5613adc565",
+      "themeAdaptation": "Follow the shared theme with in-place paint transitions and lifecycle cleanup; preserve the pinned dark style and existing lazy initialization."
     },
     {
       "local": "src/styles/gallery.css",
-      "sha256": "c553aaa74c073dd07d0737a5ea95b71be204e7d9ec80c7811eb7a8a774f8186c"
+      "sha256": "3d9da2834f8d5f8ffd7422716c6dcbc91829d6d4347d99a0570c47648b67912e",
+      "themeAdaptation": "Inherit the selected color scheme, adapt monochrome map icons and accent-button contrast while retaining the original dark gallery palette."
     },
     {
       "local": "tests/website/gallery.test.ts",

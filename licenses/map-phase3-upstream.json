@@ -77,9 +77,10 @@
     },
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "2dd911fe3958fa9ae1a4b06ecc24676dd5c6f63ab33fd1bedbde53186ecb017a",
+      "sha256": "8b1d56f60abd92cc6e95056e92a8287e66f09fd47d6e042a5acf25df3e2269e9",
       "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview",
-      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome",
+      "themeAdaptation": "Follow the shared theme with in-place paint transitions, retaining map camera, sources, markers and selection; preserve all original dark style colors."
     },
     {
       "local": "src/components/gallery/ProjectGallery.tsx",
@@ -104,7 +105,8 @@
     },
     {
       "local": "src/styles/gallery.css",
-      "sha256": "6e239ed63de60c0b060be6ad9d4ce113bf39ae82c1bd8e42711f6c1071b97fd2"
+      "sha256": "3d9da2834f8d5f8ffd7422716c6dcbc91829d6d4347d99a0570c47648b67912e",
+      "themeAdaptation": "Inherit the selected color scheme, adapt monochrome map icons and accent-button contrast while retaining the original dark gallery palette."
     },
     {
       "local": "tests/website/photo-marker-card-behavior.test.ts",

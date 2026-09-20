@@ -5,7 +5,9 @@ import { CoverEditor, CoverPreview } from './cover-editor';
 import { Tasks } from './tasks';
 import { DeleteDialog, type DeleteTarget } from './delete-dialog';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronRight, CircleAlert, Clock3, CloudUpload, FolderOpen, GitBranch, Image, Images, Layers3, LayoutGrid, List, Moon, Plus, RefreshCw, Search, Settings2, Sun, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronRight, CircleAlert, Clock3, CloudUpload, FolderOpen, GitBranch, Image, Images, Layers3, LayoutGrid, List, Plus, RefreshCw, Search, Settings2, X } from 'lucide-react';
+import { ThemeControl } from '../../src/components/ThemeControl';
+import { useTheme } from '../../src/theme/theme';
 import { SourceSchema, SourcesSchema, type PhotoSource } from '../../src/photo-engine/source-schema';
 import { ProjectSchema, type Project } from '../../src/projects/schema';
 import { compareProjectOrder } from '../../src/projects/order';
@@ -50,13 +52,8 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
   const [photoTab, setPhotoTab] = useState<'manage' | 'sync'>('manage');
   const [photoView, setPhotoView] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState<Page>('photos');
-  const [dark, setDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
-  useEffect(() => {
-    const preference = window.matchMedia('(prefers-color-scheme: dark)');
-    const followDevice = () => setDark(preference.matches);
-    preference.addEventListener('change', followDevice);
-    return () => preference.removeEventListener('change', followDevice);
-  }, []);
+  const theme = useTheme();
+  const dark = theme?.resolved === 'dark';
   const [sources, setSources] = useState(initial.sources);
   const [projects, setProjects] = useState(initial.projects);
   const sortedProjects = [...projects].sort(compareProjectOrder);
@@ -248,7 +245,7 @@ export function AdminPreview({ initial, management }: { initial: PreviewData; ma
   return <div className={`admin ${dark ? 'dark' : 'light'}`}>
     <header className="topbar"><a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('photos'); }}><span className="brand-mark"><Image size={20} /></span>jason<span className="brand-tail">/ gallery</span></a>
       <nav aria-label="后台导航">{(Object.keys(names) as Page[]).map(id => { const Icon = icons[id]; return <button key={id} className={page === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={16} />{names[id]}</button>; })}</nav>
-      <div className="top-tools"><button onClick={() => setDark(v => !v)} aria-label="切换明暗主题">{dark ? <Sun size={17} /> : <Moon size={17} />}</button><span className="avatar" title={management?.email ?? 'Fixture 预览，不代表已登录'}>J</span></div>
+      <div className="top-tools"><ThemeControl /><span className="avatar" title={management?.email ?? 'Fixture 预览，不代表已登录'}>J</span></div>
     </header>
     {management ? <div className="preview-banner"><span>管理后台 · {management.email}</span><span>Git {head.slice(0, 7)} · <button onClick={refreshPhotos} disabled={busy}>刷新仓库</button> · <a href="/cdn-cgi/access/logout">退出登录</a></span></div> : <div className="preview-banner"><span><span className="dot" />界面预览 <b>FIXTURE</b></span><span>操作仅保存在当前页面 · 未连接管理接口</span></div>}
     <main aria-busy={busy} inert={busy}>

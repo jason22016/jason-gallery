@@ -49,16 +49,18 @@
     },
     {
       "local": "src/components/gallery/PhotoMap.tsx",
-      "sha256": "2dd911fe3958fa9ae1a4b06ecc24676dd5c6f63ab33fd1bedbde53186ecb017a",
+      "sha256": "8b1d56f60abd92cc6e95056e92a8287e66f09fd47d6e042a5acf25df3e2269e9",
       "phase2Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin",
       "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards",
       "mapPhase4Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-4--cluster-marker-and-photo-preview",
-      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome",
+      "themeAdaptation": "Follow the shared theme with in-place paint transitions, retaining map camera, sources, markers and selection; preserve all original dark style colors."
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",
-      "sha256": "f5fdc5981247990476e8437a7ab414d8e4caffc8e502d9f24ee3836de2c0aebf",
-      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome"
+      "sha256": "85ed5218056d990c9f3c458943e449b4be4ae455e5c3076b5a172d5613adc565",
+      "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome",
+      "themeAdaptation": "Follow the shared theme with in-place paint transitions and lifecycle cleanup; preserve the pinned dark style and existing lazy initialization."
     },
     {
       "local": "src/components/viewer/MetadataPanel.tsx",

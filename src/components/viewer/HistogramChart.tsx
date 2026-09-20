@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { animate, useReducedMotion } from 'motion/react';
 import { Spring } from '@afilmory/utils';
+import { useTheme } from '../../theme/theme';
 
 export const BIN_COUNT = 128
 
@@ -58,6 +59,7 @@ const createRenderer = (canvas: HTMLCanvasElement) => {
   const width = canvas.clientWidth, height = canvas.clientHeight
   if (!width || !height) return null
   const tokens = getComputedStyle(canvas)
+  const light = parseFloat(tokens.getPropertyValue('--theme-light')) / 100 || 0
   const dpr = window.devicePixelRatio || 1
 
   canvas.width = width * dpr
@@ -77,8 +79,9 @@ const createRenderer = (canvas: HTMLCanvasElement) => {
     }
     const alpha = CHANNEL_ALPHA[channel]
     const gradient = stripCtx.createLinearGradient(0, 0, 0, strip.height)
-    gradient.addColorStop(0, `rgba(${CHANNEL_RGB[channel]}, ${alpha})`)
-    gradient.addColorStop(1, `rgba(${CHANNEL_RGB[channel]}, ${alpha * 0.1})`)
+    const rgb = channel === 'luminance' ? [255 - 223 * light, 255 - 219 * light, 255 - 212 * light].join(', ') : CHANNEL_RGB[channel]
+    gradient.addColorStop(0, `rgba(${rgb}, ${alpha})`)
+    gradient.addColorStop(1, `rgba(${rgb}, ${alpha * 0.1})`)
     stripCtx.fillStyle = gradient
     stripCtx.fillRect(0, 0, 1, strip.height)
     strips[channel] = strip
@@ -120,7 +123,7 @@ const createRenderer = (canvas: HTMLCanvasElement) => {
 
       drawBars(histogram.luminance, strips.luminance)
 
-      ctx.globalCompositeOperation = 'screen'
+      ctx.globalCompositeOperation = light > .5 ? 'multiply' : 'screen'
       drawBars(histogram.red, strips.red)
       drawBars(histogram.green, strips.green)
       drawBars(histogram.blue, strips.blue)
@@ -143,6 +146,7 @@ export function HistogramChart({ thumbnailUrl }: { thumbnailUrl: string }) {
   const [histogram, setHistogram] = useState<HistogramBins | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const reduced = useReducedMotion();
+  const theme = useTheme();
 
   useEffect(() => {
     let active = true;
@@ -181,8 +185,13 @@ export function HistogramChart({ thumbnailUrl }: { thumbnailUrl: string }) {
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
-    return () => { observer.disconnect(); drawRef.current = null; };
-  }, []);
+    let frame = 0;
+    if (theme?.transitioning) {
+      const repaint = () => { resize(); frame = requestAnimationFrame(repaint); };
+      frame = requestAnimationFrame(repaint);
+    }
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); drawRef.current = null; };
+  }, [theme?.resolved, theme?.transitioning]);
 
   useEffect(() => {
     if (!histogram) return;

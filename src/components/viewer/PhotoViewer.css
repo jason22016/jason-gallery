@@ -46,8 +46,8 @@
 .viewer-toolbar[inert] > * { pointer-events: none; }
 .viewer-counter { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--color-text-secondary); padding: 4px 8px; border-radius: 999px; background: var(--color-material-ultra-thick); backdrop-filter: blur(var(--viewer-blur-panel)); border: 1px solid var(--color-fill-tertiary); white-space: nowrap; }
 .viewer-actions { display: flex; align-items: center; gap: 8px; }
-.photo-dialog .icon-button.viewer-action-button { width: 32px; height: 32px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0; border-radius: 999px; border: 1px solid rgb(255 255 255 / .1); color: white; background: var(--color-material-ultra-thick); backdrop-filter: blur(var(--viewer-blur-panel)); pointer-events: auto; transition: opacity .2s, color .2s, background-color .2s, border-color .2s; }
-.photo-dialog .icon-button.viewer-action-button:hover:not(:disabled) { background: rgb(0 0 0 / .4); color: white; border-color: rgb(255 255 255 / .15); }
+.photo-dialog .icon-button.viewer-action-button { width: 32px; height: 32px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0; border-radius: 999px; border: 1px solid var(--viewer-action-border); color: var(--viewer-action-text); background: var(--color-material-ultra-thick); backdrop-filter: blur(var(--viewer-blur-panel)); pointer-events: auto; transition: opacity .2s, color .2s, background-color .2s, border-color .2s; }
+.photo-dialog .icon-button.viewer-action-button:hover:not(:disabled) { background: var(--viewer-action-hover); color: var(--viewer-action-text); border-color: var(--viewer-action-hover-border); }
 .photo-dialog .icon-button.viewer-action-button:active:not(:disabled) { background: var(--color-material-opaque); }
 .photo-dialog .icon-button.viewer-action-button:disabled { opacity: .28; }
 .photo-dialog .icon-button.viewer-action-active, .photo-dialog .icon-button.viewer-action-active:hover:not(:disabled) { background: var(--color-accent); border-color: var(--viewer-border); }

@@ -13,6 +13,7 @@ import { ActionButton } from './ActionButton';
 import { ViewerBackdrop } from './ViewerBackdrop';
 import { DesktopInspector } from './DesktopInspector';
 import { deriveAccentFromSources } from './color';
+import { useTheme } from '../../theme/theme';
 import type { Swiper as SwiperType } from 'swiper';
 import { Navigation, Virtual } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -57,11 +58,12 @@ function PhotoDialog({ photos, collectionTitle, index, trigger, onIndex, onClose
   const [currentBlobSrc, setCurrentBlobSrc] = useState<string | null>(null);
   const photo = photos[index]!;
   const [accent, setAccent] = useState<string | null>(null);
+  const theme = useTheme();
   useEffect(() => {
     let active = true;
-    void deriveAccentFromSources({ thumbHash: photo.thumbHash, thumbnailUrl: photo.thumbnail }).then(color => { if (active) setAccent(color); });
+    void deriveAccentFromSources({ thumbHash: photo.thumbHash, thumbnailUrl: photo.thumbnail, background: theme?.resolved === 'light' ? '#f7f8fa' : '#1c1c1e' }).then(color => { if (active) setAccent(color); });
     return () => { active = false; };
-  }, [photo.thumbHash, photo.thumbnail]);
+  }, [photo.thumbHash, photo.thumbnail, theme?.resolved]);
   const frameLayout = useMemo(() => ({
     get desktopSidebarWidthRem() {
       const width = dialog.current?.querySelector<HTMLElement>('.viewer-inspector-slot')?.getBoundingClientRect().width ?? (inspector ? 320 : 0);

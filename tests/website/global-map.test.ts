@@ -70,7 +70,7 @@ test('Global Map serializes only deduplicated public photos with valid GPS; priv
   assert.deepEqual(await page.locator('[data-static-gallery] [data-photo-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-photo-id'))), expected);
   await expect(page.locator('.gallery-live .gallery-count')).toHaveText('3');
   await expect(page.locator('.map-photo-list button')).toHaveCount(3);
-  await expect(page.locator('astro-island[client]')).toHaveCount(1);
+  await expect(page.locator('.gallery-main astro-island[client]')).toHaveCount(1);
   const html = await fs.readFile(path.join(root, 'dist/map/index.html'), 'utf8');
   for (const value of ['private.jpg', 'unused.jpg', 'ordinary.jpg', 'hdr.jpg', 'DRAFT WEBSITE SECRET', 'secret-draft']) {
     assert(!html.includes(value));

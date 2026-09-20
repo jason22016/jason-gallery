@@ -381,3 +381,19 @@ unresolved photos cannot fall back to sharing a private/current URL. The Project
 Explore and Map history owners, media renderer, interactions and visual design
 are unchanged. The local adaptation hash is updated; upstream source and license
 baselines remain pinned. See [Share Photo Page](docs/SHARE_PHOTO_PAGE.md).
+
+## Local light theme and moon control
+
+2026-09-20: Jason Gallery adds an independently designed light palette, a shared
+moon-phase theme control and persistent manual/system preferences. This local
+extension intentionally supports light mode beyond upstream DESIGN.md's dark-only
+scope. Existing dark color values and opacities remain unchanged. The adapted
+Viewer inherits the selected palette; its histogram and accent contrast also
+support light surfaces. It has no separate theme control. Current local hashes
+are updated in the existing provenance records; upstream baselines, licenses and
+attribution remain pinned. See [Website themes](docs/website-themes.md).
+
+The local map extension derives a light basemap by changing only paint colors,
+and synchronizes PhotoMap and MiniMap without recreating their maps or changing
+their data sources. The pinned dark MapLibreStyle.json remains byte-for-byte
+unchanged. Native monochrome control icons now follow the selected theme.

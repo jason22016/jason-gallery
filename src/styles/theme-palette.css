@@ -1,0 +1,39 @@
+/* Dark endpoints preserve the existing Afilmory/macOS palette exactly.
+ * Light endpoints are Jason Gallery's independent neutral palette. */
+:root {
+  --color-text: color-mix(in srgb, rgb(255 255 255 / 0.85), rgb(32 36 43 / .92) var(--theme-light));
+  --color-text-secondary: color-mix(in srgb, rgb(255 255 255 / 0.5), rgb(32 36 43 / .62) var(--theme-light));
+  --color-text-tertiary: color-mix(in srgb, rgb(255 255 255 / 0.25), rgb(32 36 43 / .4) var(--theme-light));
+  --color-text-quaternary: color-mix(in srgb, rgb(255 255 255 / 0.1), rgb(32 36 43 / .18) var(--theme-light));
+  --color-text-quinary: color-mix(in srgb, rgb(255 255 255 / 0.05), rgb(32 36 43 / .08) var(--theme-light));
+  --color-fill: color-mix(in srgb, rgb(255 255 255 / 0.1), rgb(32 36 43 / .09) var(--theme-light));
+  --color-fill-secondary: color-mix(in srgb, rgb(255 255 255 / 0.08), rgb(32 36 43 / .065) var(--theme-light));
+  --color-fill-tertiary: color-mix(in srgb, rgb(255 255 255 / 0.05), rgb(32 36 43 / .045) var(--theme-light));
+  --color-fill-quaternary: color-mix(in srgb, rgb(255 255 255 / 0.03), rgb(32 36 43 / .025) var(--theme-light));
+  --color-material-ultra-thick: color-mix(in srgb, rgb(40 40 40 / 0.84), rgb(250 251 252 / .94) var(--theme-light));
+  --color-material-thick: color-mix(in srgb, rgb(40 40 40 / 0.72), rgb(250 251 252 / .88) var(--theme-light));
+  --color-material-medium: color-mix(in srgb, rgb(40 40 40 / 0.6), rgb(250 251 252 / .8) var(--theme-light));
+  --color-material-thin: color-mix(in srgb, rgb(40 40 40 / 0.48), rgb(250 251 252 / .68) var(--theme-light));
+  --color-material-ultra-thin: color-mix(in srgb, rgb(40 40 40 / 0.36), rgb(250 251 252 / .54) var(--theme-light));
+  --color-material-opaque: color-mix(in srgb, rgb(40 40 40), rgb(245 246 248) var(--theme-light));
+  --color-blue: color-mix(in srgb, rgb(10 132 255), rgb(0 106 218) var(--theme-light));
+  --color-red: color-mix(in srgb, rgb(255 105 97), rgb(203 62 58) var(--theme-light));
+  --color-green: color-mix(in srgb, rgb(52 199 89), rgb(34 137 71) var(--theme-light));
+  --color-histogram-blue: color-mix(in srgb, rgb(64 156 255), rgb(32 110 209) var(--theme-light));
+  --color-orange: color-mix(in srgb, rgb(255 159 10), rgb(182 102 12) var(--theme-light));
+  --color-background: color-mix(in srgb, #1c1c1e, #f7f8fa var(--theme-light));
+  --color-accent: color-mix(in srgb, #007aff, #006bd6 var(--theme-light));
+  --color-on-accent: color-mix(in srgb, rgb(255 255 255 / .85), white var(--theme-light));
+  --gallery-histogram-grid: color-mix(in srgb, rgb(255 255 255 / .04), rgb(32 36 43 / .07) var(--theme-light));
+  --gallery-histogram-highlight: color-mix(in srgb, rgb(255 255 255 / .03), rgb(32 36 43 / .03) var(--theme-light));
+  --portfolio-background: color-mix(in srgb, #161616, #f7f8fa var(--theme-light));
+  --portfolio-text: color-mix(in srgb, #eeeeee, #252a32 var(--theme-light));
+  --portfolio-thumbnail: color-mix(in srgb, #282828, #e9ecf0 var(--theme-light));
+  --portfolio-error: color-mix(in srgb, #aaaaaa, #606771 var(--theme-light));
+  --portfolio-footer: color-mix(in srgb, #a7adb0, #666e79 var(--theme-light));
+  --portfolio-muted: color-mix(in srgb, #888888, #666e79 var(--theme-light));
+  --viewer-action-text: color-mix(in srgb, white, rgb(32 36 43 / .92) var(--theme-light));
+  --viewer-action-border: color-mix(in srgb, rgb(255 255 255 / .1), rgb(32 36 43 / .1) var(--theme-light));
+  --viewer-action-hover: color-mix(in srgb, rgb(0 0 0 / .4), rgb(226 230 236 / .94) var(--theme-light));
+  --viewer-action-hover-border: color-mix(in srgb, rgb(255 255 255 / .15), rgb(32 36 43 / .15) var(--theme-light));
+}

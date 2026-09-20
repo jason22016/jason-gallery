@@ -163,7 +163,9 @@
       ],
       "phase4Adaptation": "DESIGN.md semantic tokens, local overflow tooltips, and spring-only spatial motion.",
       "mapPhase2Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-2--photo-marker-pin",
-      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards"
+      "mapPhase3Adaptations": "THIRD_PARTY_NOTICES.md#map-phase-3--photo-marker-cards",
+      "sha256": "3d9da2834f8d5f8ffd7422716c6dcbc91829d6d4347d99a0570c47648b67912e",
+      "themeAdaptation": "Inherit the selected color scheme, adapt monochrome map icons and accent-button contrast while retaining the original dark gallery palette."
     },
     {
       "local": "src/components/gallery/ListView.tsx",
@@ -291,7 +293,9 @@
           "path": "apps/web/src/styles/tailwind.css",
           "sha256": "30215bc99d18bcbdc7642ab9b1f623a3dddb4f57448035825c151627f4ccfe0b"
         }
-      ]
+      ],
+      "sha256": "4d457704ef059791ddefc111a9826f66dc5564c062ff1e2f9193f474c3348524",
+      "themeAdaptation": "Move existing dark values unchanged into the shared theme palette and add independently designed light endpoints."
     }
   ],
   "phase4VerifiedAt": "2026-09-13",

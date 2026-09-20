@@ -59,14 +59,15 @@
     },
     {
       "local": "src/components/viewer/HistogramChart.tsx",
-      "sha256": "648c65bbe6b606f7e7722dcfff682c01a9e9fa324019b61627d0570a4c529c8e",
+      "sha256": "9fdb310717caddd8a7bdb09e4463a9fba93c764ab2a27691159d8df1cbab6ad5",
       "adapted": true,
       "upstream": [
         {
           "path": "apps/web/src/modules/metadata/HistogramChart.tsx",
           "sha256": "2a661b9b35b306ddbdc0c7028f72146a19b444b030c396e0574b732e5d16f44d"
         }
-      ]
+      ],
+      "themeAdaptation": "Redraw semantic histogram colors through theme transitions; retain dark screen compositing and use multiply on light surfaces."
     },
     {
       "local": "src/components/viewer/MetadataPanel.tsx",
@@ -82,7 +83,7 @@
     },
     {
       "local": "src/components/viewer/MiniMap.tsx",
-      "sha256": "3b6ed241a40e11c742e49499fb306c7d2d28d4293b52b08524e2c2d22a15fb2f",
+      "sha256": "85ed5218056d990c9f3c458943e449b4be4ae455e5c3076b5a172d5613adc565",
       "adapted": true,
       "upstream": [
         {
@@ -92,7 +93,8 @@
       ],
       "mapPhase5Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-5--immersive-project-map-chrome",
       "mapPhase6Adaptation": "THIRD_PARTY_NOTICES.md#map-phase-6--final-audit-and-stabilization",
-      "maplibreSecurityAdaptation": "R1 / GHSA-jrc7-96c5-q579: load the shared MapLibre v6 ESM/Worker entry and retain v5 tile overscaling; style, attribution and lifecycle unchanged."
+      "maplibreSecurityAdaptation": "R1 / GHSA-jrc7-96c5-q579: load the shared MapLibre v6 ESM/Worker entry and retain v5 tile overscaling; style, attribution and lifecycle unchanged.",
+      "themeAdaptation": "Follow the shared theme with in-place paint transitions and lifecycle cleanup; preserve the pinned dark style and existing lazy initialization."
     },
     {
       "local": "src/components/viewer/MapLibreStyle.json",
@@ -118,7 +120,7 @@
     },
     {
       "local": "src/components/viewer/PhotoViewer.tsx",
-      "sha256": "20e8eb61286d22b0292c224540020517b62a6707c13b3e9f1251ac9886487426",
+      "sha256": "7d9eade8043adf9a4afbf3e8dfde6f1476ed6da72c6af0761fd1f709372726c7",
       "adapted": true,
       "upstream": [
         {
@@ -127,11 +129,12 @@
         }
       ],
       "globalGalleryPhase1Adaptation": "THIRD_PARTY_NOTICES.md#global-gallery-phase-1--shared-collection-foundation",
-      "sharePhotoPageAdaptation": "THIRD_PARTY_NOTICES.md#share-photo-page--step-2"
+      "sharePhotoPageAdaptation": "THIRD_PARTY_NOTICES.md#share-photo-page--step-2",
+      "themeAdaptation": "Inherit the shared theme and adapt photo accent contrast to its surface, retaining the original dark behavior and keeping the viewer toolbar free of theme controls."
     },
     {
       "local": "src/components/viewer/PhotoViewer.css",
-      "sha256": "be469cac196a477ba0130b8dbef24c75e2072e34efb7982e8893b6791d8ffb50",
+      "sha256": "968bcfc7acbfea28110bd36966a23bbaaeeeff2b0fb9dae8f1be71e40388e062",
       "adapted": true,
       "upstream": [
         {
@@ -148,7 +151,8 @@
         }
       ],
       "phase4Adaptation": "Share photo-tokens.css with Gallery; use semantic RGB legend tokens and control-role blur on minimap status. No Viewer gesture or rendering logic changed.",
-      "metadataLoadingAdaptation": "Increase Inspector metadata and headings by 1px; style a bottom-right download badge with byte counts and reduced-motion support; hide the mobile gesture hint while loading to prevent overlap."
+      "metadataLoadingAdaptation": "Increase Inspector metadata and headings by 1px; style a bottom-right download badge with byte counts and reduced-motion support; hide the mobile gesture hint while loading to prevent overlap.",
+      "themeAdaptation": "Adapt surface controls for the independent light palette while preserving all original dark color and opacity endpoints."
     },
     {
       "local": "src/components/viewer/GalleryThumbnail.tsx",
@@ -186,14 +190,15 @@
     },
     {
       "local": "src/components/viewer/color.ts",
-      "sha256": "8068958a5ccc6b8227922fa8bc9f83e58fcfdf75953ef86592a9910048255b8b",
+      "sha256": "9554c68095a750dad192e65ce5d0f4d82140ac8fd6e76fd757c6ce6ccf9beef4",
       "adapted": true,
       "upstream": [
         {
           "path": "apps/web/src/lib/color.ts",
           "sha256": "1477dc2ad8f172669163511badfc5875b62d751349a89e0bc7e04b595099aa81"
         }
-      ]
+      ],
+      "themeAdaptation": "Retain the original dark contrast clamp and allow accents to contrast against a light background."
     },
     {
       "local": "src/components/viewer/Thumbhash.tsx",

@@ -1,4 +1,4 @@
-.gallery-page { background: var(--color-background); color: var(--color-text); color-scheme: dark; font-family: var(--gallery-font-sans); font-size: 14px; }
+.gallery-page { background: var(--color-background); color: var(--color-text); font-family: var(--gallery-font-sans); font-size: 14px; }
 .gallery-main { min-height: 100dvh; }
 .gallery-page button, .gallery-page .button-link { color: inherit; background: var(--color-fill-tertiary); border: 1px solid var(--color-fill); border-radius: 8px; padding: 8px 12px; }
 .gallery-page button:hover:not(:disabled) { background: var(--color-fill); }
@@ -181,7 +181,7 @@
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tags li { padding: 4px 8px; background: var(--gallery-wash); border: 1px solid var(--gallery-border); border-radius: 999px; font-size: 12px; max-width: 100%; overflow-wrap: anywhere; }
 .muted { font-size: 12px; color: var(--color-text-secondary); }
-.gallery-page .primary-button { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-text); }
+.gallery-page .primary-button { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); }
 .gallery-page .primary-button:hover { background: color-mix(in srgb, var(--color-accent) 90%, transparent); }
 .view-panel { display: flex; flex-direction: column; gap: 12px; }
 .view-panel section { min-width: 0; }
@@ -207,7 +207,7 @@
 .search-filter-heading > span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-secondary); }
 .filter-categories { display: flex; gap: 4px; }
 .gallery-page .filter-categories button { padding: 4px 8px; border-radius: 999px; font-size: 12px; border: 0; background: transparent; }
-.gallery-page .filter-categories button[aria-pressed='true'] { color: var(--color-text); background: var(--color-accent); }
+.gallery-page .filter-categories button[aria-pressed='true'] { color: var(--color-on-accent); background: var(--color-accent); }
 .command-list { overflow-y: auto; overscroll-behavior: contain; min-height: 64px; max-height: 36dvh; padding: 4px 8px; scrollbar-width: thin; scrollbar-color: var(--color-fill) transparent; }
 .gallery-page .command-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; text-align: left; background: transparent; border: 0; border-radius: 6px; }
 .gallery-page .command-item:hover, .gallery-page .command-item[data-highlighted] { background: var(--color-fill); }
@@ -285,15 +285,16 @@
 .gallery-page .maplibregl-ctrl-group { background: var(--color-material-thick); backdrop-filter: blur(var(--gallery-blur-panel)); border: 1px solid var(--gallery-border); border-radius: 12px; box-shadow: var(--gallery-shadow); }
 .gallery-page .maplibregl-ctrl-group button { width: 32px; height: 32px; border: 0; padding: 0; border-radius: 8px; background: transparent; }
 .gallery-page .maplibregl-ctrl-group button + button { border: 0; }
-.gallery-page .maplibregl-ctrl-icon { filter: invert(1); opacity: .85; }
+.gallery-page .maplibregl-ctrl-icon { filter: invert(calc(100% - var(--theme-light))); opacity: .85; }
 /* Outrank MapLibre's compact state rules even when its CSS is lazy-loaded last. */
 .gallery-page .photo-map .maplibregl-ctrl-attrib { background: var(--color-material-thick); color: var(--color-text-secondary); backdrop-filter: blur(var(--gallery-blur-panel)); border-radius: 8px; font: 11px/24px var(--gallery-font-sans); }
 .gallery-page .photo-map .maplibregl-ctrl-attrib.maplibregl-compact { min-height: 24px; padding: 2px 28px 2px 0; }
 .gallery-page .photo-map .maplibregl-ctrl-attrib.maplibregl-compact-show { padding-inline: 8px 32px; }
 .gallery-page .photo-map .maplibregl-ctrl-attrib a { color: var(--color-text); }
-.gallery-page .photo-map .maplibregl-ctrl-attrib-button { width: 28px; height: 28px; border: 0; border-radius: 999px; background-color: transparent; background-position: center; background-repeat: no-repeat; filter: invert(1); }
+.gallery-page .photo-map .maplibregl-ctrl-attrib-button { width: 28px; height: 28px; border: 0; border-radius: 999px; background-color: transparent; background-position: center; background-repeat: no-repeat; filter: invert(calc(100% - var(--theme-light))); }
 .gallery-page .photo-map .maplibregl-ctrl-attrib-button:focus { box-shadow: none; }
-.gallery-page .photo-map .maplibregl-ctrl-attrib-button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; filter: none; background-color: var(--color-text); }
+/* Keep the focus backing light before inversion, including in light mode. */
+.gallery-page .photo-map .maplibregl-ctrl-attrib-button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; filter: invert(var(--theme-light)); background-color: rgb(255 255 255 / .85); }
 
 .masonry-media { position: absolute; inset: 0; display: block; }
 .gallery-capture-icon { width: 1em; height: 1em; flex-shrink: 0; }

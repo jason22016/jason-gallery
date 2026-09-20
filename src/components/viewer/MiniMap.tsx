@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef, useState } from 'react';
 import type { Map as MapInstance } from 'maplibre-gl';
 import { getMapStyle } from '../gallery/map/map-style';
+import { bindMapTheme, getMapTheme } from '../gallery/map/map-theme';
 import { validLocation } from './metadata';
 import { MapPhotoLink } from '../gallery/MapNavigation';
 
@@ -17,6 +18,7 @@ export function MiniMap({ latitude, longitude }: { latitude: number; longitude: 
     let failed = false;
     let map: MapInstance | undefined;
     let observer: ResizeObserver | undefined;
+    let releaseTheme: (() => void) | undefined;
     let timeout: number | undefined;
     setState('loading');
     const fail = () => { if (active) { failed = true; clearTimeout(timeout); setState('error'); } };
@@ -25,7 +27,8 @@ export function MiniMap({ latitude, longitude }: { latitude: number; longitude: 
       void import('../gallery/map/maplibre').then(({ Map }) => {
       if (!active || !container.current) return;
       map = new Map({ container: container.current, center: [longitude, latitude], zoom: 15,
-        style: getMapStyle(), interactive: false, attributionControl: false, zoomLevelsToOverscale: undefined });
+        style: getMapStyle(getMapTheme()), interactive: false, attributionControl: false, zoomLevelsToOverscale: undefined });
+      releaseTheme = bindMapTheme(map);
       map.on('error', fail);
       map.getCanvas().addEventListener('webglcontextlost', fail);
       map.once('idle', () => { if (active && !failed) { clearTimeout(timeout); setState('ready'); } });
@@ -37,7 +40,7 @@ export function MiniMap({ latitude, longitude }: { latitude: number; longitude: 
       if (entries.some(entry => entry.isIntersecting)) { visibility.disconnect(); initialize(); }
     });
     visibility.observe(container.current);
-    return () => { active = false; clearTimeout(timeout); visibility.disconnect(); observer?.disconnect(); map?.getCanvas().removeEventListener('webglcontextlost', fail); map?.remove(); };
+    return () => { active = false; clearTimeout(timeout); visibility.disconnect(); observer?.disconnect(); releaseTheme?.(); map?.getCanvas().removeEventListener('webglcontextlost', fail); map?.remove(); };
   }, [latitude, longitude, valid]);
   if (!valid) return null;
   return <div className="viewer-minimap" data-map-state={state} aria-busy={state === 'loading'}>

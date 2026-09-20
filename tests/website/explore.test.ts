@@ -65,8 +65,8 @@ test('Explore builds from the public collection exactly once per photo, with bou
   await expect(page.locator('.gallery-live .gallery-count')).toHaveText('5');
   await expect(page.locator('.masonry-photo').first().locator('img')).toHaveCSS('opacity', '1');
   assert.deepEqual(originals, []); assert.deepEqual(details, []); assert.deepEqual(heavy, []);
-  await expect(page.locator('astro-island[client]')).toHaveCount(1);
-  const props = await page.locator('astro-island[client]').getAttribute('props');
+  await expect(page.locator('.gallery-main astro-island[client]')).toHaveCount(1);
+  const props = await page.locator('.gallery-main astro-island[client]').getAttribute('props');
   for (const field of ['exif', 'toneAnalysis', 's3Key', 'digest', 'regions', 'lastModified', 'thumbnailUrl']) assert(!props!.includes(`"${field}"`), field);
   const files = await fs.readdir(dist, { recursive: true });
   for (const file of files.filter(file => /\.(html|js|json)$/.test(file))) {
