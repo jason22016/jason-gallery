@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '17,47 * * * *'
+    - cron: '17 * * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -47,8 +47,46 @@ permissions:
   contents: read
   actions: read
 jobs:
-  automate:
+  plan:
     if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      reuse_regression: ${{ steps.verification.outputs.reuse_regression }}
+      verified_run_id: ${{ steps.verification.outputs.verified_run_id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .node-version
+      - name: Find a complete successful main regression for this commit
+        id: verification
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TASK_MODE: ${{ inputs.mode || 'publish' }}
+        run: node scripts/ci/main-verification.ts
+
+  regression:
+    needs: plan
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      !(github.event_name == 'workflow_dispatch' && inputs.mode == 'rollback') &&
+      !(github.event_name == 'workflow_dispatch' && inputs.mode == 'publish' && needs.plan.outputs.reuse_regression == 'true')
+    uses: ./.github/workflows/regression.yml
+
+  automate:
+    needs: [plan, regression]
+    if: >-
+      always() &&
+      github.ref == 'refs/heads/main' &&
+      needs.plan.result == 'success' &&
+      (
+        needs.regression.result == 'success' ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'rollback') ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'publish' && needs.plan.outputs.reuse_regression == 'true')
+      )
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment: production
@@ -64,6 +102,7 @@ jobs:
       SYNC_SOURCE_IDS: ${{ inputs.source_ids }}
       SYNC_BASELINE_RUN_ID: ${{ inputs.sync_baseline_run_id }}
       DEPLOYMENT_ID: ${{ inputs.deployment_id }}
+      VERIFIED_MAIN_RUN_ID: ${{ needs.plan.outputs.verified_run_id }}
       ASTRO_TELEMETRY_DISABLED: '1'
       WRANGLER_SEND_METRICS: 'false'
     steps:
@@ -76,30 +115,9 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Code, Project, Engine, Viewer, Website and automation regression checks
-        if: env.TASK_MODE != 'rollback'
-        env:
-          DEBUG: pw:browser
-        run: |
-          pnpm exec playwright install --with-deps chromium
-          pnpm test:checks
-      - name: Retain Viewer diagnostics
-        if: always() && env.TASK_MODE != 'rollback'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: viewer-diagnostics
-          path: .cache/color-test/diagnostics
-          include-hidden-files: true
-          retention-days: 14
-      - name: Retain Website failure diagnostics
-        if: failure() && env.TASK_MODE != 'rollback'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: website-diagnostics
-          path: .cache/website-diagnostics
-          include-hidden-files: true
-          retention-days: 14
-          if-no-files-found: ignore
+      - name: Record reused main regression
+        if: env.TASK_MODE == 'publish' && env.VERIFIED_MAIN_RUN_ID != ''
+        run: echo "Reusing complete regression from main push run $VERIFIED_MAIN_RUN_ID" >> "$GITHUB_STEP_SUMMARY"
       - name: Download baseline for selected-source sync
         if: env.TASK_MODE == 'sync' && env.SYNC_BASELINE_RUN_ID != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4

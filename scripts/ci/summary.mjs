@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 const file = '.cache/automation/summary.json';
 const state = await fs.readFile(file, 'utf8').then(JSON.parse).catch(() => ({
   schemaVersion: 2, action: process.env.TASK_MODE ?? 'publish', websiteCommit: process.env.GITHUB_SHA ?? null,
+  verifiedMainRunId: /^\d+$/.test(process.env.VERIFIED_MAIN_RUN_ID ?? '') ? Number(process.env.VERIFIED_MAIN_RUN_ID) : null,
   photoSnapshot: null, sources: [], photos: { status: 'not_started', total: null, processed: null, reused: null },
   website: { status: 'not_started' }, deployment: { status: 'not_requested', url: null, version: null }, failureReason: null,
 }));

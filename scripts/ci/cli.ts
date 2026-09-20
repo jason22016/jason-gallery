@@ -15,7 +15,8 @@ const root = path.resolve('.cache/automation');
 await fs.mkdir(root, { recursive: true });
 const stateFile = path.join(root, 'summary.json');
 const read = async (file: string) => JSON.parse(await fs.readFile(file, 'utf8'));
-const initial = { schemaVersion: 2, action: command === 'rollback' ? 'rollback' : process.env.TASK_MODE ?? 'publish', result: 'running', websiteCommit: process.env.GITHUB_SHA ?? null, photoSnapshot: null, sources: [], photos: { status: 'not_started', total: null, processed: null, reused: null }, website: { status: 'not_started' }, deployment: { status: 'not_requested', url: null, version: null }, failureReason: null };
+const verifiedMainRunId = /^\d+$/.test(process.env.VERIFIED_MAIN_RUN_ID ?? '') ? Number(process.env.VERIFIED_MAIN_RUN_ID) : null;
+const initial = { schemaVersion: 2, action: command === 'rollback' ? 'rollback' : process.env.TASK_MODE ?? 'publish', result: 'running', websiteCommit: process.env.GITHUB_SHA ?? null, verifiedMainRunId, photoSnapshot: null, sources: [], photos: { status: 'not_started', total: null, processed: null, reused: null }, website: { status: 'not_started' }, deployment: { status: 'not_requested', url: null, version: null }, failureReason: null };
 const state = ['resolve', 'rollback'].includes(command ?? '') ? initial : await read(stateFile).catch(() => initial);
 const output = async (name: string, value: string) => { if (process.env.GITHUB_OUTPUT) await fs.appendFile(process.env.GITHUB_OUTPUT, `${name}=${value}\n`); };
 try {

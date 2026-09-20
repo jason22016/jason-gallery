@@ -1,0 +1,74 @@
+name: Gallery regression
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Code, Projects and photo engine
+            script: test:ci-core
+            browser: false
+          - name: Statistics
+            script: test:statistics
+            browser: true
+          - name: Viewer
+            script: test:viewer
+            browser: true
+          - name: Website
+            script: test:website
+            browser: true
+          - name: SEO
+            script: test:seo
+            browser: true
+          - name: Automation and release
+            script: test:automation
+            browser: false
+          - name: Admin
+            script: test:admin
+            browser: true
+    env:
+      ASTRO_TELEMETRY_DISABLED: '1'
+      WRANGLER_SEND_METRICS: 'false'
+      DEBUG: pw:browser
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        if: matrix.browser
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run ${{ matrix.name }} checks
+        run: pnpm ${{ matrix.script }}
+      - name: Retain Viewer diagnostics
+        if: always() && matrix.script == 'test:viewer'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: viewer-diagnostics
+          path: .cache/color-test/diagnostics
+          include-hidden-files: true
+          retention-days: 14
+      - name: Retain Website failure diagnostics
+        if: failure() && matrix.script == 'test:website'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: website-diagnostics
+          path: .cache/website-diagnostics
+          include-hidden-files: true
+          retention-days: 14
+          if-no-files-found: ignore
