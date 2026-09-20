@@ -1,0 +1,20 @@
+[
+  {"intent":"golden-mountain","language":"zh-Hant","text":"陽光把雪山山頂染成金色"},
+  {"intent":"lake-trees","language":"zh-Hant","text":"藍色湖水倒映著岸邊的樹木"},
+  {"intent":"feeding-deer","language":"zh-Hant","text":"有人伸手餵鹿吃東西"},
+  {"intent":"night-street","language":"zh-Hant","text":"夜晚燈光明亮的古鎮街道"},
+  {"intent":"insect-flower","language":"zh-Hant","text":"停在花朵上的昆蟲"},
+  {"intent":"mushroom","language":"zh-Hant","text":"森林地面上的小蘑菇"},
+  {"intent":"forest-path","language":"mixed","text":"想找一條穿過 green forest 的小路"},
+  {"intent":"chipmunk","language":"mixed","text":"近距離的 chipmunk 特寫照片"},
+  {"intent":"rapids","language":"mixed","text":"岩石之間 rushing white water 的照片"},
+  {"intent":"stars","language":"mixed","text":"滿天 stars 的黑色夜空"},
+  {"intent":"cat","language":"mixed","text":"灰白色 cat 躺在地上的照片"},
+  {"intent":"boat","language":"mixed","text":"停靠岸邊的 boat"},
+  {"intent":"feeding-chipmunk","language":"zh-free","text":"我记得有张小花栗鼠凑到人手上吃东西的照片，帮我找一下"},
+  {"intent":"dog","language":"zh-free","text":"那只金毛把头趴下来睡着了的照片"},
+  {"intent":"cooking","language":"zh-free","text":"找一下拍到有人在案板前切食材准备做饭的那张"},
+  {"intent":"sunset","language":"en-free","text":"Show me the picture where the orange sun is sinking behind the hills."},
+  {"intent":"gull","language":"en-free","text":"I'm looking for a gull with its wings up just over the blue water."},
+  {"intent":"fireworks","language":"en-free","text":"Can you find the night shots with bright sparks spraying from a firework?"}
+]
