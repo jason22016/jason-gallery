@@ -66,7 +66,14 @@ test('production Gallery preserves deep scroll through refresh and cross-page Ex
 test('production global pages add no metadata copies and cannot expose private details through alternate routes', async () => {
   const files = await fs.readdir(path.join(root, 'dist'), { recursive: true });
   const published = fixture.projects.filter(project => project.status === 'published');
-  assert.equal(files.filter(file => file.endsWith('.json')).length, published.reduce((count, project) => count + project.photos.length, 0));
+  assert.deepEqual(
+    files.filter(file => file.startsWith('semantic/')).sort(),
+    ['semantic/index.json', 'semantic/vectors.f32'],
+  );
+  assert.equal(
+    files.filter(file => file.endsWith('.json') && file !== 'semantic/index.json').length,
+    published.reduce((count, project) => count + project.photos.length, 0),
+  );
   for (const file of files.filter(file => /\.(?:html|js|json)$/.test(file))) {
     const body = await fs.readFile(path.join(root, 'dist', file), 'utf8');
     for (const value of ['RELEASE PRIVATE DIGEST', 'RELEASE PRIVATE PERSON', 'RELEASE PRIVATE EXIF', 'DRAFT WEBSITE SECRET', 'PRIVATE PROJECT CAPTION']) assert(!body.includes(value), `${file}: ${value}`);

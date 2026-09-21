@@ -6,6 +6,8 @@ import assert from 'node:assert/strict';
 import type { AfilmoryManifest } from '../../src/photo-engine';
 import type { Project } from '../../src/projects';
 import { gainmapJPEG, jpeg } from '../../scripts/photos/fixtures';
+import { buildSemanticIndex } from '../../scripts/semantic/build';
+import { fakeEmbeddingBackend } from '../semantic/fake';
 
 export const repo = fileURLToPath(new URL('../../', import.meta.url));
 export const root = path.join(repo, '.cache/website-fixture');
@@ -89,6 +91,12 @@ export async function buildFixture(options: { root?: string; siteURL?: string; c
   options.configureProjects?.(projects, manifest);
   await fs.mkdir(content, { recursive: true });
   for (const project of projects) await fs.writeFile(path.join(content, `${project.slug}.json`), JSON.stringify(project));
+  await buildSemanticIndex({
+    root,
+    manifestFile: path.join(root, 'src/data/photos-manifest.json'),
+    cacheDirectory: path.join(root, '.cache/semantic'),
+    embedder: fakeEmbeddingBackend(),
+  });
   await fs.writeFile(path.join(root, 'build.log'), run([path.join(repo, 'node_modules/astro/bin/astro.mjs'), 'build'], root, { SITE_URL: options.siteURL ?? 'https://gallery.seo-fixture.com' }));
   return { manifest, projects, photos };
 }

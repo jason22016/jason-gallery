@@ -25,7 +25,8 @@ export function publishedPhotoAssets(): AstroIntegration {
       'astro:build:start': async () => {
         const candidates = new Set(loadPhotoIndex(options().manifestFile).listPhotos().flatMap(photoAssetPaths));
         for (const name of await filesIn(fileURLToPath(publicDir))) {
-          if (name !== 'favicon.svg' && !name.startsWith('thumbnails/') && !candidates.has(name)) throw new Error(`Unexpected public file: ${name}`);
+          const semantic = name === 'semantic/index.json' || name === 'semantic/vectors.f32';
+          if (name !== 'favicon.svg' && !name.startsWith('thumbnails/') && !candidates.has(name) && !semantic) throw new Error(`Unexpected public file: ${name}`);
           if (name.startsWith('_astro/')) throw new Error(`Unexpected public file: ${name}`);
         }
       },

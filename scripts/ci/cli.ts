@@ -3,12 +3,13 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { verifyCollection } from '../photos/collection.js';
+import { verifyCollection, exportCollection } from '../photos/collection.js';
 import { loadSources } from '../../src/photo-engine/sources.js';
 import { resolveSnapshot, parseCommits, sourceStatuses, safeReason } from '../photos/snapshot.js';
 import { processingFingerprint } from '../photos/fingerprint.js';
 import { buildRelease, verifyRelease } from './release.js';
 import { deployRelease, rollbackDeployment } from './deploy.js';
+import { buildSemanticIndex } from '../semantic/build.js';
 
 const command = process.argv[2];
 const root = path.resolve('.cache/automation');
@@ -16,7 +17,7 @@ await fs.mkdir(root, { recursive: true });
 const stateFile = path.join(root, 'summary.json');
 const read = async (file: string) => JSON.parse(await fs.readFile(file, 'utf8'));
 const verifiedMainRunId = /^\d+$/.test(process.env.VERIFIED_MAIN_RUN_ID ?? '') ? Number(process.env.VERIFIED_MAIN_RUN_ID) : null;
-const initial = { schemaVersion: 2, action: command === 'rollback' ? 'rollback' : process.env.TASK_MODE ?? 'publish', result: 'running', websiteCommit: process.env.GITHUB_SHA ?? null, verifiedMainRunId, photoSnapshot: null, sources: [], photos: { status: 'not_started', total: null, processed: null, reused: null }, website: { status: 'not_started' }, deployment: { status: 'not_requested', url: null, version: null }, failureReason: null };
+const initial = { schemaVersion: 2, action: command === 'rollback' ? 'rollback' : process.env.TASK_MODE ?? 'publish', result: 'running', websiteCommit: process.env.GITHUB_SHA ?? null, verifiedMainRunId, photoSnapshot: null, sources: [], photos: { status: 'not_started', total: null, processed: null, reused: null }, semantic: { status: 'not_started' }, website: { status: 'not_started' }, deployment: { status: 'not_requested', url: null, version: null }, failureReason: null };
 const state = ['resolve', 'rollback'].includes(command ?? '') ? initial : await read(stateFile).catch(() => initial);
 const output = async (name: string, value: string) => { if (process.env.GITHUB_OUTPUT) await fs.appendFile(process.env.GITHUB_OUTPUT, `${name}=${value}\n`); };
 try {
@@ -88,10 +89,17 @@ try {
     const artifact = await verifyCollection(path.join(root, 'photos'), { config: loadSources(), snapshot: state.photoSnapshot, fingerprint: state.fingerprint, production: true });
     state.sources = artifact.sources.map(s => process.env.PHOTO_RUN_ID && s.status === 'success' ? { ...s, processed: 0, reused: s.total } : s);
     state.photos = { status: 'success', total: artifact.photos, processed: process.env.PHOTO_RUN_ID ? 0 : artifact.processed, reused: process.env.PHOTO_RUN_ID ? artifact.photos : artifact.reused, artifactVersion: artifact.version, producerWebsiteCommit: artifact.websiteCommit, artifactRunId: process.env.PHOTO_RUN_ID || process.env.GITHUB_RUN_ID };
+  } else if (command === 'semantic') {
+    if (state.photos.status !== 'success') throw new Error('Current run has no verified photo artifact');
+    await exportCollection(path.join(root, 'photos'), process.cwd());
+    const semantic = await buildSemanticIndex({ root: process.cwd() });
+    state.semantic = { status: 'success', ...semantic };
   } else if (command === 'build') {
     if (state.photos.status !== 'success') throw new Error('Current run has no verified photo artifact');
+    if (state.semantic.status !== 'success') throw new Error('Current run has no verified semantic index');
     const release = await buildRelease({ photos: path.join(root, 'photos'), root: process.cwd(), destination: path.join(root, 'release'), websiteCommit: state.websiteCommit, runId: process.env.GITHUB_RUN_ID ?? 'local', runNumber: Number(process.env.GITHUB_RUN_NUMBER ?? 0), production: true });
-    state.website = { status: 'success', version: release.version, publishedProjects: release.publishedProjects, publicPhotos: release.publicPhotos };
+    if (release.semanticIndexVersion !== state.semantic.indexVersion) throw new Error('Release semantic index differs from the pre-build index');
+    state.website = { status: 'success', version: release.version, publishedProjects: release.publishedProjects, publicPhotos: release.publicPhotos, semanticIndexVersion: release.semanticIndexVersion, semanticModelContractSha256: release.semanticModelContractSha256 };
   } else if (command === 'deploy') {
     if (state.website.status !== 'success') throw new Error('Current run has no successful website build');
     const release = await verifyRelease(path.join(root, 'release'));
@@ -106,12 +114,13 @@ try {
     state.result = jobStatus === 'success' ? 'success' : jobStatus ?? 'failure';
     if (state.result !== 'success' && !state.failureReason) state.failureReason = `Workflow ${state.result}; inspect failed/cancelled step in Actions (checkout, dependencies, checks or artifact transfer)`;
     if (process.env.GITHUB_STEP_SUMMARY) await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, `\n\`\`\`json\n${JSON.stringify(state, null, 2)}\n\`\`\`\n`);
-  } else throw new Error('Expected resolve, photos, build, deploy, rollback or summary');
+  } else throw new Error('Expected resolve, photos, semantic, build, deploy, rollback or summary');
 } catch (error) {
   state.result = 'failure';
   const reason = safeReason(error);
   state.failureReason = `${command}: ${reason}`;
   if (command === 'photos') state.photos.status = 'failure';
+  if (command === 'semantic') state.semantic.status = 'failure';
   if (command === 'build') state.website.status = 'failure';
   if (command === 'deploy' || command === 'rollback') state.deployment = { status: 'failure_or_unconfirmed', url: null, version: null };
   console.error(state.failureReason); process.exitCode = 1;

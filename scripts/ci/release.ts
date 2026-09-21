@@ -8,15 +8,25 @@ import { processingFingerprint } from '../photos/fingerprint.js';
 import { loadProjectCatalog } from '../../src/projects/loader.js';
 import { DEFAULT_SITE_URL, resolveSiteURL } from '../../src/website/site-url.js';
 import { assertPublicOutput, publicOutputPaths } from '../../src/website/public-output.js';
+import { shortPublicPhotoId } from '../../src/website/public-photo-id.js';
+import { buildSemanticIndex } from '../semantic/build.js';
+import { verifyPublicSemanticIndex } from '../semantic/index.js';
+import { semanticModelConfig, semanticModelContractSha256 } from '../semantic/model-config.js';
+import type { EmbeddingBackend } from '../semantic/backend.js';
 
 export interface Release {
-  schemaVersion: 2; websiteCommit: string; photoSnapshot: PhotoSnapshot; photoArtifactVersion: string;
+  schemaVersion: 3; websiteCommit: string; photoSnapshot: PhotoSnapshot; photoArtifactVersion: string;
   projectDigest: string; fingerprint: string; runId: string; runNumber: number;
   publishedProjects: number; publicPhotos: number; source: 'github' | 'fixture';
+  semanticIndexVersion: string; semanticModelContractSha256: string;
   siteURL?: string | null; // Optional only for releases sealed before SEO support.
   files: Record<string, string>; version: string;
 }
-export async function buildRelease(options: { photos: string; root: string; destination: string; websiteCommit: string; runId: string; runNumber: number; production: boolean }) {
+export interface ReleaseBuildOptions {
+  photos: string; root: string; destination: string; websiteCommit: string; runId: string; runNumber: number; production: boolean;
+  semantic?: { cacheDirectory?: string; embedder?: EmbeddingBackend };
+}
+export async function buildRelease(options: ReleaseBuildOptions) {
   // Fail before exporting data or replacing any existing release.
   const siteURL = resolveSiteURL(process.env.SITE_URL ?? DEFAULT_SITE_URL, options.production) ?? null;
   const config = loadSources(path.join(options.root, 'config/photo-sources.json'));
@@ -37,13 +47,23 @@ export async function buildRelease(options: { photos: string; root: string; dest
   const catalog = loadProjectCatalog({ directory: projectDir, manifestFile: path.join(options.photos, 'photo-index.json') });
   const projects = catalog.published.listProjects();
   const ids = new Set(projects.flatMap(p => p.photos.map(x => x.photoId)));
+  const publicIds = [...ids].map(shortPublicPhotoId).sort();
   const projectDigest = sha256(JSON.stringify(projectFiles));
   await exportCollection(options.photos, options.root);
+  const semantic = await buildSemanticIndex({
+    root: options.root,
+    ...(options.semantic?.cacheDirectory ? { cacheDirectory: options.semantic.cacheDirectory } : {}),
+    ...(options.semantic?.embedder ? { embedder: options.semantic.embedder } : {}),
+  });
+  if (semantic.photos !== ids.size || semantic.modelContractSha256 !== semanticModelContractSha256) throw new Error('Semantic index does not match the public photo/model release');
+  const semanticFiles = await fileHashes(path.join(options.root, 'public/semantic'));
+  if (Object.keys(semanticFiles).sort().join(',') !== 'index.json,vectors.f32') throw new Error('Unexpected public semantic file set');
   // public/ is copied verbatim by Astro, including any files under _astro/.
-  // Only the static favicon and verified engine thumbnails are public source inputs.
+  // Only the static favicon, verified engine thumbnails and verified semantic index are public source inputs.
   const faviconHash = sha256(await fs.readFile(path.join(options.root, 'public/favicon.svg')));
   for (const [name, digest] of Object.entries(await fileHashes(path.join(options.root, 'public')))) {
     if (name === 'favicon.svg') continue;
+    if (name.startsWith('semantic/') && semanticFiles[name.slice('semantic/'.length)] === digest) continue;
     if (!name.startsWith('thumbnails/') || photos.files[`public/${name}`] !== digest) throw new Error(`Unexpected public file: ${name}`);
   }
   const staging = await fs.mkdtemp(path.join(await fs.mkdir(path.dirname(options.destination), { recursive: true }).then(() => path.dirname(options.destination)), 'release-'));
@@ -59,6 +79,8 @@ export async function buildRelease(options: { photos: string; root: string; dest
   }
   const files = await fileHashes(output);
   assertPublicOutput(Object.keys(files), publicOutputPaths(projects), true);
+  const builtSemantic = await verifyPublicSemanticIndex(path.join(output, 'semantic'), publicIds);
+  if (builtSemantic.indexVersion !== semantic.indexVersion) throw new Error('Built semantic index differs from the verified source index');
   if (files['favicon.svg'] !== faviconHash) throw new Error('Published favicon mismatch');
   for (const id of ids) if (files[`thumbnails/${id}.jpg`] !== photos.files[`public/thumbnails/${id}.jpg`]) throw new Error('Published thumbnail mismatch');
   const secrets = ['JASON_PHOTOS_READ_TOKEN', 'CLOUDFLARE_API_TOKEN', 'GITHUB_TOKEN'].map(k => process.env[k]).filter((x): x is string => Boolean(x));
@@ -67,11 +89,11 @@ export async function buildRelease(options: { photos: string; root: string; dest
     const bytes = await fs.readFile(path.join(output, name));
     if (secrets.some(secret => bytes.includes(secret))) throw new Error('Credential found in public artifact');
   }
-  const record = { schemaVersion: 2 as const, websiteCommit: options.websiteCommit, photoSnapshot: photos.snapshot, photoArtifactVersion: photos.version, projectDigest, fingerprint: photos.fingerprint, runId: options.runId, runNumber: options.runNumber, publishedProjects: projects.length, publicPhotos: ids.size, source: photos.source, siteURL, files };
+  const record = { schemaVersion: 3 as const, websiteCommit: options.websiteCommit, photoSnapshot: photos.snapshot, photoArtifactVersion: photos.version, projectDigest, fingerprint: photos.fingerprint, runId: options.runId, runNumber: options.runNumber, publishedProjects: projects.length, publicPhotos: ids.size, source: photos.source, semanticIndexVersion: semantic.indexVersion, semanticModelContractSha256, siteURL, files };
   const release: Release = { ...record, version: sha256(JSON.stringify(record)) };
   await fs.writeFile(path.join(staging, 'release.json'), JSON.stringify(release, null, 2));
   // Public provenance contains no full index or Project drafts.
-  await fs.writeFile(path.join(output, 'build-version.json'), JSON.stringify({ version: release.version, websiteCommit: release.websiteCommit, photoSnapshotVersion: release.photoSnapshot.version, runNumber: release.runNumber, siteURL }));
+  await fs.writeFile(path.join(output, 'build-version.json'), JSON.stringify({ version: release.version, websiteCommit: release.websiteCommit, photoSnapshotVersion: release.photoSnapshot.version, semanticIndexVersion: release.semanticIndexVersion, runNumber: release.runNumber, siteURL }));
   await fs.rm(options.destination, { recursive: true, force: true });
   await fs.rename(staging, options.destination);
   return release;
@@ -79,12 +101,14 @@ export async function buildRelease(options: { photos: string; root: string; dest
 export async function verifyRelease(directory: string, production = true) {
   const release: Release = JSON.parse(await fs.readFile(path.join(directory, 'release.json'), 'utf8'));
   const { version, ...record } = release;
-  if (release.schemaVersion !== 2 || sha256(JSON.stringify(record)) !== version || (production && release.source !== 'github')) throw new Error('Invalid release provenance');
+  if (release.schemaVersion !== 3 || sha256(JSON.stringify(record)) !== version || (production && release.source !== 'github')) throw new Error('Invalid release provenance');
   verifySnapshot(release.photoSnapshot);
   const files = await fileHashes(path.join(directory, 'dist')); delete files['build-version.json'];
   if (JSON.stringify(files) !== JSON.stringify(release.files)) throw new Error('Release file digest mismatch');
+  const semantic = await verifyPublicSemanticIndex(path.join(directory, 'dist/semantic'));
+  if (semantic.indexVersion !== release.semanticIndexVersion || release.semanticModelContractSha256 !== semanticModelContractSha256 || semantic.model.clientModelRelease.id !== semanticModelConfig.clientModelRelease.id) throw new Error('Release semantic model/index mismatch');
   const publicVersion = JSON.parse(await fs.readFile(path.join(directory, 'dist/build-version.json'), 'utf8'));
-  if (publicVersion.version !== version || publicVersion.websiteCommit !== release.websiteCommit || publicVersion.photoSnapshotVersion !== release.photoSnapshot.version || publicVersion.runNumber !== release.runNumber) throw new Error('Public release version mismatch');
+  if (publicVersion.version !== version || publicVersion.websiteCommit !== release.websiteCommit || publicVersion.photoSnapshotVersion !== release.photoSnapshot.version || publicVersion.semanticIndexVersion !== release.semanticIndexVersion || publicVersion.runNumber !== release.runNumber) throw new Error('Public release version mismatch');
   if ((publicVersion.siteURL ?? null) !== (release.siteURL ?? null)) throw new Error('Public release site URL mismatch');
   if (release.siteURL !== undefined) resolveSiteURL(release.siteURL ?? undefined, production);
   return release;

@@ -12,6 +12,7 @@ import { processingFingerprint } from '../../scripts/photos/fingerprint.js';
 import { buildRelease, verifyRelease, type Release } from '../../scripts/ci/release.js';
 import { deployRelease, rollbackDeployment, type DeployIO } from '../../scripts/ci/deploy.js';
 import { shortPublicPhotoId } from '../../src/website/public-photo-id';
+import { fakeEmbeddingBackend, type FakeEmbeddingCalls } from '../semantic/fake';
 
 const root = path.resolve('.cache/automation-test');
 const engine = path.join(root, 'engine');
@@ -101,11 +102,17 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   await fs.writeFile(projectFile,JSON.stringify(project));
   await fs.writeFile(path.join(site,'src/content/projects/draft.json'),JSON.stringify({...project,id:'draft',slug:'draft',status:'draft',coverPhotoId:hiddenId,photos:[{photoId:hiddenId}]}));
   const destination = path.join(root,'release');
-  const build = () => buildRelease({photos:collection,root:site,destination,websiteCommit:codeCommit,runId:'test',runNumber:10,production:false});
+  const semanticCalls: FakeEmbeddingCalls = { batches: 0, items: 0, keys: [] };
+  const build = () => buildRelease({photos:collection,root:site,destination,websiteCommit:codeCommit,runId:'test',runNumber:10,production:false,semantic:{cacheDirectory:path.join(root,'semantic-cache'),embedder:fakeEmbeddingBackend(semanticCalls)}});
   const release = await build(); assert.equal(release.publicPhotos,1); assert.equal(release.publishedProjects,1);
+  assert.equal(semanticCalls.items, 1);
   assert(release.files[`photos/${shortPublicPhotoId(id)}/index.html`]);
   assert(!release.files[`photos/${shortPublicPhotoId(hiddenId)}/index.html`]);
   assert.equal(Object.keys(release.files).filter(name => /^photos\/[^/]+\/index.html$/.test(name)).length, release.publicPhotos);
+  assert(release.files['semantic/index.json']); assert(release.files['semantic/vectors.f32']);
+  const semanticIndex = await fs.readFile(path.join(destination, 'dist/semantic/index.json'), 'utf8');
+  assert(semanticIndex.includes(shortPublicPhotoId(id))); assert(!semanticIndex.includes(shortPublicPhotoId(hiddenId)));
+  assert(!semanticIndex.includes(id)); assert(!semanticIndex.includes(hiddenId));
   assert(release.files['explore/index.html']);
   const explore = await fs.readFile(path.join(destination, 'dist/explore/index.html'), 'utf8');
   assert(explore.includes(id)); assert(!explore.includes(hiddenId));
@@ -124,6 +131,7 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   assert.equal(await processingFingerprint(),beforeFingerprint);
   assert.equal((await photos('project-only'))!.processed,0);
   const projectRelease = await build(); assert.notEqual(projectRelease.projectDigest,release.projectDigest);
+  assert.equal(semanticCalls.items, 1, 'Project-only release reuses the image embedding');
   const previousRelease = await fileHashes(destination);
   project.photos = [{photoId:'missing'}]; project.coverPhotoId = 'missing'; await fs.writeFile(projectFile,JSON.stringify(project));
   await assert.rejects(build(),/missing/); assert.deepEqual(await fileHashes(destination),previousRelease);
@@ -144,7 +152,7 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   const {version: _, ...record} = original; record.source = 'github';
   const simulated: Release = {...record,version:sha256(JSON.stringify(record))};
   await fs.writeFile(path.join(destination,'release.json'),JSON.stringify(simulated));
-  await fs.writeFile(path.join(destination,'dist/build-version.json'),JSON.stringify({version:simulated.version,websiteCommit:codeCommit,photoSnapshotVersion:simulated.photoSnapshot.version,runNumber:10,siteURL:simulated.siteURL}));
+  await fs.writeFile(path.join(destination,'dist/build-version.json'),JSON.stringify({version:simulated.version,websiteCommit:codeCommit,photoSnapshotVersion:simulated.photoSnapshot.version,semanticIndexVersion:simulated.semanticIndexVersion,runNumber:10,siteURL:simulated.siteURL}));
   let uploads = 0, rollback = false, wrongVersion = false;
   const old = {id:'00000000-0000-0000-0000-000000000001',url:'https://old.example',environment:'production',latest_stage:{status:'success'}};
   const next = {...old,id:'00000000-0000-0000-0000-000000000002',url:'https://new.example',deployment_trigger:{metadata:{commit_message:`gallery:${simulated.version}`}}};

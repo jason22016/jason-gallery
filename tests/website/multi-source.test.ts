@@ -17,6 +17,7 @@ import { deployRelease } from '../../scripts/ci/deploy.js';
 import { jpeg } from '../../scripts/photos/fixtures.js';
 import { fileHashes, sha256 } from '../../scripts/photos/artifact.js';
 import { shortPublicPhotoId } from '../../src/website/public-photo-id';
+import { fakeEmbeddingBackend } from '../semantic/fake';
 
 test('cross-source Gallery, metadata, Viewer sharing and map use the same qualified photo identity', { timeout: 120_000 }, async t => {
   const root = path.resolve('.cache/multi-source-website');
@@ -46,7 +47,7 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
   const project = {schemaVersion:1,id:'mixed',slug:'mixed',title:'Mixed sources fixture',coverPhotoId:photos[0]!.id,photos:photos.map((p,i)=>({photoId:p.id,alt:`Source ${i} photo`})),order:0,status:'published'};
   await fs.writeFile(path.join(projects,'mixed.json'),JSON.stringify(project));
   const releaseRoot = path.join(root,'release');
-  const release = await buildRelease({photos:photoRoot,root:site,destination:releaseRoot,websiteCommit:'a'.repeat(40),runId:'fixture',runNumber:1,production:false});
+  const release = await buildRelease({photos:photoRoot,root:site,destination:releaseRoot,websiteCommit:'a'.repeat(40),runId:'fixture',runNumber:1,production:false,semantic:{cacheDirectory:path.join(root,'semantic-cache'),embedder:fakeEmbeddingBackend()}});
   assert.equal(release.publicPhotos,2);
   const files = await fileHashes(path.join(releaseRoot,'dist'));
   assert(!Object.keys(files).some(name=>name.includes('photo-index') || name.includes('manifest') || name.startsWith('sources/')));
@@ -103,7 +104,7 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
   const simulated = { ...record, source:'github' as const };
   const version = sha256(JSON.stringify(simulated));
   await fs.writeFile(path.join(releaseRoot,'release.json'),JSON.stringify({...simulated,version}));
-  await fs.writeFile(path.join(releaseRoot,'dist/build-version.json'),JSON.stringify({version,websiteCommit:release.websiteCommit,photoSnapshotVersion:release.photoSnapshot.version,runNumber:1,siteURL:release.siteURL}));
+  await fs.writeFile(path.join(releaseRoot,'dist/build-version.json'),JSON.stringify({version,websiteCommit:release.websiteCommit,photoSnapshotVersion:release.photoSnapshot.version,semanticIndexVersion:release.semanticIndexVersion,runNumber:1,siteURL:release.siteURL}));
   let uploads = 0;
   const commits = Object.fromEntries(release.photoSnapshot.sources.map(s=>[s.sourceId,s.commit]));
   for (const snapshot of [makeSnapshot(config,{...commits,travel:'f'.repeat(40)}),makeSnapshot(parseSources({...config,sources:config.sources.slice(0,1)}),{'jason-photos':commits['jason-photos']!})]) {

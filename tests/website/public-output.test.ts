@@ -15,7 +15,7 @@ test('build and release share an exact public route/asset allowlist, including l
   ], { getPhoto: () => image });
   const allowed = publicOutputPaths([...catalog.published.listProjects(), ...catalog.drafts.listProjects()]);
   const photoPage = `photos/${shortPublicPhotoId(image.id)}/index.html`;
-  for (const name of ['explore/index.html', 'map/index.html', 'stats/index.html', 'originals/public.mov', 'projects/project-one/photos/public.json', photoPage]) assert(allowed.has(name), name);
+  for (const name of ['explore/index.html', 'map/index.html', 'stats/index.html', 'semantic/index.json', 'semantic/vectors.f32', 'originals/public.mov', 'projects/project-one/photos/public.json', photoPage]) assert(allowed.has(name), name);
   assert(!allowed.has('projects/draft/index.html'));
   assertPublicOutput([...allowed, '_astro/client.abc.js', '_astro/font.xyz.woff2'], allowed, true);
   assert.throws(() => assertPublicOutput([...allowed].filter(name => name !== 'map/index.html'), allowed, true), /Missing published asset: map/);

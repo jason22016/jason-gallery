@@ -6,6 +6,7 @@ src/data/photos-manifest.json
 src/data/photo-index.json
 src/data/sources/
 public/thumbnails/
+public/semantic/
 .env
 .env.*
 .DS_Store

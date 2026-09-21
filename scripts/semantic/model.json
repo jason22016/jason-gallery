@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "kind": "jason-gallery-semantic-model",
+  "imageModel": {
+    "id": "google/siglip2-base-patch16-224",
+    "revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+    "config": {
+      "file": "config.json",
+      "sha256": "fe8b5fe6d5734360678fd71c11c21e1ea3364bd8598d34295d9206335973ffd7"
+    },
+    "weights": {
+      "file": "model.safetensors",
+      "sha256": "612923381c76ec5a9bed335d1c48827e3f2e506ac31b044b63b2031fadee6a0b"
+    }
+  },
+  "preprocessing": {
+    "version": "siglip2-thumbnail-official-v1",
+    "source": "pinned-hugging-face-image-processor",
+    "config": {
+      "file": "preprocessor_config.json",
+      "sha256": "9b36b57ebaf20f09bf4c22100ccc21877ea6bfe5aead0c00c59f8af8ccefacfc"
+    },
+    "input": "public-thumbnail-jpeg",
+    "steps": [
+      "pillow-exif-transpose",
+      "convert-rgb",
+      "resize-224x224-bilinear",
+      "rescale-1-over-255",
+      "normalize-mean-0.5-std-0.5"
+    ]
+  },
+  "embedding": {
+    "schemaVersion": 1,
+    "dimension": 768,
+    "dtype": "float32-le",
+    "normalization": "l2",
+    "space": "siglip2-base-patch16-224-shared"
+  },
+  "clientModelRelease": {
+    "schemaVersion": 1,
+    "id": "siglip2-base-v64k-uint4-b32-r1",
+    "modelId": "google/siglip2-base-patch16-224",
+    "revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+    "indivisible": true,
+    "tokenizer": {
+      "file": "tokenizer.json",
+      "vocabularySize": 65536,
+      "sha256": "5a52aa9696e48ec6fd9efb7182a1f7f5da5b683354d30be70b7690102a844811"
+    },
+    "onnx": {
+      "file": "model.onnx",
+      "opset": 17,
+      "transformerQuantization": "asymmetric-uint4-block-32",
+      "tokenEmbedding": "int8",
+      "projectionHeadDtype": "float32",
+      "layerNormDtype": "float32",
+      "activationDtype": "float32",
+      "sha256": "f53300d16d35648582bec83452e8f49272158556268b2dac369ca73037e466a8"
+    },
+    "transportEncoding": "br",
+    "releaseSha256": "f8c900f897db83c47083ccfccd3e4cec2913b0b0072c6977082dc78871f5b5a6"
+  },
+  "index": {
+    "schemaVersion": 1,
+    "kind": "jason-gallery-public-semantic-index",
+    "ordering": "public-photo-id-bytewise-ascending",
+    "vectorFile": "vectors.f32"
+  }
+}
