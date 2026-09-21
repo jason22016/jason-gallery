@@ -170,10 +170,14 @@ test('Explore Cmd+K requires explicit AI enable, exposes real progress, maps ran
   await expect(dialog).toBeVisible();
   const normalSearch = dialog.getByRole('searchbox', { name: '搜索', exact: true });
   await normalSearch.fill('照片 1');
+  const metadataBounds = await dialog.boundingBox();
   const metadataCount = await page.locator('.gallery-count').textContent();
   await expect(dialog.getByRole('button', { name: /Search “照片 1” with AI/ })).toBeVisible();
   await dialog.getByRole('button', { name: /Search “照片 1” with AI/ }).click();
   await expect(page.getByRole('heading', { name: 'Enable AI Search' })).toBeVisible();
+  const aiBounds = await dialog.boundingBox();
+  assert(metadataBounds && aiBounds && Math.abs(metadataBounds.height - aiBounds.height) < 1, 'AI mode keeps the Cmd+K panel height stable');
+  await expect(page.locator('.ai-gallery-summary')).toHaveCount(0);
   assert.deepEqual(semanticRequests, [], 'entering AI mode must not load semantic assets');
   await page.getByRole('button', { name: 'Download & Enable' }).click();
   await expect(page.getByText('正在下载 AI 模型…')).toBeVisible();
@@ -194,13 +198,13 @@ test('Explore Cmd+K requires explicit AI enable, exposes real progress, maps ran
   await expect(page.locator('.viewer-counter')).toHaveText('1 / 3');
   await page.getByRole('button', { name: '关闭照片', exact: true }).click();
   await page.keyboard.press('Meta+K');
-  await expect(page.getByRole('dialog', { name: 'AI Search' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: '搜索和筛选' })).toBeVisible();
   await page.getByRole('button', { name: /View all in Explore/ }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect.poll(() => cards(page).evaluateAll(nodes => nodes.map(node => node.getAttribute('data-photo-id')))).toEqual(['photo-2', 'photo-0', 'photo-1']);
 
   await page.keyboard.press('Meta+K');
-  await expect(page.getByRole('dialog', { name: 'AI Search' }).locator('.ai-result-item')).toHaveCount(3);
+  await expect(page.getByRole('dialog', { name: '搜索和筛选' }).locator('.ai-result-item')).toHaveCount(3);
   const beforeExit = await page.evaluate(() => ({ ...((window as any).semanticFake.counts) }));
   assert.equal(beforeExit.workerStarts, 1); assert.equal(beforeExit.sessionInitializations, 1);
   await page.getByRole('button', { name: '退出 AI Search，恢复普通搜索' }).click();
@@ -242,11 +246,13 @@ test('AI Search stays keyboard-usable at 320px, has static reduced-motion edges,
   await ready(page, '?global');
   await installSemanticFake(page, 'update');
   await page.keyboard.press('Meta+K');
+  const dialog = page.getByRole('dialog', { name: '搜索和筛选' });
+  const metadataBounds = await dialog.boundingBox();
   const aiButton = page.getByRole('button', { name: '开启 AI Search' });
   await aiButton.focus(); await expect(aiButton).toBeFocused(); await page.keyboard.press('Enter');
-  const dialog = page.getByRole('dialog', { name: 'AI Search' });
   await expect(dialog).toBeVisible();
   const bounds = await dialog.boundingBox();
+  assert(metadataBounds && bounds && Math.abs(metadataBounds.height - bounds.height) < 1, 'mobile AI mode keeps the search drawer height stable');
   assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= 320);
   const activeAIButton = page.getByRole('button', { name: '退出 AI Search，恢复普通搜索' });
   assert.equal(await activeAIButton.evaluate(element => getComputedStyle(element, '::before').animationName), 'none');

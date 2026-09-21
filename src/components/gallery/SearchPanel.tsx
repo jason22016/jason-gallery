@@ -93,12 +93,14 @@ export function SearchPanel({ options, fields, project, mapPage = false, filters
       {!aiActive && <kbd>⌘ K</kbd>}
       {semantic && <AISearchButton semantic={semantic} />}
     </div>
-    {aiActive && semantic ? <div id={`${id}-ai-results`}>
-      <AISearchPanel state={semantic.state} moduleLoading={semantic.moduleLoading} moduleError={semantic.moduleError} query={semantic.query}
-        suggestions={semantic.suggestions} outcome={semantic.outcome} searchError={semantic.searchError}
-        onEnable={semantic.enable} onCancel={semantic.cancel} onRetry={semantic.retry} onSuggestion={semantic.chooseSuggestion}
-        onOpen={semantic.openResult} onViewAll={semantic.viewAll} onRetryQuery={semantic.retryQuery} />
-    </div> : <>
+    <div className="search-mode-stack">
+      {semantic && <div className="search-mode-ai" id={`${id}-ai-results`} aria-hidden={!aiActive || undefined} inert={!aiActive || undefined}>
+        <AISearchPanel state={semantic.state} moduleLoading={semantic.moduleLoading} moduleError={semantic.moduleError} query={semantic.query}
+          suggestions={semantic.suggestions} outcome={semantic.outcome} searchError={semantic.searchError}
+          onEnable={semantic.enable} onCancel={semantic.cancel} onRetry={semantic.retry} onSuggestion={semantic.chooseSuggestion}
+          onOpen={semantic.openResult} onViewAll={semantic.viewAll} onRetryQuery={semantic.retryQuery} />
+      </div>}
+      <div className="search-mode-metadata" aria-hidden={aiActive || undefined} inert={aiActive || undefined}>
       {semantic && filters.query.trim() && <button type="button" className="ai-command-entry" onClick={() => semantic.activate(filters.query.trim())}>
         <span className="command-icon"><Icon name="sparkles-2" /></span>
         <span className="command-text"><EllipsisWithTooltip>{`Search “${filters.query.trim()}” with AI`}</EllipsisWithTooltip><small>视觉语义搜索 · 查询留在此设备</small></span>
@@ -132,7 +134,8 @@ export function SearchPanel({ options, fields, project, mapPage = false, filters
       <details className="palette-actions"><summary><Icon name="settings-3" />图库操作</summary><div>
         {([['settings', '显示设置'], ['map', '地图探索'], ['info', '项目信息'], ['masonry', '瀑布流'], ['list', '列表视图']] as const).filter(([action]) => action === 'settings' || (action === 'info' ? project : !mapPage)).map(([action, label]) => <button type="button" key={action} onClick={() => onAction(action)}>{label}<Icon name="arrow-right" /></button>)}
       </div></details>
-      <footer className="search-footer"><span className="keyboard-hint"><kbd>↑↓</kbd> 选择 <kbd>↵</kbd> 应用</span><div className="form-actions"><button type="button" onClick={() => { onChange(emptyFilters); setSelectedIndex(-1); }}>重置</button><button type="submit" className="primary-button">查看 {count} 张照片</button></div></footer>
-    </>}
+        <footer className="search-footer"><span className="keyboard-hint"><kbd>↑↓</kbd> 选择 <kbd>↵</kbd> 应用</span><div className="form-actions"><button type="button" onClick={() => { onChange(emptyFilters); setSelectedIndex(-1); }}>重置</button><button type="submit" className="primary-button">查看 {count} 张照片</button></div></footer>
+      </div>
+    </div>
   </form>;
 }
