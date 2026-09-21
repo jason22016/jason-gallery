@@ -1,0 +1,22 @@
+[
+ {"id":"hard-0","intent":"chipmunk","language":"en-hard","text":"A close view of a small sciurid with stripes running along its back"},
+ {"id":"hard-1","intent":"boat","language":"en-hard","text":"A vessel moored alongside the shoreline"},
+ {"id":"hard-2","intent":"feeding-chipmunk","language":"en-hard","text":"A chipmunk taking a morsel directly from an outstretched human hand"},
+ {"id":"hard-3","intent":"feeding-deer","language":"zh-hard","text":"找鹿正靠近人伸出的手、接受手上食物的画面"},
+ {"id":"hard-4","intent":"insect-flower","language":"zh-hard","text":"昆虫落在花瓣上，而不是在空中飞着"},
+ {"id":"hard-5","intent":"river-bend","language":"zh-hard","text":"山谷中的河道绕着山体形成一个很大的弯曲"},
+ {"id":"hard-6","intent":"feeding-deer","language":"zh-Hant-hard","text":"斑鹿靠近伸出的手，接受人餵的食物"},
+ {"id":"hard-7","intent":"rapids","language":"zh-Hant-hard","text":"湍急水流穿過嶙峋岩石，激起白色浪花"},
+ {"id":"hard-8","intent":"night-street","language":"zh-Hant-hard","text":"華燈初上的古鎮街道，傳統建築與店舖都亮著燈"},
+ {"id":"hard-9","intent":"feeding-chipmunk","language":"mixed-hard","text":"花栗鼠從 outstretched hand 拿食物的近景"},
+ {"id":"hard-10","intent":"lake-trees","language":"mixed-hard","text":"藍色湖泊裡清晰的 reflections of the trees on the shore"},
+ {"id":"hard-11","intent":"golden-mountain","language":"mixed-hard","text":"雪山的 summit 被 golden sunlight 照亮的照片"},
+ {"id":"diagnostic-0","intent":null,"language":"diagnostic","text":"香格里拉普达措的高原湖泊與針葉林","reason":"Location relevance not independently annotated"},
+ {"id":"diagnostic-1","intent":null,"language":"diagnostic","text":"臺灣阿里山的雲海與日出","reason":"Location relevance not independently annotated"},
+ {"id":"diagnostic-2","intent":null,"language":"diagnostic","text":"Lago di Braies in the Dolomites, turquoise water","reason":"Location relevance not independently annotated"},
+ {"id":"diagnostic-3","intent":null,"language":"diagnostic","text":"香港深水埗的霓虹 street photography","reason":"Location relevance not independently annotated"},
+ {"id":"diagnostic-4","intent":null,"language":"diagnostic","text":"Nikon Z8 配 NIKKOR Z 180-600mm 拍的飛鳥","reason":"Camera metadata not included in image embeddings or qrels"},
+ {"id":"diagnostic-5","intent":null,"language":"diagnostic","text":"Sony α7R V with FE 70–200mm F2.8 GM OSS II","reason":"Camera metadata not included in image embeddings or qrels"},
+ {"id":"diagnostic-6","intent":null,"language":"diagnostic","text":"Fujifilm X-T5，富士膠片感的逆光人像與淺景深","reason":"Equipment/style relevance not independently annotated"},
+ {"id":"diagnostic-7","intent":null,"language":"diagnostic","text":"chiaroscuro, crepuscular rays, specular bokeh and iridescent plumage","reason":"Long-tail style concepts not independently annotated"}
+]

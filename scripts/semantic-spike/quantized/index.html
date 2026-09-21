@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>SigLIP2 vocabulary / quantization experiment</title>
+<style>body{max-width:1050px;margin:40px auto;padding:20px;font:16px system-ui;background:#15171b;color:#e8e8eb}button,select,input{font:inherit;padding:10px;margin:5px;border:1px solid #657084;border-radius:6px}input{width:60%}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#22262d;padding:20px}small{color:#aab2c0}</style>
+<h1>SigLIP2 vocabulary / quantization experiment</h1>
+<p>隔离实验：64k / 32k / 16k 词表、INT8 / INT4 text tower，共用原 SigLIP2 768 维图像向量。</p>
+<p><select id="candidate"><option>v64-int8</option><option>v64-uint4</option><option>v64-int4</option><option>v32-int8</option><option>v32-int4</option><option>v16-int4</option><option>v64-mlp4</option></select><select id="variant"><option>model</option></select>
+<select id="backend"><option>auto</option><option>webgpu</option><option>wasm</option></select><button id="run">Cold load + benchmark</button></p>
+<p><input id="query" placeholder="输入中文或英文照片描述"><button id="search" disabled>Query</button></p>
+<small>首次加载的 model + tokenizer 为约 69–142 MB（未压缩）。此 harness 禁用 HTTP cache，实测 cold transfer；模型常驻后测 warm query。</small>
+<pre id="status">Ready</pre><pre id="results"></pre>
+<script type="module" src="/app.mjs"></script>
