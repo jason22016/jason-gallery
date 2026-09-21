@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "querySet": "semantic-search-phase3c-holdout-v1",
+  "indexVersion": null,
+  "status": "pending",
+  "requiredEvidence": "independent human visual review",
+  "reviewer": null,
+  "independentFromModelSelection": null,
+  "method": "blind corpus-answerability and Top-10 visual relevance review",
+  "completedAt": null,
+  "answerability": {},
+  "judgements": {},
+  "notes": null,
+  "instructions": "Open reports/semantic/phase3c/review.html, review in blind mode, export the completed JSON, and replace this pending template only after checking reviewer identity and completeness."
+}

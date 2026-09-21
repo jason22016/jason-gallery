@@ -175,6 +175,9 @@ test('Explore Cmd+K requires explicit AI enable, exposes real progress, maps ran
   await expect(dialog.getByRole('button', { name: /Search “照片 1” with AI/ })).toBeVisible();
   await dialog.getByRole('button', { name: /Search “照片 1” with AI/ }).click();
   await expect(page.getByRole('heading', { name: 'Enable AI Search' })).toBeVisible();
+  await expect(page.getByText('首次约 101 MB 下载 · 解压后约 111 MB')).toBeVisible();
+  await expect(page.getByText(/查询文本、向量和排名计算均留在此设备上/)).toBeVisible();
+  await expect(page.getByText(/缓存被清理后需要重新下载/)).toBeVisible();
   const aiBounds = await dialog.boundingBox();
   assert(metadataBounds && aiBounds && Math.abs(metadataBounds.height - aiBounds.height) < 1, 'AI mode keeps the Cmd+K panel height stable');
   await expect(page.locator('.ai-gallery-summary')).toHaveCount(0);
@@ -190,6 +193,8 @@ test('Explore Cmd+K requires explicit AI enable, exposes real progress, maps ran
   await expect(suggestion).toBeVisible();
   await suggestion.focus(); await page.keyboard.press('Enter');
   await expect(page.locator('.ai-result-item')).toHaveCount(3);
+  await expect(page.getByText('图库中的相近结果')).toBeVisible();
+  await expect(page.getByText('相似度只用于排序，不代表匹配概率')).toBeVisible();
   assert(!decodeURI(page.url()).includes('雾中的雪山'), 'semantic query must not enter the URL');
   assert.deepEqual(await page.evaluate(() => (window as any).semanticFake.enabledPhotoIds), photos.map(photo => photo.publicId));
 
@@ -210,6 +215,12 @@ test('Explore Cmd+K requires explicit AI enable, exposes real progress, maps ran
   await page.getByRole('button', { name: '退出 AI Search，恢复普通搜索' }).click();
   await expect(page.getByRole('dialog', { name: '搜索和筛选' })).toBeVisible();
   await expect(page.locator('.gallery-count')).toHaveText(metadataCount!);
+  for (let cycle = 0; cycle < 8; cycle++) {
+    await page.getByRole('button', { name: '开启 AI Search' }).click();
+    await page.getByRole('button', { name: '退出 AI Search，恢复普通搜索' }).click();
+  }
+  const afterCycles = await page.evaluate(() => ({ ...((window as any).semanticFake.counts) }));
+  assert.equal(afterCycles.workerStarts, 1); assert.equal(afterCycles.sessionInitializations, 1);
   assert.deepEqual(semanticRequests, [], 'the fake proves UI integration without hidden model requests');
 });
 
@@ -234,7 +245,7 @@ test('cache-hit AI Search debounces, cancels stale queries, handles no results a
   assert((await page.evaluate(() => (window as any).semanticFake.counts.abortedQueries)) >= 1);
 
   await input.fill('none');
-  await expect(page.getByText('没有找到匹配照片')).toBeVisible();
+  await expect(page.getByText('没有可显示的结果')).toBeVisible();
   await input.fill('error');
   await expect(page.getByRole('heading', { name: 'AI Search 启用失败' })).toBeVisible();
   await page.getByRole('button', { name: '重试', exact: true }).click();

@@ -13,6 +13,8 @@
     "check": "tsc --noEmit",
     "semantic:build": "node --import tsx scripts/semantic/cli.ts build",
     "semantic:verify": "node --import tsx scripts/semantic/cli.ts verify",
+    "semantic:phase3c": "vite build --config tests/semantic-browser/vite.config.ts && node --import tsx scripts/semantic/phase3c.ts",
+    "semantic:phase3c:score": "node --import tsx scripts/semantic/phase3c-score.ts",
     "photos": "node --import tsx scripts/photos/sync.ts",
     "test:smoke": "node --import tsx scripts/photos/network-smoke.ts && node --import tsx scripts/photos/smoke.ts",
     "test:viewer": "node --import tsx tests/viewer/prepare.ts && vite build --config tests/viewer/vite.config.ts && node --import tsx tests/viewer/check-bundle.ts && node --import tsx --test --test-concurrency=1 tests/viewer/*.test.ts",

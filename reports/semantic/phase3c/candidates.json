@@ -1,0 +1,4723 @@
+{
+  "schemaVersion": 1,
+  "querySet": "semantic-search-phase3c-holdout-v1",
+  "querySetSha256": "5cd9c5294b62d504b770c0d5397bea5cef6d7a218b35f60055e301bfa24f821d",
+  "generatedAt": "2026-09-21T23:08:13.264Z",
+  "evidenceClass": "AI-generated candidates; independent human review pending",
+  "browser": {
+    "name": "Google Chrome",
+    "version": "153.0.8010.53"
+  },
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "platform": "MacIntel",
+    "hardwareConcurrency": 8,
+    "deviceMemory": 16,
+    "webgpuExposed": true,
+    "jsHeap": {
+      "usedJSHeapSize": 112758309,
+      "totalJSHeapSize": 116164953,
+      "jsHeapSizeLimit": 4395630592
+    }
+  },
+  "runtime": {
+    "ready": {
+      "status": "ready",
+      "releaseId": "siglip2-base-v64k-uint4-b32-r1",
+      "modelVersion": "google/siglip2-base-patch16-224@75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+      "cache": "persistent",
+      "progress": {
+        "downloadedBytes": 111166042,
+        "totalBytes": 111166042,
+        "transportBytes": 100655930
+      },
+      "backend": "webgpu",
+      "indexVersion": "e771594e842fe295759ae028862c18348d9adb50895d51efae19dfed14d1f64a"
+    },
+    "coldReadyMs": 1897,
+    "diagnostics": {
+      "workerStarts": 1,
+      "sessionInitializations": 1,
+      "queries": 38,
+      "modelDownloads": 1,
+      "persistentCacheHits": 0,
+      "stateListeners": 1
+    }
+  },
+  "rows": [
+    {
+      "query": {
+        "id": "h01-stone-lion",
+        "language": "zh-Hans",
+        "category": "object",
+        "expected": "present",
+        "text": "石墙前的白色石狮子",
+        "criterion": "一只白色石狮雕像清晰可见，背景为石墙或城墙。"
+      },
+      "elapsedMs": 88.90000009536743,
+      "results": [
+        {
+          "publicId": "d_9iWEIimHZMaK2V",
+          "rank": 1,
+          "score": 0.13423808024234188,
+          "ordinal": 151,
+          "filename": "DSC_1733.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--fe1e94657eb5a4006325fe6672f0e69187f1243dc9df5662264dac2c6382c261.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "YwDbzKQ3MVB2GcrP",
+          "rank": 2,
+          "score": 0.0810828605631394,
+          "ordinal": 139,
+          "filename": "DSC_4236.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ecd0437c55af96bd636004ce8145e70b79b69ce0f32be4cb711ca0b00fe8b069.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "TKJOAvd6RGjvM0JO",
+          "rank": 3,
+          "score": 0.07970981120045607,
+          "ordinal": 37,
+          "filename": "DSC_1694.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--545fcf77aef4d437194c9539eddf343235735a16a86ba1e24b412bcf3c739429.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "2YpnjFcIjgTiOIaZ",
+          "rank": 4,
+          "score": 0.07272458804342993,
+          "ordinal": 132,
+          "filename": "DSC_0777.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e147bd0586ed22c675e76d7185da230cae4e395acc3f1b3b35808256e6c3c371.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "WZ8PFd5xxt2A1QnS",
+          "rank": 5,
+          "score": 0.07115000404152266,
+          "ordinal": 56,
+          "filename": "DSC_4379.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--67346e017d41be9caa6a8c86a7dd2bfb950788fcb3da569c0a88342533406579.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "XZpz-VItYsJ36frc",
+          "rank": 6,
+          "score": 0.07043613726450945,
+          "ordinal": 48,
+          "filename": "DSC_4916.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6436b43e6f074b7cef9400afcf8692946c3f9a3d3e6438edccd85dfd2b1d5fbe.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "fe7bw2cne3jf1rRJ",
+          "rank": 7,
+          "score": 0.05217564193586082,
+          "ordinal": 53,
+          "filename": "DSC_1025.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--64c5c555794f419285897e0dd3c6e7c8fc24e215c8d5cbd81969ece163a75850.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "_w_9AZZBRpKd98Tj",
+          "rank": 8,
+          "score": 0.047730170628912306,
+          "ordinal": 70,
+          "filename": "DSC_4907.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--82d1cb567c9de107c7f02e8c5965bb93ba7cad25ba8b3be7d8030bdbb88ae56e.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "9t00PNyi8vhx6SXC",
+          "rank": 9,
+          "score": 0.04751343576990314,
+          "ordinal": 30,
+          "filename": "DSC_0797.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4cfee69b12e14e6bece16910db6f65fddb2fb6cf393449d4e9e9c7f48c2cc1d3.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "QpZHUHA1IXvQGjdi",
+          "rank": 10,
+          "score": 0.044629325091814206,
+          "ordinal": 113,
+          "filename": "DSC_1621.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--c40da99df2d1486aa025ed35ab02f36cd1601cb9165632270217efc757a9443a.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h02-flower-gate",
+        "language": "zh-Hans",
+        "category": "scene",
+        "expected": "present",
+        "text": "铺满鲜花的古城门",
+        "criterion": "传统城门或城墙入口前有大片鲜花装饰。"
+      },
+      "elapsedMs": 27.199999928474426,
+      "results": [
+        {
+          "publicId": "2YpnjFcIjgTiOIaZ",
+          "rank": 1,
+          "score": 0.14456437178363096,
+          "ordinal": 132,
+          "filename": "DSC_0777.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e147bd0586ed22c675e76d7185da230cae4e395acc3f1b3b35808256e6c3c371.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "9t00PNyi8vhx6SXC",
+          "rank": 2,
+          "score": 0.13343896626810425,
+          "ordinal": 30,
+          "filename": "DSC_0797.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4cfee69b12e14e6bece16910db6f65fddb2fb6cf393449d4e9e9c7f48c2cc1d3.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "fe7bw2cne3jf1rRJ",
+          "rank": 3,
+          "score": 0.1168076461570255,
+          "ordinal": 53,
+          "filename": "DSC_1025.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--64c5c555794f419285897e0dd3c6e7c8fc24e215c8d5cbd81969ece163a75850.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "_MVsV_8d1Rv8VzgC",
+          "rank": 4,
+          "score": 0.10494735896497222,
+          "ordinal": 3,
+          "filename": "DSC_1818.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--0f1a6513311b854bb96bab408bb9af242ea2fdbe58bdf06623e90bbbb44a3c5e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "YwDbzKQ3MVB2GcrP",
+          "rank": 5,
+          "score": 0.10358465152885826,
+          "ordinal": 139,
+          "filename": "DSC_4236.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ecd0437c55af96bd636004ce8145e70b79b69ce0f32be4cb711ca0b00fe8b069.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "d_9iWEIimHZMaK2V",
+          "rank": 6,
+          "score": 0.09975649503434968,
+          "ordinal": 151,
+          "filename": "DSC_1733.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--fe1e94657eb5a4006325fe6672f0e69187f1243dc9df5662264dac2c6382c261.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "TKJOAvd6RGjvM0JO",
+          "rank": 7,
+          "score": 0.08639151233636713,
+          "ordinal": 37,
+          "filename": "DSC_1694.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--545fcf77aef4d437194c9539eddf343235735a16a86ba1e24b412bcf3c739429.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "-2QmTmOOgW5nwPUD",
+          "rank": 8,
+          "score": 0.08259959221529753,
+          "ordinal": 43,
+          "filename": "DSC_1713.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5f133bf3c2ab0aa15ca44c235efafd8bdb7991ec24c2fc542caffd0f1ca3fb23.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "_w_9AZZBRpKd98Tj",
+          "rank": 9,
+          "score": 0.07618237682886538,
+          "ordinal": 70,
+          "filename": "DSC_4907.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--82d1cb567c9de107c7f02e8c5965bb93ba7cad25ba8b3be7d8030bdbb88ae56e.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "ZJ8tzK8iEMq5SCyR",
+          "rank": 10,
+          "score": 0.07573721163693263,
+          "ordinal": 106,
+          "filename": "DSC_4597.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b87aa34d54605415294c449da0e1c1dbf10baa22ded270deefaf5427036ec7e7.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h03-casting-net",
+        "language": "zh-Hans",
+        "category": "action",
+        "expected": "present",
+        "text": "男人站在水边撒网",
+        "criterion": "人物站在水边，正在抛出或展开渔网；仅仅持竿不算。"
+      },
+      "elapsedMs": 25.200000047683716,
+      "results": [
+        {
+          "publicId": "ibJ6fvw7pgEBhbxO",
+          "rank": 1,
+          "score": 0.12211984087778517,
+          "ordinal": 89,
+          "filename": "DSC_4704.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a436a2dbe99543f2d874b9779e5b5f5bddd231979c2262a51fa73652c82d3541.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "cSg49zMp1p0UKZVT",
+          "rank": 2,
+          "score": 0.10663006195749489,
+          "ordinal": 22,
+          "filename": "DSC_4701.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--31ead60abf952b9db88ec72822a4dad817f9e520401019c7b547a976b615f0af.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "ZJ8tzK8iEMq5SCyR",
+          "rank": 3,
+          "score": 0.07908860969193124,
+          "ordinal": 106,
+          "filename": "DSC_4597.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b87aa34d54605415294c449da0e1c1dbf10baa22ded270deefaf5427036ec7e7.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "DZqGwcN--0rdP6JS",
+          "rank": 4,
+          "score": 0.07754830429726634,
+          "ordinal": 107,
+          "filename": "DSC_0352.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b9b3ef84a3fff8fda9f99fdf40562bea1cb0cd1c266963fc6c0b3d100b1d7ad0.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Sx6BoxEP0CyliudA",
+          "rank": 5,
+          "score": 0.07618115853599004,
+          "ordinal": 144,
+          "filename": "DSC_0226.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f5202c239e0fb73abb1ffc8aea66763e2370d007757cdbc6d806511286e51dfb.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Pgh_4Q1AERsL7aWx",
+          "rank": 6,
+          "score": 0.07580609685353863,
+          "ordinal": 24,
+          "filename": "DSC_4886.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--349c375eed009d3858c85dc632f9c5c4a107330d6e037e68ae1fd635f3b4a601.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "WjkR2l8veyTeU6E-",
+          "rank": 7,
+          "score": 0.07189561433134069,
+          "ordinal": 75,
+          "filename": "DSC_4900.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--88f41fab973bbfce9824905d8c459b8802c17706420d1c29f7d89e605eeb88f0.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "sUYnq_1td9CiFj-m",
+          "rank": 8,
+          "score": 0.0703636942444234,
+          "ordinal": 25,
+          "filename": "DSC_4605.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--3a265e878373de69ac85a5ed0b0f2a993111ad7df90f79544871fc770a1563af.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "FMqTEYk4fPQbGTm3",
+          "rank": 9,
+          "score": 0.07021068450432635,
+          "ordinal": 99,
+          "filename": "DSC_0923.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b1b9b38ed17e1a9aa3f9f9b698e50a07e645365eed7a7143d41845899860157e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "7p-IfDL2j-6TbW6h",
+          "rank": 10,
+          "score": 0.06984232776261101,
+          "ordinal": 92,
+          "filename": "DSC_0303.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a96e97db25eb3d2c83f2f3d02eb8f1dc42b43852939238f9e1964e3712800475.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h04-chipmunk-seeds",
+        "language": "zh-Hans",
+        "category": "relation",
+        "expected": "present",
+        "text": "花栗鼠趴在木桌边看着瓜子",
+        "criterion": "花栗鼠位于木质桌面或长椅边，旁边能看到瓜子或食物碎屑。"
+      },
+      "elapsedMs": 26.100000023841858,
+      "results": [
+        {
+          "publicId": "I7aSw17H629Bshix",
+          "rank": 1,
+          "score": 0.15999678264767286,
+          "ordinal": 78,
+          "filename": "DSC_3600.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--91939d842635bf99ccb98b0573a8571759c7aea7ac42c29af22ddd0defd57d62.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "RXDlIX3jhrkVxYhu",
+          "rank": 2,
+          "score": 0.15464955503599828,
+          "ordinal": 79,
+          "filename": "DSC_3356.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--937f6127ec12bd13e7983dc58427fa4c72aac1a513525d3aa0a06e359ca50851.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "eICek-gzpXUCShUE",
+          "rank": 3,
+          "score": 0.14099024831349305,
+          "ordinal": 98,
+          "filename": "DSC_3593.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--af1dbc9e6cb7614d4ad4759a2d7ee895680324c7a20afb715df8df034e8191b5.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "x-Yzk-0djUSG-5hL",
+          "rank": 4,
+          "score": 0.1324386728146664,
+          "ordinal": 122,
+          "filename": "DSC_3340.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d2693f449c3857c046ba2a0d48f91b72b830fb08a39f540fb7041cb6c30069f9.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "T7yPVbATmnbKPZC5",
+          "rank": 5,
+          "score": 0.11995802746303487,
+          "ordinal": 111,
+          "filename": "DSC_3576.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--c232319ec5cbd80264d2d48b9deda87bfa8d6c8d8f85c6c4e178e75f219bf838.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "BUXI96ngdB-PmXBp",
+          "rank": 6,
+          "score": 0.11921295821032185,
+          "ordinal": 72,
+          "filename": "DSC_3797.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--837bdc94ad68677cae356dda364ba92a3362dc08c2152ca6dfa61bace00c2e63.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "RjXaaUr92D-lNWUA",
+          "rank": 7,
+          "score": 0.11727761960312744,
+          "ordinal": 87,
+          "filename": "DSC_3304.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a277023ad1a15b5d9a0d175574c8933f5542a440e2da1c47362b4c6a3ee1aae2.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "NLCW5cuDl5DU_2EI",
+          "rank": 8,
+          "score": 0.1161534121928563,
+          "ordinal": 133,
+          "filename": "DSC_3903.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e14fe36f151bcc109d9841d1060605af30f73a97d8d09e44121b9048f3decc42.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "vl16QML5_zCMFLI-",
+          "rank": 9,
+          "score": 0.11235126849196996,
+          "ordinal": 142,
+          "filename": "DSC_3731.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f3ed08da93c65e2c8ba21227eed84227652c51b91180c5515a60120de2cf4223.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "LnvG9InT1V8R-Yxn",
+          "rank": 10,
+          "score": 0.10764758346178548,
+          "ordinal": 31,
+          "filename": "DSC_4425.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4d40c763a4994320eeaa99246c7acf1da48ad370697ce99240e9698c426f2eee.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h05-switchback-road",
+        "language": "zh-Hans",
+        "category": "scene",
+        "expected": "present",
+        "text": "山路像细线一样盘绕在荒山上",
+        "criterion": "远景中公路沿裸露山坡明显弯曲或盘绕。"
+      },
+      "elapsedMs": 26.100000023841858,
+      "results": [
+        {
+          "publicId": "U2_VeaHPLCGQPn0N",
+          "rank": 1,
+          "score": 0.1360731096455757,
+          "ordinal": 129,
+          "filename": "DSC_1056.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--dba6a865de39d597dfc689e27dc0cac091936047c3732572672e4eb4813e7205.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "wZQtMeyl4_xgs2M-",
+          "rank": 2,
+          "score": 0.12108719449987176,
+          "ordinal": 134,
+          "filename": "DSC_1058.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e15e43ec2b338e93aab77a7ffcca8ba91b9a5a883ea37bd1c2dfb6669245aedc.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "KqIgcMh5h5BQf6Aw",
+          "rank": 3,
+          "score": 0.10551594810565429,
+          "ordinal": 125,
+          "filename": "DSC_4549.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d71a0320092337b385ec7af2df538104ffe95945896c8c58b04630db0cd0bab2.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "YwDbzKQ3MVB2GcrP",
+          "rank": 4,
+          "score": 0.1047013631697643,
+          "ordinal": 139,
+          "filename": "DSC_4236.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ecd0437c55af96bd636004ce8145e70b79b69ce0f32be4cb711ca0b00fe8b069.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "bmLHEYecETMCwPNT",
+          "rank": 5,
+          "score": 0.10229004852853946,
+          "ordinal": 141,
+          "filename": "DSC_2167.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f1c66c26d6a25277de7c3a78d6bf547cd4f793ce759be822a00ef316b7ba3218.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "yTn2DqQsykHUZCSU",
+          "rank": 6,
+          "score": 0.09960877068016202,
+          "ordinal": 42,
+          "filename": "DSC_2217.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5de56f09c8c57dcc8a13e57e6fa40c2cc7ec818fd6761f60b6cdb2acbd3050d0.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "kK_dYmS77sQeD7y1",
+          "rank": 7,
+          "score": 0.09460408527250591,
+          "ordinal": 100,
+          "filename": "DSC_5331.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b24fefc6abb22d6bcb280974ba270842ecaf956e42b13a35e0a74901ef18922d.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "quxfmv752UE8Lmy4",
+          "rank": 8,
+          "score": 0.0943770048615906,
+          "ordinal": 38,
+          "filename": "DSC_1053.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--57e9ea52701fd1802c1f1d37b6195d34a8b403db68b702b6767a16a0a0d1627e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "srhaG6dlM3l28QhE",
+          "rank": 9,
+          "score": 0.09055572040771269,
+          "ordinal": 127,
+          "filename": "DSC_1325.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d88ea98dcc3f57fadf152be98bc0f42d76c70b0cf8c6cf6a665c74fe6cb90133.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "63su8cHhuO2jRsXB",
+          "rank": 10,
+          "score": 0.08699518010108613,
+          "ordinal": 23,
+          "filename": "DSC_2222.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--3282260099651ecf26f4eda4ffae81fe0c31ceef4225b88e9b514215fbb4118e.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h06-market-necklaces",
+        "language": "zh-Hans",
+        "category": "object",
+        "expected": "present",
+        "text": "一排挂在摊位上的彩色项链",
+        "criterion": "多条彩色项链、挂饰或吊坠成排悬挂在摊位上。"
+      },
+      "elapsedMs": 24.5,
+      "results": [
+        {
+          "publicId": "26Uhyhpk1VVyIMW6",
+          "rank": 1,
+          "score": 0.1713545544083594,
+          "ordinal": 63,
+          "filename": "DSC_4222.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--70a7313f01951d4b66e2fd9a54c40531c7926d5b2c589565777bbedf80a08f67.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "-2QmTmOOgW5nwPUD",
+          "rank": 2,
+          "score": 0.05046103006238568,
+          "ordinal": 43,
+          "filename": "DSC_1713.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5f133bf3c2ab0aa15ca44c235efafd8bdb7991ec24c2fc542caffd0f1ca3fb23.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "QLR_D6lxtZBVh_1K",
+          "rank": 3,
+          "score": 0.03958317290371317,
+          "ordinal": 153,
+          "filename": "DSC_1032.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ff2ecd5557b012225ae6a502978bf4e9ed8bba92f31a59273f332ada89910b89.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "fe7bw2cne3jf1rRJ",
+          "rank": 4,
+          "score": 0.03746991943625818,
+          "ordinal": 53,
+          "filename": "DSC_1025.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--64c5c555794f419285897e0dd3c6e7c8fc24e215c8d5cbd81969ece163a75850.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "_MVsV_8d1Rv8VzgC",
+          "rank": 5,
+          "score": 0.03382178719185813,
+          "ordinal": 3,
+          "filename": "DSC_1818.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--0f1a6513311b854bb96bab408bb9af242ea2fdbe58bdf06623e90bbbb44a3c5e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "8H8g_tgUL40YfAjT",
+          "rank": 6,
+          "score": 0.0313920589721298,
+          "ordinal": 28,
+          "filename": "DSC_1742.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4973ae666c9f9c17df0984c789a5067c7838b6641c7aa8c486d7e5691d51f918.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "8i_fe5BY-C5Q2xeP",
+          "rank": 7,
+          "score": 0.025158172360067683,
+          "ordinal": 44,
+          "filename": "DSC_1009.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5fcd5d4718ba04c5e080d7f7a7c31201df8eba35e84d7811a62aa51c51e65121.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "ney2403FZoJHC62k",
+          "rank": 8,
+          "score": 0.02245112730977067,
+          "ordinal": 36,
+          "filename": "DSC_3173.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--53e20013d3568d9923adbaf01c12bd69fb438514ed45773b9fa9ef2dbf8c7faf.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "TU9Wo1UpPXNQm6VW",
+          "rank": 9,
+          "score": 0.016587697070429338,
+          "ordinal": 123,
+          "filename": "DSC_2026.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d61d0c9addb0a5105b2cd19cb4aad06d15baaae51ae8ae78673f35cd454fe257.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "9t00PNyi8vhx6SXC",
+          "rank": 10,
+          "score": 0.015814184115864088,
+          "ordinal": 30,
+          "filename": "DSC_0797.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4cfee69b12e14e6bece16910db6f65fddb2fb6cf393449d4e9e9c7f48c2cc1d3.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h07-lone-lakeside-tree",
+        "language": "zh-Hans",
+        "category": "near-match",
+        "expected": "near-match",
+        "text": "湖边孤零零的一棵树",
+        "criterion": "一棵树是湖岸画面的主要前景主体；允许远处出现其他小树。"
+      },
+      "elapsedMs": 25.299999952316284,
+      "results": [
+        {
+          "publicId": "5OPnDlSow761lGvb",
+          "rank": 1,
+          "score": 0.13669645351328064,
+          "ordinal": 1,
+          "filename": "DSC_0190.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--05c7144992ff2ba46e52b9624db576d680520142250a658e4784e408259dcb6e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "lRUnyiwfTxeE6rwh",
+          "rank": 2,
+          "score": 0.1282870400431807,
+          "ordinal": 90,
+          "filename": "DSC_4761.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a4e6fb285e2d75e74d82f6a00ffe36f5e37c79b74b5d731c464e9e2722b68488.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "cahpMEcRexCzapoy",
+          "rank": 3,
+          "score": 0.09515477944955301,
+          "ordinal": 71,
+          "filename": "DSC_4730.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--835981ede36f0ebaa3c9e81737f931c13930e4c555c5371545ff18a2381b3fdb.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "PbQ8LEUJjOF0Rjnp",
+          "rank": 4,
+          "score": 0.09209657610750317,
+          "ordinal": 135,
+          "filename": "DSC_0644.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e1da39b258713f3cf8cc7905c43e6c06e2472cd2fcf8a7df2666aa5da68696bb.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "KqIgcMh5h5BQf6Aw",
+          "rank": 5,
+          "score": 0.0847009393807003,
+          "ordinal": 125,
+          "filename": "DSC_4549.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d71a0320092337b385ec7af2df538104ffe95945896c8c58b04630db0cd0bab2.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "CP1txp1O9UsIKCzj",
+          "rank": 6,
+          "score": 0.08408398862749841,
+          "ordinal": 140,
+          "filename": "DSC_3967.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--efec36aa2355b5781d46c953d515ff5a1d84c11a9c429a303fd7d3b1f5851aba.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "PEdhWw93eC0vRHhz",
+          "rank": 7,
+          "score": 0.08320000935352724,
+          "ordinal": 7,
+          "filename": "DSC_3972.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1c594d602061d66278a2308d5044c334daef68f57afa10e22b23717e68e30321.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "-k3axsUIoSP2eRgR",
+          "rank": 8,
+          "score": 0.08182938375035784,
+          "ordinal": 27,
+          "filename": "DSC_3975.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4743349bf98e689545fcad0bee74deb754ddbb95456901363e5db926ba8bf5d4.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_Nrs9qXN29dcgkjP",
+          "rank": 9,
+          "score": 0.07959637833190654,
+          "ordinal": 68,
+          "filename": "DSC_4548.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--7dbad339ace3daf8dd4e2861dec5d9a3bcb2dddeaeb8145619e7d35046879db1.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "cYf7qMXFYKbu1yeX",
+          "rank": 10,
+          "score": 0.07762421727675067,
+          "ordinal": 45,
+          "filename": "DSC_3365.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6264244fc2e51ddbb72f82f45e6e0667a024b0575ba61542d9dde3bbb6ef1af5.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h08-cafe-mountain-window",
+        "language": "zh-Hans",
+        "category": "difficult-paraphrase",
+        "expected": "present",
+        "text": "窗内咖啡桌正对着巨大的山景",
+        "criterion": "室内桌椅透过大窗面对显著的山峰景观。"
+      },
+      "elapsedMs": 24.800000071525574,
+      "results": [
+        {
+          "publicId": "keHq3vJ30TmUqRgT",
+          "rank": 1,
+          "score": 0.15247877692661713,
+          "ordinal": 96,
+          "filename": "DSC_2248-HDR.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ad56b31228a803656780113c0936f3c750eaa4f3d7aba3783cabc8a204ff7e9b.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "AZ63-QgLdJCozMiB",
+          "rank": 2,
+          "score": 0.08506535970306797,
+          "ordinal": 80,
+          "filename": "DSC_0160.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--95cf093e53dd19866de4da0dd6022295f162668b84d35d81475b59fffb7bd95a.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "bmLHEYecETMCwPNT",
+          "rank": 3,
+          "score": 0.07709936138897802,
+          "ordinal": 141,
+          "filename": "DSC_2167.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f1c66c26d6a25277de7c3a78d6bf547cd4f793ce759be822a00ef316b7ba3218.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "srhaG6dlM3l28QhE",
+          "rank": 4,
+          "score": 0.07670088475563813,
+          "ordinal": 127,
+          "filename": "DSC_1325.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d88ea98dcc3f57fadf152be98bc0f42d76c70b0cf8c6cf6a665c74fe6cb90133.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "yTn2DqQsykHUZCSU",
+          "rank": 5,
+          "score": 0.0744697615702719,
+          "ordinal": 42,
+          "filename": "DSC_2217.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5de56f09c8c57dcc8a13e57e6fa40c2cc7ec818fd6761f60b6cdb2acbd3050d0.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "QpZHUHA1IXvQGjdi",
+          "rank": 6,
+          "score": 0.07330152618707567,
+          "ordinal": 113,
+          "filename": "DSC_1621.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--c40da99df2d1486aa025ed35ab02f36cd1601cb9165632270217efc757a9443a.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "nnzwRUnBKDM7-5be",
+          "rank": 7,
+          "score": 0.07078203994670267,
+          "ordinal": 13,
+          "filename": "DSC_1189.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--24d17926ffa1ceef9cdb0e361372a09ddff956b84949907cc72a001560fcd942.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "fe7bw2cne3jf1rRJ",
+          "rank": 8,
+          "score": 0.07040103558611543,
+          "ordinal": 53,
+          "filename": "DSC_1025.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--64c5c555794f419285897e0dd3c6e7c8fc24e215c8d5cbd81969ece163a75850.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "1D4RuUsAZQxRJbB7",
+          "rank": 9,
+          "score": 0.06983847506026805,
+          "ordinal": 150,
+          "filename": "DSC_1156.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--fda51e193cc9ecfedd972697e10c9f43b4e36abed4d1211fa513de4a2f1630f6.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "HQYLCKfUPwdPTqRe",
+          "rank": 10,
+          "score": 0.06974363283078316,
+          "ordinal": 115,
+          "filename": "DSC_1158.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ca660400ae4e97d529f4fae8d181ad2033a3fe2a45d168c2ec0d2fbf0b76409b.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h09-resting-fawn",
+        "language": "zh-Hant",
+        "category": "object",
+        "expected": "present",
+        "text": "睡在草地上的小鹿",
+        "criterion": "幼鹿或有斑點的鹿蜷伏、躺臥在草地上。"
+      },
+      "elapsedMs": 24,
+      "results": [
+        {
+          "publicId": "4DKSqCN67BeS0flv",
+          "rank": 1,
+          "score": 0.15506723605639855,
+          "ordinal": 81,
+          "filename": "DSC_3179.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--964aa36ad9ce7a963e54fc119b0ddaed25c34128724493973ad7a4dbcd7e4fcc.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "SbbwZbfJ8_zgdpeD",
+          "rank": 2,
+          "score": 0.13891479537382556,
+          "ordinal": 67,
+          "filename": "DSC_3085.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--7d6926a44afe019b45ce1fbaea9ef78f3a165ace5559177d75cd01e0548ae75b.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "0aqv7iYGoBi6Ku4S",
+          "rank": 3,
+          "score": 0.1293892476704808,
+          "ordinal": 50,
+          "filename": "DSC_2893.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--648365c3395e397ba66e5b474e6fc6e68789e96cb7c8bebd2b4abbbaf67cc539.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "D_fHAlfY-IHIOeoU",
+          "rank": 4,
+          "score": 0.12659526351774048,
+          "ordinal": 40,
+          "filename": "DSC_3099.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5ac8640deee05e6eb99845ad63b5f341a58b38fbe5e0c19606c6dac01f5f5d2e.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "W31SCW4xMAdtYjoM",
+          "rank": 5,
+          "score": 0.1206740246869138,
+          "ordinal": 49,
+          "filename": "DSC_3044.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6472e223c0e87e31189cc8328b51783e5beccf0b25df8a0027e8e29d06f824b8.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_CK83AMjEuDLzCSv",
+          "rank": 6,
+          "score": 0.11405851870728542,
+          "ordinal": 85,
+          "filename": "DSC_2978.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a0d6e1467b138b1e127c4398aca368eb93c01d7139e9bf9999d5d903efb129bf.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "6aScn5Y6M8DMcj22",
+          "rank": 7,
+          "score": 0.11142104172420478,
+          "ordinal": 57,
+          "filename": "DSC_3221.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--694d61419d3f80d84713f7b57eb264063063e057d6eb50eeeb9f28f8aa7c14e0.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "raYC8Ew9m_993oPQ",
+          "rank": 8,
+          "score": 0.1099782662911813,
+          "ordinal": 138,
+          "filename": "DSC_3051.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ebfe2f577d55f3453c6d1b84fab396b004aa88794e71cd84894c8c4ac5240e33.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "6wC7ug2YumE0eM3a",
+          "rank": 9,
+          "score": 0.1099060577139414,
+          "ordinal": 149,
+          "filename": "DSC_3010.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f962a7bd19737db298ec85e11596068ae0d9d52dc96f0d32b05705b566d54be1.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "EgPX6rPSvIaVmVZM",
+          "rank": 10,
+          "score": 0.10636326051461063,
+          "ordinal": 83,
+          "filename": "DSC_3213.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--9d0bb23d516a9d392f06cf84a5fab1a1a888d93c8ace9479b81a492951b29405.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h10-crane-wetland",
+        "language": "zh-Hant",
+        "category": "scene",
+        "expected": "present",
+        "text": "白鶴站在綠色濕地裡",
+        "criterion": "白色或黑白長腿鶴類站在綠草、蘆葦或濕地中。"
+      },
+      "elapsedMs": 25.300000071525574,
+      "results": [
+        {
+          "publicId": "vG9E1SXmScpd0pRN",
+          "rank": 1,
+          "score": 0.1187037147290663,
+          "ordinal": 2,
+          "filename": "DSC_4140.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--06aac0469f0f185cbb4e39be3ec6480c3902d0c349435d80631c22659105c5f3.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "uJObbGNnCIpXhBef",
+          "rank": 2,
+          "score": 0.11779847248727239,
+          "ordinal": 121,
+          "filename": "DSC_4073.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d1872bf2ca9dd9aa8e03939765e6291d5a103e754f238ff0078a79ec7d1ee46b.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "paiqsBGbeQ85U0KF",
+          "rank": 3,
+          "score": 0.11044223878920406,
+          "ordinal": 11,
+          "filename": "DSC_4052.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1eda27f8f9429ecb4ce86539178aeb0e899aa95686b4e6e668a480a64ac2b0a9.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "J36PeYvylZcq0Fbp",
+          "rank": 4,
+          "score": 0.10440680957315282,
+          "ordinal": 146,
+          "filename": "DSC_4144.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f80b8cdcbb98b391b9797e630b6ba1ff5cf4d0790be82a7654c2563fcd933cd1.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "FMqTEYk4fPQbGTm3",
+          "rank": 5,
+          "score": 0.08527465725954507,
+          "ordinal": 99,
+          "filename": "DSC_0923.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b1b9b38ed17e1a9aa3f9f9b698e50a07e645365eed7a7143d41845899860157e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Sx6BoxEP0CyliudA",
+          "rank": 6,
+          "score": 0.0838031939630347,
+          "ordinal": 144,
+          "filename": "DSC_0226.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f5202c239e0fb73abb1ffc8aea66763e2370d007757cdbc6d806511286e51dfb.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "GIfE0Sy1eWj3x8xz",
+          "rank": 7,
+          "score": 0.08350278358184651,
+          "ordinal": 39,
+          "filename": "DSC_0417.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5a76c24467138b0a3a0365f9bb276f1b8c0f8e405d8d2e5f898699da63038ab8.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "7p-IfDL2j-6TbW6h",
+          "rank": 8,
+          "score": 0.07910109389332363,
+          "ordinal": 92,
+          "filename": "DSC_0303.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a96e97db25eb3d2c83f2f3d02eb8f1dc42b43852939238f9e1964e3712800475.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "bhPZEgsQ0JomLx_b",
+          "rank": 9,
+          "score": 0.0786477771178463,
+          "ordinal": 61,
+          "filename": "DSC_0394.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6f5a73b58136fe7aa518e2a63f65328140871257bf25dbd796f45eac61c01b91.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "GScDw1e2bNwB5d2z",
+          "rank": 10,
+          "score": 0.07728132872611086,
+          "ordinal": 35,
+          "filename": "DSC_4220.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--52a9c7d508dfcff73295cfb55c0f28711857f3a29536b5b46a99a9462e10177a.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h11-lily-pad-pond",
+        "language": "zh-Hant",
+        "category": "scene",
+        "expected": "present",
+        "text": "荷葉散落在藍色池塘中",
+        "criterion": "藍色水面上分布著多片清晰可見的荷葉或睡蓮葉。"
+      },
+      "elapsedMs": 24.100000023841858,
+      "results": [
+        {
+          "publicId": "d_gmdhbGf7Qrlxkw",
+          "rank": 1,
+          "score": 0.10851624478326599,
+          "ordinal": 143,
+          "filename": "DSC_3926.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f3fcb0aa775530e51d36a7985e3a5f58f4cda7c2c015162679a218764c2aa839.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "CP1txp1O9UsIKCzj",
+          "rank": 2,
+          "score": 0.09858123644348767,
+          "ordinal": 140,
+          "filename": "DSC_3967.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--efec36aa2355b5781d46c953d515ff5a1d84c11a9c429a303fd7d3b1f5851aba.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "-k3axsUIoSP2eRgR",
+          "rank": 3,
+          "score": 0.08263995977523912,
+          "ordinal": 27,
+          "filename": "DSC_3975.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4743349bf98e689545fcad0bee74deb754ddbb95456901363e5db926ba8bf5d4.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "PEdhWw93eC0vRHhz",
+          "rank": 4,
+          "score": 0.08133061825937993,
+          "ordinal": 7,
+          "filename": "DSC_3972.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1c594d602061d66278a2308d5044c334daef68f57afa10e22b23717e68e30321.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "5OPnDlSow761lGvb",
+          "rank": 5,
+          "score": 0.0778081129588408,
+          "ordinal": 1,
+          "filename": "DSC_0190.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--05c7144992ff2ba46e52b9624db576d680520142250a658e4784e408259dcb6e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "BBijJPwxpqz_9pI1",
+          "rank": 6,
+          "score": 0.07652224271086756,
+          "ordinal": 91,
+          "filename": "DSC_3924.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a778d12c72d2019115f251fdfea7caf8976fae84118e816e64b1930201f54b25.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "GScDw1e2bNwB5d2z",
+          "rank": 7,
+          "score": 0.07348922715077168,
+          "ordinal": 35,
+          "filename": "DSC_4220.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--52a9c7d508dfcff73295cfb55c0f28711857f3a29536b5b46a99a9462e10177a.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "PbQ8LEUJjOF0Rjnp",
+          "rank": 8,
+          "score": 0.068317640624806,
+          "ordinal": 135,
+          "filename": "DSC_0644.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e1da39b258713f3cf8cc7905c43e6c06e2472cd2fcf8a7df2666aa5da68696bb.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "lfYk0IjnxC7eCr6R",
+          "rank": 9,
+          "score": 0.05436691492640735,
+          "ordinal": 128,
+          "filename": "DSC_0893.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--daa1c6bee7455123c176fadb8eb15c07c0e33ecd849f9d4705726b0fe1f8da5b.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Pgh_4Q1AERsL7aWx",
+          "rank": 10,
+          "score": 0.0516072718660992,
+          "ordinal": 24,
+          "filename": "DSC_4886.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--349c375eed009d3858c85dc632f9c5c4a107330d6e037e68ae1fd635f3b4a601.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h12-boardwalk-woods",
+        "language": "zh-Hant",
+        "category": "relation",
+        "expected": "present",
+        "text": "木棧道筆直穿過樹林",
+        "criterion": "木製棧道形成明顯直線，兩側或前方是樹林。"
+      },
+      "elapsedMs": 25,
+      "results": [
+        {
+          "publicId": "8gsp-NWRWPoR5F9S",
+          "rank": 1,
+          "score": 0.12233385781302943,
+          "ordinal": 147,
+          "filename": "DSC_3410.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f834c1838409bed73c68a1830f23fdc5be64f7b234180d71d61398cb96911f7c.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "KqIgcMh5h5BQf6Aw",
+          "rank": 2,
+          "score": 0.11286865142474442,
+          "ordinal": 125,
+          "filename": "DSC_4549.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d71a0320092337b385ec7af2df538104ffe95945896c8c58b04630db0cd0bab2.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_Nrs9qXN29dcgkjP",
+          "rank": 3,
+          "score": 0.08901395899788975,
+          "ordinal": 68,
+          "filename": "DSC_4548.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--7dbad339ace3daf8dd4e2861dec5d9a3bcb2dddeaeb8145619e7d35046879db1.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_w_9AZZBRpKd98Tj",
+          "rank": 4,
+          "score": 0.0836880362963536,
+          "ordinal": 70,
+          "filename": "DSC_4907.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--82d1cb567c9de107c7f02e8c5965bb93ba7cad25ba8b3be7d8030bdbb88ae56e.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "YwDbzKQ3MVB2GcrP",
+          "rank": 5,
+          "score": 0.0806644101686989,
+          "ordinal": 139,
+          "filename": "DSC_4236.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ecd0437c55af96bd636004ce8145e70b79b69ce0f32be4cb711ca0b00fe8b069.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "uq0FBDDCdg2UqCvs",
+          "rank": 6,
+          "score": 0.07038939632202369,
+          "ordinal": 20,
+          "filename": "DSC_3395.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--2ebe7a54b67107e412970c6a75b217209b5c4e0640de8b1834db6e39a01da76c.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "RjXaaUr92D-lNWUA",
+          "rank": 7,
+          "score": 0.06537489104104327,
+          "ordinal": 87,
+          "filename": "DSC_3304.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a277023ad1a15b5d9a0d175574c8933f5542a440e2da1c47362b4c6a3ee1aae2.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "cYf7qMXFYKbu1yeX",
+          "rank": 8,
+          "score": 0.06012107074400185,
+          "ordinal": 45,
+          "filename": "DSC_3365.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6264244fc2e51ddbb72f82f45e6e0667a024b0575ba61542d9dde3bbb6ef1af5.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "Ou-JB3nlQSGxOX2b",
+          "rank": 9,
+          "score": 0.0591376433308941,
+          "ordinal": 33,
+          "filename": "DSC_1899.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4fa2c98c96a3497595541f1c5637e0bc0f873d26ce6301b7b21be6e68a1f5cbc.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "U2_VeaHPLCGQPn0N",
+          "rank": 10,
+          "score": 0.0571468405032129,
+          "ordinal": 129,
+          "filename": "DSC_1056.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--dba6a865de39d597dfc689e27dc0cac091936047c3732572672e4eb4813e7205.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h13-yellow-flower-hills",
+        "language": "zh-Hant",
+        "category": "scene",
+        "expected": "present",
+        "text": "黃色花海後方是連綿山丘",
+        "criterion": "大片黃色花田位於前景，後方可見山丘或山脊。"
+      },
+      "elapsedMs": 24.700000047683716,
+      "results": [
+        {
+          "publicId": "SCLoIHVZ0XmQtX6j",
+          "rank": 1,
+          "score": 0.1284416012491093,
+          "ordinal": 119,
+          "filename": "DSC_0669.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--cf89a1454054c7173199657aa1b3e6bd01f8dede2eb7d9dc3e9d06e08d9ed41e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "eQsd-mw8x97rimoB",
+          "rank": 2,
+          "score": 0.10731195872781356,
+          "ordinal": 64,
+          "filename": "DSC_3274.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--76be6cb01c49e2b3922d21a7434ef6f08dccd02c47b49615b24b5da55d1f5d19.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "y_uyEVUKhKx_Vt0F",
+          "rank": 3,
+          "score": 0.07809647944714851,
+          "ordinal": 152,
+          "filename": "DSC_5551.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--fe4ecf86bb57d4a529581d244380867e4fb57363e2f6a9ffb9d1e7847a596a51.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "2YpnjFcIjgTiOIaZ",
+          "rank": 4,
+          "score": 0.07584612284770156,
+          "ordinal": 132,
+          "filename": "DSC_0777.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e147bd0586ed22c675e76d7185da230cae4e395acc3f1b3b35808256e6c3c371.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "_WdtiuBvKzG5R5U-",
+          "rank": 5,
+          "score": 0.0755086108325086,
+          "ordinal": 104,
+          "filename": "DSC_0129.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b6f6f4110491012b9eb6c9a3d9a9edb8284766e2ce6ec203480d91b6793d4586.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "5OPnDlSow761lGvb",
+          "rank": 6,
+          "score": 0.07547824251461,
+          "ordinal": 1,
+          "filename": "DSC_0190.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--05c7144992ff2ba46e52b9624db576d680520142250a658e4784e408259dcb6e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "U2_VeaHPLCGQPn0N",
+          "rank": 7,
+          "score": 0.07196519940472862,
+          "ordinal": 129,
+          "filename": "DSC_1056.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--dba6a865de39d597dfc689e27dc0cac091936047c3732572672e4eb4813e7205.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "3y4-3SGSnVFqXJFr",
+          "rank": 8,
+          "score": 0.06456414972151732,
+          "ordinal": 8,
+          "filename": "DSC_3819.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1c982d435e88ee2a17d2c853f0e2a735a872d73ebb5c4973adfc937f3eee1ec8.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "YwDbzKQ3MVB2GcrP",
+          "rank": 9,
+          "score": 0.062327467876034284,
+          "ordinal": 139,
+          "filename": "DSC_4236.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ecd0437c55af96bd636004ce8145e70b79b69ce0f32be4cb711ca0b00fe8b069.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_Nrs9qXN29dcgkjP",
+          "rank": 10,
+          "score": 0.061088263716668124,
+          "ordinal": 68,
+          "filename": "DSC_4548.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--7dbad339ace3daf8dd4e2861dec5d9a3bcb2dddeaeb8145619e7d35046879db1.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h14-bird-on-railing",
+        "language": "zh-Hant",
+        "category": "relation",
+        "expected": "present",
+        "text": "小鳥停在金屬扶手上",
+        "criterion": "一隻小鳥明確停棲在金屬欄杆、扶手或管狀構件上。"
+      },
+      "elapsedMs": 24,
+      "results": [
+        {
+          "publicId": "Hn0fzv-bgfqytLEN",
+          "rank": 1,
+          "score": 0.13119287540086438,
+          "ordinal": 114,
+          "filename": "DSC_3917.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--c4d845056b74a792c7bc1489c88926bdd218153a7de6b6ff56b47baded406c68.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "T_Ol6OhV2C-zIvPc",
+          "rank": 2,
+          "score": 0.10651439483238487,
+          "ordinal": 112,
+          "filename": "DSC_3369.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--c408ab059cb4decd9cdac13e6fcde75ad77b0dc9a6525ad494484af90e7dadd7.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "FMqTEYk4fPQbGTm3",
+          "rank": 3,
+          "score": 0.09565061396955898,
+          "ordinal": 99,
+          "filename": "DSC_0923.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b1b9b38ed17e1a9aa3f9f9b698e50a07e645365eed7a7143d41845899860157e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Sx6BoxEP0CyliudA",
+          "rank": 4,
+          "score": 0.0886308966374714,
+          "ordinal": 144,
+          "filename": "DSC_0226.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f5202c239e0fb73abb1ffc8aea66763e2370d007757cdbc6d806511286e51dfb.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "7p-IfDL2j-6TbW6h",
+          "rank": 5,
+          "score": 0.08372396823567219,
+          "ordinal": 92,
+          "filename": "DSC_0303.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a96e97db25eb3d2c83f2f3d02eb8f1dc42b43852939238f9e1964e3712800475.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "GIfE0Sy1eWj3x8xz",
+          "rank": 6,
+          "score": 0.0835150174520792,
+          "ordinal": 39,
+          "filename": "DSC_0417.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5a76c24467138b0a3a0365f9bb276f1b8c0f8e405d8d2e5f898699da63038ab8.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "YP87uwOIIxB3m8Nq",
+          "rank": 7,
+          "score": 0.0824580896249962,
+          "ordinal": 15,
+          "filename": "DSC_3690.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--26aeffbe5ee2ee10f491fd36dd3d76900f69b1c112167086af8210547f8715c6.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "bhPZEgsQ0JomLx_b",
+          "rank": 8,
+          "score": 0.08241187088309777,
+          "ordinal": 61,
+          "filename": "DSC_0394.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6f5a73b58136fe7aa518e2a63f65328140871257bf25dbd796f45eac61c01b91.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "eICek-gzpXUCShUE",
+          "rank": 9,
+          "score": 0.08179347222071838,
+          "ordinal": 98,
+          "filename": "DSC_3593.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--af1dbc9e6cb7614d4ad4759a2d7ee895680324c7a20afb715df8df034e8191b5.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "RXDlIX3jhrkVxYhu",
+          "rank": 10,
+          "score": 0.08178277127924133,
+          "ordinal": 79,
+          "filename": "DSC_3356.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--937f6127ec12bd13e7983dc58427fa4c72aac1a513525d3aa0a06e359ca50851.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h15-ferry-pier",
+        "language": "en",
+        "category": "relation",
+        "expected": "present",
+        "text": "A ferry tied beside a concrete pier",
+        "criterion": "A passenger boat or ferry is stationary immediately beside a visible pier or quay."
+      },
+      "elapsedMs": 25.299999952316284,
+      "results": [
+        {
+          "publicId": "ibJ6fvw7pgEBhbxO",
+          "rank": 1,
+          "score": 0.1138530951916064,
+          "ordinal": 89,
+          "filename": "DSC_4704.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a436a2dbe99543f2d874b9779e5b5f5bddd231979c2262a51fa73652c82d3541.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "Pgh_4Q1AERsL7aWx",
+          "rank": 2,
+          "score": 0.10358881354385295,
+          "ordinal": 24,
+          "filename": "DSC_4886.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--349c375eed009d3858c85dc632f9c5c4a107330d6e037e68ae1fd635f3b4a601.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "ZJ8tzK8iEMq5SCyR",
+          "rank": 3,
+          "score": 0.09549684413460896,
+          "ordinal": 106,
+          "filename": "DSC_4597.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b87aa34d54605415294c449da0e1c1dbf10baa22ded270deefaf5427036ec7e7.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "cSg49zMp1p0UKZVT",
+          "rank": 4,
+          "score": 0.09236724078885811,
+          "ordinal": 22,
+          "filename": "DSC_4701.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--31ead60abf952b9db88ec72822a4dad817f9e520401019c7b547a976b615f0af.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "LP45xktUAXWHTHyp",
+          "rank": 5,
+          "score": 0.08682253960057142,
+          "ordinal": 105,
+          "filename": "DSC_4753.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b7a5cd5c0579772159a5449ee80c0cb33c48a32e187753f0189c86038b7aa92b.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "9Adu1uKRHS1ZGcgN",
+          "rank": 6,
+          "score": 0.07973360625726511,
+          "ordinal": 12,
+          "filename": "DSC_4708.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--243164b4d88f6238026cdd4348c41a47130039e3b2727ca7c018a2bd843895ea.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "umb89AcmYEXmgPJZ",
+          "rank": 7,
+          "score": 0.07432753873628414,
+          "ordinal": 17,
+          "filename": "DSC_4875.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--28b99074a7081f471565f895249e46629b11554032081f098d7aebaf327ff431.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "WjkR2l8veyTeU6E-",
+          "rank": 8,
+          "score": 0.07219073561388449,
+          "ordinal": 75,
+          "filename": "DSC_4900.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--88f41fab973bbfce9824905d8c459b8802c17706420d1c29f7d89e605eeb88f0.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_nWx1cwkqju24ERM",
+          "rank": 9,
+          "score": 0.07130030511864269,
+          "ordinal": 59,
+          "filename": "DSC_4644.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6e20fd16a5868584e3392fd238d315aacc34c9325056cfc84d2f75c8c36dd17b.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_WdtiuBvKzG5R5U-",
+          "rank": 10,
+          "score": 0.07079861815317741,
+          "ordinal": 104,
+          "filename": "DSC_0129.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b6f6f4110491012b9eb6c9a3d9a9edb8284766e2ce6ec203480d91b6793d4586.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h16-bird-reflection",
+        "language": "en",
+        "category": "action",
+        "expected": "present",
+        "text": "A white bird skimming the water with its reflection below",
+        "criterion": "A predominantly white bird is flying or taking off just above water and its reflection is visible."
+      },
+      "elapsedMs": 24.5,
+      "results": [
+        {
+          "publicId": "GIfE0Sy1eWj3x8xz",
+          "rank": 1,
+          "score": 0.16952453574145063,
+          "ordinal": 39,
+          "filename": "DSC_0417.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5a76c24467138b0a3a0365f9bb276f1b8c0f8e405d8d2e5f898699da63038ab8.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "DZqGwcN--0rdP6JS",
+          "rank": 2,
+          "score": 0.12081578845693139,
+          "ordinal": 107,
+          "filename": "DSC_0352.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b9b3ef84a3fff8fda9f99fdf40562bea1cb0cd1c266963fc6c0b3d100b1d7ad0.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Sx6BoxEP0CyliudA",
+          "rank": 3,
+          "score": 0.11727058352170955,
+          "ordinal": 144,
+          "filename": "DSC_0226.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f5202c239e0fb73abb1ffc8aea66763e2370d007757cdbc6d806511286e51dfb.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "NvoXX53YEnfBWVvY",
+          "rank": 4,
+          "score": 0.11621729329824132,
+          "ordinal": 19,
+          "filename": "DSC_0339.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--2daff08d02e87528a803ea99611cc5ad0ee46dda06d6e7acad11f9f4a04fdbfc.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "bhPZEgsQ0JomLx_b",
+          "rank": 5,
+          "score": 0.1065726110970824,
+          "ordinal": 61,
+          "filename": "DSC_0394.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6f5a73b58136fe7aa518e2a63f65328140871257bf25dbd796f45eac61c01b91.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "7p-IfDL2j-6TbW6h",
+          "rank": 6,
+          "score": 0.10393577490764376,
+          "ordinal": 92,
+          "filename": "DSC_0303.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a96e97db25eb3d2c83f2f3d02eb8f1dc42b43852939238f9e1964e3712800475.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "FMqTEYk4fPQbGTm3",
+          "rank": 7,
+          "score": 0.09732317016374413,
+          "ordinal": 99,
+          "filename": "DSC_0923.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b1b9b38ed17e1a9aa3f9f9b698e50a07e645365eed7a7143d41845899860157e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "vG9E1SXmScpd0pRN",
+          "rank": 8,
+          "score": 0.0748882328471348,
+          "ordinal": 2,
+          "filename": "DSC_4140.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--06aac0469f0f185cbb4e39be3ec6480c3902d0c349435d80631c22659105c5f3.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "ti9q124e1ZUxwyD-",
+          "rank": 9,
+          "score": 0.07334300377294398,
+          "ordinal": 130,
+          "filename": "DSC_3405.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--dca6087c6f6da79518077459428c5dfc80d86c66722ffff4e7d9653644c23465.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "J36PeYvylZcq0Fbp",
+          "rank": 10,
+          "score": 0.06755952530767997,
+          "ordinal": 146,
+          "filename": "DSC_4144.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f80b8cdcbb98b391b9797e630b6ba1ff5cf4d0790be82a7654c2563fcd933cd1.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h17-rice-ear",
+        "language": "en",
+        "category": "object",
+        "expected": "present",
+        "text": "A single rice ear glowing green in sunlight",
+        "criterion": "A close, isolated green or yellow-green rice seed head is the clear subject."
+      },
+      "elapsedMs": 24.399999976158142,
+      "results": [
+        {
+          "publicId": "y_uyEVUKhKx_Vt0F",
+          "rank": 1,
+          "score": 0.16978203894528165,
+          "ordinal": 152,
+          "filename": "DSC_5551.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--fe4ecf86bb57d4a529581d244380867e4fb57363e2f6a9ffb9d1e7847a596a51.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "eQsd-mw8x97rimoB",
+          "rank": 2,
+          "score": 0.10201657479036118,
+          "ordinal": 64,
+          "filename": "DSC_3274.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--76be6cb01c49e2b3922d21a7434ef6f08dccd02c47b49615b24b5da55d1f5d19.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "vG9E1SXmScpd0pRN",
+          "rank": 3,
+          "score": 0.055501860509660945,
+          "ordinal": 2,
+          "filename": "DSC_4140.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--06aac0469f0f185cbb4e39be3ec6480c3902d0c349435d80631c22659105c5f3.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "cahpMEcRexCzapoy",
+          "rank": 4,
+          "score": 0.053140604309554924,
+          "ordinal": 71,
+          "filename": "DSC_4730.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--835981ede36f0ebaa3c9e81737f931c13930e4c555c5371545ff18a2381b3fdb.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "SCLoIHVZ0XmQtX6j",
+          "rank": 5,
+          "score": 0.04858095361331231,
+          "ordinal": 119,
+          "filename": "DSC_0669.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--cf89a1454054c7173199657aa1b3e6bd01f8dede2eb7d9dc3e9d06e08d9ed41e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "GScDw1e2bNwB5d2z",
+          "rank": 6,
+          "score": 0.0469308156380654,
+          "ordinal": 35,
+          "filename": "DSC_4220.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--52a9c7d508dfcff73295cfb55c0f28711857f3a29536b5b46a99a9462e10177a.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "qcekZ7CmOOlwyafP",
+          "rank": 7,
+          "score": 0.04487447614111202,
+          "ordinal": 41,
+          "filename": "DSC_4511.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5d1c51248c37d44fd79d7773c5f53d98f97e4171de2d4e9968d39eed6f1d4b3d.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "-k3axsUIoSP2eRgR",
+          "rank": 8,
+          "score": 0.04192979401904065,
+          "ordinal": 27,
+          "filename": "DSC_3975.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4743349bf98e689545fcad0bee74deb754ddbb95456901363e5db926ba8bf5d4.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "hhkWydZmzxN1rGJ_",
+          "rank": 9,
+          "score": 0.04152472454786815,
+          "ordinal": 101,
+          "filename": "DSC_5187.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b2ea0b1df422a78784388e9ec7bc02cf1981359cbad7177debfbf1704b1f4068.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "uJ9BOm-y3ET5oAmq",
+          "rank": 10,
+          "score": 0.03861453537859701,
+          "ordinal": 29,
+          "filename": "DSC_4475.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4ca67ef036a8605b7d827514b743a3e54e4be4523743b161dabdcbe0b48f1446.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h18-deer-birches",
+        "language": "en",
+        "category": "relation",
+        "expected": "present",
+        "text": "A spotted deer standing between white birch trunks",
+        "criterion": "A spotted deer stands among multiple pale or white tree trunks."
+      },
+      "elapsedMs": 25.199999928474426,
+      "results": [
+        {
+          "publicId": "W31SCW4xMAdtYjoM",
+          "rank": 1,
+          "score": 0.17269231479880315,
+          "ordinal": 49,
+          "filename": "DSC_3044.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6472e223c0e87e31189cc8328b51783e5beccf0b25df8a0027e8e29d06f824b8.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "C0wR6rk5Gn6ULW2Y",
+          "rank": 2,
+          "score": 0.15849590306270572,
+          "ordinal": 109,
+          "filename": "DSC_3067.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--bf2c730b11f771fe9bb7d053fe67f056fefb04797938fb37fe4050555b6c2d62.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "6wC7ug2YumE0eM3a",
+          "rank": 3,
+          "score": 0.1559577457647896,
+          "ordinal": 149,
+          "filename": "DSC_3010.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f962a7bd19737db298ec85e11596068ae0d9d52dc96f0d32b05705b566d54be1.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "EgPX6rPSvIaVmVZM",
+          "rank": 4,
+          "score": 0.11643618505455379,
+          "ordinal": 83,
+          "filename": "DSC_3213.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--9d0bb23d516a9d392f06cf84a5fab1a1a888d93c8ace9479b81a492951b29405.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "raYC8Ew9m_993oPQ",
+          "rank": 5,
+          "score": 0.10292819866167043,
+          "ordinal": 138,
+          "filename": "DSC_3051.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ebfe2f577d55f3453c6d1b84fab396b004aa88794e71cd84894c8c4ac5240e33.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "D_fHAlfY-IHIOeoU",
+          "rank": 6,
+          "score": 0.09686732663015125,
+          "ordinal": 40,
+          "filename": "DSC_3099.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5ac8640deee05e6eb99845ad63b5f341a58b38fbe5e0c19606c6dac01f5f5d2e.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "SbbwZbfJ8_zgdpeD",
+          "rank": 7,
+          "score": 0.09087557775201761,
+          "ordinal": 67,
+          "filename": "DSC_3085.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--7d6926a44afe019b45ce1fbaea9ef78f3a165ace5559177d75cd01e0548ae75b.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_CK83AMjEuDLzCSv",
+          "rank": 8,
+          "score": 0.08637348686951313,
+          "ordinal": 85,
+          "filename": "DSC_2978.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a0d6e1467b138b1e127c4398aca368eb93c01d7139e9bf9999d5d903efb129bf.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "6aScn5Y6M8DMcj22",
+          "rank": 9,
+          "score": 0.08161139075031627,
+          "ordinal": 57,
+          "filename": "DSC_3221.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--694d61419d3f80d84713f7b57eb264063063e057d6eb50eeeb9f28f8aa7c14e0.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "0aqv7iYGoBi6Ku4S",
+          "rank": 10,
+          "score": 0.0749092146927155,
+          "ordinal": 50,
+          "filename": "DSC_2893.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--648365c3395e397ba66e5b474e6fc6e68789e96cb7c8bebd2b4abbbaf67cc539.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h19-cow-by-track",
+        "language": "en",
+        "category": "relation",
+        "expected": "present",
+        "text": "A cow resting beside a dirt track",
+        "criterion": "A cow is lying down directly beside or partly on an unpaved path."
+      },
+      "elapsedMs": 24.5,
+      "results": [
+        {
+          "publicId": "6GHQcuBZSE7fdbi2",
+          "rank": 1,
+          "score": 0.1982970620306905,
+          "ordinal": 32,
+          "filename": "DSC_4827.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4d829f9969e28b52e890321e1282454d7b6b5879b629bc4ee8c284a0c843cf86.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "AOv6P8sC2coIQqNw",
+          "rank": 2,
+          "score": 0.18104767198886873,
+          "ordinal": 116,
+          "filename": "DSC_4838.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ca928d62b968bd83fe40638e8ba85cb92ef938ee3dbb8e5e6388f51756466d8f.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "7OY8vf91JXtS9l6Z",
+          "rank": 3,
+          "score": 0.15198599376272617,
+          "ordinal": 145,
+          "filename": "DSC_4814.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f78f490ce9122f2419ae72473cb652d4bafc59f084b3bbd45b3e62629aa0ab1b.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "txCG_oPF12UzNDC1",
+          "rank": 4,
+          "score": 0.10784928173861909,
+          "ordinal": 21,
+          "filename": "DSC_4773.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--2ef082b942f0161a8af271d5cb47761f34d2a849f2e34f7139fd585df499226c.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "UHBpVCgbAUgDRZ55",
+          "rank": 5,
+          "score": 0.10346695179024429,
+          "ordinal": 102,
+          "filename": "DSC_4787.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b564b42148c7c19991bf3c78863b79b1117fb9b1ae9d86df742b6f9bae90a30c.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "raYC8Ew9m_993oPQ",
+          "rank": 6,
+          "score": 0.05742658955602155,
+          "ordinal": 138,
+          "filename": "DSC_3051.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ebfe2f577d55f3453c6d1b84fab396b004aa88794e71cd84894c8c4ac5240e33.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "8i_fe5BY-C5Q2xeP",
+          "rank": 7,
+          "score": 0.05244673091306956,
+          "ordinal": 44,
+          "filename": "DSC_1009.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5fcd5d4718ba04c5e080d7f7a7c31201df8eba35e84d7811a62aa51c51e65121.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "uJ9BOm-y3ET5oAmq",
+          "rank": 8,
+          "score": 0.03889027071992379,
+          "ordinal": 29,
+          "filename": "DSC_4475.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4ca67ef036a8605b7d827514b743a3e54e4be4523743b161dabdcbe0b48f1446.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "wZQtMeyl4_xgs2M-",
+          "rank": 9,
+          "score": 0.0374524812763418,
+          "ordinal": 134,
+          "filename": "DSC_1058.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e15e43ec2b338e93aab77a7ffcca8ba91b9a5a883ea37bd1c2dfb6669245aedc.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "4DKSqCN67BeS0flv",
+          "rank": 10,
+          "score": 0.03670550041438946,
+          "ordinal": 81,
+          "filename": "DSC_3179.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--964aa36ad9ce7a963e54fc119b0ddaed25c34128724493973ad7a4dbcd7e4fcc.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h20-peak-roof-ornament",
+        "language": "en",
+        "category": "difficult-paraphrase",
+        "expected": "present",
+        "text": "A mountain peak framed by a dark roof ornament",
+        "criterion": "A dark architectural roof ornament or finial occupies the foreground with a mountain peak behind it."
+      },
+      "elapsedMs": 25,
+      "results": [
+        {
+          "publicId": "QpZHUHA1IXvQGjdi",
+          "rank": 1,
+          "score": 0.13282091201182136,
+          "ordinal": 113,
+          "filename": "DSC_1621.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--c40da99df2d1486aa025ed35ab02f36cd1601cb9165632270217efc757a9443a.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "1D4RuUsAZQxRJbB7",
+          "rank": 2,
+          "score": 0.09780107414976677,
+          "ordinal": 150,
+          "filename": "DSC_1156.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--fda51e193cc9ecfedd972697e10c9f43b4e36abed4d1211fa513de4a2f1630f6.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "HQYLCKfUPwdPTqRe",
+          "rank": 3,
+          "score": 0.09739549920369803,
+          "ordinal": 115,
+          "filename": "DSC_1158.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ca660400ae4e97d529f4fae8d181ad2033a3fe2a45d168c2ec0d2fbf0b76409b.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "TKJOAvd6RGjvM0JO",
+          "rank": 4,
+          "score": 0.09674984187490315,
+          "ordinal": 37,
+          "filename": "DSC_1694.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--545fcf77aef4d437194c9539eddf343235735a16a86ba1e24b412bcf3c739429.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "hvvaNzoSjO-bO7L7",
+          "rank": 5,
+          "score": 0.0955501329975054,
+          "ordinal": 86,
+          "filename": "DSC_1625.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a20d7c5606832cb0943325932474e934cce0c9a5fde4e281dd1053a6d8cff1d2.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "cn5AQ_QzZObYC1T6",
+          "rank": 6,
+          "score": 0.09528532087259509,
+          "ordinal": 82,
+          "filename": "DSC_1545.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--99288e825213ab003e47993fd31709484eabb47d211ce1405a0b18916e876563.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "JPTS6-uTr3vw_lQZ",
+          "rank": 7,
+          "score": 0.09414213619043921,
+          "ordinal": 60,
+          "filename": "DSC_1414.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6f071be43e52655780084d55c4f68d6cf6584929f54db72d36776d5b1dab3a5f.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "ERQk2uqd4GRJRWBM",
+          "rank": 8,
+          "score": 0.0930570170792381,
+          "ordinal": 117,
+          "filename": "DSC_1159.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--cbd8bb89931b611d9e642124225654f4121a93a1ffa39e1cf93d876d8d503e93.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "r0VsYabWjASo3Mio",
+          "rank": 9,
+          "score": 0.09253179068707552,
+          "ordinal": 34,
+          "filename": "DSC_1373.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--515ac36d06c52f13caf8b4be87c2992b4d7de2d350c19314f6aafec5d360f169.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "bRwNetcrCwjC0wrJ",
+          "rank": 10,
+          "score": 0.09192084611852883,
+          "ordinal": 4,
+          "filename": "DSC_1567.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1506f027801395c7aa21b72cb487a92b34b2d21c08a21027bc67ecbd7cd3c4da.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h21-car-wet-curve",
+        "language": "en",
+        "category": "action",
+        "expected": "present",
+        "text": "A road vehicle rounding a wet forest curve",
+        "criterion": "A car is driving on a visibly wet, curving road bordered by trees."
+      },
+      "elapsedMs": 25.199999928474426,
+      "results": [
+        {
+          "publicId": "kK_dYmS77sQeD7y1",
+          "rank": 1,
+          "score": 0.16757283083421576,
+          "ordinal": 100,
+          "filename": "DSC_5331.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b24fefc6abb22d6bcb280974ba270842ecaf956e42b13a35e0a74901ef18922d.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "wZQtMeyl4_xgs2M-",
+          "rank": 2,
+          "score": 0.10913190976994758,
+          "ordinal": 134,
+          "filename": "DSC_1058.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e15e43ec2b338e93aab77a7ffcca8ba91b9a5a883ea37bd1c2dfb6669245aedc.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "KqIgcMh5h5BQf6Aw",
+          "rank": 3,
+          "score": 0.07974091399074604,
+          "ordinal": 125,
+          "filename": "DSC_4549.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d71a0320092337b385ec7af2df538104ffe95945896c8c58b04630db0cd0bab2.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "GScDw1e2bNwB5d2z",
+          "rank": 4,
+          "score": 0.06361396010415439,
+          "ordinal": 35,
+          "filename": "DSC_4220.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--52a9c7d508dfcff73295cfb55c0f28711857f3a29536b5b46a99a9462e10177a.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_Nrs9qXN29dcgkjP",
+          "rank": 5,
+          "score": 0.0630613654792173,
+          "ordinal": 68,
+          "filename": "DSC_4548.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--7dbad339ace3daf8dd4e2861dec5d9a3bcb2dddeaeb8145619e7d35046879db1.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "8gsp-NWRWPoR5F9S",
+          "rank": 6,
+          "score": 0.06144270508173287,
+          "ordinal": 147,
+          "filename": "DSC_3410.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f834c1838409bed73c68a1830f23fdc5be64f7b234180d71d61398cb96911f7c.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "ZM_ApGmWbZ3BUiYx",
+          "rank": 7,
+          "score": 0.05919206952440989,
+          "ordinal": 124,
+          "filename": "DSC_4538.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d7024e28a568518a13ba765c2a91d2e941c5fdb2c7b89ab9fe39ea3559309793.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "PEdhWw93eC0vRHhz",
+          "rank": 8,
+          "score": 0.05797228062073373,
+          "ordinal": 7,
+          "filename": "DSC_3972.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1c594d602061d66278a2308d5044c334daef68f57afa10e22b23717e68e30321.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "cYf7qMXFYKbu1yeX",
+          "rank": 9,
+          "score": 0.05722155294304533,
+          "ordinal": 45,
+          "filename": "DSC_3365.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6264244fc2e51ddbb72f82f45e6e0667a024b0575ba61542d9dde3bbb6ef1af5.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "uq0FBDDCdg2UqCvs",
+          "rank": 10,
+          "score": 0.056889245275873856,
+          "ordinal": 20,
+          "filename": "DSC_3395.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--2ebe7a54b67107e412970c6a75b217209b5c4e0640de8b1834db6e39a01da76c.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h22-bee-pink-flower",
+        "language": "en",
+        "category": "relation",
+        "expected": "present",
+        "text": "A bee buried inside a vivid pink flower",
+        "criterion": "A bee is visibly inside or on the central petals of a saturated pink or magenta flower."
+      },
+      "elapsedMs": 24.600000023841858,
+      "results": [
+        {
+          "publicId": "vPIide2WGEeD5rMk",
+          "rank": 1,
+          "score": 0.1783983487696474,
+          "ordinal": 136,
+          "filename": "DSC_0854.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e3fd8fe76d9a91396c36bcdf58e47c886cab1f8d5c9545212679f889acdb4f5b.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "16g6ixhVOH7XQbI-",
+          "rank": 2,
+          "score": 0.13070602831428088,
+          "ordinal": 14,
+          "filename": "DSC_3283.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--261ca2b801ce5bb112ff2638d40a3314946e551ad2fc147ca1555c4f1a912f15.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "eQsd-mw8x97rimoB",
+          "rank": 3,
+          "score": 0.054548264830239925,
+          "ordinal": 64,
+          "filename": "DSC_3274.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--76be6cb01c49e2b3922d21a7434ef6f08dccd02c47b49615b24b5da55d1f5d19.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "3y4-3SGSnVFqXJFr",
+          "rank": 4,
+          "score": 0.053593993968350975,
+          "ordinal": 8,
+          "filename": "DSC_3819.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1c982d435e88ee2a17d2c853f0e2a735a872d73ebb5c4973adfc937f3eee1ec8.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "uJ9BOm-y3ET5oAmq",
+          "rank": 5,
+          "score": 0.046329866120468986,
+          "ordinal": 29,
+          "filename": "DSC_4475.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4ca67ef036a8605b7d827514b743a3e54e4be4523743b161dabdcbe0b48f1446.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "GyP_H5_C2HARiLri",
+          "rank": 6,
+          "score": 0.04079345839235961,
+          "ordinal": 108,
+          "filename": "DSC_3726.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--bc69d501d8e29c9dc3104eeacc6eeee02530bd31620291c6914d681e7f4a3cc7.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "Hn0fzv-bgfqytLEN",
+          "rank": 7,
+          "score": 0.03240448392768039,
+          "ordinal": 114,
+          "filename": "DSC_3917.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--c4d845056b74a792c7bc1489c88926bdd218153a7de6b6ff56b47baded406c68.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "T_Ol6OhV2C-zIvPc",
+          "rank": 8,
+          "score": 0.03181980171092331,
+          "ordinal": 112,
+          "filename": "DSC_3369.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--c408ab059cb4decd9cdac13e6fcde75ad77b0dc9a6525ad494484af90e7dadd7.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "eICek-gzpXUCShUE",
+          "rank": 9,
+          "score": 0.03144806990714682,
+          "ordinal": 98,
+          "filename": "DSC_3593.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--af1dbc9e6cb7614d4ad4759a2d7ee895680324c7a20afb715df8df034e8191b5.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "8i_fe5BY-C5Q2xeP",
+          "rank": 10,
+          "score": 0.030008854712142367,
+          "ordinal": 44,
+          "filename": "DSC_1009.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5fcd5d4718ba04c5e080d7f7a7c31201df8eba35e84d7811a62aa51c51e65121.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h23-black-waterbirds",
+        "language": "en",
+        "category": "object",
+        "expected": "present",
+        "text": "A group of black waterbirds swimming together",
+        "criterion": "At least three dark or black waterbirds are together on the water."
+      },
+      "elapsedMs": 25.100000023841858,
+      "results": [
+        {
+          "publicId": "lfYk0IjnxC7eCr6R",
+          "rank": 1,
+          "score": 0.19295433144500673,
+          "ordinal": 128,
+          "filename": "DSC_0893.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--daa1c6bee7455123c176fadb8eb15c07c0e33ecd849f9d4705726b0fe1f8da5b.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "MB3scrIDtoMR3Iq5",
+          "rank": 2,
+          "score": 0.14410109704475169,
+          "ordinal": 62,
+          "filename": "DSC_3947.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6f82ea9d1786203c79594c43dc5da85e4a03102cd9b9fe7bc2146fac15cfd594.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "FMqTEYk4fPQbGTm3",
+          "rank": 3,
+          "score": 0.10594161161150163,
+          "ordinal": 99,
+          "filename": "DSC_0923.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b1b9b38ed17e1a9aa3f9f9b698e50a07e645365eed7a7143d41845899860157e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "7p-IfDL2j-6TbW6h",
+          "rank": 4,
+          "score": 0.09929133579187725,
+          "ordinal": 92,
+          "filename": "DSC_0303.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a96e97db25eb3d2c83f2f3d02eb8f1dc42b43852939238f9e1964e3712800475.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "bhPZEgsQ0JomLx_b",
+          "rank": 5,
+          "score": 0.08434168699694933,
+          "ordinal": 61,
+          "filename": "DSC_0394.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6f5a73b58136fe7aa518e2a63f65328140871257bf25dbd796f45eac61c01b91.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Sx6BoxEP0CyliudA",
+          "rank": 6,
+          "score": 0.08375581030701824,
+          "ordinal": 144,
+          "filename": "DSC_0226.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f5202c239e0fb73abb1ffc8aea66763e2370d007757cdbc6d806511286e51dfb.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "DZqGwcN--0rdP6JS",
+          "rank": 7,
+          "score": 0.08332686035811053,
+          "ordinal": 107,
+          "filename": "DSC_0352.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b9b3ef84a3fff8fda9f99fdf40562bea1cb0cd1c266963fc6c0b3d100b1d7ad0.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Uw-FM31zvNpfMnWG",
+          "rank": 8,
+          "score": 0.07950917665311952,
+          "ordinal": 16,
+          "filename": "DSC_4165.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--280019781f3e2a64e71e2fb7d523213a367fb3da408915ec15505e08de2f0f78.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "d_gmdhbGf7Qrlxkw",
+          "rank": 9,
+          "score": 0.062394377822421854,
+          "ordinal": 143,
+          "filename": "DSC_3926.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f3fcb0aa775530e51d36a7985e3a5f58f4cda7c2c015162679a218764c2aa839.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "sUYnq_1td9CiFj-m",
+          "rank": 10,
+          "score": 0.05832700643205038,
+          "ordinal": 25,
+          "filename": "DSC_4605.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--3a265e878373de69ac85a5ed0b0f2a993111ad7df90f79544871fc770a1563af.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h24-canyon-ribbon",
+        "language": "en",
+        "category": "difficult-paraphrase",
+        "expected": "present",
+        "text": "A turquoise ribbon of water squeezed between sheer canyon walls",
+        "criterion": "A narrow turquoise river or lake runs between steep, rocky mountain walls."
+      },
+      "elapsedMs": 25.399999976158142,
+      "results": [
+        {
+          "publicId": "7_kq1AtGckRqNcMf",
+          "rank": 1,
+          "score": 0.1315256832428277,
+          "ordinal": 95,
+          "filename": "DSC_1956.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ad48934fb603b463a51261fce96772120197d0ff0339ef5619786c176c6704e2.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "NqUJIpHQkIdd4KqD",
+          "rank": 2,
+          "score": 0.13022946506176689,
+          "ordinal": 9,
+          "filename": "DSC_1942.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1cf9bf28929984c973da70ed739620ee0be349154e6e07ab1619ad29aa663c09.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "quxfmv752UE8Lmy4",
+          "rank": 3,
+          "score": 0.12445948493088846,
+          "ordinal": 38,
+          "filename": "DSC_1053.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--57e9ea52701fd1802c1f1d37b6195d34a8b403db68b702b6767a16a0a0d1627e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "bmLHEYecETMCwPNT",
+          "rank": 4,
+          "score": 0.11709864287033876,
+          "ordinal": 141,
+          "filename": "DSC_2167.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f1c66c26d6a25277de7c3a78d6bf547cd4f793ce759be822a00ef316b7ba3218.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "TU9Wo1UpPXNQm6VW",
+          "rank": 5,
+          "score": 0.09158595376376304,
+          "ordinal": 123,
+          "filename": "DSC_2026.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d61d0c9addb0a5105b2cd19cb4aad06d15baaae51ae8ae78673f35cd454fe257.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "keHq3vJ30TmUqRgT",
+          "rank": 6,
+          "score": 0.08584462950543684,
+          "ordinal": 96,
+          "filename": "DSC_2248-HDR.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ad56b31228a803656780113c0936f3c750eaa4f3d7aba3783cabc8a204ff7e9b.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "wZQtMeyl4_xgs2M-",
+          "rank": 7,
+          "score": 0.08473615717848004,
+          "ordinal": 134,
+          "filename": "DSC_1058.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e15e43ec2b338e93aab77a7ffcca8ba91b9a5a883ea37bd1c2dfb6669245aedc.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "U2_VeaHPLCGQPn0N",
+          "rank": 8,
+          "score": 0.08411533744120395,
+          "ordinal": 129,
+          "filename": "DSC_1056.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--dba6a865de39d597dfc689e27dc0cac091936047c3732572672e4eb4813e7205.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "GScDw1e2bNwB5d2z",
+          "rank": 9,
+          "score": 0.08371314130656658,
+          "ordinal": 35,
+          "filename": "DSC_4220.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--52a9c7d508dfcff73295cfb55c0f28711857f3a29536b5b46a99a9462e10177a.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "8zi7KkwuqDLMFauq",
+          "rank": 10,
+          "score": 0.08144212067717665,
+          "ordinal": 126,
+          "filename": "DSC_4899.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d7c38a457908d3fc96e8d54af4c6db3b347388f3e20ad125930a3af13a6cfb0e.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h25-boat-open-water",
+        "language": "en",
+        "category": "near-match",
+        "expected": "near-match",
+        "text": "A boat alone on open blue water",
+        "criterion": "A boat is the main isolated subject on blue water; a nearby shore is acceptable if the boat remains visually isolated."
+      },
+      "elapsedMs": 24.600000023841858,
+      "results": [
+        {
+          "publicId": "9Adu1uKRHS1ZGcgN",
+          "rank": 1,
+          "score": 0.11668786361696855,
+          "ordinal": 12,
+          "filename": "DSC_4708.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--243164b4d88f6238026cdd4348c41a47130039e3b2727ca7c018a2bd843895ea.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "97yfiRO7tFWq7KSD",
+          "rank": 2,
+          "score": 0.10915288218436306,
+          "ordinal": 6,
+          "filename": "DSC_4878.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--18c56171b54805542705d394930ce5a8446af0a3d8aa5cb7f62d4abb516f2343.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "umb89AcmYEXmgPJZ",
+          "rank": 3,
+          "score": 0.10845199938847662,
+          "ordinal": 17,
+          "filename": "DSC_4875.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--28b99074a7081f471565f895249e46629b11554032081f098d7aebaf327ff431.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "Pgh_4Q1AERsL7aWx",
+          "rank": 4,
+          "score": 0.08850822525853942,
+          "ordinal": 24,
+          "filename": "DSC_4886.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--349c375eed009d3858c85dc632f9c5c4a107330d6e037e68ae1fd635f3b4a601.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "sUYnq_1td9CiFj-m",
+          "rank": 5,
+          "score": 0.08637787093437599,
+          "ordinal": 25,
+          "filename": "DSC_4605.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--3a265e878373de69ac85a5ed0b0f2a993111ad7df90f79544871fc770a1563af.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "ZJ8tzK8iEMq5SCyR",
+          "rank": 6,
+          "score": 0.08035018305547742,
+          "ordinal": 106,
+          "filename": "DSC_4597.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b87aa34d54605415294c449da0e1c1dbf10baa22ded270deefaf5427036ec7e7.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_nWx1cwkqju24ERM",
+          "rank": 7,
+          "score": 0.07964448961590093,
+          "ordinal": 59,
+          "filename": "DSC_4644.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6e20fd16a5868584e3392fd238d315aacc34c9325056cfc84d2f75c8c36dd17b.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "aMSkGzzGcTa86mIx",
+          "rank": 8,
+          "score": 0.07329266734646618,
+          "ordinal": 18,
+          "filename": "DSC_4659.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--28e7d43638f080e6f86794df7761bf5d1bfdd4719adb88a51e0f6eaf9289d405.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "8zi7KkwuqDLMFauq",
+          "rank": 9,
+          "score": 0.06965894452614017,
+          "ordinal": 126,
+          "filename": "DSC_4899.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d7c38a457908d3fc96e8d54af4c6db3b347388f3e20ad125930a3af13a6cfb0e.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "NvoXX53YEnfBWVvY",
+          "rank": 10,
+          "score": 0.06872303993264343,
+          "ordinal": 19,
+          "filename": "DSC_0339.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--2daff08d02e87528a803ea99611cc5ad0ee46dda06d6e7acad11f9f4a04fdbfc.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h26-red-balcony-market",
+        "language": "en",
+        "category": "scene",
+        "expected": "present",
+        "text": "A crowded pedestrian market beneath red wooden balconies",
+        "criterion": "People walk through a traditional commercial street with prominent red or warm wooden upper structures."
+      },
+      "elapsedMs": 25.200000047683716,
+      "results": [
+        {
+          "publicId": "fe7bw2cne3jf1rRJ",
+          "rank": 1,
+          "score": 0.11554176030282198,
+          "ordinal": 53,
+          "filename": "DSC_1025.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--64c5c555794f419285897e0dd3c6e7c8fc24e215c8d5cbd81969ece163a75850.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "_MVsV_8d1Rv8VzgC",
+          "rank": 2,
+          "score": 0.11335062367486612,
+          "ordinal": 3,
+          "filename": "DSC_1818.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--0f1a6513311b854bb96bab408bb9af242ea2fdbe58bdf06623e90bbbb44a3c5e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "9t00PNyi8vhx6SXC",
+          "rank": 3,
+          "score": 0.09222763005448592,
+          "ordinal": 30,
+          "filename": "DSC_0797.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4cfee69b12e14e6bece16910db6f65fddb2fb6cf393449d4e9e9c7f48c2cc1d3.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "QLR_D6lxtZBVh_1K",
+          "rank": 4,
+          "score": 0.05907486151476202,
+          "ordinal": 153,
+          "filename": "DSC_1032.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ff2ecd5557b012225ae6a502978bf4e9ed8bba92f31a59273f332ada89910b89.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "d_9iWEIimHZMaK2V",
+          "rank": 5,
+          "score": 0.036850461682364534,
+          "ordinal": 151,
+          "filename": "DSC_1733.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--fe1e94657eb5a4006325fe6672f0e69187f1243dc9df5662264dac2c6382c261.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "26Uhyhpk1VVyIMW6",
+          "rank": 6,
+          "score": 0.033784472176487154,
+          "ordinal": 63,
+          "filename": "DSC_4222.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--70a7313f01951d4b66e2fd9a54c40531c7926d5b2c589565777bbedf80a08f67.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "jvXjL97NmUFDUltt",
+          "rank": 7,
+          "score": 0.03302789584108387,
+          "ordinal": 10,
+          "filename": "DSC_4911.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1e7d257c5182d1c07d4458e769b290f0fd977acf36fe9f9058851dbfe3c69262.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "o2dQGL38awBeUvzH",
+          "rank": 8,
+          "score": 0.030080871740778257,
+          "ordinal": 93,
+          "filename": "DSC_1119.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ac69921bf701c25bdd4ea84b7cad1ae78aa6e7a88da5427b92576e00a3309b51.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "-2QmTmOOgW5nwPUD",
+          "rank": 9,
+          "score": 0.02997897986708076,
+          "ordinal": 43,
+          "filename": "DSC_1713.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5f133bf3c2ab0aa15ca44c235efafd8bdb7991ec24c2fc542caffd0f1ca3fb23.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Ou-JB3nlQSGxOX2b",
+          "rank": 10,
+          "score": 0.024310153847486957,
+          "ordinal": 33,
+          "filename": "DSC_1899.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4fa2c98c96a3497595541f1c5637e0bc0f873d26ce6301b7b21be6e68a1f5cbc.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h27-crane-grass",
+        "language": "mixed",
+        "category": "object",
+        "expected": "present",
+        "text": "白色 crane 在草地上昂着头",
+        "criterion": "一隻長腿、長頸的鶴類站在草地上，頭頸清晰可見。"
+      },
+      "elapsedMs": 24.200000047683716,
+      "results": [
+        {
+          "publicId": "uJObbGNnCIpXhBef",
+          "rank": 1,
+          "score": 0.13660933115911045,
+          "ordinal": 121,
+          "filename": "DSC_4073.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d1872bf2ca9dd9aa8e03939765e6291d5a103e754f238ff0078a79ec7d1ee46b.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "vG9E1SXmScpd0pRN",
+          "rank": 2,
+          "score": 0.12476596260237649,
+          "ordinal": 2,
+          "filename": "DSC_4140.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--06aac0469f0f185cbb4e39be3ec6480c3902d0c349435d80631c22659105c5f3.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "paiqsBGbeQ85U0KF",
+          "rank": 3,
+          "score": 0.12431623992200405,
+          "ordinal": 11,
+          "filename": "DSC_4052.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1eda27f8f9429ecb4ce86539178aeb0e899aa95686b4e6e668a480a64ac2b0a9.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "J36PeYvylZcq0Fbp",
+          "rank": 4,
+          "score": 0.1174300449253644,
+          "ordinal": 146,
+          "filename": "DSC_4144.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f80b8cdcbb98b391b9797e630b6ba1ff5cf4d0790be82a7654c2563fcd933cd1.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "uJ9BOm-y3ET5oAmq",
+          "rank": 5,
+          "score": 0.09764111732946455,
+          "ordinal": 29,
+          "filename": "DSC_4475.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4ca67ef036a8605b7d827514b743a3e54e4be4523743b161dabdcbe0b48f1446.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "uxQQORmdg7vTW8zY",
+          "rank": 6,
+          "score": 0.08594063001480898,
+          "ordinal": 137,
+          "filename": "DSC_4473.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--eb8589fc208bfdb285f5216a91d9b9df8b3cc7af12ea1ad7861e36ebb511cdd3.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "y_uyEVUKhKx_Vt0F",
+          "rank": 7,
+          "score": 0.08582737839081643,
+          "ordinal": 152,
+          "filename": "DSC_5551.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--fe4ecf86bb57d4a529581d244380867e4fb57363e2f6a9ffb9d1e7847a596a51.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "qcekZ7CmOOlwyafP",
+          "rank": 8,
+          "score": 0.07703866847482924,
+          "ordinal": 41,
+          "filename": "DSC_4511.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5d1c51248c37d44fd79d7773c5f53d98f97e4171de2d4e9968d39eed6f1d4b3d.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "txCG_oPF12UzNDC1",
+          "rank": 9,
+          "score": 0.06936193560015094,
+          "ordinal": 21,
+          "filename": "DSC_4773.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--2ef082b942f0161a8af271d5cb47761f34d2a849f2e34f7139fd585df499226c.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "7OY8vf91JXtS9l6Z",
+          "rank": 10,
+          "score": 0.06489809789299587,
+          "ordinal": 145,
+          "filename": "DSC_4814.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f78f490ce9122f2419ae72473cb652d4bafc59f084b3bbd45b3e62629aa0ab1b.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h28-mountain-cafe",
+        "language": "mixed",
+        "category": "difficult-paraphrase",
+        "expected": "present",
+        "text": "mountain café 透过落地窗看雪峰",
+        "criterion": "咖啡館或室內座位透過大型玻璃窗面向雪山或高山。"
+      },
+      "elapsedMs": 24.199999928474426,
+      "results": [
+        {
+          "publicId": "keHq3vJ30TmUqRgT",
+          "rank": 1,
+          "score": 0.16383166429583326,
+          "ordinal": 96,
+          "filename": "DSC_2248-HDR.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ad56b31228a803656780113c0936f3c750eaa4f3d7aba3783cabc8a204ff7e9b.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "tXytVg_XsXP8Bsy5",
+          "rank": 2,
+          "score": 0.113417890690035,
+          "ordinal": 66,
+          "filename": "DSC_1347.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--7a5c941f9e28a7ea07d6803f3e00e8d8e5257f5354dd1b735f718bd63947340b.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "hvvaNzoSjO-bO7L7",
+          "rank": 3,
+          "score": 0.11180782709585292,
+          "ordinal": 86,
+          "filename": "DSC_1625.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--a20d7c5606832cb0943325932474e934cce0c9a5fde4e281dd1053a6d8cff1d2.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "AurF9dVsFmUPqefx",
+          "rank": 4,
+          "score": 0.10844973432456073,
+          "ordinal": 65,
+          "filename": "DSC_1560.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--792e3c895ed726f6a7d1bd2fc7df029e7ba4c3de6329231f59c2e772cce48717.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "srhaG6dlM3l28QhE",
+          "rank": 5,
+          "score": 0.1082473504763698,
+          "ordinal": 127,
+          "filename": "DSC_1325.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d88ea98dcc3f57fadf152be98bc0f42d76c70b0cf8c6cf6a665c74fe6cb90133.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "ePmkMSJlq5NPGcpN",
+          "rank": 6,
+          "score": 0.10813813424522287,
+          "ordinal": 120,
+          "filename": "DSC_1473.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--cfc1f2ac28c1ba3b355ede6270248df4b847fdc831c16951bf64c8a88493a40f.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "1D4RuUsAZQxRJbB7",
+          "rank": 7,
+          "score": 0.10793016224840972,
+          "ordinal": 150,
+          "filename": "DSC_1156.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--fda51e193cc9ecfedd972697e10c9f43b4e36abed4d1211fa513de4a2f1630f6.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "JPTS6-uTr3vw_lQZ",
+          "rank": 8,
+          "score": 0.10788675692954378,
+          "ordinal": 60,
+          "filename": "DSC_1414.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6f071be43e52655780084d55c4f68d6cf6584929f54db72d36776d5b1dab3a5f.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "bRwNetcrCwjC0wrJ",
+          "rank": 9,
+          "score": 0.1077219894448958,
+          "ordinal": 4,
+          "filename": "DSC_1567.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1506f027801395c7aa21b72cb487a92b34b2d21c08a21027bc67ecbd7cd3c4da.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Eyw3Q4csfuLw7lsd",
+          "rank": 10,
+          "score": 0.10746625046140915,
+          "ordinal": 118,
+          "filename": "DSC_1630.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--cc45c9d4b9b5fcc39ae430a08d325dc70b03f44f4b55c11f885503afa2f0b3e9.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h29-white-car-rain",
+        "language": "mixed",
+        "category": "action",
+        "expected": "present",
+        "text": "雨後 forest road 上有一輛 white car",
+        "criterion": "白色汽車行駛在潮濕道路上，道路兩側有樹林。"
+      },
+      "elapsedMs": 24.899999976158142,
+      "results": [
+        {
+          "publicId": "kK_dYmS77sQeD7y1",
+          "rank": 1,
+          "score": 0.15732299094464555,
+          "ordinal": 100,
+          "filename": "DSC_5331.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b24fefc6abb22d6bcb280974ba270842ecaf956e42b13a35e0a74901ef18922d.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "wZQtMeyl4_xgs2M-",
+          "rank": 2,
+          "score": 0.09090150397267913,
+          "ordinal": 134,
+          "filename": "DSC_1058.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e15e43ec2b338e93aab77a7ffcca8ba91b9a5a883ea37bd1c2dfb6669245aedc.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "TUYN2wU68WonUHCQ",
+          "rank": 3,
+          "score": 0.0770127433795267,
+          "ordinal": 131,
+          "filename": "DSC_3460.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e14795bffa7f399c03bbb8c64dad40fccdf8af620761eb29a085c36f5ab8a07f.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "KqIgcMh5h5BQf6Aw",
+          "rank": 4,
+          "score": 0.062360904275758966,
+          "ordinal": 125,
+          "filename": "DSC_4549.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d71a0320092337b385ec7af2df538104ffe95945896c8c58b04630db0cd0bab2.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "8gsp-NWRWPoR5F9S",
+          "rank": 5,
+          "score": 0.057932634777994894,
+          "ordinal": 147,
+          "filename": "DSC_3410.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f834c1838409bed73c68a1830f23fdc5be64f7b234180d71d61398cb96911f7c.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "uJ9BOm-y3ET5oAmq",
+          "rank": 6,
+          "score": 0.05650122211086834,
+          "ordinal": 29,
+          "filename": "DSC_4475.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4ca67ef036a8605b7d827514b743a3e54e4be4523743b161dabdcbe0b48f1446.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_Nrs9qXN29dcgkjP",
+          "rank": 7,
+          "score": 0.05295520209692584,
+          "ordinal": 68,
+          "filename": "DSC_4548.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--7dbad339ace3daf8dd4e2861dec5d9a3bcb2dddeaeb8145619e7d35046879db1.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_w_9AZZBRpKd98Tj",
+          "rank": 8,
+          "score": 0.049019681876869656,
+          "ordinal": 70,
+          "filename": "DSC_4907.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--82d1cb567c9de107c7f02e8c5965bb93ba7cad25ba8b3be7d8030bdbb88ae56e.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "ZM_ApGmWbZ3BUiYx",
+          "rank": 9,
+          "score": 0.04709379036505874,
+          "ordinal": 124,
+          "filename": "DSC_4538.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d7024e28a568518a13ba765c2a91d2e941c5fdb2c7b89ab9fe39ea3559309793.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "W31SCW4xMAdtYjoM",
+          "rank": 10,
+          "score": 0.04681966896317388,
+          "ordinal": 49,
+          "filename": "DSC_3044.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6472e223c0e87e31189cc8328b51783e5beccf0b25df8a0027e8e29d06f824b8.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h30-black-birds-lake",
+        "language": "mixed",
+        "category": "object",
+        "expected": "present",
+        "text": "藍色 lake 上成群 black birds",
+        "criterion": "藍色水面上有一群至少三隻深色水鳥。"
+      },
+      "elapsedMs": 24.5,
+      "results": [
+        {
+          "publicId": "lfYk0IjnxC7eCr6R",
+          "rank": 1,
+          "score": 0.11896614078761077,
+          "ordinal": 128,
+          "filename": "DSC_0893.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--daa1c6bee7455123c176fadb8eb15c07c0e33ecd849f9d4705726b0fe1f8da5b.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "5OPnDlSow761lGvb",
+          "rank": 2,
+          "score": 0.10433633522001863,
+          "ordinal": 1,
+          "filename": "DSC_0190.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--05c7144992ff2ba46e52b9624db576d680520142250a658e4784e408259dcb6e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Sx6BoxEP0CyliudA",
+          "rank": 3,
+          "score": 0.08894356884978835,
+          "ordinal": 144,
+          "filename": "DSC_0226.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--f5202c239e0fb73abb1ffc8aea66763e2370d007757cdbc6d806511286e51dfb.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "CP1txp1O9UsIKCzj",
+          "rank": 4,
+          "score": 0.08633391708183379,
+          "ordinal": 140,
+          "filename": "DSC_3967.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--efec36aa2355b5781d46c953d515ff5a1d84c11a9c429a303fd7d3b1f5851aba.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "MB3scrIDtoMR3Iq5",
+          "rank": 5,
+          "score": 0.08437268302377028,
+          "ordinal": 62,
+          "filename": "DSC_3947.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6f82ea9d1786203c79594c43dc5da85e4a03102cd9b9fe7bc2146fac15cfd594.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "PEdhWw93eC0vRHhz",
+          "rank": 6,
+          "score": 0.08359964897743838,
+          "ordinal": 7,
+          "filename": "DSC_3972.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1c594d602061d66278a2308d5044c334daef68f57afa10e22b23717e68e30321.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_WdtiuBvKzG5R5U-",
+          "rank": 7,
+          "score": 0.07880011194651781,
+          "ordinal": 104,
+          "filename": "DSC_0129.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b6f6f4110491012b9eb6c9a3d9a9edb8284766e2ce6ec203480d91b6793d4586.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "bhPZEgsQ0JomLx_b",
+          "rank": 8,
+          "score": 0.07792213903882877,
+          "ordinal": 61,
+          "filename": "DSC_0394.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6f5a73b58136fe7aa518e2a63f65328140871257bf25dbd796f45eac61c01b91.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "PbQ8LEUJjOF0Rjnp",
+          "rank": 9,
+          "score": 0.07672220419979225,
+          "ordinal": 135,
+          "filename": "DSC_0644.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e1da39b258713f3cf8cc7905c43e6c06e2472cd2fcf8a7df2666aa5da68696bb.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "-k3axsUIoSP2eRgR",
+          "rank": 10,
+          "score": 0.07468518234282354,
+          "ordinal": 27,
+          "filename": "DSC_3975.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4743349bf98e689545fcad0bee74deb754ddbb95456901363e5db926ba8bf5d4.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h31-gate-flowers",
+        "language": "mixed",
+        "category": "scene",
+        "expected": "present",
+        "text": "古城 gate 前鋪著 colorful flowers",
+        "criterion": "古城門或城牆入口前有明顯的多彩花卉佈置。"
+      },
+      "elapsedMs": 25.200000047683716,
+      "results": [
+        {
+          "publicId": "2YpnjFcIjgTiOIaZ",
+          "rank": 1,
+          "score": 0.1721781286276542,
+          "ordinal": 132,
+          "filename": "DSC_0777.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e147bd0586ed22c675e76d7185da230cae4e395acc3f1b3b35808256e6c3c371.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "fe7bw2cne3jf1rRJ",
+          "rank": 2,
+          "score": 0.12869866154336232,
+          "ordinal": 53,
+          "filename": "DSC_1025.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--64c5c555794f419285897e0dd3c6e7c8fc24e215c8d5cbd81969ece163a75850.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "9t00PNyi8vhx6SXC",
+          "rank": 3,
+          "score": 0.1096546660214482,
+          "ordinal": 30,
+          "filename": "DSC_0797.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4cfee69b12e14e6bece16910db6f65fddb2fb6cf393449d4e9e9c7f48c2cc1d3.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "d_9iWEIimHZMaK2V",
+          "rank": 4,
+          "score": 0.08540699536490752,
+          "ordinal": 151,
+          "filename": "DSC_1733.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--fe1e94657eb5a4006325fe6672f0e69187f1243dc9df5662264dac2c6382c261.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "YwDbzKQ3MVB2GcrP",
+          "rank": 5,
+          "score": 0.07707308402660673,
+          "ordinal": 139,
+          "filename": "DSC_4236.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ecd0437c55af96bd636004ce8145e70b79b69ce0f32be4cb711ca0b00fe8b069.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "SCLoIHVZ0XmQtX6j",
+          "rank": 6,
+          "score": 0.0766492735257869,
+          "ordinal": 119,
+          "filename": "DSC_0669.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--cf89a1454054c7173199657aa1b3e6bd01f8dede2eb7d9dc3e9d06e08d9ed41e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "vPIide2WGEeD5rMk",
+          "rank": 7,
+          "score": 0.07456698005885135,
+          "ordinal": 136,
+          "filename": "DSC_0854.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e3fd8fe76d9a91396c36bcdf58e47c886cab1f8d5c9545212679f889acdb4f5b.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "TKJOAvd6RGjvM0JO",
+          "rank": 8,
+          "score": 0.0661418230213986,
+          "ordinal": 37,
+          "filename": "DSC_1694.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--545fcf77aef4d437194c9539eddf343235735a16a86ba1e24b412bcf3c739429.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "_MVsV_8d1Rv8VzgC",
+          "rank": 9,
+          "score": 0.059390031232352765,
+          "ordinal": 3,
+          "filename": "DSC_1818.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--0f1a6513311b854bb96bab408bb9af242ea2fdbe58bdf06623e90bbbb44a3c5e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "eQsd-mw8x97rimoB",
+          "rank": 10,
+          "score": 0.05833182279400311,
+          "ordinal": 64,
+          "filename": "DSC_3274.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--76be6cb01c49e2b3922d21a7434ef6f08dccd02c47b49615b24b5da55d1f5d19.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h32-flower-field-ridge",
+        "language": "mixed",
+        "category": "near-match",
+        "expected": "near-match",
+        "text": "yellow flower field 配遠方 mountain ridge",
+        "criterion": "黃色花田與遠處山脊同時清楚可見。"
+      },
+      "elapsedMs": 25.100000023841858,
+      "results": [
+        {
+          "publicId": "SCLoIHVZ0XmQtX6j",
+          "rank": 1,
+          "score": 0.15983386635588273,
+          "ordinal": 119,
+          "filename": "DSC_0669.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--cf89a1454054c7173199657aa1b3e6bd01f8dede2eb7d9dc3e9d06e08d9ed41e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "eQsd-mw8x97rimoB",
+          "rank": 2,
+          "score": 0.09412790306418817,
+          "ordinal": 64,
+          "filename": "DSC_3274.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--76be6cb01c49e2b3922d21a7434ef6f08dccd02c47b49615b24b5da55d1f5d19.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "2YpnjFcIjgTiOIaZ",
+          "rank": 3,
+          "score": 0.0924863465190249,
+          "ordinal": 132,
+          "filename": "DSC_0777.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e147bd0586ed22c675e76d7185da230cae4e395acc3f1b3b35808256e6c3c371.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "U2_VeaHPLCGQPn0N",
+          "rank": 4,
+          "score": 0.08534260226231265,
+          "ordinal": 129,
+          "filename": "DSC_1056.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--dba6a865de39d597dfc689e27dc0cac091936047c3732572672e4eb4813e7205.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "yTn2DqQsykHUZCSU",
+          "rank": 5,
+          "score": 0.08276815984259792,
+          "ordinal": 42,
+          "filename": "DSC_2217.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5de56f09c8c57dcc8a13e57e6fa40c2cc7ec818fd6761f60b6cdb2acbd3050d0.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "AurF9dVsFmUPqefx",
+          "rank": 6,
+          "score": 0.073155106595715,
+          "ordinal": 65,
+          "filename": "DSC_1560.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--792e3c895ed726f6a7d1bd2fc7df029e7ba4c3de6329231f59c2e772cce48717.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "cn5AQ_QzZObYC1T6",
+          "rank": 7,
+          "score": 0.07137336151109064,
+          "ordinal": 82,
+          "filename": "DSC_1545.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--99288e825213ab003e47993fd31709484eabb47d211ce1405a0b18916e876563.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "y_uyEVUKhKx_Vt0F",
+          "rank": 8,
+          "score": 0.07104682292724826,
+          "ordinal": 152,
+          "filename": "DSC_5551.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--fe4ecf86bb57d4a529581d244380867e4fb57363e2f6a9ffb9d1e7847a596a51.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "srhaG6dlM3l28QhE",
+          "rank": 9,
+          "score": 0.07010691205665946,
+          "ordinal": 127,
+          "filename": "DSC_1325.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d88ea98dcc3f57fadf152be98bc0f42d76c70b0cf8c6cf6a665c74fe6cb90133.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "HQYLCKfUPwdPTqRe",
+          "rank": 10,
+          "score": 0.06695011135097426,
+          "ordinal": 115,
+          "filename": "DSC_1158.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ca660400ae4e97d529f4fae8d181ad2033a3fe2a45d168c2ec0d2fbf0b76409b.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h33-subway-platform",
+        "language": "zh-Hans",
+        "category": "no-match",
+        "expected": "no-match",
+        "text": "地铁列车驶入地下站台",
+        "criterion": "地铁列车和地下站台必须同时清晰可见。"
+      },
+      "elapsedMs": 24.300000071525574,
+      "results": [
+        {
+          "publicId": "ZJ8tzK8iEMq5SCyR",
+          "rank": 1,
+          "score": 0.05572778833331167,
+          "ordinal": 106,
+          "filename": "DSC_4597.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b87aa34d54605415294c449da0e1c1dbf10baa22ded270deefaf5427036ec7e7.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_WdtiuBvKzG5R5U-",
+          "rank": 2,
+          "score": 0.03529832668078803,
+          "ordinal": 104,
+          "filename": "DSC_0129.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b6f6f4110491012b9eb6c9a3d9a9edb8284766e2ce6ec203480d91b6793d4586.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "_w_9AZZBRpKd98Tj",
+          "rank": 3,
+          "score": 0.034325259231430795,
+          "ordinal": 70,
+          "filename": "DSC_4907.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--82d1cb567c9de107c7f02e8c5965bb93ba7cad25ba8b3be7d8030bdbb88ae56e.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "TUYN2wU68WonUHCQ",
+          "rank": 4,
+          "score": 0.033352341263979284,
+          "ordinal": 131,
+          "filename": "DSC_3460.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e14795bffa7f399c03bbb8c64dad40fccdf8af620761eb29a085c36f5ab8a07f.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "jvXjL97NmUFDUltt",
+          "rank": 5,
+          "score": 0.03277821886803399,
+          "ordinal": 10,
+          "filename": "DSC_4911.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1e7d257c5182d1c07d4458e769b290f0fd977acf36fe9f9058851dbfe3c69262.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "WjkR2l8veyTeU6E-",
+          "rank": 6,
+          "score": 0.02662830666839958,
+          "ordinal": 75,
+          "filename": "DSC_4900.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--88f41fab973bbfce9824905d8c459b8802c17706420d1c29f7d89e605eeb88f0.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "fe7bw2cne3jf1rRJ",
+          "rank": 7,
+          "score": 0.01550291263940184,
+          "ordinal": 53,
+          "filename": "DSC_1025.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--64c5c555794f419285897e0dd3c6e7c8fc24e215c8d5cbd81969ece163a75850.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Ou-JB3nlQSGxOX2b",
+          "rank": 8,
+          "score": 0.013964419801203456,
+          "ordinal": 33,
+          "filename": "DSC_1899.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4fa2c98c96a3497595541f1c5637e0bc0f873d26ce6301b7b21be6e68a1f5cbc.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "o2dQGL38awBeUvzH",
+          "rank": 9,
+          "score": 0.013251752563598259,
+          "ordinal": 93,
+          "filename": "DSC_1119.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ac69921bf701c25bdd4ea84b7cad1ae78aa6e7a88da5427b92576e00a3309b51.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "QLR_D6lxtZBVh_1K",
+          "rank": 10,
+          "score": 0.012962832010948422,
+          "ordinal": 153,
+          "filename": "DSC_1032.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ff2ecd5557b012225ae6a502978bf4e9ed8bba92f31a59273f332ada89910b89.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h34-beach-umbrellas",
+        "language": "zh-Hant",
+        "category": "no-match",
+        "expected": "no-match",
+        "text": "海灘上撐著一排彩色遮陽傘",
+        "criterion": "沙灘上有多把打開的彩色遮陽傘。"
+      },
+      "elapsedMs": 24.899999976158142,
+      "results": [
+        {
+          "publicId": "QLR_D6lxtZBVh_1K",
+          "rank": 1,
+          "score": 0.06960425860707789,
+          "ordinal": 153,
+          "filename": "DSC_1032.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ff2ecd5557b012225ae6a502978bf4e9ed8bba92f31a59273f332ada89910b89.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "TU9Wo1UpPXNQm6VW",
+          "rank": 2,
+          "score": 0.04820504125938276,
+          "ordinal": 123,
+          "filename": "DSC_2026.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d61d0c9addb0a5105b2cd19cb4aad06d15baaae51ae8ae78673f35cd454fe257.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "26Uhyhpk1VVyIMW6",
+          "rank": 3,
+          "score": 0.04065440079489265,
+          "ordinal": 63,
+          "filename": "DSC_4222.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--70a7313f01951d4b66e2fd9a54c40531c7926d5b2c589565777bbedf80a08f67.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "o2dQGL38awBeUvzH",
+          "rank": 4,
+          "score": 0.04023424383355732,
+          "ordinal": 93,
+          "filename": "DSC_1119.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ac69921bf701c25bdd4ea84b7cad1ae78aa6e7a88da5427b92576e00a3309b51.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Pgh_4Q1AERsL7aWx",
+          "rank": 5,
+          "score": 0.02777626306112969,
+          "ordinal": 24,
+          "filename": "DSC_4886.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--349c375eed009d3858c85dc632f9c5c4a107330d6e037e68ae1fd635f3b4a601.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_WdtiuBvKzG5R5U-",
+          "rank": 6,
+          "score": 0.02618889815205661,
+          "ordinal": 104,
+          "filename": "DSC_0129.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b6f6f4110491012b9eb6c9a3d9a9edb8284766e2ce6ec203480d91b6793d4586.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "-2QmTmOOgW5nwPUD",
+          "rank": 7,
+          "score": 0.024197522435252396,
+          "ordinal": 43,
+          "filename": "DSC_1713.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5f133bf3c2ab0aa15ca44c235efafd8bdb7991ec24c2fc542caffd0f1ca3fb23.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "9Adu1uKRHS1ZGcgN",
+          "rank": 8,
+          "score": 0.02217447895458557,
+          "ordinal": 12,
+          "filename": "DSC_4708.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--243164b4d88f6238026cdd4348c41a47130039e3b2727ca7c018a2bd843895ea.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "PbQ8LEUJjOF0Rjnp",
+          "rank": 9,
+          "score": 0.021841937751485872,
+          "ordinal": 135,
+          "filename": "DSC_0644.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e1da39b258713f3cf8cc7905c43e6c06e2472cd2fcf8a7df2666aa5da68696bb.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "T7yPVbATmnbKPZC5",
+          "rank": 10,
+          "score": 0.019583866468762354,
+          "ordinal": 111,
+          "filename": "DSC_3576.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--c232319ec5cbd80264d2d48b9deda87bfa8d6c8d8f85c6c4e178e75f219bf838.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h35-sports-car-city",
+        "language": "en",
+        "category": "no-match",
+        "expected": "no-match",
+        "text": "A red sports car parked beneath city skyscrapers",
+        "criterion": "A red sports car and tall urban skyscrapers must both be visible."
+      },
+      "elapsedMs": 24.700000047683716,
+      "results": [
+        {
+          "publicId": "wZQtMeyl4_xgs2M-",
+          "rank": 1,
+          "score": 0.03516858265512388,
+          "ordinal": 134,
+          "filename": "DSC_1058.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e15e43ec2b338e93aab77a7ffcca8ba91b9a5a883ea37bd1c2dfb6669245aedc.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "9t00PNyi8vhx6SXC",
+          "rank": 2,
+          "score": 0.03189456029338599,
+          "ordinal": 30,
+          "filename": "DSC_0797.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4cfee69b12e14e6bece16910db6f65fddb2fb6cf393449d4e9e9c7f48c2cc1d3.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "fe7bw2cne3jf1rRJ",
+          "rank": 3,
+          "score": 0.03159391196308186,
+          "ordinal": 53,
+          "filename": "DSC_1025.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--64c5c555794f419285897e0dd3c6e7c8fc24e215c8d5cbd81969ece163a75850.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "EfJzdXAPJgaTA6bI",
+          "rank": 4,
+          "score": 0.029276629645906597,
+          "ordinal": 103,
+          "filename": "DSC_4995.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b695853092babc1133a7a33cc4067da93be13744c695efc3d5e0d557360d803c.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "TUYN2wU68WonUHCQ",
+          "rank": 5,
+          "score": 0.02654395256509272,
+          "ordinal": 131,
+          "filename": "DSC_3460.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e14795bffa7f399c03bbb8c64dad40fccdf8af620761eb29a085c36f5ab8a07f.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "jvXjL97NmUFDUltt",
+          "rank": 6,
+          "score": 0.02462664783381025,
+          "ordinal": 10,
+          "filename": "DSC_4911.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1e7d257c5182d1c07d4458e769b290f0fd977acf36fe9f9058851dbfe3c69262.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "-2QmTmOOgW5nwPUD",
+          "rank": 7,
+          "score": 0.021663530000632016,
+          "ordinal": 43,
+          "filename": "DSC_1713.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5f133bf3c2ab0aa15ca44c235efafd8bdb7991ec24c2fc542caffd0f1ca3fb23.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Pgh_4Q1AERsL7aWx",
+          "rank": 8,
+          "score": 0.020910320298489278,
+          "ordinal": 24,
+          "filename": "DSC_4886.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--349c375eed009d3858c85dc632f9c5c4a107330d6e037e68ae1fd635f3b4a601.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "Ou-JB3nlQSGxOX2b",
+          "rank": 9,
+          "score": 0.01988129007311206,
+          "ordinal": 33,
+          "filename": "DSC_1899.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4fa2c98c96a3497595541f1c5637e0bc0f873d26ce6301b7b21be6e68a1f5cbc.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "QLR_D6lxtZBVh_1K",
+          "rank": 10,
+          "score": 0.016706056773996142,
+          "ordinal": 153,
+          "filename": "DSC_1032.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ff2ecd5557b012225ae6a502978bf4e9ed8bba92f31a59273f332ada89910b89.jpg",
+          "projects": [
+            "云南"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h36-ramen-table",
+        "language": "en",
+        "category": "no-match",
+        "expected": "no-match",
+        "text": "A bowl of ramen with chopsticks on a restaurant table",
+        "criterion": "A prepared bowl of ramen and chopsticks are visible on a dining table."
+      },
+      "elapsedMs": 25.399999976158142,
+      "results": [
+        {
+          "publicId": "AZ63-QgLdJCozMiB",
+          "rank": 1,
+          "score": 0.06370224804979674,
+          "ordinal": 80,
+          "filename": "DSC_0160.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--95cf093e53dd19866de4da0dd6022295f162668b84d35d81475b59fffb7bd95a.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "keHq3vJ30TmUqRgT",
+          "rank": 2,
+          "score": 0.05413746811309697,
+          "ordinal": 96,
+          "filename": "DSC_2248-HDR.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ad56b31228a803656780113c0936f3c750eaa4f3d7aba3783cabc8a204ff7e9b.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "QLR_D6lxtZBVh_1K",
+          "rank": 3,
+          "score": 0.039630308664137304,
+          "ordinal": 153,
+          "filename": "DSC_1032.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ff2ecd5557b012225ae6a502978bf4e9ed8bba92f31a59273f332ada89910b89.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "8H8g_tgUL40YfAjT",
+          "rank": 4,
+          "score": 0.0366139761703618,
+          "ordinal": 28,
+          "filename": "DSC_1742.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--4973ae666c9f9c17df0984c789a5067c7838b6641c7aa8c486d7e5691d51f918.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "I7aSw17H629Bshix",
+          "rank": 5,
+          "score": 0.012967416469446815,
+          "ordinal": 78,
+          "filename": "DSC_3600.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--91939d842635bf99ccb98b0573a8571759c7aea7ac42c29af22ddd0defd57d62.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "fe7bw2cne3jf1rRJ",
+          "rank": 6,
+          "score": 0.011019254658220512,
+          "ordinal": 53,
+          "filename": "DSC_1025.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--64c5c555794f419285897e0dd3c6e7c8fc24e215c8d5cbd81969ece163a75850.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "8i_fe5BY-C5Q2xeP",
+          "rank": 7,
+          "score": 0.009403690917230775,
+          "ordinal": 44,
+          "filename": "DSC_1009.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5fcd5d4718ba04c5e080d7f7a7c31201df8eba35e84d7811a62aa51c51e65121.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "-2QmTmOOgW5nwPUD",
+          "rank": 8,
+          "score": 0.007736482181973672,
+          "ordinal": 43,
+          "filename": "DSC_1713.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5f133bf3c2ab0aa15ca44c235efafd8bdb7991ec24c2fc542caffd0f1ca3fb23.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "PEdhWw93eC0vRHhz",
+          "rank": 9,
+          "score": 0.005542070345396626,
+          "ordinal": 7,
+          "filename": "DSC_3972.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1c594d602061d66278a2308d5044c334daef68f57afa10e22b23717e68e30321.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "hhkWydZmzxN1rGJ_",
+          "rank": 10,
+          "score": 0.0045684491016510405,
+          "ordinal": 101,
+          "filename": "DSC_5187.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b2ea0b1df422a78784388e9ec7bc02cf1981359cbad7177debfbf1704b1f4068.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h37-neon-skyline",
+        "language": "mixed",
+        "category": "no-match",
+        "expected": "no-match",
+        "text": "夜晚 city skyline with neon skyscrapers",
+        "criterion": "A nighttime skyline dominated by multiple illuminated modern skyscrapers."
+      },
+      "elapsedMs": 25.199999928474426,
+      "results": [
+        {
+          "publicId": "fe7bw2cne3jf1rRJ",
+          "rank": 1,
+          "score": 0.07233831347047048,
+          "ordinal": 53,
+          "filename": "DSC_1025.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--64c5c555794f419285897e0dd3c6e7c8fc24e215c8d5cbd81969ece163a75850.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "QLR_D6lxtZBVh_1K",
+          "rank": 2,
+          "score": 0.07130020669868439,
+          "ordinal": 153,
+          "filename": "DSC_1032.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ff2ecd5557b012225ae6a502978bf4e9ed8bba92f31a59273f332ada89910b89.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "_MVsV_8d1Rv8VzgC",
+          "rank": 3,
+          "score": 0.05569774908413459,
+          "ordinal": 3,
+          "filename": "DSC_1818.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--0f1a6513311b854bb96bab408bb9af242ea2fdbe58bdf06623e90bbbb44a3c5e.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "srhaG6dlM3l28QhE",
+          "rank": 4,
+          "score": 0.053840641644797516,
+          "ordinal": 127,
+          "filename": "DSC_1325.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d88ea98dcc3f57fadf152be98bc0f42d76c70b0cf8c6cf6a665c74fe6cb90133.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "-2QmTmOOgW5nwPUD",
+          "rank": 5,
+          "score": 0.049123749146297975,
+          "ordinal": 43,
+          "filename": "DSC_1713.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5f133bf3c2ab0aa15ca44c235efafd8bdb7991ec24c2fc542caffd0f1ca3fb23.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "_nWx1cwkqju24ERM",
+          "rank": 6,
+          "score": 0.02982523090035288,
+          "ordinal": 59,
+          "filename": "DSC_4644.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6e20fd16a5868584e3392fd238d315aacc34c9325056cfc84d2f75c8c36dd17b.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "TUYN2wU68WonUHCQ",
+          "rank": 7,
+          "score": 0.027190632365035036,
+          "ordinal": 131,
+          "filename": "DSC_3460.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e14795bffa7f399c03bbb8c64dad40fccdf8af620761eb29a085c36f5ab8a07f.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "8i_fe5BY-C5Q2xeP",
+          "rank": 8,
+          "score": 0.02628794034398898,
+          "ordinal": 44,
+          "filename": "DSC_1009.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--5fcd5d4718ba04c5e080d7f7a7c31201df8eba35e84d7811a62aa51c51e65121.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "QwSSYgpJAWK_wV8G",
+          "rank": 9,
+          "score": 0.02578429449431191,
+          "ordinal": 0,
+          "filename": "result_final_01.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--0069474462a7c3b46dd56bdb883d4ffb550ba4c3f84b30b570d62e0d1ef5f390.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "EfJzdXAPJgaTA6bI",
+          "rank": 10,
+          "score": 0.02510483454003937,
+          "ordinal": 103,
+          "filename": "DSC_4995.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--b695853092babc1133a7a33cc4067da93be13744c695efc3d5e0d557360d803c.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "h38-astronaut-orbit",
+        "language": "en",
+        "category": "no-match",
+        "expected": "no-match",
+        "text": "An astronaut floating outside a space station above Earth",
+        "criterion": "An astronaut, exterior spacecraft structure, and Earth from orbit are all visible."
+      },
+      "elapsedMs": 24.699999928474426,
+      "results": [
+        {
+          "publicId": "QwSSYgpJAWK_wV8G",
+          "rank": 1,
+          "score": 0.06622997750970906,
+          "ordinal": 0,
+          "filename": "result_final_01.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--0069474462a7c3b46dd56bdb883d4ffb550ba4c3f84b30b570d62e0d1ef5f390.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "jvXjL97NmUFDUltt",
+          "rank": 2,
+          "score": 0.028171623028643514,
+          "ordinal": 10,
+          "filename": "DSC_4911.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--1e7d257c5182d1c07d4458e769b290f0fd977acf36fe9f9058851dbfe3c69262.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "QLR_D6lxtZBVh_1K",
+          "rank": 3,
+          "score": 0.01780165927042953,
+          "ordinal": 153,
+          "filename": "DSC_1032.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--ff2ecd5557b012225ae6a502978bf4e9ed8bba92f31a59273f332ada89910b89.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "Pgh_4Q1AERsL7aWx",
+          "rank": 4,
+          "score": 0.014374347335756252,
+          "ordinal": 24,
+          "filename": "DSC_4886.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--349c375eed009d3858c85dc632f9c5c4a107330d6e037e68ae1fd635f3b4a601.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "97yfiRO7tFWq7KSD",
+          "rank": 5,
+          "score": 0.01011475533918879,
+          "ordinal": 6,
+          "filename": "DSC_4878.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--18c56171b54805542705d394930ce5a8446af0a3d8aa5cb7f62d4abb516f2343.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "umb89AcmYEXmgPJZ",
+          "rank": 6,
+          "score": 0.008283029469870456,
+          "ordinal": 17,
+          "filename": "DSC_4875.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--28b99074a7081f471565f895249e46629b11554032081f098d7aebaf327ff431.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "TU9Wo1UpPXNQm6VW",
+          "rank": 7,
+          "score": 0.007461108470395498,
+          "ordinal": 123,
+          "filename": "DSC_2026.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--d61d0c9addb0a5105b2cd19cb4aad06d15baaae51ae8ae78673f35cd454fe257.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "bhPZEgsQ0JomLx_b",
+          "rank": 8,
+          "score": 0.006845828371535204,
+          "ordinal": 61,
+          "filename": "DSC_0394.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6f5a73b58136fe7aa518e2a63f65328140871257bf25dbd796f45eac61c01b91.jpg",
+          "projects": [
+            "云南"
+          ]
+        },
+        {
+          "publicId": "TUYN2wU68WonUHCQ",
+          "rank": 9,
+          "score": 0.0006526999113727792,
+          "ordinal": 131,
+          "filename": "DSC_3460.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--e14795bffa7f399c03bbb8c64dad40fccdf8af620761eb29a085c36f5ab8a07f.jpg",
+          "projects": [
+            "伊春"
+          ]
+        },
+        {
+          "publicId": "_nWx1cwkqju24ERM",
+          "rank": 10,
+          "score": -0.0015536012844671282,
+          "ordinal": 59,
+          "filename": "DSC_4644.jpg",
+          "thumbnail": "public/thumbnails/jason-photos--29afc5333221b5b0600b9de033f90e26bc458071358d79539c806cf7b53581a7--6e20fd16a5868584e3392fd238d315aacc34c9325056cfc84d2f75c8c36dd17b.jpg",
+          "projects": [
+            "伊春"
+          ]
+        }
+      ]
+    }
+  ]
+}

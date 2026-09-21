@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "querySet": "semantic-search-phase3c-holdout-v1",
+  "generatedAt": "2026-09-21T23:08:13.264Z",
+  "evidenceClass": "AI-assisted labels; not independent human review",
+  "positive": {
+    "queryCount": 32,
+    "hit1": 0.8125,
+    "hit5": 1,
+    "hit10": 1,
+    "reciprocalRank": 0.888021,
+    "precision5": 0.2375,
+    "precision10": 0.125,
+    "recall5": 0.963542,
+    "recall10": 0.989583,
+    "ndcg5": 0.889631,
+    "ndcg10": 0.900287
+  },
+  "byLanguage": {
+    "en": {
+      "queryCount": 12,
+      "hit1": 0.833333,
+      "hit5": 1,
+      "hit10": 1,
+      "reciprocalRank": 0.881944,
+      "precision5": 0.266667,
+      "precision10": 0.15,
+      "recall5": 0.902778,
+      "recall10": 0.972222,
+      "ndcg5": 0.849849,
+      "ndcg10": 0.878265
+    },
+    "mixed": {
+      "queryCount": 6,
+      "hit1": 1,
+      "hit5": 1,
+      "hit10": 1,
+      "reciprocalRank": 1,
+      "precision5": 0.2,
+      "precision10": 0.1,
+      "recall5": 1,
+      "recall10": 1,
+      "ndcg5": 1,
+      "ndcg10": 1
+    },
+    "zh-Hans": {
+      "queryCount": 8,
+      "hit1": 0.625,
+      "hit5": 1,
+      "hit10": 1,
+      "reciprocalRank": 0.791667,
+      "precision5": 0.225,
+      "precision10": 0.1125,
+      "recall5": 1,
+      "recall10": 1,
+      "ndcg5": 0.845232,
+      "ndcg10": 0.845232
+    },
+    "zh-Hant": {
+      "queryCount": 6,
+      "hit1": 0.833333,
+      "hit5": 1,
+      "hit10": 1,
+      "reciprocalRank": 0.916667,
+      "precision5": 0.233333,
+      "precision10": 0.116667,
+      "recall5": 1,
+      "recall10": 1,
+      "ndcg5": 0.918024,
+      "ndcg10": 0.918024
+    }
+  },
+  "byCategory": {
+    "action": {
+      "queryCount": 4,
+      "hit1": 0.75,
+      "hit5": 1,
+      "hit10": 1,
+      "reciprocalRank": 0.875,
+      "precision5": 0.3,
+      "precision10": 0.15,
+      "recall5": 1,
+      "recall10": 1,
+      "ndcg5": 0.907732,
+      "ndcg10": 0.907732
+    },
+    "difficult-paraphrase": {
+      "queryCount": 4,
+      "hit1": 0.75,
+      "hit5": 1,
+      "hit10": 1,
+      "reciprocalRank": 0.8125,
+      "precision5": 0.2,
+      "precision10": 0.1,
+      "recall5": 1,
+      "recall10": 1,
+      "ndcg5": 0.857669,
+      "ndcg10": 0.857669
+    },
+    "near-match": {
+      "queryCount": 3,
+      "hit1": 0.666667,
+      "hit5": 1,
+      "hit10": 1,
+      "reciprocalRank": 0.833333,
+      "precision5": 0.2,
+      "precision10": 0.1,
+      "recall5": 1,
+      "recall10": 1,
+      "ndcg5": 0.876977,
+      "ndcg10": 0.876977
+    },
+    "no-match": {
+      "queryCount": 0
+    },
+    "object": {
+      "queryCount": 7,
+      "hit1": 1,
+      "hit5": 1,
+      "hit10": 1,
+      "reciprocalRank": 1,
+      "precision5": 0.2,
+      "precision10": 0.1,
+      "recall5": 1,
+      "recall10": 1,
+      "ndcg5": 1,
+      "ndcg10": 1
+    },
+    "relation": {
+      "queryCount": 7,
+      "hit1": 0.714286,
+      "hit5": 1,
+      "hit10": 1,
+      "reciprocalRank": 0.809524,
+      "precision5": 0.285714,
+      "precision10": 0.157143,
+      "recall5": 0.904762,
+      "recall10": 0.952381,
+      "ndcg5": 0.790225,
+      "ndcg10": 0.812572
+    },
+    "scene": {
+      "queryCount": 7,
+      "hit1": 0.857143,
+      "hit5": 1,
+      "hit10": 1,
+      "reciprocalRank": 0.928571,
+      "precision5": 0.228571,
+      "precision10": 0.128571,
+      "recall5": 0.928571,
+      "recall10": 1,
+      "ndcg5": 0.892011,
+      "ndcg10": 0.918379
+    }
+  },
+  "latencyMs": {
+    "count": 38,
+    "mean": 26.618,
+    "min": 24,
+    "max": 88.9
+  },
+  "noMatchDiagnostics": {
+    "queryCount": 6,
+    "rows": [
+      {
+        "id": "h33-subway-platform",
+        "top1Cosine": 0.055728,
+        "top1Top2Margin": 0.020429,
+        "top1Top5Margin": 0.02295
+      },
+      {
+        "id": "h34-beach-umbrellas",
+        "top1Cosine": 0.069604,
+        "top1Top2Margin": 0.021399,
+        "top1Top5Margin": 0.041828
+      },
+      {
+        "id": "h35-sports-car-city",
+        "top1Cosine": 0.035169,
+        "top1Top2Margin": 0.003274,
+        "top1Top5Margin": 0.008625
+      },
+      {
+        "id": "h36-ramen-table",
+        "top1Cosine": 0.063702,
+        "top1Top2Margin": 0.009565,
+        "top1Top5Margin": 0.050735
+      },
+      {
+        "id": "h37-neon-skyline",
+        "top1Cosine": 0.072338,
+        "top1Top2Margin": 0.001038,
+        "top1Top5Margin": 0.023215
+      },
+      {
+        "id": "h38-astronaut-orbit",
+        "top1Cosine": 0.06623,
+        "top1Top2Margin": 0.038058,
+        "top1Top5Margin": 0.056115
+      }
+    ],
+    "positiveTop1Range": [
+      0.108516,
+      0.198297
+    ],
+    "noMatchTop1Range": [
+      0.035169,
+      0.072338
+    ],
+    "cosineMeaning": "opaque ranking signal, not a probability"
+  },
+  "noResultPolicy": {
+    "productionThresholdEnabled": false,
+    "status": "manual-calibration-gate-open",
+    "rationale": "Six AI-labelled no-match queries cannot justify a production abstention threshold. False matches are safer than an unvalidated threshold only when the UI describes results as nearest available candidates rather than probabilities or guaranteed matches.",
+    "proposedProtocol": [
+      "Independently label corpus answerability before revealing scores or candidates.",
+      "Collect at least 100 queries, including at least 30 no-match queries distributed across all supported language buckets and difficult paraphrases.",
+      "Split labels into calibration and untouched validation partitions; lock score/margin rules on calibration only.",
+      "Treat top-1 cosine and rank margins as opaque signals, sweep deterministic rules, and report false-accept/false-reject rates with Wilson confidence intervals.",
+      "Ship abstention only if the locked validation gate is met; otherwise continue showing clearly labelled nearest available results."
+    ]
+  }
+}

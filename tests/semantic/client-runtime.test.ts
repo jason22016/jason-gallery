@@ -16,6 +16,8 @@ import {
 import { sha256 as browserSha256 } from '../../src/semantic-search/hash';
 import { loadSemanticIndex } from '../../src/semantic-search/index-loader';
 import { SemanticSearchError } from '../../src/semantic-search/errors';
+import { SemanticSearchEngine } from '../../src/semantic-search/engine';
+import { downloadReleaseAssets } from '../../src/semantic-search/release-loader';
 import { verifyClientSemanticRelease, verifyClientSemanticRuntime } from '../../scripts/semantic/client-release';
 import { semanticModelConfig, semanticModelContractSha256 } from '../../scripts/semantic/model-config';
 
@@ -103,6 +105,7 @@ test('Cache Storage uses a completion marker, rejects corrupt/incomplete entries
   const { manifest, assets } = await fakeRelease();
   assert.equal(await cache.read(manifest, releaseURL), undefined);
   assert.equal(await cache.write(manifest, releaseURL, assets), true);
+  assert.equal(await cache.verify(manifest, releaseURL), true);
   assert.deepEqual([...(await cache.read(manifest, releaseURL))!.assets.keys()].sort(), ['model-config', 'onnx', 'tokenizer', 'tokenizer-config']);
 
   const currentName = (await storage.keys()).find(name => name.includes(manifest.bundleSha256))!;
@@ -134,6 +137,101 @@ test('cache and quota failures fall back without treating storage as durable', a
   assert.equal(await cache.read(manifest, releaseURL), undefined);
   assert.equal(await cache.write(manifest, releaseURL, assets), false);
   await cache.clearObsolete(manifest);
+});
+
+test('a quota failure during cache commit deletes the incomplete generation and eviction is a clean miss', async () => {
+  const backing = new MemoryCacheStorage();
+  let puts = 0;
+  const quotaStorage: CacheStorageLike = {
+    async open(name) {
+      const cache = await backing.open(name);
+      return {
+        match: cache.match.bind(cache), delete: cache.delete.bind(cache),
+        async put(request, response) {
+          if (++puts === 2) throw new DOMException('simulated quota exhaustion', 'QuotaExceededError');
+          return cache.put(request, response);
+        },
+      } as Cache;
+    },
+    delete: name => backing.delete(name),
+    keys: () => backing.keys(),
+  };
+  const { manifest, assets } = await fakeRelease();
+  const releaseURL = new URL('https://gallery.test/semantic-models/fixture-r1/');
+  assert.equal(await new SemanticAssetCache(quotaStorage).write(manifest, releaseURL, assets), false);
+  assert.deepEqual(await backing.keys(), [], 'a partial cache transaction must not survive a failed put');
+
+  const durable = new SemanticAssetCache(backing);
+  assert.equal(await durable.write(manifest, releaseURL, assets), true);
+  const [name] = await backing.keys();
+  assert(name);
+  await backing.delete(name);
+  assert.equal(await durable.read(manifest, releaseURL), undefined, 'browser eviction behaves as a normal cache miss');
+});
+
+test('post-commit readback catches silent large-cache eviction before persistence is reported', async () => {
+  const backing = new MemoryCacheStorage();
+  const { manifest, assets } = await fakeRelease();
+  const releaseURL = new URL('https://gallery.test/semantic-models/fixture-r1/');
+  const silentlyEvicting: CacheStorageLike = {
+    async open(name) {
+      const cache = await backing.open(name);
+      return {
+        match: cache.match.bind(cache), delete: cache.delete.bind(cache),
+        async put(request, response) {
+          await cache.put(request, response);
+          if (String(request).includes('/.semantic-cache/complete/')) await cache.delete(new URL('tokenizer.bin', releaseURL).href);
+        },
+      } as Cache;
+    },
+    delete: name => backing.delete(name),
+    keys: () => backing.keys(),
+  };
+  const cache = new SemanticAssetCache(silentlyEvicting);
+  assert.equal(await cache.write(manifest, releaseURL, assets), true, 'the simulated engine reports successful Cache.put calls');
+  assert.equal(await cache.verify(manifest, releaseURL), false, 'readback detects the silently evicted file');
+  assert.deepEqual(await backing.keys(), [], 'invalid committed generations are removed as a unit');
+});
+
+test('release downloads reject incomplete bytes and SHA mismatches, abort cleanly, and retry from scratch', async () => {
+  const { manifest } = await fakeRelease();
+  const releaseURL = new URL('https://gallery.test/semantic-models/fixture-r1/');
+  const bytesByPath = new Map(manifest.files.flatMap(file => file.parts.map(part => [new URL(part.path, releaseURL).href, new TextEncoder().encode(`${file.role}-${manifest.files.indexOf(file)}`)] as const)));
+  const fetcher = (fault: 'none' | 'short' | 'sha') => (async (input: RequestInfo | URL) => {
+    const source = bytesByPath.get(String(input));
+    if (!source) return new Response('missing', { status: 404 });
+    const body = Uint8Array.from(source);
+    if (fault === 'short') return new Response(body.slice(0, Math.max(0, body.length - 1)));
+    if (fault === 'sha') body[0] ^= 0xff;
+    return new Response(body);
+  }) as typeof fetch;
+  await assert.rejects(downloadReleaseAssets(fetcher('short'), releaseURL, manifest, new AbortController().signal, () => {}), (error: unknown) => error instanceof SemanticSearchError && error.code === 'MODEL_DOWNLOAD');
+  await assert.rejects(downloadReleaseAssets(fetcher('sha'), releaseURL, manifest, new AbortController().signal, () => {}), (error: unknown) => error instanceof SemanticSearchError && error.code === 'MODEL_INTEGRITY');
+
+  const controller = new AbortController();
+  const blocked = ((_: RequestInfo | URL, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+    init?.signal?.addEventListener('abort', () => reject(new DOMException('cancelled', 'AbortError')), { once: true });
+  })) as typeof fetch;
+  const pending = downloadReleaseAssets(blocked, releaseURL, manifest, controller.signal, () => {});
+  controller.abort();
+  await assert.rejects(pending, (error: unknown) => error instanceof SemanticSearchError && error.code === 'MODEL_DOWNLOAD');
+  assert.equal((await downloadReleaseAssets(fetcher('none'), releaseURL, manifest, new AbortController().signal, () => {})).size, manifest.files.length);
+});
+
+test('interrupted initialization returns to disabled without leaking subscriptions or publishing an error state', async () => {
+  const fetcher = ((_: RequestInfo | URL, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+    init?.signal?.addEventListener('abort', () => reject(new DOMException('navigation', 'AbortError')), { once: true });
+  })) as typeof fetch;
+  const engine = new SemanticSearchEngine({ baseURL: 'https://gallery.test/', fetch: fetcher, cacheStorage: null });
+  const releases = Array.from({ length: 100 }, () => engine.subscribe(() => {}));
+  assert.equal(engine.getDiagnostics().stateListeners, 100);
+  releases.forEach(release => release());
+  assert.equal(engine.getDiagnostics().stateListeners, 0);
+  const pending = engine.enable();
+  engine.dispose();
+  await assert.rejects(pending, (error: unknown) => error instanceof SemanticSearchError && error.code === 'ABORTED');
+  assert.equal(engine.getState().status, 'disabled');
+  assert.equal(engine.getDiagnostics().workerStarts, 0);
 });
 
 test('query normalization and cosine Top-K are deterministic and reject malformed embeddings', () => {

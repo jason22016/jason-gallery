@@ -13,6 +13,7 @@ interface SemanticRuntimeDiagnostics {
   readonly queries: number;
   readonly modelDownloads: number;
   readonly persistentCacheHits: number;
+  readonly stateListeners: number;
 }
 
 interface SharedSemanticEngine {

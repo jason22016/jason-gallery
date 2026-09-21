@@ -38,6 +38,8 @@ export interface SemanticRuntimeDiagnostics {
   queries: number;
   modelDownloads: number;
   persistentCacheHits: number;
+  /** Active UI/runtime state subscriptions in this document. */
+  stateListeners: number;
 }
 
 interface ActiveQuery {
@@ -72,7 +74,7 @@ export class SemanticSearchEngine {
   private readonly options: SemanticSearchEngineOptions;
   private readonly fetcher: typeof fetch;
   private readonly listeners = new Set<SemanticStateListener>();
-  private readonly diagnostics: SemanticRuntimeDiagnostics = { workerStarts: 0, sessionInitializations: 0, queries: 0, modelDownloads: 0, persistentCacheHits: 0 };
+  private readonly diagnostics: Omit<SemanticRuntimeDiagnostics, 'stateListeners'> = { workerStarts: 0, sessionInitializations: 0, queries: 0, modelDownloads: 0, persistentCacheHits: 0 };
   private state = frozenState(initialState());
   private enablePromise?: Promise<Readonly<SemanticRuntimeState>>;
   private operation = 0;
@@ -101,7 +103,7 @@ export class SemanticSearchEngine {
   }
 
   getDiagnostics(): Readonly<SemanticRuntimeDiagnostics> {
-    return Object.freeze({ ...this.diagnostics });
+    return Object.freeze({ ...this.diagnostics, stateListeners: this.listeners.size });
   }
 
   private publish(patch: Partial<SemanticRuntimeState> & Pick<SemanticRuntimeState, 'status'>): void {
@@ -180,7 +182,8 @@ export class SemanticSearchEngine {
         });
         this.assertCurrent(operation);
         this.publish({ status: 'verifying', progress: { downloadedBytes: manifest.payloadBytes, totalBytes: manifest.payloadBytes, transportBytes: manifest.transportBytes } });
-        cacheMode = await cache.write(manifest, releaseURL, assets) ? 'persistent' : 'memory';
+        const committed = await cache.write(manifest, releaseURL, assets);
+        cacheMode = committed && await cache.verify(manifest, releaseURL) ? 'persistent' : 'memory';
       }
       await cache.clearObsolete(manifest);
       this.assertCurrent(operation);

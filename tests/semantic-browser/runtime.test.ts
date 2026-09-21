@@ -57,8 +57,35 @@ test('cold WebGPU download, progress, Top-K, cancellation, worker reuse and pers
   assert.equal(rapid.stale, 'AbortError');
   assert.equal(rapid.latest.results[0]?.publicId, 'CP1txp1O9UsIKCzj');
   assert.deepEqual(await page.evaluate(() => window.semanticTest.diagnostics()), {
-    workerStarts: 1, sessionInitializations: 1, queries: 5, modelDownloads: 1, persistentCacheHits: 0,
+    workerStarts: 1, sessionInitializations: 1, queries: 5, modelDownloads: 1, persistentCacheHits: 0, stateListeners: 1,
   });
+  assert.equal((await page.evaluate(() => window.semanticTest.cycleSubscriptions(100))).stateListeners, 1, 'temporary listeners must fully detach');
+
+  await page.requestGC();
+  const heapBefore = await page.evaluate(() => (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ?? null);
+  const sustained = await page.evaluate(async () => {
+    const timings: number[] = [];
+    const queries = ['湖边孤零零的一棵树', 'A ferry tied beside a concrete pier', '古城 gate 前鋪著 colorful flowers'];
+    for (let index = 0; index < 30; index++) timings.push((await window.semanticTest.search(queries[index % queries.length]!, 5)).elapsedMs);
+    const aborts: string[] = [];
+    for (let index = 0; index < 20; index++) aborts.push(await window.semanticTest.cancel(`cancel cycle ${index}`));
+    return { timings, aborts, diagnostics: window.semanticTest.diagnostics() };
+  });
+  await page.requestGC();
+  const heapAfter = await page.evaluate(() => (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ?? null);
+  assert(sustained.timings.every(value => Number.isFinite(value) && value > 0));
+  assert(sustained.aborts.every(value => value === 'AbortError'));
+  assert.equal(sustained.diagnostics.workerStarts, 1);
+  assert.equal(sustained.diagnostics.sessionInitializations, 1);
+  assert.equal(sustained.diagnostics.stateListeners, 1);
+  if (heapBefore !== null && heapAfter !== null) assert(heapAfter <= heapBefore + 16 * 1024 * 1024, `page heap grew unexpectedly: ${heapBefore} -> ${heapAfter}`);
+
+  const background = await context.newPage();
+  await background.goto('about:blank'); await background.bringToFront();
+  const recoveredInBackground = await page.evaluate(() => window.semanticTest.search('A white bird skimming the water', 3));
+  await page.bringToFront(); await background.close();
+  assert.equal(recoveredInBackground.results.length, 3);
+  assert.equal((await page.evaluate(() => window.semanticTest.diagnostics())).workerStarts, 1);
 
   await page.evaluate(() => window.semanticTest.addOldCache());
   await page.reload();
@@ -81,7 +108,7 @@ test('cold WebGPU download, progress, Top-K, cancellation, worker reuse and pers
   assert(server.requests.some(pathname => pathname.endsWith('/tokenizer.json.br')));
   assert(server.requests.some(pathname => /\/model\.onnx\.part-\d+\.br$/.test(pathname)), 'corruption invalidates and replaces the indivisible release');
 
-  console.log(JSON.stringify({ semanticPerformance: { coldReadyMs: Math.round(coldMs), cachedReadyMs: Math.round(cachedMs), webgpuQueryMs: [golden.elapsedMs, lake.elapsedMs] } }));
+  console.log(JSON.stringify({ semanticPerformance: { environment: 'macOS desktop Google Chrome headless; not mobile evidence', coldReadyMs: Math.round(coldMs), cachedReadyMs: Math.round(cachedMs), webgpuQueryMs: [golden.elapsedMs, lake.elapsedMs], sustainedQueryMs: sustained.timings, pageHeapBytes: { before: heapBefore, after: heapAfter } } }));
 });
 
 test('compatible-index and asset SHA failures are fail-closed and retry recovers', { timeout: 300_000 }, async t => {
@@ -94,6 +121,27 @@ test('compatible-index and asset SHA failures are fail-closed and retry recovers
   assert.equal(mismatchError?.state.status, 'update-required');
   assert.equal(server.requests.some(pathname => /\/model\.onnx\.part-\d+\.br$/.test(pathname)), false, 'compatibility is checked before model download');
   await mismatch.context.close();
+
+  for (const fault of ['vectors-sha', 'vectors-truncated'] as const) {
+    const vectors = await harness('?backend=auto');
+    t.after(() => vectors.context.close());
+    await vectors.page.evaluate(() => window.semanticTest.clearCaches());
+    server.setFault(fault); server.resetRequests();
+    const vectorError = await vectors.page.evaluate(() => window.semanticTest.enable().then(() => null, error => ({ code: error.code, state: window.semanticTest.state() })));
+    assert.equal(vectorError?.state.status, 'error');
+    assert(['INDEX_INTEGRITY', 'INDEX_UNAVAILABLE'].includes(vectorError?.code ?? ''), String(vectorError?.code));
+    assert.equal(server.requests.some(pathname => /\/model\.onnx\.part-\d+\.br$/.test(pathname)), false, `${fault} must stop before model download`);
+    await vectors.context.close();
+  }
+
+  const truncated = await harness('?backend=auto');
+  t.after(() => truncated.context.close());
+  await truncated.page.evaluate(() => window.semanticTest.clearCaches());
+  server.setFault('asset-truncated'); server.resetRequests();
+  const truncatedError = await truncated.page.evaluate(() => window.semanticTest.enable().then(() => null, error => ({ code: error.code, state: window.semanticTest.state() })));
+  assert.equal(truncatedError?.code, 'MODEL_DOWNLOAD');
+  assert.equal(truncatedError?.state.status, 'error');
+  await truncated.context.close();
 
   const integrity = await harness('?backend=auto');
   t.after(() => integrity.context.close());
@@ -137,4 +185,32 @@ test('auto backend falls back to WASM when WebGPU is unavailable', { timeout: 30
   assert.equal(ready.backend, 'wasm');
   assert.equal(ready.fallbackReason, 'WebGPU adapter unavailable');
   assert.equal((await page.evaluate(() => window.semanticTest.search('Trees reflected in a blue lake', 1))).results[0]?.publicId, 'CP1txp1O9UsIKCzj');
+});
+
+test('reload during an interrupted download leaves no complete marker and a clean retry succeeds', { timeout: 300_000 }, async t => {
+  server.setFault('slow-asset'); server.resetRequests();
+  const { context, page } = await harness('?backend=wasm');
+  t.after(() => context.close());
+  await page.evaluate(() => window.semanticTest.clearCaches());
+  await page.evaluate(() => { void window.semanticTest.enable().catch(() => {}); });
+  await page.waitForFunction(() => window.semanticTest.state().status === 'downloading');
+  await page.waitForFunction(() => window.semanticTest.state().progress.downloadedBytes > 0);
+  await new Promise<void>((resolve, reject) => {
+    const started = Date.now();
+    const poll = () => {
+      if (server.requests.some(pathname => pathname.endsWith('/model.onnx.part-000.br'))) resolve();
+      else if (Date.now() - started > 30_000) reject(new Error('slow model request did not start'));
+      else setTimeout(poll, 20);
+    };
+    poll();
+  });
+  server.setFault('none');
+  await page.reload(); await page.waitForFunction(() => Boolean(window.semanticTest));
+  assert.equal((await page.evaluate(() => window.semanticTest.cacheNames())).some(name => name.includes('siglip2-base-v64k-uint4-b32-r1')), false, 'interrupted generations must not have a completion marker/cache');
+  server.resetRequests();
+  const ready = await page.evaluate(() => window.semanticTest.enable());
+  assert.equal(ready.status, 'ready');
+  assert.equal(ready.cache, 'persistent');
+  assert(server.requests.some(pathname => pathname.endsWith('/model.onnx.part-000.br')));
+  assert.equal((await page.evaluate(() => window.semanticTest.search('A ferry tied beside a concrete pier', 1))).results.length, 1);
 });

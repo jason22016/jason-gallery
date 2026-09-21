@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "querySet": "semantic-search-phase3c-holdout-v1",
+  "status": "frozen-before-independent-human-review",
+  "scope": "Practical small-sample release screen for independently reviewed positive-query rankings; not a statistical non-inferiority claim.",
+  "completeness": {
+    "answerabilityDecisionForEveryQuery": true,
+    "top10JudgementForEveryQuery": true,
+    "allowUnsure": false,
+    "requireIndependentReviewerDeclaration": true
+  },
+  "positiveRanking": {
+    "minimumAnswerableQueries": 24,
+    "hitAt1Minimum": 0.6,
+    "hitAt5Minimum": 0.9,
+    "hitAt10Minimum": 0.95,
+    "meanReciprocalRankMinimum": 0.72,
+    "perLanguageHitAt5Minimum": 0.8,
+    "perLanguageMinimumAnswerableQueries": 4
+  },
+  "noResult": {
+    "productionThresholdEnabled": false,
+    "reason": "No abstention threshold may be released from this small negative sample. A separately calibrated and untouched validation set is required."
+  }
+}

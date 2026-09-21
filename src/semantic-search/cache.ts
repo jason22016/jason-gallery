@@ -108,6 +108,31 @@ export class SemanticAssetCache {
     }
   }
 
+  /**
+   * Re-read a just-committed generation without retaining a second full model in memory.
+   * Some engines resolve Cache.put() and then silently evict earlier large entries in the same
+   * transaction. Persistence is only truthful after every file and the marker survive a readback.
+   */
+  async verify(manifest: ClientSemanticReleaseManifest, releaseURL: URL): Promise<boolean> {
+    if (!this.storage) return false;
+    const name = cacheName(manifest);
+    try {
+      const cache = await this.storage.open(name);
+      const markerResponse = await cache.match(markerURL(releaseURL, manifest));
+      if (!markerResponse || JSON.stringify(await markerResponse.json()) !== JSON.stringify(expectedMarker(manifest))) throw new Error('Incomplete semantic cache marker');
+      for (const descriptor of manifest.files) {
+        const response = await cache.match(assetURL(releaseURL, descriptor.path));
+        if (!response) throw new Error(`Incomplete cached semantic release: ${descriptor.path}`);
+        const bytes = await response.arrayBuffer();
+        if (bytes.byteLength !== descriptor.bytes || await sha256(bytes) !== descriptor.sha256) throw new Error(`Corrupt cached semantic release: ${descriptor.path}`);
+      }
+      return true;
+    } catch {
+      await this.storage.delete(name).catch(() => false);
+      return false;
+    }
+  }
+
   async clearObsolete(manifest: ClientSemanticReleaseManifest): Promise<void> {
     if (!this.storage) return;
     const current = cacheName(manifest);

@@ -28,16 +28,19 @@ function SetupProgress({ state, moduleLoading, onCancel }: {
   const progress = state?.progress;
   const hasTotal = !!progress?.totalBytes;
   const status = moduleLoading ? 'loading-module' : state?.status ?? 'loading-module';
+  const downloading = state?.status === 'downloading';
   return <section className="ai-enable-panel ai-progress-panel" aria-labelledby="ai-progress-title" aria-busy="true">
     <span className="ai-panel-icon ai-progress-icon"><Icon name="loading" /></span>
     <div className="ai-panel-copy">
       <h3 id="ai-progress-title">{setupLabel(status)}</h3>
       <p className="ai-progress-detail" role="status" aria-live="polite">
-        {hasTotal ? `${formatBytes(progress!.downloadedBytes)} / ${formatBytes(progress!.totalBytes)}` : '读取已安装状态'}
+        {hasTotal ? `${formatBytes(progress!.downloadedBytes)} / ${formatBytes(progress!.totalBytes)}${downloading ? '（解压后）' : ''}` : '读取已安装状态'}
         {progress?.file && <small>{progress.file}</small>}
       </p>
       <progress aria-label="AI Search 模型进度" {...(hasTotal ? { value: progress!.downloadedBytes, max: progress!.totalBytes } : {})} />
-      <p className="ai-progress-note">正在本机验证数据；下载中断后可安全重试。</p>
+      <p className="ai-progress-note">{downloading && progress?.transportBytes
+        ? `预计网络传输约 ${formatBytes(progress.transportBytes)}；进度按浏览器解压后的 ${formatBytes(progress.totalBytes)} 验证数据计算。`
+        : '正在本机验证数据；下载中断后会丢弃未完成缓存，重试将安全重新开始。'}</p>
     </div>
     <button type="button" className="ai-secondary-action" onClick={onCancel}>取消</button>
   </section>;
@@ -48,12 +51,13 @@ function EnablePanel({ onEnable }: { onEnable: () => void }) {
     <span className="ai-panel-icon"><Icon name="sparkles-2" /></span>
     <div className="ai-panel-copy">
       <h3 id="ai-enable-title">Enable AI Search</h3>
-      <p>用自然语言描述想找的画面。检索完全在此设备上运行，搜索词不会上传。</p>
+      <p>用自然语言描述想找的画面。查询文本、向量和排名计算均留在此设备上；启用时只下载模型与公开图库索引。</p>
       <ul className="ai-privacy-points" aria-label="AI Search 隐私与下载说明">
         <li><Icon name="check" />On-device visual search</li>
         <li><Icon name="check" />Queries stay private</li>
-        <li><Icon name="download-2" />约 101 MB 一次性下载</li>
+        <li><Icon name="download-2" />首次约 101 MB 下载 · 解压后约 111 MB</li>
       </ul>
+      <small>浏览器缓存可用时后续复用；缓存被清理后需要重新下载。</small>
     </div>
     <button type="button" className="primary-button ai-enable-action" onClick={onEnable}>Download &amp; Enable</button>
   </section>;
@@ -110,9 +114,9 @@ export function AISearchPanel({ state, moduleLoading, moduleError, query, sugges
     <section className="ai-results" aria-label="AI Search 结果" aria-busy={searching || undefined}>
       {searching && <p className="ai-searching" role="status" aria-live="polite"><Icon name="loading" />正在此设备上搜索“{query.trim()}”…</p>}
       {searchError && <div className="ai-query-error" role="alert"><span>{searchError}</span><button type="button" onClick={onRetryQuery}>重试</button></div>}
-      {!searching && !searchError && outcome && outcome.results.length === 0 && <div className="ai-no-results" role="status"><Icon name="search" /><strong>没有找到匹配照片</strong><span>换一种更宽泛的场景描述试试。</span></div>}
+      {!searching && !searchError && outcome && outcome.results.length === 0 && <div className="ai-no-results" role="status"><Icon name="search" /><strong>没有可显示的结果</strong><span>图库映射可能已更新，请重试或稍后再试。</span></div>}
       {!!outcome?.results.length && <>
-        <div className="ai-result-heading"><span><strong>最相关照片</strong><small>按语义相关度排序</small></span><span>{outcome.results.length} 张</span></div>
+        <div className="ai-result-heading"><span><strong>图库中的相近结果</strong><small>相似度只用于排序，不代表匹配概率</small></span><span>{outcome.results.length} 张</span></div>
         <div className="ai-result-list">
           {outcome.results.slice(0, 5).map(result => <button type="button" className="ai-result-item" key={result.publicId} onClick={() => onOpen(result)} aria-label={`打开照片：${result.photo.title}`}>
             <span className="ai-result-thumbnail"><PhotoThumbnail photo={result.photo} /></span>
@@ -124,6 +128,6 @@ export function AISearchPanel({ state, moduleLoading, moduleError, query, sugges
       </>}
       {!query.trim() && !outcome && <p className="ai-ready-hint">输入自然语言，或选择一个推荐场景。</p>}
     </section>
-    <footer className="ai-local-note"><Icon name="check" />查询和向量均留在此设备上</footer>
+    <footer className="ai-local-note"><Icon name="check" />查询文本、向量与排名计算均留在此设备上</footer>
   </div>;
 }

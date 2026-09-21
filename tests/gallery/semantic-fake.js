@@ -90,7 +90,7 @@ globalThis.installSemanticFake = function installSemanticFake(publicIds, initial
         activeSearch = { timer, reject, detach: options.signal ? () => options.signal.removeEventListener('abort', onAbort) : undefined };
       });
     },
-    getDiagnostics: () => ({ workerStarts: counts.workerStarts, sessionInitializations: counts.sessionInitializations, queries: counts.queries, modelDownloads: counts.modelDownloads, persistentCacheHits: counts.persistentCacheHits }),
+    getDiagnostics: () => ({ workerStarts: counts.workerStarts, sessionInitializations: counts.sessionInitializations, queries: counts.queries, modelDownloads: counts.modelDownloads, persistentCacheHits: counts.persistentCacheHits, stateListeners: listeners.size }),
   };
   control.engine = engine;
   globalThis[Symbol.for('jason-gallery.semantic-search-engine')] = engine;

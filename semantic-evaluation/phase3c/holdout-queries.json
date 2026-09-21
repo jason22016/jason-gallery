@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "name": "semantic-search-phase3c-holdout-v1",
+  "createdAfterModelSelection": true,
+  "modelSelectionUse": "none",
+  "corpusFingerprint": "f3c29e68526ec430283de094b45a3f77e9927eb0fbac23088da9b8cdf30d0877",
+  "instructions": "Judge corpus answerability first, then each returned image against the criterion. Near-match queries require the stated approximation; no-match queries should have no relevant corpus image.",
+  "queries": [
+    { "id": "h01-stone-lion", "language": "zh-Hans", "category": "object", "expected": "present", "text": "石墙前的白色石狮子", "criterion": "一只白色石狮雕像清晰可见，背景为石墙或城墙。" },
+    { "id": "h02-flower-gate", "language": "zh-Hans", "category": "scene", "expected": "present", "text": "铺满鲜花的古城门", "criterion": "传统城门或城墙入口前有大片鲜花装饰。" },
+    { "id": "h03-casting-net", "language": "zh-Hans", "category": "action", "expected": "present", "text": "男人站在水边撒网", "criterion": "人物站在水边，正在抛出或展开渔网；仅仅持竿不算。" },
+    { "id": "h04-chipmunk-seeds", "language": "zh-Hans", "category": "relation", "expected": "present", "text": "花栗鼠趴在木桌边看着瓜子", "criterion": "花栗鼠位于木质桌面或长椅边，旁边能看到瓜子或食物碎屑。" },
+    { "id": "h05-switchback-road", "language": "zh-Hans", "category": "scene", "expected": "present", "text": "山路像细线一样盘绕在荒山上", "criterion": "远景中公路沿裸露山坡明显弯曲或盘绕。" },
+    { "id": "h06-market-necklaces", "language": "zh-Hans", "category": "object", "expected": "present", "text": "一排挂在摊位上的彩色项链", "criterion": "多条彩色项链、挂饰或吊坠成排悬挂在摊位上。" },
+    { "id": "h07-lone-lakeside-tree", "language": "zh-Hans", "category": "near-match", "expected": "near-match", "text": "湖边孤零零的一棵树", "criterion": "一棵树是湖岸画面的主要前景主体；允许远处出现其他小树。" },
+    { "id": "h08-cafe-mountain-window", "language": "zh-Hans", "category": "difficult-paraphrase", "expected": "present", "text": "窗内咖啡桌正对着巨大的山景", "criterion": "室内桌椅透过大窗面对显著的山峰景观。" },
+
+    { "id": "h09-resting-fawn", "language": "zh-Hant", "category": "object", "expected": "present", "text": "睡在草地上的小鹿", "criterion": "幼鹿或有斑點的鹿蜷伏、躺臥在草地上。" },
+    { "id": "h10-crane-wetland", "language": "zh-Hant", "category": "scene", "expected": "present", "text": "白鶴站在綠色濕地裡", "criterion": "白色或黑白長腿鶴類站在綠草、蘆葦或濕地中。" },
+    { "id": "h11-lily-pad-pond", "language": "zh-Hant", "category": "scene", "expected": "present", "text": "荷葉散落在藍色池塘中", "criterion": "藍色水面上分布著多片清晰可見的荷葉或睡蓮葉。" },
+    { "id": "h12-boardwalk-woods", "language": "zh-Hant", "category": "relation", "expected": "present", "text": "木棧道筆直穿過樹林", "criterion": "木製棧道形成明顯直線，兩側或前方是樹林。" },
+    { "id": "h13-yellow-flower-hills", "language": "zh-Hant", "category": "scene", "expected": "present", "text": "黃色花海後方是連綿山丘", "criterion": "大片黃色花田位於前景，後方可見山丘或山脊。" },
+    { "id": "h14-bird-on-railing", "language": "zh-Hant", "category": "relation", "expected": "present", "text": "小鳥停在金屬扶手上", "criterion": "一隻小鳥明確停棲在金屬欄杆、扶手或管狀構件上。" },
+
+    { "id": "h15-ferry-pier", "language": "en", "category": "relation", "expected": "present", "text": "A ferry tied beside a concrete pier", "criterion": "A passenger boat or ferry is stationary immediately beside a visible pier or quay." },
+    { "id": "h16-bird-reflection", "language": "en", "category": "action", "expected": "present", "text": "A white bird skimming the water with its reflection below", "criterion": "A predominantly white bird is flying or taking off just above water and its reflection is visible." },
+    { "id": "h17-rice-ear", "language": "en", "category": "object", "expected": "present", "text": "A single rice ear glowing green in sunlight", "criterion": "A close, isolated green or yellow-green rice seed head is the clear subject." },
+    { "id": "h18-deer-birches", "language": "en", "category": "relation", "expected": "present", "text": "A spotted deer standing between white birch trunks", "criterion": "A spotted deer stands among multiple pale or white tree trunks." },
+    { "id": "h19-cow-by-track", "language": "en", "category": "relation", "expected": "present", "text": "A cow resting beside a dirt track", "criterion": "A cow is lying down directly beside or partly on an unpaved path." },
+    { "id": "h20-peak-roof-ornament", "language": "en", "category": "difficult-paraphrase", "expected": "present", "text": "A mountain peak framed by a dark roof ornament", "criterion": "A dark architectural roof ornament or finial occupies the foreground with a mountain peak behind it." },
+    { "id": "h21-car-wet-curve", "language": "en", "category": "action", "expected": "present", "text": "A road vehicle rounding a wet forest curve", "criterion": "A car is driving on a visibly wet, curving road bordered by trees." },
+    { "id": "h22-bee-pink-flower", "language": "en", "category": "relation", "expected": "present", "text": "A bee buried inside a vivid pink flower", "criterion": "A bee is visibly inside or on the central petals of a saturated pink or magenta flower." },
+    { "id": "h23-black-waterbirds", "language": "en", "category": "object", "expected": "present", "text": "A group of black waterbirds swimming together", "criterion": "At least three dark or black waterbirds are together on the water." },
+    { "id": "h24-canyon-ribbon", "language": "en", "category": "difficult-paraphrase", "expected": "present", "text": "A turquoise ribbon of water squeezed between sheer canyon walls", "criterion": "A narrow turquoise river or lake runs between steep, rocky mountain walls." },
+    { "id": "h25-boat-open-water", "language": "en", "category": "near-match", "expected": "near-match", "text": "A boat alone on open blue water", "criterion": "A boat is the main isolated subject on blue water; a nearby shore is acceptable if the boat remains visually isolated." },
+    { "id": "h26-red-balcony-market", "language": "en", "category": "scene", "expected": "present", "text": "A crowded pedestrian market beneath red wooden balconies", "criterion": "People walk through a traditional commercial street with prominent red or warm wooden upper structures." },
+
+    { "id": "h27-crane-grass", "language": "mixed", "category": "object", "expected": "present", "text": "白色 crane 在草地上昂着头", "criterion": "一隻長腿、長頸的鶴類站在草地上，頭頸清晰可見。" },
+    { "id": "h28-mountain-cafe", "language": "mixed", "category": "difficult-paraphrase", "expected": "present", "text": "mountain café 透过落地窗看雪峰", "criterion": "咖啡館或室內座位透過大型玻璃窗面向雪山或高山。" },
+    { "id": "h29-white-car-rain", "language": "mixed", "category": "action", "expected": "present", "text": "雨後 forest road 上有一輛 white car", "criterion": "白色汽車行駛在潮濕道路上，道路兩側有樹林。" },
+    { "id": "h30-black-birds-lake", "language": "mixed", "category": "object", "expected": "present", "text": "藍色 lake 上成群 black birds", "criterion": "藍色水面上有一群至少三隻深色水鳥。" },
+    { "id": "h31-gate-flowers", "language": "mixed", "category": "scene", "expected": "present", "text": "古城 gate 前鋪著 colorful flowers", "criterion": "古城門或城牆入口前有明顯的多彩花卉佈置。" },
+    { "id": "h32-flower-field-ridge", "language": "mixed", "category": "near-match", "expected": "near-match", "text": "yellow flower field 配遠方 mountain ridge", "criterion": "黃色花田與遠處山脊同時清楚可見。" },
+
+    { "id": "h33-subway-platform", "language": "zh-Hans", "category": "no-match", "expected": "no-match", "text": "地铁列车驶入地下站台", "criterion": "地铁列车和地下站台必须同时清晰可见。" },
+    { "id": "h34-beach-umbrellas", "language": "zh-Hant", "category": "no-match", "expected": "no-match", "text": "海灘上撐著一排彩色遮陽傘", "criterion": "沙灘上有多把打開的彩色遮陽傘。" },
+    { "id": "h35-sports-car-city", "language": "en", "category": "no-match", "expected": "no-match", "text": "A red sports car parked beneath city skyscrapers", "criterion": "A red sports car and tall urban skyscrapers must both be visible." },
+    { "id": "h36-ramen-table", "language": "en", "category": "no-match", "expected": "no-match", "text": "A bowl of ramen with chopsticks on a restaurant table", "criterion": "A prepared bowl of ramen and chopsticks are visible on a dining table." },
+    { "id": "h37-neon-skyline", "language": "mixed", "category": "no-match", "expected": "no-match", "text": "夜晚 city skyline with neon skyscrapers", "criterion": "A nighttime skyline dominated by multiple illuminated modern skyscrapers." },
+    { "id": "h38-astronaut-orbit", "language": "en", "category": "no-match", "expected": "no-match", "text": "An astronaut floating outside a space station above Earth", "criterion": "An astronaut, exterior spacecraft structure, and Earth from orbit are all visible." }
+  ]
+}

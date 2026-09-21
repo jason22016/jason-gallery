@@ -96,10 +96,13 @@ test('ordinary Home, Project, Explore, Map, Stats, Cmd+K and Viewer paths never 
   await page.goto(`${server.url}/explore/`); await ready(page);
   await page.keyboard.press('Meta+K');
   await expect(page.getByRole('dialog', { name: '搜索和筛选' })).toBeVisible();
+  await page.getByRole('button', { name: '开启 AI Search' }).click();
+  await expect(page.getByRole('heading', { name: 'Enable AI Search' })).toBeVisible();
+  assert.deepEqual(requests.filter(pathname => /^\/(?:semantic|semantic-models|semantic-releases|semantic-runtimes)\//.test(pathname) || /\/semantic-search(?:\.worker)?[-.].+\.js$/.test(pathname)), [], 'opening Cmd+K and entering AI mode must not fetch or preload any semantic asset/client/Worker chunk');
   await page.keyboard.press('Escape');
   await page.locator('.gallery-live [data-gallery-index]').first().click();
   await expect(page.locator('.photo-dialog')).toBeVisible();
-  assert.deepEqual(requests.filter(pathname => pathname.startsWith('/semantic/') || pathname.startsWith('/semantic-models/') || pathname.startsWith('/semantic-releases/') || pathname.startsWith('/semantic-runtimes/')), []);
+  assert.deepEqual(requests.filter(pathname => /^\/(?:semantic|semantic-models|semantic-releases|semantic-runtimes)\//.test(pathname) || /\/semantic-search(?:\.worker)?[-.].+\.js$/.test(pathname)), []);
 
   const files = await fs.readdir(path.join(root, 'dist/_astro'));
   assert(files.some(file => /^semantic-search\..+\.js$/.test(file)), 'AI Search must ship as a separately loadable client chunk');
