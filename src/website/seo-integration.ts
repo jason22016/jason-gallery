@@ -2,6 +2,7 @@ import type { AstroIntegration } from 'astro';
 import { writeFile } from 'node:fs/promises';
 import { resolveSiteURL } from './site-url';
 import { indexingHeaders } from './seo';
+import { clientSemanticReleaseHeaders } from '../../scripts/semantic/client-release';
 
 export function publicSEO(): AstroIntegration {
   let site: URL | undefined;
@@ -16,7 +17,7 @@ export function publicSEO(): AstroIntegration {
         if (!site) logger.warn('SITE_URL is empty: building a noindex preview without canonical URLs or sitemap entries.');
       },
       'astro:build:done': async ({ dir }) => {
-        await writeFile(new URL('_headers', dir), indexingHeaders(site));
+        await writeFile(new URL('_headers', dir), `${indexingHeaders(site)}\n${clientSemanticReleaseHeaders()}`);
       },
     },
   };

@@ -188,7 +188,11 @@ test('built HTML, sitemap, social images, drafts and Cloudflare Pages headers ag
   assert.equal(await page.locator('link[rel="canonical"],meta[property="og:url"],meta[property="og:image"]').count(), 0);
   assert(!(await fs.readFile(path.join(dist, 'sitemap.xml'), 'utf8')).includes('<loc>'));
   assert.equal(await fs.readFile(path.join(dist, 'robots.txt'), 'utf8'), 'User-agent: *\nDisallow: /\n');
-  assert.equal(await fs.readFile(path.join(dist, '_headers'), 'utf8'), '/*\n  X-Robots-Tag: noindex, nofollow\n');
+  const headers = await fs.readFile(path.join(dist, '_headers'), 'utf8');
+  assert.match(headers, /^\/\*\n  X-Robots-Tag: noindex, nofollow\n/);
+  assert.match(headers, /\/semantic-models\/siglip2-base-v64k-uint4-b32-r1\/\*\n  Cache-Control: public, max-age=31536000, immutable/);
+  assert.match(headers, /model\.onnx\.part-000\.br\n  Content-Type: application\/octet-stream\n  Content-Encoding: br/);
+  assert.match(headers, /ort-wasm-simd-threaded\.asyncify\.wasm\.br\n  Content-Type: application\/wasm\n  Content-Encoding: br/);
   await page.goto(`${server.url}/stats/?project=fixture-beta`);
   assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex, nofollow');
   assert.equal(await page.locator('link[rel="canonical"],meta[property="og:url"],meta[property="og:image"]').count(), 0);

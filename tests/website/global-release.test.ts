@@ -71,7 +71,7 @@ test('production global pages add no metadata copies and cannot expose private d
     ['semantic/index.json', 'semantic/vectors.f32'],
   );
   assert.equal(
-    files.filter(file => file.endsWith('.json') && file !== 'semantic/index.json').length,
+    files.filter(file => file.endsWith('.json') && file !== 'semantic/index.json' && !file.startsWith('semantic-models/') && !file.startsWith('semantic-runtimes/')).length,
     published.reduce((count, project) => count + project.photos.length, 0),
   );
   for (const file of files.filter(file => /\.(?:html|js|json)$/.test(file))) {
@@ -83,6 +83,26 @@ test('production global pages add no metadata copies and cannot expose private d
   }
   assert.equal((await fetch(`${server.url}/photos/release-0.json`)).status, 404, 'Global pages reuse the published Project route rather than emitting a duplicate');
   assert.equal((await fetch(`${server.url}/projects/fixture-beta/photos/release-0.json`)).status, 200);
+});
+
+test('ordinary Home, Project, Explore, Map, Stats, Cmd+K and Viewer paths never load semantic assets', async t => {
+  const { ctx, page } = await pageFor(); t.after(() => ctx.close());
+  const requests: string[] = [];
+  page.on('request', request => requests.push(new URL(request.url()).pathname));
+  for (const route of ['/', '/projects/fixture-beta/', '/explore/', '/map/', '/stats/']) {
+    await page.goto(server.url + route);
+    if (route === '/explore/' || route.startsWith('/projects/')) await ready(page);
+  }
+  await page.goto(`${server.url}/explore/`); await ready(page);
+  await page.keyboard.press('Meta+K');
+  await expect(page.getByRole('dialog', { name: '搜索和筛选' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.locator('.gallery-live [data-gallery-index]').first().click();
+  await expect(page.locator('.photo-dialog')).toBeVisible();
+  assert.deepEqual(requests.filter(pathname => pathname.startsWith('/semantic/') || pathname.startsWith('/semantic-models/') || pathname.startsWith('/semantic-runtimes/')), []);
+
+  const files = await fs.readdir(path.join(root, 'dist/_astro'));
+  assert.equal(files.some(file => /semantic-search\.worker|ort-wasm/i.test(file)), false, 'unused semantic worker/runtime must not enter the ordinary Astro graph');
 });
 
 test('history restores absent view settings and filter edits never add entries', async t => {

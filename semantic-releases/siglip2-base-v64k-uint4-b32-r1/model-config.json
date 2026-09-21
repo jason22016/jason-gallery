@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "modelId": "google/siglip2-base-patch16-224",
+  "revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+  "inputName": "input_ids",
+  "outputName": "text_embeds",
+  "maximumTokens": 64,
+  "endTokenId": 1,
+  "paddingTokenId": 0,
+  "embeddingDimension": 768,
+  "embeddingNormalization": "l2",
+  "opset": 17,
+  "transformerQuantization": "asymmetric-uint4-block-32",
+  "tokenEmbedding": "int8",
+  "projectionHeadDtype": "float32",
+  "layerNormDtype": "float32",
+  "activationDtype": "float32"
+}

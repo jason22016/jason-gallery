@@ -1,3 +1,18 @@
+# Third-party notices
+
+## Semantic search runtime and model
+
+The immutable browser runtime includes ONNX Runtime Web 1.30.0 MJS/WASM from
+Microsoft's ONNX Runtime project under the MIT License. The complete license is
+preserved in [licenses/ONNXRUNTIME-MIT.txt](licenses/ONNXRUNTIME-MIT.txt).
+
+`@huggingface/tokenizers` 0.2.0 and the pinned
+`google/siglip2-base-patch16-224` model/revision are distributed under
+Apache License 2.0. The complete license text used by the package is preserved
+in [licenses/SEMANTIC-APACHE-2.0.txt](licenses/SEMANTIC-APACHE-2.0.txt). The
+client release contains a derived, quantized text-only ONNX graph plus its
+tokenizer/config; it contains no vision tower or user data.
+
 # Afilmory Viewer interaction sources
 
 Source: https://github.com/Afilmory/Afilmory

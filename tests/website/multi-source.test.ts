@@ -50,7 +50,9 @@ test('cross-source Gallery, metadata, Viewer sharing and map use the same qualif
   const release = await buildRelease({photos:photoRoot,root:site,destination:releaseRoot,websiteCommit:'a'.repeat(40),runId:'fixture',runNumber:1,production:false,semantic:{cacheDirectory:path.join(root,'semantic-cache'),embedder:fakeEmbeddingBackend()}});
   assert.equal(release.publicPhotos,2);
   const files = await fileHashes(path.join(releaseRoot,'dist'));
-  assert(!Object.keys(files).some(name=>name.includes('photo-index') || name.includes('manifest') || name.startsWith('sources/')));
+  assert(!Object.keys(files).some(name => name.includes('photo-index') ||
+    (name.includes('manifest') && !name.startsWith('semantic-models/') && !name.startsWith('semantic-runtimes/')) ||
+    name.startsWith('sources/')));
   for (const p of photos) {
     assert(files[`projects/mixed/photos/${p.id}.json`] && files[`thumbnails/${p.id}.jpg`] && files[`photos/${shortPublicPhotoId(p.id)}/index.html`]);
     const html = await fs.readFile(path.join(releaseRoot, `dist/photos/${shortPublicPhotoId(p.id)}/index.html`), 'utf8');

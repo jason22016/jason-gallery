@@ -21,6 +21,9 @@ jobs:
           - name: Statistics
             script: test:statistics
             browser: true
+          - name: Semantic client runtime
+            script: test:semantic-browser
+            browser: true
           - name: Viewer
             script: test:viewer
             browser: true

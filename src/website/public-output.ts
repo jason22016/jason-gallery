@@ -2,6 +2,7 @@ import path from 'node:path';
 import type { PhotoManifestItem } from '../photo-engine';
 import type { ResolvedProject } from '../projects';
 import { resolvePublicPhotoCollection } from './public-photos';
+import { CLIENT_SEMANTIC_RELEASE_PUBLIC_PATHS, CLIENT_SEMANTIC_RUNTIME_PUBLIC_PATHS } from '../semantic-search/release-contract';
 
 export function localAssetPath(url: string | null | undefined): string | null {
   if (!url?.startsWith('/') || url.startsWith('//')) return null;
@@ -19,6 +20,8 @@ export function publicOutputPaths(projects: readonly ResolvedProject[]): Set<str
   return new Set([
     'index.html', 'explore/index.html', 'map/index.html', 'stats/index.html', '404.html', 'health.txt', 'favicon.svg', 'sitemap.xml', 'robots.txt', '_headers', 'social/default.jpg',
     'semantic/index.json', 'semantic/vectors.f32',
+    ...CLIENT_SEMANTIC_RELEASE_PUBLIC_PATHS,
+    ...CLIENT_SEMANTIC_RUNTIME_PUBLIC_PATHS,
     ...resolvePublicPhotoCollection({ listProjects: () => projects }).listPhotos().map(photo => `${photo.sharePath.slice(1)}index.html`),
     ...projects.filter(project => project.status === 'published').flatMap(project => [
       `projects/${project.slug}/index.html`,

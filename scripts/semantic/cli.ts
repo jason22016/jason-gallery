@@ -2,6 +2,7 @@ import path from 'node:path';
 import { buildSemanticIndex, collectPublicSemanticPhotos } from './build.js';
 import { verifyPublicSemanticIndex } from './index.js';
 import { semanticModelConfig, semanticModelContractSha256 } from './model-config.js';
+import { verifyClientSemanticRelease } from './client-release.js';
 
 const args = process.argv.slice(2);
 const command = args[0]?.startsWith('--') || !args[0] ? 'build' : args.shift()!;
@@ -26,7 +27,8 @@ if (command === 'build') {
 } else if (command === 'verify') {
   const ids = collectPublicSemanticPhotos(root).map(photo => photo.publicId);
   const index = await verifyPublicSemanticIndex(outputDirectory, ids);
-  console.log(JSON.stringify({ status: 'ok', photos: index.photoIds.length, indexVersion: index.indexVersion }));
+  const release = await verifyClientSemanticRelease();
+  console.log(JSON.stringify({ status: 'ok', photos: index.photoIds.length, indexVersion: index.indexVersion, clientReleaseId: release.releaseId, clientBundleSha256: release.bundleSha256 }));
 } else if (command === 'contract') {
   console.log(JSON.stringify({ modelContractSha256: semanticModelContractSha256, model: semanticModelConfig }));
 } else throw new Error('Expected semantic command: build, verify, or contract');

@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "kind": "jason-gallery-client-semantic-release",
+  "releaseId": "siglip2-base-v64k-uint4-b32-r1",
+  "bundleSha256": "eafe74e07e24fcd43b90f211910702885c55430706efa40ceb5e4b09611e83e0",
+  "indivisible": true,
+  "model": {
+    "id": "google/siglip2-base-patch16-224",
+    "revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+    "semanticModelContractSha256": "8084ea0fd9642e2d18dfe5832c0467be77c2b4d3c27f31e9ba7542aa6fe97390",
+    "clientModelContractSha256": "f8c900f897db83c47083ccfccd3e4cec2913b0b0072c6977082dc78871f5b5a6",
+    "publicModelSha256": "d7b3ab86e7eeb13de3789ffed02e031e0a491031541d5337a72e192cb363d577",
+    "embeddingSpace": "siglip2-base-patch16-224-shared",
+    "embeddingDimension": 768
+  },
+  "compatibleIndex": {
+    "schemaVersion": 1,
+    "kind": "jason-gallery-public-semantic-index",
+    "ordering": "public-photo-id-bytewise-ascending",
+    "vectorFile": "vectors.f32",
+    "dtype": "float32-le",
+    "normalization": "l2"
+  },
+  "runtime": {
+    "onnxRuntimeWebVersion": "1.30.0",
+    "tokenizerPackage": "@huggingface/tokenizers",
+    "tokenizerVersion": "0.2.0",
+    "backendOrder": [
+      "webgpu",
+      "wasm"
+    ]
+  },
+  "payloadBytes": 111166042,
+  "transportBytes": 100655930,
+  "files": [
+    {
+      "role": "tokenizer",
+      "path": "tokenizer.json",
+      "mediaType": "application/json",
+      "bytes": 2914006,
+      "sha256": "5a52aa9696e48ec6fd9efb7182a1f7f5da5b683354d30be70b7690102a844811",
+      "parts": [
+        {
+          "path": "tokenizer.json.br",
+          "offset": 0,
+          "bytes": 2914006,
+          "sha256": "5a52aa9696e48ec6fd9efb7182a1f7f5da5b683354d30be70b7690102a844811",
+          "contentEncoding": "br",
+          "transportBytes": 821436,
+          "transportSha256": "3f93d73aa64ee63de8fcccc9b4a2e06f99911ae458ad931206742e384f0cec86"
+        }
+      ]
+    },
+    {
+      "role": "tokenizer-config",
+      "path": "tokenizer_config.json",
+      "mediaType": "application/json",
+      "bytes": 47164,
+      "sha256": "14afe629fe4959b9e0d51e1852b8d9f7ad074f90a1a7125a4fcdd17f06e78fc8",
+      "parts": [
+        {
+          "path": "tokenizer_config.json.br",
+          "offset": 0,
+          "bytes": 47164,
+          "sha256": "14afe629fe4959b9e0d51e1852b8d9f7ad074f90a1a7125a4fcdd17f06e78fc8",
+          "contentEncoding": "br",
+          "transportBytes": 1751,
+          "transportSha256": "0a990943c6edb1b7d2db97758c4de4ad3a3b82587cc7c836f0fc399512a92a8e"
+        }
+      ]
+    },
+    {
+      "role": "model-config",
+      "path": "model-config.json",
+      "mediaType": "application/json",
+      "bytes": 518,
+      "sha256": "5e2686058b929584291915c17d456520023584f68952ae0fb043816deca3c12a",
+      "parts": [
+        {
+          "path": "model-config.json",
+          "offset": 0,
+          "bytes": 518,
+          "sha256": "5e2686058b929584291915c17d456520023584f68952ae0fb043816deca3c12a",
+          "contentEncoding": null,
+          "transportBytes": 518,
+          "transportSha256": "5e2686058b929584291915c17d456520023584f68952ae0fb043816deca3c12a"
+        }
+      ]
+    },
+    {
+      "role": "onnx",
+      "path": "model.onnx",
+      "mediaType": "application/octet-stream",
+      "bytes": 108204354,
+      "sha256": "f53300d16d35648582bec83452e8f49272158556268b2dac369ca73037e466a8",
+      "parts": [
+        {
+          "path": "model.onnx.part-000.br",
+          "offset": 0,
+          "bytes": 20971520,
+          "sha256": "eec835aaa51f657cd8588b7a6525d04e6293cd66dfb8a3692c67ff2ff45bb7d3",
+          "contentEncoding": "br",
+          "transportBytes": 18778808,
+          "transportSha256": "8542cb0baccdc80211f67e99344ec5780259d67a65971931124577f80521b080"
+        },
+        {
+          "path": "model.onnx.part-001.br",
+          "offset": 20971520,
+          "bytes": 20971520,
+          "sha256": "c69d31e61573ad31523ee51c9629246cbdec8a7bf0479f0f9443a0b0b76c3757",
+          "contentEncoding": "br",
+          "transportBytes": 19110716,
+          "transportSha256": "bd53ded4ae8b31f62544bda94621a5b8aeaae90f87b0dbf7d533394bc701b67a"
+        },
+        {
+          "path": "model.onnx.part-002.br",
+          "offset": 41943040,
+          "bytes": 20971520,
+          "sha256": "ad2d4d5c3a9338bc3587f0233f1e9fbd15f82e28e546a22312920952de8eb132",
+          "contentEncoding": "br",
+          "transportBytes": 19417865,
+          "transportSha256": "00f965592eaa0978a1ec1e58976701ff6778511e0584bf07c3952921b8ac7c96"
+        },
+        {
+          "path": "model.onnx.part-003.br",
+          "offset": 62914560,
+          "bytes": 20971520,
+          "sha256": "d4d37054848f1bcc709ded721dadb1cf099b0ba6c9d54bb2797c7174e41bc2a4",
+          "contentEncoding": "br",
+          "transportBytes": 19708541,
+          "transportSha256": "70dd8795b83dd6c05607eec092fd66852e875ed2dfcf5c263a90fd90bded2661"
+        },
+        {
+          "path": "model.onnx.part-004.br",
+          "offset": 83886080,
+          "bytes": 20971520,
+          "sha256": "4beea1c195161b6e8587e75f5b7ca140af41f52fb439dbff99fc8e265debecc5",
+          "contentEncoding": "br",
+          "transportBytes": 19678259,
+          "transportSha256": "0149001b0bcc0a9408ecd41d0d7f5d817f857fcbc2352498c214bfca87c0bb3c"
+        },
+        {
+          "path": "model.onnx.part-005.br",
+          "offset": 104857600,
+          "bytes": 3346754,
+          "sha256": "17fcd8ebb25774e74a4d97030e46942c1d53054ceb7a3efe0e1e539673d0913d",
+          "contentEncoding": "br",
+          "transportBytes": 3138036,
+          "transportSha256": "a07cf8d9cdc18957d084fdae77f52b5f5fc2aaa68c7d0f4c667617b3213c9c91"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "jason-gallery-client-semantic-runtime",
+  "runtimeId": "onnxruntime-web-1.30.0-asyncify-r1",
+  "onnxRuntimeWebVersion": "1.30.0",
+  "wasmVariant": "simd-threaded-asyncify",
+  "files": [
+    {
+      "path": "ort-wasm-simd-threaded.asyncify.mjs",
+      "mediaType": "text/javascript",
+      "contentEncoding": null,
+      "bytes": 53057,
+      "sha256": "3d1c85995364bb643302fc6fd877a0c3ba5ae72401815e0f24828a53d9191e28",
+      "transportBytes": 53057,
+      "transportSha256": "3d1c85995364bb643302fc6fd877a0c3ba5ae72401815e0f24828a53d9191e28"
+    },
+    {
+      "path": "ort-wasm-simd-threaded.asyncify.wasm.br",
+      "mediaType": "application/wasm",
+      "contentEncoding": "br",
+      "bytes": 26781914,
+      "sha256": "39f9f0894d478800487ed9f7dbe92618498db320cf55c8e3d89adff8dce658da",
+      "transportBytes": 3866678,
+      "transportSha256": "2d2e9cb00f2ac27534ba38313060b841c64e03187329fbc9954f2fba8918a7bc"
+    }
+  ]
+}
