@@ -37,7 +37,7 @@ before(async () => {
   await fs.copyFile(path.join(repo, 'tests/gallery/live.mov'), path.join(root, 'public/live.mov'));
   await fs.writeFile(path.join(root, 'public/motion.jpg'), motion);
   photos = Array.from({ length: 480 }, (_, i) => ({
-    id: `photo-${i}`, title: `照片 ${i} — 完整标题`, alt: `Gallery photo ${i}`, filename: `${i}.jpg`, description: '这是一段照片说明。第二句说明帮助检查两行截断。',
+    id: `photo-${i}`, publicId: String(i).padStart(16, '0'), title: `照片 ${i} — 完整标题`, alt: `Gallery photo ${i}`, filename: `${i}.jpg`, description: '这是一段照片说明。第二句说明帮助检查两行截断。',
     width: 640, height: i % 4 === 0 ? 960 : i % 4 === 1 ? 640 : i % 4 === 2 ? 400 : 120,
     aspectRatio: 640 / (i % 4 === 0 ? 960 : i % 4 === 1 ? 640 : i % 4 === 2 ? 400 : 120),
     thumbnail: `/thumb.jpg?id=${i}`, thumbHash, src: i === 2 ? '/motion.jpg' : '/thumb.jpg',
@@ -60,6 +60,10 @@ async function pageFor(options: Parameters<Browser['newContext']>[0] = {}) {
   ctx.setDefaultTimeout(browserReadyTimeout(10_000));
   const page = await ctx.newPage();
   return { ctx, page };
+}
+async function installSemanticFake(page: Page, enableMode: 'download' | 'cache' | 'update' = 'download') {
+  const source = await fs.readFile(path.join(repo, 'tests/gallery/semantic-fake.js'), 'utf8');
+  await page.evaluate(`${source}\n;globalThis.installSemanticFake(${JSON.stringify(photos.map(photo => photo.publicId!))}, ${JSON.stringify(enableMode)});`);
 }
 async function ready(page: Page, query = '') {
   await page.goto(server.url + query);
@@ -150,6 +154,107 @@ test('touch cluster tap expands immediately without a preview and reduced motion
   await page.screenshot({ path: path.join(screenshots, 'map-phase4-mobile-expanded.png') });
 });
 const cards = (page: Page) => page.locator('.masonry-photo');
+
+test('Explore Cmd+K requires explicit AI enable, exposes real progress, maps ranked results into Gallery, and reuses one runtime', async t => {
+  const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  const semanticRequests: string[] = [];
+  page.on('request', request => {
+    const pathname = new URL(request.url()).pathname;
+    if (/^\/(?:semantic|semantic-releases|semantic-runtimes)\//.test(pathname)) semanticRequests.push(pathname);
+  });
+  await ready(page, '?global');
+  await installSemanticFake(page);
+  assert.equal(await page.evaluate(() => (globalThis as any)[Symbol.for('jason-gallery.semantic-search-engine')] === (window as any).semanticFake.engine), true);
+  await page.keyboard.press('Meta+K');
+  const dialog = page.getByRole('dialog', { name: '搜索和筛选' });
+  await expect(dialog).toBeVisible();
+  const normalSearch = dialog.getByRole('searchbox', { name: '搜索', exact: true });
+  await normalSearch.fill('照片 1');
+  const metadataCount = await page.locator('.gallery-count').textContent();
+  await expect(dialog.getByRole('button', { name: /Search “照片 1” with AI/ })).toBeVisible();
+  await dialog.getByRole('button', { name: /Search “照片 1” with AI/ }).click();
+  await expect(page.getByRole('heading', { name: 'Enable AI Search' })).toBeVisible();
+  assert.deepEqual(semanticRequests, [], 'entering AI mode must not load semantic assets');
+  await page.getByRole('button', { name: 'Download & Enable' }).click();
+  await expect(page.getByText('正在下载 AI 模型…')).toBeVisible();
+  await expect(page.getByRole('progressbar', { name: 'AI Search 模型进度' })).toHaveAttribute('value', '25000000');
+  await expect(page.getByText(/25 MB \/ 111\.2 MB/)).toBeVisible();
+  await page.getByRole('button', { name: '取消', exact: true }).click({ force: true });
+  await expect(page.getByRole('heading', { name: 'Enable AI Search' })).toBeVisible();
+  await page.getByRole('button', { name: 'Download & Enable' }).click();
+  const suggestion = page.getByRole('button', { name: '雾中的雪山', exact: true });
+  await expect(suggestion).toBeVisible();
+  await suggestion.focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('.ai-result-item')).toHaveCount(3);
+  assert(!decodeURI(page.url()).includes('雾中的雪山'), 'semantic query must not enter the URL');
+  assert.deepEqual(await page.evaluate(() => (window as any).semanticFake.enabledPhotoIds), photos.map(photo => photo.publicId));
+
+  await page.locator('.ai-result-item').first().click();
+  await expect(page.locator('.photo-dialog')).toBeVisible();
+  await expect(page.locator('.viewer-counter')).toHaveText('1 / 3');
+  await page.getByRole('button', { name: '关闭照片', exact: true }).click();
+  await page.keyboard.press('Meta+K');
+  await expect(page.getByRole('dialog', { name: 'AI Search' })).toBeVisible();
+  await page.getByRole('button', { name: /View all in Explore/ }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect.poll(() => cards(page).evaluateAll(nodes => nodes.map(node => node.getAttribute('data-photo-id')))).toEqual(['photo-2', 'photo-0', 'photo-1']);
+
+  await page.keyboard.press('Meta+K');
+  await expect(page.getByRole('dialog', { name: 'AI Search' }).locator('.ai-result-item')).toHaveCount(3);
+  const beforeExit = await page.evaluate(() => ({ ...((window as any).semanticFake.counts) }));
+  assert.equal(beforeExit.workerStarts, 1); assert.equal(beforeExit.sessionInitializations, 1);
+  await page.getByRole('button', { name: '退出 AI Search，恢复普通搜索' }).click();
+  await expect(page.getByRole('dialog', { name: '搜索和筛选' })).toBeVisible();
+  await expect(page.locator('.gallery-count')).toHaveText(metadataCount!);
+  assert.deepEqual(semanticRequests, [], 'the fake proves UI integration without hidden model requests');
+});
+
+test('cache-hit AI Search debounces, cancels stale queries, handles no results and recovers from query errors', async t => {
+  const { ctx, page } = await pageFor(); t.after(() => ctx.close());
+  await ready(page, '?global');
+  await installSemanticFake(page, 'cache');
+  await page.keyboard.press('Meta+K');
+  await page.getByRole('button', { name: '开启 AI Search' }).click();
+  await page.getByRole('button', { name: 'Download & Enable' }).click();
+  await expect(page.getByRole('button', { name: '金色日落', exact: true })).toBeVisible();
+  assert.deepEqual(await page.evaluate(() => {
+    const c = (window as any).semanticFake.counts; return { downloads: c.modelDownloads, hits: c.persistentCacheHits, sessions: c.sessionInitializations };
+  }), { downloads: 0, hits: 1, sessions: 1 });
+
+  const input = page.getByRole('searchbox', { name: 'AI Search 自然语言搜索' });
+  await input.fill('slow river');
+  await expect.poll(() => page.evaluate(() => (window as any).semanticFake.counts.queries)).toBe(1);
+  await input.fill('golden sunset');
+  await expect(page.locator('.ai-result-item')).toHaveCount(3);
+  await expect(page.locator('.ai-result-item').first()).toHaveAccessibleName('打开照片：照片 2 — 完整标题');
+  assert((await page.evaluate(() => (window as any).semanticFake.counts.abortedQueries)) >= 1);
+
+  await input.fill('none');
+  await expect(page.getByText('没有找到匹配照片')).toBeVisible();
+  await input.fill('error');
+  await expect(page.getByRole('heading', { name: 'AI Search 启用失败' })).toBeVisible();
+  await page.getByRole('button', { name: '重试', exact: true }).click();
+  await expect(page.getByRole('button', { name: '岩石间的急流', exact: true })).toBeVisible();
+});
+
+test('AI Search stays keyboard-usable at 320px, has static reduced-motion edges, and reports update-required', async t => {
+  const { ctx, page } = await pageFor({ viewport: { width: 320, height: 700 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  await ready(page, '?global');
+  await installSemanticFake(page, 'update');
+  await page.keyboard.press('Meta+K');
+  const aiButton = page.getByRole('button', { name: '开启 AI Search' });
+  await aiButton.focus(); await expect(aiButton).toBeFocused(); await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'AI Search' });
+  await expect(dialog).toBeVisible();
+  const bounds = await dialog.boundingBox();
+  assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= 320);
+  const activeAIButton = page.getByRole('button', { name: '退出 AI Search，恢复普通搜索' });
+  assert.equal(await activeAIButton.evaluate(element => getComputedStyle(element, '::before').animationName), 'none');
+  await page.getByRole('button', { name: 'Download & Enable' }).tap();
+  await expect(page.getByRole('heading', { name: 'AI Search 需要更新' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '检查并更新' })).toBeVisible();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+});
 
 test('Global Gallery keeps 480-photo virtualization and filtered Viewer scroll/focus restoration in both views', async t => {
   const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close());

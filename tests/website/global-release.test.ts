@@ -99,10 +99,16 @@ test('ordinary Home, Project, Explore, Map, Stats, Cmd+K and Viewer paths never 
   await page.keyboard.press('Escape');
   await page.locator('.gallery-live [data-gallery-index]').first().click();
   await expect(page.locator('.photo-dialog')).toBeVisible();
-  assert.deepEqual(requests.filter(pathname => pathname.startsWith('/semantic/') || pathname.startsWith('/semantic-models/') || pathname.startsWith('/semantic-runtimes/')), []);
+  assert.deepEqual(requests.filter(pathname => pathname.startsWith('/semantic/') || pathname.startsWith('/semantic-models/') || pathname.startsWith('/semantic-releases/') || pathname.startsWith('/semantic-runtimes/')), []);
 
   const files = await fs.readdir(path.join(root, 'dist/_astro'));
-  assert.equal(files.some(file => /semantic-search\.worker|ort-wasm/i.test(file)), false, 'unused semantic worker/runtime must not enter the ordinary Astro graph');
+  assert(files.some(file => /^semantic-search\..+\.js$/.test(file)), 'AI Search must ship as a separately loadable client chunk');
+  assert(files.some(file => /^semantic-search\.worker-.+\.js$/.test(file)), 'the shared semantic worker must remain in its own lazy chunk');
+  assert.equal(files.some(file => /ort-wasm/i.test(file)), false, 'the ORT WASM runtime must remain an explicit immutable asset');
+  for (const file of (await fs.readdir(path.join(root, 'dist'), { recursive: true })).filter(file => file.endsWith('.html'))) {
+    const html = await fs.readFile(path.join(root, 'dist', file), 'utf8');
+    assert.equal(/semantic-search(?:\.worker)?[-.].+\.js/.test(html), false, `${file}: semantic chunks must not be preloaded by ordinary HTML`);
+  }
 });
 
 test('history restores absent view settings and filter edits never add entries', async t => {

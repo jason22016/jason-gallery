@@ -48,7 +48,7 @@ export default function Panel({ title, onClose, children, wide = false, kind = '
   const dismiss = () => reduced ? onClose() : setClosing(true);
   const autoFocus = (event: Event) => {
     event.preventDefault();
-    (surface.current?.querySelector<HTMLElement>('input') ?? surface.current?.querySelector<HTMLElement>('[aria-checked="true"]') ?? surface.current?.querySelector<HTMLElement>('button') ?? surface.current)?.focus({ preventScroll: true });
+    (surface.current?.querySelector<HTMLElement>('input:not(:disabled)') ?? surface.current?.querySelector<HTMLElement>('[aria-checked="true"]') ?? surface.current?.querySelector<HTMLElement>('button:not(:disabled)') ?? surface.current)?.focus({ preventScroll: true });
   };
   const motion = {
     initial: reduced ? false as const : mobile ? { y: '100%', opacity: 1 } : kind === 'map' ? { scale: 1.02, opacity: 0 } : { y: 8, scale: .96, opacity: 0 },

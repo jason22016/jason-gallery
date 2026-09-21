@@ -4,7 +4,7 @@ import { MasonryView } from './MasonryView';
 import { PageHeader } from './PageHeader';
 import type { GalleryPhoto } from './photos';
 import { ListView } from './ListView';
-import { SearchPanel } from './SearchPanel';
+import { SearchPanel, type SearchPanelSemantic } from './SearchPanel';
 import { ViewPanel } from './ViewPanel';
 import { FilterChip } from './FilterChip';
 import { Icon } from './ui/Icon';
@@ -20,6 +20,9 @@ import { MapLoadingState } from './map/MapLoadingState';
 import { MapPhotoList } from './map/MapPhotoList';
 import { validLocation } from '../viewer/metadata';
 import { useGalleryScrollRestoration } from './scroll-restoration';
+import { useSemanticSearch } from './useSemanticSearch';
+import { mapSemanticResults, type MappedSemanticResult } from './semantic-results';
+import { semanticQuerySuggestions } from './semantic-suggestions';
 
 type MapComponent = typeof import('./PhotoMap').default;
 const settingsKey = 'jason-gallery:view:v1';
@@ -56,10 +59,21 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
   const [PhotoMap, setPhotoMap] = useState<MapComponent | null>(null);
   const [mapError, setMapError] = useState(false);
   const [notice, setNotice] = useState('');
+  const [aiMode, setAIMode] = useState(false);
+  const [aiQuery, setAIQuery] = useState('');
+  const [semanticOutcome, setSemanticOutcome] = useState<{ query: string; results: MappedSemanticResult[] } | null>(null);
+  const [semanticError, setSemanticError] = useState('');
+  const semantic = useSemanticSearch();
+  const semanticQueryController = useRef<AbortController | null>(null);
+  const semanticQuerySequence = useRef(0);
+  const lastSemanticQuery = useRef('');
   const fields = project ? projectFields : globalFields;
   const options = useMemo(() => galleryFilterOptions(photos, fields), [photos, fields]);
   const projectLabel = options.find(option => option.field === 'project' && option.value === filters.project)?.label;
-  const visible = useMemo(() => selectPhotos(photos, filters, sort).filter(photo => !mapPage || validLocation(photo.location)), [photos, filters, sort, mapPage]);
+  const metadataVisible = useMemo(() => selectPhotos(photos, filters, sort).filter(photo => !mapPage || validLocation(photo.location)), [photos, filters, sort, mapPage]);
+  const publicPhotoIds = useMemo(() => photos.flatMap(photo => photo.publicId ? [photo.publicId] : []), [photos]);
+  const semanticAvailable = !project && !mapPage && photos.length > 0 && publicPhotoIds.length === photos.length;
+  const visible = aiMode && semanticOutcome ? semanticOutcome.results.map(result => result.photo) : metadataVisible;
   const mapKey = mapPage ? 'global' : visible.map(photo => photo.id).join(',');
   const selectedMapPhoto = resolveMapPhoto(visible, mapPhotoId);
   const selectedPhoto = (project ? photos : visible).find(p => p.id === selected);
@@ -132,6 +146,45 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
     else { setSelected(null); setPhotoURL(null); }
     requestAnimationFrame(() => { window.scrollTo(0, scrollPosition.current); opener.current?.isConnected && opener.current.focus({ preventScroll: true }); });
   }, [setPhotoURL]);
+  const changeSemanticQuery = useCallback((value: string) => {
+    semanticQuerySequence.current++;
+    semanticQueryController.current?.abort();
+    semanticQueryController.current = null;
+    setSemanticError('');
+    setAIQuery(value);
+    if (!value.trim()) {
+      lastSemanticQuery.current = '';
+      setSemanticOutcome(null);
+    }
+  }, []);
+  const executeSemanticQuery = useCallback(async (value: string) => {
+    const query = value.trim();
+    if (!query || !semanticAvailable || (semantic.state?.status !== 'ready' && semantic.state?.status !== 'searching')) return;
+    const sequence = ++semanticQuerySequence.current;
+    semanticQueryController.current?.abort();
+    const controller = new AbortController();
+    semanticQueryController.current = controller;
+    lastSemanticQuery.current = query;
+    setSemanticError('');
+    try {
+      const response = await semantic.search(query, { topK: Math.min(60, publicPhotoIds.length), signal: controller.signal });
+      if (sequence !== semanticQuerySequence.current || controller.signal.aborted) return;
+      setSemanticOutcome({ query: response.query, results: mapSemanticResults(photos, response.results) });
+    } catch (error) {
+      if (sequence !== semanticQuerySequence.current || controller.signal.aborted || (error instanceof DOMException && error.name === 'AbortError')) return;
+      setSemanticError(error instanceof Error ? error.message : 'AI Search 查询失败');
+    } finally {
+      if (sequence === semanticQuerySequence.current) semanticQueryController.current = null;
+    }
+  }, [photos, publicPhotoIds.length, semantic, semanticAvailable]);
+  useEffect(() => {
+    if (!aiMode || (semantic.state?.status !== 'ready' && semantic.state?.status !== 'searching')) return;
+    const query = aiQuery.trim();
+    if (!query || query === lastSemanticQuery.current) return;
+    const timer = window.setTimeout(() => { void executeSemanticQuery(query); }, 350);
+    return () => window.clearTimeout(timer);
+  }, [aiMode, aiQuery, executeSemanticQuery, semantic.state?.status]);
+  useEffect(() => () => { semanticQueryController.current?.abort(); }, []);
   const showPhotoOnMap = (photo: ViewerPhoto) => {
     if (!resolveMapPhoto(visible, photo.id)) return;
     const url = mapPhotoURL(new URL(location.href), photo.id, !project);
@@ -178,7 +231,43 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
   };
   const changeFilters = (value: Filters) => { setFilters(value); replaceContext(value, sort, panel === 'map'); };
   const closePanel = () => { mapFocusPhoto.current = null; setPanel(null); replaceContext(filters, sort); };
+  const showSearchPanel = () => {
+    panelAnchor.current = root.current?.querySelector<HTMLElement>('[aria-label="搜索和筛选"]') ?? null;
+    setPanelRequest(value => value + 1);
+    setPanel('search');
+    replaceContext(filters, sort);
+  };
   const hasFilters = Object.values(filters).some(Boolean);
+  const semanticPanel: SearchPanelSemantic | undefined = semanticAvailable ? {
+    active: aiMode,
+    state: semantic.state,
+    moduleLoading: semantic.moduleLoading,
+    moduleError: semantic.moduleError,
+    query: aiQuery,
+    suggestions: semanticQuerySuggestions(typeof document === 'undefined' ? 'zh-CN' : document.documentElement.lang),
+    outcome: semanticOutcome,
+    searchError: semanticError,
+    activate: seed => {
+      setAIMode(true);
+      if (seed !== undefined && seed !== aiQuery) changeSemanticQuery(seed);
+    },
+    deactivate: () => {
+      semanticQuerySequence.current++;
+      semanticQueryController.current?.abort();
+      semanticQueryController.current = null;
+      setAIMode(false);
+      setSemanticError('');
+    },
+    setQuery: changeSemanticQuery,
+    submit: () => { if (aiQuery.trim()) void executeSemanticQuery(aiQuery); },
+    enable: () => { void semantic.enable(publicPhotoIds).catch(() => { /* Engine state supplies accessible failure details. */ }); },
+    cancel: semantic.cancelSetup,
+    retry: () => { void semantic.retry(publicPhotoIds).catch(() => { /* Engine state supplies accessible failure details. */ }); },
+    chooseSuggestion: query => { changeSemanticQuery(query); void executeSemanticQuery(query); },
+    openResult: result => open(result.photo, null),
+    viewAll: closePanel,
+    retryQuery: () => { lastSemanticQuery.current = ''; void executeSemanticQuery(aiQuery); },
+  } : undefined;
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       if (selected || event.isComposing) return;
@@ -186,7 +275,7 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
       if (((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') || (event.key === '/' && !editing)) {
         event.preventDefault();
         if (panel === 'search') closePanel();
-        else { panelAnchor.current = root.current?.querySelector<HTMLElement>('[aria-label="搜索和筛选"]') ?? null; setPanel('search'); replaceContext(filters, sort); }
+        else showSearchPanel();
       }
     };
     window.addEventListener('keydown', shortcut);
@@ -203,15 +292,23 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
   return <MapNavigationContext.Provider value={mapNavigation}><LazyMotion features={domMax}><div ref={root} className={`gallery-live${mapPage ? ' gallery-map-page' : ''}`} data-viewer-ready="true">
     <PageHeader title={title} count={visible.length} view={view} onView={saveView} panel={panel} project={!!project} mapPage={mapPage} state={{ filters, sort }}
       onPanel={(next, anchor) => { setPanelRequest(value => value + 1); panelAnchor.current = anchor; setPanel(next); replaceContext(filters, sort, next === 'map'); }}
-      hasFilters={hasFilters} customized={(!mapPage && columns !== 0) || sort !== 'project'} />
+      hasFilters={!aiMode && hasFilters} customized={(!mapPage && columns !== 0) || sort !== 'project'} />
     {notice && <p className="gallery-notice" role="status">{notice}<button className="icon-button" onClick={() => setNotice('')} aria-label="关闭提示"><Icon name="close" /></button></p>}
-    {hasFilters && <div className="filter-summary"><div className="filter-chips"><AnimatePresence initial={false}>{(Object.keys(filters) as (keyof Filters)[]).filter(field => filters[field]).map(field => <FilterChip key={field} field={field} value={field === 'project' ? projectLabel ?? filters[field] : filters[field]} onRemove={() => changeFilters({ ...filters, [field]: '' })} />)}</AnimatePresence></div><div className="filter-summary-count"><span role="status">找到 {visible.length} / {photos.length} 张照片</span><button onClick={() => changeFilters(emptyFilters)}>清除筛选 <Icon name="close" /></button></div></div>}
-    {mapPage ? <div className="gallery-map-stage">{!selectedPhoto && mapContent}</div> : visible.length === 0 ? <div className="gallery-empty"><Icon name="search" /><h2>{photos.length ? '没有符合条件的照片' : '尚无公开照片'}</h2><p>{photos.length ? '试试其他关键词，或清除筛选。' : '发布后的照片会展示在这里。'}</p>{hasFilters && <button onClick={() => changeFilters(emptyFilters)}>清除筛选</button>}</div> : view === 'masonry' ? (
+    {aiMode && semanticAvailable && <div className="ai-gallery-summary" data-status={semantic.state?.status ?? 'disabled'}>
+      <span className="ai-summary-icon"><Icon name="sparkles-2" /></span>
+      <button type="button" className="ai-summary-main" onClick={showSearchPanel}>
+        <strong>{semanticOutcome ? `AI Search：${semanticOutcome.query}` : 'AI Search'}</strong>
+        <small role="status">{semantic.state?.status === 'searching' ? '正在本机搜索…' : semanticOutcome ? `${semanticOutcome.results.length} 张语义结果` : semantic.state?.status === 'ready' ? '输入自然语言搜索' : '打开以启用本机模型'}</small>
+      </button>
+      <button type="button" className="ai-summary-exit" onClick={() => semanticPanel?.deactivate()}>退出 AI Search</button>
+    </div>}
+    {!aiMode && hasFilters && <div className="filter-summary"><div className="filter-chips"><AnimatePresence initial={false}>{(Object.keys(filters) as (keyof Filters)[]).filter(field => filters[field]).map(field => <FilterChip key={field} field={field} value={field === 'project' ? projectLabel ?? filters[field] : filters[field]} onRemove={() => changeFilters({ ...filters, [field]: '' })} />)}</AnimatePresence></div><div className="filter-summary-count"><span role="status">找到 {visible.length} / {photos.length} 张照片</span><button onClick={() => changeFilters(emptyFilters)}>清除筛选 <Icon name="close" /></button></div></div>}
+    {mapPage ? <div className="gallery-map-stage">{!selectedPhoto && mapContent}</div> : visible.length === 0 ? <div className="gallery-empty"><Icon name={aiMode ? 'sparkles-2' : 'search'} /><h2>{aiMode ? '没有找到语义匹配' : photos.length ? '没有符合条件的照片' : '尚无公开照片'}</h2><p>{aiMode ? '换一种更宽泛的场景描述试试。' : photos.length ? '试试其他关键词，或清除筛选。' : '发布后的照片会展示在这里。'}</p>{aiMode ? <button onClick={showSearchPanel}>调整 AI Search</button> : hasFilters && <button onClick={() => changeFilters(emptyFilters)}>清除筛选</button>}</div> : view === 'masonry' ? (
       <MasonryView items={items} columns={columns} />
     ) : <ListView items={items} />}
-    {panel && !selected && <Panel key={`${panel}-${panelRequest}`} anchor={panelAnchor.current} kind={panel === 'settings' ? 'settings' : panel === 'search' ? 'search' : panel === 'map' ? 'map' : 'dialog'} title={{ info: '项目信息', search: '搜索和筛选', settings: '显示设置', map: '地图探索' }[panel]} onClose={closePanel} wide={panel === 'map'}>
+    {panel && !selected && <Panel key={`${panel}-${panelRequest}`} anchor={panelAnchor.current} kind={panel === 'settings' ? 'settings' : panel === 'search' ? 'search' : panel === 'map' ? 'map' : 'dialog'} title={panel === 'search' && aiMode ? 'AI Search' : { info: '项目信息', search: '搜索和筛选', settings: '显示设置', map: '地图探索' }[panel]} onClose={closePanel} wide={panel === 'map'}>
       {panel === 'info' && project && <><h3 className="project-panel-title">{project.title}</h3>{project.summary && <p>{project.summary}</p>}<dl className="metadata-rows project-details">{project.location && <><dt>地点</dt><dd>{project.location}</dd></>}{project.period && <><dt>日期</dt><dd>{project.period.start}{project.period.end && project.period.end !== project.period.start && ` — ${project.period.end}`}</dd></>}<dt>照片</dt><dd>{photos.length}</dd></dl>{project.description && <p className="project-description">{project.description}</p>}<ul className="tags">{project.tags?.map(tag => <li key={tag}>{tag}</li>)}</ul><ViewerAttribution /></>}
-      {panel === 'search' && <SearchPanel options={options} fields={fields} project={!!project} mapPage={mapPage} filters={filters} count={visible.length} onChange={changeFilters} onAction={action => {
+      {panel === 'search' && <SearchPanel options={options} fields={fields} project={!!project} mapPage={mapPage} filters={filters} count={visible.length} semantic={semanticPanel} onChange={changeFilters} onAction={action => {
         if (action === 'masonry' || action === 'list') { saveView(action); closePanel(); }
         else if (action === 'map' && !project) location.assign(globalGalleryHref('map', { filters, sort }));
         else { setPanel(action); replaceContext(filters, sort, action === 'map'); }
