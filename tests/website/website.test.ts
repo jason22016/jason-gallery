@@ -625,17 +625,28 @@ test('metadata stays lazy, preserves units/offsets and zero values, retries, and
   for (const value of ['2024-03-02 12:00:00', 'UTC_8', '35 mm', '1/125 s', '0 EV', '0 m', '22.3 °', '114.17 °']) await expect(page.locator('.metadata-content')).toContainText(value);
   let release!: () => void; const pending = new Promise<void>(resolve => { release = resolve; }); t.after(() => release());
   const nearId = fixture.manifest.data.find(photo => photo.s3Key === 'map-near.jpg')!.id;
+  const farId = fixture.manifest.data.find(photo => photo.s3Key === 'map-far.jpg')!.id;
+  // This test holds one specific photo's metadata request. Select that photo
+  // explicitly and verify its identity: the previous photo can still report
+  // "loaded" before an asynchronous Swiper navigation has taken effect.
+  const selectPhoto = async (id: string) => {
+    const thumbnail = page.locator(`[data-filmstrip-id="${id}"]`);
+    await thumbnail.click();
+    await expect(thumbnail).toHaveAttribute('aria-current', 'true');
+    await expect(page).toHaveURL(url => url.searchParams.get('photo') === id);
+    await loaded(page);
+  };
   let intercepted = 0;
   await page.route(url => url.pathname === `/projects/fixture-alpha/photos/${nearId}.json`, async route => {
     intercepted++;
     await pending;
     await route.continue().catch(() => {});
   });
-  await page.keyboard.press('ArrowRight'); await loaded(page);
+  await selectPhoto(nearId);
   await expect.poll(() => intercepted, { message: 'The next photo metadata response must be held by the test' }).toBe(1);
   await expect(page.locator('.metadata-content')).not.toContainText('Fixture artist');
   await expect(page.locator('.metadata-content')).toContainText('正在加载详细信息');
-  await page.keyboard.press('ArrowRight'); await loaded(page); release();
+  await selectPhoto(farId); release();
   await expect(page.locator('.metadata-content')).toContainText('此照片没有 EXIF 信息');
   await expect(page.locator('.metadata-content')).toContainText('未记录');
   await expect(page.locator('.exposure-grid')).toHaveCount(0);
