@@ -27,8 +27,17 @@ jobs:
           - name: Viewer
             script: test:viewer
             browser: true
-          - name: Website
-            script: test:website
+          - name: Website Gallery
+            script: test:website:group
+            website_group: gallery
+            browser: true
+          - name: Website Project
+            script: test:website:group
+            website_group: project
+            browser: true
+          - name: Website Pages
+            script: test:website:group
+            website_group: pages
             browser: true
           - name: SEO
             script: test:seo
@@ -60,7 +69,7 @@ jobs:
         if: matrix.script == 'test:semantic-browser'
         run: pnpm exec playwright install --with-deps chromium firefox webkit chrome
       - name: Run ${{ matrix.name }} checks
-        run: pnpm ${{ matrix.script }}
+        run: pnpm ${{ matrix.script }} ${{ matrix.website_group }}
       - name: Retain Viewer diagnostics
         if: always() && matrix.script == 'test:viewer'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -70,10 +79,10 @@ jobs:
           include-hidden-files: true
           retention-days: 14
       - name: Retain Website failure diagnostics
-        if: failure() && matrix.script == 'test:website'
+        if: failure() && matrix.script == 'test:website:group'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: website-diagnostics
+          name: website-diagnostics-${{ matrix.website_group }}
           path: .cache/website-diagnostics
           include-hidden-files: true
           retention-days: 14

@@ -23,6 +23,7 @@
     "test:projects": "node --import tsx --test tests/projects/*.test.ts",
     "test:statistics": "node --import tsx --test tests/statistics/*.test.ts",
     "test:website": "node --import tsx --test --test-concurrency=1 tests/website/*.test.ts",
+    "test:website:group": "node --import tsx scripts/ci/website-tests.ts",
     "test:seo": "node --import tsx --test --test-concurrency=1 tests/seo/*.test.ts",
     "website:fixture": "node --import tsx tests/website/fixture.ts",
     "website:preview": "node --import tsx tests/website/server.ts",
