@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { encodePathSegments } from '@afilmory/utils/url-path.js';
 import { LEGACY_SOURCE } from '../../src/photo-engine/sources.js';
 interface RepositoryFixture { owner?: string; repo?: string; branch?: string; ref: string; private?: boolean; fail?: boolean; rawStatus?: number; files: Record<string, { file: string; commit: string }> }
 export async function installFixture(file: string) {
@@ -47,7 +48,7 @@ export async function installFixture(file: string) {
     }
     if (url.searchParams.get('ref') !== r.ref) throw new Error('Unpinned contents');
     const key = route.replace(/^\/contents\/?/, '');
-    const metadata = (key: string, type: string) => ({ type, path: key, name: path.posix.basename(key), sha: data.get(key)?.sha, size: data.get(key)?.bytes.length, download_url: `https://raw.githubusercontent.com/${r.owner}/${r.repo}/${r.ref}/${key}` });
+    const metadata = (key: string, type: string) => ({ type, path: key, name: path.posix.basename(key), sha: data.get(key)?.sha, size: data.get(key)?.bytes.length, download_url: `https://raw.githubusercontent.com/${r.owner}/${r.repo}/${r.ref}/${encodePathSegments(key)}` });
     if (data.has(key)) return response(metadata(key, 'file'));
     const children = new Map<string, string>();
     const directory = key ? `${key}/` : '';

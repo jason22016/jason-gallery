@@ -1,0 +1,75 @@
+diff --git a/packages/afilmory/builder/src/storage/providers/github-provider.ts b/packages/afilmory/builder/src/storage/providers/github-provider.ts
+index 83f2194..7890869 100644
+--- a/packages/afilmory/builder/src/storage/providers/github-provider.ts
++++ b/packages/afilmory/builder/src/storage/providers/github-provider.ts
+@@ -1,6 +1,7 @@
+ import path from 'node:path'
+ 
+ import { getGlobalLoggers } from '@afilmory/builder/photo/logger-adapter.js'
++import { encodePathSegments } from '@afilmory/utils/url-path.js'
+ 
+ import { SUPPORTED_FORMATS } from '../../constants/index.js'
+ import type {
+@@ -86,7 +87,7 @@ export class GitHubStorageProvider implements StorageProvider {
+ 
+   private async fetchContentMetadata(key: string): Promise<GitHubFileContent | null> {
+     const fullPath = this.getFullPath(key)
+-    const url = `${this.baseApiUrl}/contents/${fullPath}?ref=${this.githubConfig.branch}`
++    const url = `${this.baseApiUrl}/contents/${encodePathSegments(fullPath)}?ref=${this.githubConfig.branch}`
+ 
+     const response = await fetch(url, {
+       headers: this.getAuthHeaders(),
+@@ -112,7 +113,7 @@ export class GitHubStorageProvider implements StorageProvider {
+       const startTime = Date.now()
+ 
+       const fullPath = this.getFullPath(key)
+-      const url = `${this.baseApiUrl}/contents/${fullPath}?ref=${this.githubConfig.branch}`
++      const url = `${this.baseApiUrl}/contents/${encodePathSegments(fullPath)}?ref=${this.githubConfig.branch}`
+ 
+       const response = await fetch(url, {
+         headers: this.getAuthHeaders(),
+@@ -186,7 +187,7 @@ export class GitHubStorageProvider implements StorageProvider {
+     progressCallback?: ProgressCallback,
+   ): Promise<void> {
+     try {
+-      const url = `${this.baseApiUrl}/contents/${dirPath}?ref=${this.githubConfig.branch}`
++      const url = `${this.baseApiUrl}/contents/${encodePathSegments(dirPath)}?ref=${this.githubConfig.branch}`
+ 
+       const response = await fetch(url, {
+         headers: this.getAuthHeaders(),
+@@ -235,7 +236,7 @@ export class GitHubStorageProvider implements StorageProvider {
+     }
+ 
+     const fullPath = this.getFullPath(key)
+-    const url = `${this.baseApiUrl}/contents/${fullPath}`
++    const url = `${this.baseApiUrl}/contents/${encodePathSegments(fullPath)}`
+     const body = {
+       message: `Delete ${fullPath}`,
+       sha: metadata.sha,
+@@ -272,7 +273,7 @@ export class GitHubStorageProvider implements StorageProvider {
+   async uploadFile(key: string, data: Buffer, _options?: StorageUploadOptions): Promise<StorageObject> {
+     const metadata = await this.fetchContentMetadata(key)
+     const fullPath = this.getFullPath(key)
+-    const url = `${this.baseApiUrl}/contents/${fullPath}`
++    const url = `${this.baseApiUrl}/contents/${encodePathSegments(fullPath)}`
+ 
+     const payload: Record<string, unknown> = {
+       message: `Upload ${fullPath}`,
+@@ -339,7 +340,7 @@ export class GitHubStorageProvider implements StorageProvider {
+   }
+ 
+   generatePublicUrl(key: string): string {
+-    const fullPath = this.getFullPath(key)
++    const fullPath = encodePathSegments(this.getFullPath(key))
+ 
+     // 如果设置了自定义 CDN 域名，直接使用
+     if (this.githubConfig.customDomain) {
+diff --git a/packages/afilmory/utils/src/url-path.ts b/packages/afilmory/utils/src/url-path.ts
+new file mode 100644
+index 0000000..3fdf174
+--- /dev/null
++++ b/packages/afilmory/utils/src/url-path.ts
+@@ -0,0 +1,3 @@
++// Paths are raw filenames: preserve separators and encode literal percent signs
++// without decoding sequences such as "%20" into a different filename.
++export const encodePathSegments = (path: string): string => path.split('/').map(encodeURIComponent).join('/')

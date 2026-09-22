@@ -1,6 +1,7 @@
 // Shared server/build contract. Never imported by a browser entry.
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { encodePathSegments } from '@afilmory/utils/url-path.js';
 
 import { SourcesSchema, SourceSchema, type PhotoSource, type SourcesConfig } from './source-schema.js';
 export { SourcesSchema, SourceSchema, type PhotoSource, type SourcesConfig } from './source-schema.js';
@@ -17,7 +18,7 @@ export function parseSources(value: unknown): SourcesConfig {
 }
 export const sourceIdentity = (s: PhotoSource) => digest({ owner: s.owner.toLowerCase(), repo: s.repo.toLowerCase(), branch: s.branch, path: s.path });
 export const sourceAPI = (s: PhotoSource) => `https://api.github.com/repos/${s.owner}/${s.repo}`;
-export const originalURL = (s: PhotoSource, commit: string, key: string) => `https://raw.githubusercontent.com/${s.owner}/${s.repo}/${commit}/${[s.path, key].filter(Boolean).join('/')}`;
+export const originalURL = (s: PhotoSource, commit: string, key: string) => `https://raw.githubusercontent.com/${s.owner}/${s.repo}/${commit}/${encodePathSegments([s.path, key].filter(Boolean).join('/'))}`;
 // Full digests keep even long/non-ASCII native IDs within filesystem segment limits.
 // The index retains the original ID; never recover it by heuristic string matching.
 export const photoReference = (s: PhotoSource, nativeId: string) => `${s.sourceId}--${sourceIdentity(s)}--${digest(nativeId)}`;

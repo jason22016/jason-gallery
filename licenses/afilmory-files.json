@@ -407,7 +407,7 @@
       "path": "packages/afilmory/builder/src/storage/providers/github-provider.ts",
       "upstream": "packages/builder/src/storage/providers/github-provider.ts",
       "upstreamSha256": "33e0969df93d7221d041152da483eabbfc53549647a6f6d3b44e4ddbbc1ad6f2",
-      "sha256": "33e0969df93d7221d041152da483eabbfc53549647a6f6d3b44e4ddbbc1ad6f2"
+      "sha256": "08ecb15e0ec117fd0011dfe24cddb4e8eca4b2d1f5e9a6efadb0a2cf7a1e2cc4"
     },
     {
       "path": "packages/afilmory/builder/src/storage/providers/local-provider.ts",

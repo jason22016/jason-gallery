@@ -21,6 +21,7 @@ Builder and Viewer package manifests declare MIT; the typing, utils and renderer
 
 - `builder/src/path.ts`: absolute `JASON_GALLERY_PHOTO_WORKDIR`, with upstream default retained. Environment inheritance is standard Node behavior; Phase 1 uses the upstream in-process async worker pool, not cluster subprocesses.
 - `builder/src/image/exif.ts`: type-only record assertion for dynamically selected ExifTool keys, to compile under strict TypeScript. No runtime algorithm change.
+- `builder/src/storage/providers/github-provider.ts`: encode each filename/directory segment in Contents API and public URLs. The locally authored `utils/src/url-path.ts` helper is shared with the gallery's original-URL contract; literal percent sequences remain literal filenames. The provider adaptation and helper are recorded in `patches/afilmory-github-url-paths.patch`.
 - Package manifests: source-only private workspace packages, exact dependency versions, expanded catalogs; utils is moved into Builder runtime dependencies and the previously root-hoisted `es-toolkit@1.47.1` is declared. Renderer gets actual Hono JSX, Satori and Resvg runtime dependencies; its two incorrect subpath exports now point to `src/og/`. Unused upstream `heic-to` is omitted; `heic-convert` remains. Build/release dev toolchains are not copied.
 - `src/vendor-types.d.ts` is a local declaration for the untyped HEIC conversion dependency, not a change to upstream processing.
 
