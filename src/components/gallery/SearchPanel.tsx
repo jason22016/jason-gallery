@@ -90,7 +90,11 @@ export function SearchPanel({ options, fields, project, mapPage = false, filters
           else { update('query', event.target.value); setSelectedIndex(-1); }
         }}
         onKeyDown={event => {
-          if (event.nativeEvent.isComposing || aiActive) return;
+          if (event.nativeEvent.isComposing) return;
+          // Close from the focused input without relying on the dialog's
+          // document-level Escape listener.
+          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); dismiss(); return; }
+          if (aiActive) return;
           if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); navigate(selectedIndex + (event.key === 'ArrowDown' ? 1 : -1)); }
           if (event.key === 'Enter' && selectedIndex >= 0) { event.preventDefault(); choose(selectedIndex); }
         }} />
