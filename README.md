@@ -31,6 +31,8 @@ pnpm test
 
 公开导航为 Projects / Explore / Map / Stats：`/` 继续展示项目，`/explore/` 汇集所有 published Projects 引用的公开照片，按照片 ID 去重；`/map/` 使用其中有有效 GPS 的照片。Explore、Map 与 Project 共用 Gallery、filters 和 Viewer；Explore ↔ Map 保留搜索、日期、相机、镜头、标签、项目筛选及排序。地图复用 PhotoMap，首次适配结果，筛选后保留视角，可用 Fit Results 重新定位。实现与验证见 [Global Gallery Phase 2](docs/gallery/GLOBAL_PHASE2.md)、[Phase 3](docs/gallery/GLOBAL_PHASE3.md) 和 [最终整合 / Release Gate](docs/gallery/GLOBAL_PHASE4.md)。
 
+Explore 和每个 Project 的 Cmd+K 均提供 AI Search：Explore 搜索全部公开照片，Project 只搜索当前项目内的照片，共用本机模型与缓存。默认展示余弦分数 ≥ 0.07 的结果；“显示更多”每次放宽一档：0.05 → 0.03 → 当前范围内原始最多 60 张候选。可一键恢复第一档，换词时自动重置。搜索栏、图库和 Viewer 使用同一份结果，详见 [AI Search 分级展示](docs/SEMANTIC_SEARCH_RESULT_LEVELS.md)。
+
 `/stats/` 显示 All Photos 的公开聚合统计，`?project=<slug>` 选择 published Project。设备详情可打开对应 Explore 筛选，Geotagged 的 View on Map 打开同一 scope 的 Global Map；跳转复用现有 helpers，将 Stats slug 转为 Explore / Map 约定的 Project 永久 ID。浏览器仅接收聚合结果、公开 Project 身份和精确设备链接，不加载照片集合、Viewer、MapLibre 或完整 EXIF。见 [Photography Stats Release Gate](docs/statistics/PHASE3.md)。
 
 普通 `pnpm build` 与自动发布共用公开输出白名单。只把 favicon 和 Photo Engine 输出放入 `public/`；Manifest、私有 metadata、预览和 Admin 数据不能放在其中。构建清理未公开及过期照片资产，只修改输出，不修改本地照片输入。新增 release 回归已包含在 `test:website` / `test:checks` 中，无需另行配置自动化。

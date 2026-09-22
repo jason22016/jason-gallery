@@ -252,6 +252,23 @@ test('query normalization and cosine Top-K are deterministic and reject malforme
   assert.throws(() => rankSemanticVectors(normalized, ['AAAAAAAAAAAAAAAA'], new Float32Array(1), 1), /dimension mismatch/);
 });
 
+test('project scope is applied before Top-K so photos outside the global Top-100 remain discoverable', () => {
+  const ids = Array.from({ length: 102 }, (_, index) => String(index).padStart(16, '0'));
+  const query = new Float32Array(768); query[0] = 1;
+  const vectors = new Float32Array(ids.length * 768);
+  ids.forEach((_, row) => {
+    vectors[row * 768] = row < 100 ? 1 : .6;
+    vectors[row * 768 + 1] = row < 100 ? 0 : .8;
+  });
+  const scope = ids.slice(100).reverse();
+  assert(rankSemanticVectors(query, ids, vectors, 100).every(result => !scope.includes(result.publicId)));
+  assert.deepEqual(rankSemanticVectors(query, ids, vectors, 2, scope).map(({ publicId, rank }) => ({ publicId, rank })), [
+    { publicId: ids[100], rank: 1 }, { publicId: ids[101], rank: 2 },
+  ], 'ties keep original index order, independent of project/editorial order');
+  assert.equal(rankSemanticVectors(query, ids, vectors, 60, [ids[101]!]).length, 1);
+  assert.deepEqual(rankSemanticVectors(query, ids, vectors, 60, []), [], 'an empty scope must not widen to all photos');
+});
+
 test('model config exposes only the frozen text inference contract', async () => {
   const config = parseClientModelConfig(JSON.parse(await fs.readFile('semantic-releases/siglip2-base-v64k-uint4-b32-r1/model-config.json', 'utf8')));
   assert.equal(config.maximumTokens, 64);

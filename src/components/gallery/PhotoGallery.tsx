@@ -21,7 +21,7 @@ import { MapPhotoList } from './map/MapPhotoList';
 import { validLocation } from '../viewer/metadata';
 import { useGalleryScrollRestoration } from './scroll-restoration';
 import { useSemanticSearch } from './useSemanticSearch';
-import { mapSemanticResults, type MappedSemanticResult } from './semantic-results';
+import { mapSemanticResults, selectSemanticResults, SEMANTIC_RESULT_LEVELS, semanticResultLabels, type MappedSemanticResult } from './semantic-results';
 import { semanticQuerySuggestions } from './semantic-suggestions';
 
 type MapComponent = typeof import('./PhotoMap').default;
@@ -62,6 +62,7 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
   const [aiMode, setAIMode] = useState(false);
   const [aiQuery, setAIQuery] = useState('');
   const [semanticOutcome, setSemanticOutcome] = useState<{ query: string; results: MappedSemanticResult[] } | null>(null);
+  const [semanticResultLevel, setSemanticResultLevel] = useState(0);
   const [semanticError, setSemanticError] = useState('');
   const semantic = useSemanticSearch();
   const semanticQueryController = useRef<AbortController | null>(null);
@@ -72,8 +73,16 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
   const projectLabel = options.find(option => option.field === 'project' && option.value === filters.project)?.label;
   const metadataVisible = useMemo(() => selectPhotos(photos, filters, sort).filter(photo => !mapPage || validLocation(photo.location)), [photos, filters, sort, mapPage]);
   const publicPhotoIds = useMemo(() => photos.flatMap(photo => photo.publicId ? [photo.publicId] : []), [photos]);
-  const semanticAvailable = !project && !mapPage && photos.length > 0 && publicPhotoIds.length === photos.length;
-  const visible = aiMode && semanticOutcome ? semanticOutcome.results.map(result => result.photo) : metadataVisible;
+  const semanticAvailable = !mapPage && photos.length > 0 && publicPhotoIds.length === photos.length;
+  const semanticDisplayOutcome = useMemo(() => semanticOutcome ? {
+    query: semanticOutcome.query,
+    results: selectSemanticResults(semanticOutcome.results, semanticResultLevel),
+  } : null, [semanticOutcome, semanticResultLevel]);
+  const semanticTotal = semanticOutcome?.results.length ?? 0;
+  const canExpandSemanticResults = semanticResultLevel < SEMANTIC_RESULT_LEVELS.length - 1 && semanticTotal > (semanticDisplayOutcome?.results.length ?? 0);
+  const expandSemanticResults = () => setSemanticResultLevel(value => Math.min(value + 1, SEMANTIC_RESULT_LEVELS.length - 1));
+  const resetSemanticResults = () => setSemanticResultLevel(0);
+  const visible = aiMode && semanticDisplayOutcome ? semanticDisplayOutcome.results.map(result => result.photo) : metadataVisible;
   const mapKey = mapPage ? 'global' : visible.map(photo => photo.id).join(',');
   const selectedMapPhoto = resolveMapPhoto(visible, mapPhotoId);
   const selectedPhoto = (project ? photos : visible).find(p => p.id === selected);
@@ -151,6 +160,7 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
     semanticQueryController.current?.abort();
     semanticQueryController.current = null;
     setSemanticError('');
+    setSemanticResultLevel(0);
     setAIQuery(value);
     if (!value.trim()) {
       lastSemanticQuery.current = '';
@@ -166,9 +176,14 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
     semanticQueryController.current = controller;
     lastSemanticQuery.current = query;
     setSemanticError('');
+    setSemanticResultLevel(0);
     try {
-      const response = await semantic.search(query, { topK: Math.min(60, publicPhotoIds.length), signal: controller.signal });
+      const response = await semantic.search(query, {
+        topK: Math.min(60, publicPhotoIds.length), signal: controller.signal,
+        ...(project ? { scopePhotoIds: publicPhotoIds } : {}),
+      });
       if (sequence !== semanticQuerySequence.current || controller.signal.aborted) return;
+      setSemanticResultLevel(0);
       setSemanticOutcome({ query: response.query, results: mapSemanticResults(photos, response.results) });
     } catch (error) {
       if (sequence !== semanticQuerySequence.current || controller.signal.aborted || (error instanceof DOMException && error.name === 'AbortError')) return;
@@ -176,7 +191,7 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
     } finally {
       if (sequence === semanticQuerySequence.current) semanticQueryController.current = null;
     }
-  }, [photos, publicPhotoIds.length, semantic, semanticAvailable]);
+  }, [photos, publicPhotoIds, project, semantic, semanticAvailable]);
   useEffect(() => {
     if (!aiMode || (semantic.state?.status !== 'ready' && semantic.state?.status !== 'searching')) return;
     const query = aiQuery.trim();
@@ -245,7 +260,9 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
     moduleError: semantic.moduleError,
     query: aiQuery,
     suggestions: semanticQuerySuggestions(typeof document === 'undefined' ? 'zh-CN' : document.documentElement.lang),
-    outcome: semanticOutcome,
+    outcome: semanticDisplayOutcome,
+    totalResults: semanticTotal,
+    resultLevel: semanticResultLevel,
     searchError: semanticError,
     activate: seed => {
       setAIMode(true);
@@ -260,12 +277,14 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
     },
     setQuery: changeSemanticQuery,
     submit: () => { if (aiQuery.trim()) void executeSemanticQuery(aiQuery); },
-    enable: () => { void semantic.enable(publicPhotoIds).catch(() => { /* Engine state supplies accessible failure details. */ }); },
+    enable: () => { void semantic.enable(project ? undefined : publicPhotoIds).catch(() => { /* Engine state supplies accessible failure details. */ }); },
     cancel: semantic.cancelSetup,
-    retry: () => { void semantic.retry(publicPhotoIds).catch(() => { /* Engine state supplies accessible failure details. */ }); },
+    retry: () => { void semantic.retry(project ? undefined : publicPhotoIds).catch(() => { /* Engine state supplies accessible failure details. */ }); },
     chooseSuggestion: query => { changeSemanticQuery(query); void executeSemanticQuery(query); },
     openResult: result => open(result.photo, null),
     viewAll: closePanel,
+    expandResults: () => { expandSemanticResults(); closePanel(); },
+    resetResults: () => { resetSemanticResults(); closePanel(); },
     retryQuery: () => { lastSemanticQuery.current = ''; void executeSemanticQuery(aiQuery); },
   } : undefined;
   useEffect(() => {
@@ -295,7 +314,14 @@ export default function PhotoGallery({ photos, title, project, mapPage = false }
       hasFilters={!aiMode && hasFilters} customized={(!mapPage && columns !== 0) || sort !== 'project'} />
     {notice && <p className="gallery-notice" role="status">{notice}<button className="icon-button" onClick={() => setNotice('')} aria-label="关闭提示"><Icon name="close" /></button></p>}
     {!aiMode && hasFilters && <div className="filter-summary"><div className="filter-chips"><AnimatePresence initial={false}>{(Object.keys(filters) as (keyof Filters)[]).filter(field => filters[field]).map(field => <FilterChip key={field} field={field} value={field === 'project' ? projectLabel ?? filters[field] : filters[field]} onRemove={() => changeFilters({ ...filters, [field]: '' })} />)}</AnimatePresence></div><div className="filter-summary-count"><span role="status">找到 {visible.length} / {photos.length} 张照片</span><button onClick={() => changeFilters(emptyFilters)}>清除筛选 <Icon name="close" /></button></div></div>}
-    {mapPage ? <div className="gallery-map-stage">{!selectedPhoto && mapContent}</div> : visible.length === 0 ? <div className="gallery-empty"><Icon name={aiMode ? 'sparkles-2' : 'search'} /><h2>{aiMode ? '没有可显示的 AI Search 结果' : photos.length ? '没有符合条件的照片' : '尚无公开照片'}</h2><p>{aiMode ? '图库映射可能已更新，请重试或稍后再试。' : photos.length ? '试试其他关键词，或清除筛选。' : '发布后的照片会展示在这里。'}</p>{aiMode ? <button onClick={showSearchPanel}>检查 AI Search</button> : hasFilters && <button onClick={() => changeFilters(emptyFilters)}>清除筛选</button>}</div> : view === 'masonry' ? (
+    {aiMode && semanticDisplayOutcome && <div className="ai-gallery-summary">
+      <span role="status">“{semanticDisplayOutcome.query}” · {semanticResultLabels[semanticResultLevel]} · {visible.length} 张</span>
+      <div className="ai-gallery-actions">
+        {semanticResultLevel > 0 && <button type="button" onClick={resetSemanticResults}>只看较相关的结果</button>}
+        {canExpandSemanticResults && <button type="button" onClick={expandSemanticResults}>{semanticResultLevel === SEMANTIC_RESULT_LEVELS.length - 2 ? '显示剩余候选' : '显示更多'}</button>}
+      </div>
+    </div>}
+    {mapPage ? <div className="gallery-map-stage">{!selectedPhoto && mapContent}</div> : visible.length === 0 ? <div className="gallery-empty"><Icon name={aiMode ? 'sparkles-2' : 'search'} /><h2>{aiMode ? (semanticTotal ? '当前范围没有 AI Search 结果' : '没有可显示的 AI Search 结果') : photos.length ? '没有符合条件的照片' : '尚无公开照片'}</h2><p>{aiMode ? (semanticTotal ? '试试其他描述，或逐步扩大搜索范围。' : '试试其他描述。') : photos.length ? '试试其他关键词，或清除筛选。' : '发布后的照片会展示在这里。'}</p>{aiMode ? <button onClick={showSearchPanel}>更换搜索描述</button> : hasFilters && <button onClick={() => changeFilters(emptyFilters)}>清除筛选</button>}</div> : view === 'masonry' ? (
       <MasonryView items={items} columns={columns} />
     ) : <ListView items={items} />}
     {panel && !selected && <Panel key={`${panel}-${panelRequest}`} anchor={panelAnchor.current} kind={panel === 'settings' ? 'settings' : panel === 'search' ? 'search' : panel === 'map' ? 'map' : 'dialog'} title={{ info: '项目信息', search: '搜索和筛选', settings: '显示设置', map: '地图探索' }[panel]} onClose={closePanel} wide={panel === 'map'}>

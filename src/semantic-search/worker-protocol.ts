@@ -19,6 +19,7 @@ export interface SemanticWorkerQueryRequest {
   queryId: number;
   text: string;
   topK: number;
+  scopePhotoIds?: readonly string[];
 }
 
 export interface SemanticWorkerCancelRequest {

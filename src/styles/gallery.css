@@ -142,6 +142,10 @@
 .filter-summary { display: flex; flex-wrap: wrap; align-items: center; }
 .filter-summary-count { display: flex; align-items: center; gap: 12px; margin-left: auto; }
 .filter-summary button { display: inline-flex; align-items: center; gap: 8px; }
+.ai-gallery-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 20px; color: var(--color-text-secondary); font-size: 12px; }
+.ai-gallery-summary > span { min-width: 0; overflow-wrap: anywhere; }
+.ai-gallery-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.gallery-page .ai-gallery-actions > button { min-height: 36px; padding: 6px 12px; font-size: 12px; }
 .filter-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
 .filter-chip { display: flex; align-items: center; gap: 6px; max-width: min(320px, 100%); padding: 2px 4px 2px 12px; border-radius: 999px; border: 1px solid var(--gallery-border); background: var(--color-material-thin); backdrop-filter: blur(var(--gallery-blur-control)); font-size: 12px; color: var(--color-text); }
 .filter-chip > .gallery-icon { color: var(--color-text-secondary); }
@@ -294,7 +298,7 @@
 .ai-no-results > .gallery-icon { margin-bottom: 3px; color: var(--color-text-tertiary); font-size: 20px; }
 .ai-no-results strong { color: var(--color-text); font-size: 13px; }
 .ai-result-heading { padding: 4px 8px 8px; color: var(--color-text-secondary); font-size: 11px; }
-.ai-result-heading > span:first-child { align-items: baseline; }
+.ai-result-heading > span:first-child { flex-wrap: wrap; align-items: baseline; }
 .ai-result-list { display: flex; flex-direction: column; gap: 2px; }
 .gallery-page .ai-result-item { display: flex; align-items: center; width: 100%; min-height: 54px; gap: 10px; padding: 6px 8px; border: 0; border-radius: 8px; background: transparent; text-align: left; }
 .gallery-page .ai-result-item:hover, .gallery-page .ai-result-item:focus-visible { background: var(--color-fill); }

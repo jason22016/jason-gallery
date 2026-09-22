@@ -8,7 +8,7 @@ globalThis.installSemanticFake = function installSemanticFake(publicIds, initial
   let activeSearch = null;
   const listeners = new Set();
   const counts = { enables: 0, retries: 0, cancels: 0, queries: 0, abortedQueries: 0, workerStarts: 0, sessionInitializations: 0, modelDownloads: 0, persistentCacheHits: 0 };
-  const control = { enableMode: initialMode, counts, enabledPhotoIds: [], queries: [] };
+  const control = { enableMode: initialMode, counts, enabledPhotoIds: [], queries: [], queryOptions: [], resultSets: {} };
   const publish = patch => {
     state = { ...state, ...patch, progress: patch.progress ?? state.progress };
     for (const listener of listeners) listener(state);
@@ -68,6 +68,7 @@ globalThis.installSemanticFake = function installSemanticFake(publicIds, initial
     search(query, options = {}) {
       counts.queries++;
       control.queries.push(query);
+      control.queryOptions.push({ topK: options.topK, scopePhotoIds: options.scopePhotoIds ? [...options.scopePhotoIds] : undefined });
       if (activeSearch) { clearTimeout(activeSearch.timer); activeSearch.detach?.(); activeSearch.reject(abort('Superseded')); counts.abortedQueries++; activeSearch = null; }
       publish({ status: 'searching' });
       return new Promise((resolve, reject) => {
@@ -78,8 +79,11 @@ globalThis.installSemanticFake = function installSemanticFake(publicIds, initial
             reject(new Error('测试查询失败')); return;
           }
           const ids = query.toLowerCase().includes('none') ? [] : [publicIds[2], publicIds[0], publicIds[1]].filter(Boolean);
+          const results = control.resultSets[query] ?? ids.map((publicId, index) => ({ publicId, rank: index + 1, score: .9 - index * .1 }));
+          const scope = options.scopePhotoIds ? new Set(options.scopePhotoIds) : null;
+          const eligible = scope ? results.filter(result => scope.has(result.publicId)).map((result, index) => ({ ...result, rank: index + 1 })) : results;
           publish({ status: 'ready', error: undefined });
-          resolve({ query, results: ids.map((publicId, index) => ({ publicId, rank: index + 1, score: .9 - index * .1 })), elapsedMs: 8, backend: 'wasm', releaseId: 'test-release', indexVersion: 'test-index' });
+          resolve({ query, results: eligible.slice(0, options.topK ?? eligible.length), elapsedMs: 8, backend: 'wasm', releaseId: 'test-release', indexVersion: 'test-index' });
         };
         const timer = window.setTimeout(finish, query.toLowerCase().includes('slow') ? 700 : 35);
         const onAbort = () => {

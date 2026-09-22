@@ -193,8 +193,8 @@ test('Explore Cmd+K requires explicit AI enable, exposes real progress, maps ran
   await expect(suggestion).toBeVisible();
   await suggestion.focus(); await page.keyboard.press('Enter');
   await expect(page.locator('.ai-result-item')).toHaveCount(3);
-  await expect(page.getByText('图库中的相近结果')).toBeVisible();
-  await expect(page.getByText('相似度只用于排序，不代表匹配概率')).toBeVisible();
+  await expect(dialog.getByText('较相关的结果', { exact: true })).toBeVisible();
+  await expect(page.getByText('按相关程度排序')).toBeVisible();
   assert(!decodeURI(page.url()).includes('雾中的雪山'), 'semantic query must not enter the URL');
   assert.deepEqual(await page.evaluate(() => (window as any).semanticFake.enabledPhotoIds), photos.map(photo => photo.publicId));
 
@@ -204,7 +204,7 @@ test('Explore Cmd+K requires explicit AI enable, exposes real progress, maps ran
   await page.getByRole('button', { name: '关闭照片', exact: true }).click();
   await page.keyboard.press('Meta+K');
   await expect(page.getByRole('dialog', { name: '搜索和筛选' })).toBeVisible();
-  await page.getByRole('button', { name: /View all in Explore/ }).click();
+  await page.getByRole('button', { name: '查看这 3 张照片' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect.poll(() => cards(page).evaluateAll(nodes => nodes.map(node => node.getAttribute('data-photo-id')))).toEqual(['photo-2', 'photo-0', 'photo-1']);
 
@@ -222,6 +222,159 @@ test('Explore Cmd+K requires explicit AI enable, exposes real progress, maps ran
   const afterCycles = await page.evaluate(() => ({ ...((window as any).semanticFake.counts) }));
   assert.equal(afterCycles.workerStarts, 1); assert.equal(afterCycles.sessionInitializations, 1);
   assert.deepEqual(semanticRequests, [], 'the fake proves UI integration without hidden model requests');
+});
+
+test('AI Search expands one score level per click and shares the selected results with previews, Gallery and Viewer', async t => {
+  const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  await ready(page, '?global');
+  await installSemanticFake(page, 'cache');
+  await page.evaluate(ids => {
+    const scores = [.11, .07, .069999, .055, .05, .049999, .035, .03];
+    const results = ids.slice(0, 60).map((publicId, index) => ({ publicId, rank: index + 1, score: scores[index] ?? .01 }));
+    (window as any).semanticFake.resultSets['分级测试'] = results;
+    (window as any).semanticFake.resultSets['新查询'] = results;
+  }, photos.map(photo => photo.publicId!));
+  await page.keyboard.press('Meta+K');
+  const dialog = page.getByRole('dialog', { name: '搜索和筛选' });
+  await dialog.getByRole('button', { name: '开启 AI Search' }).click();
+  await dialog.getByRole('button', { name: 'Download & Enable' }).click();
+  const input = dialog.getByRole('searchbox', { name: 'AI Search 自然语言搜索' });
+  await expect(input).toBeEnabled();
+  await input.fill('分级测试');
+  await expect(dialog.locator('.ai-result-item')).toHaveCount(2);
+  await expect(page.locator('.gallery-count')).toHaveText('2');
+  await expect(dialog.getByRole('button', { name: '查看这 2 张照片' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: /全部|剩余/ })).toHaveCount(0);
+  await page.screenshot({ path: path.join(screenshots, 'ai-level-default-desktop.png') });
+
+  await dialog.getByRole('button', { name: '显示更多', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator('.gallery-count')).toHaveText('5');
+  await expect.poll(() => cards(page).evaluateAll(nodes => nodes.map(node => node.getAttribute('data-photo-id')))).toEqual(['photo-0', 'photo-1', 'photo-2', 'photo-3', 'photo-4']);
+  await page.keyboard.press('Meta+K');
+  await expect(dialog.locator('.ai-result-item')).toHaveCount(5);
+  await expect(dialog.getByRole('button', { name: '查看这 5 张照片' })).toBeVisible();
+  await dialog.getByRole('button', { name: '显示更多', exact: true }).click();
+  await expect(page.locator('.gallery-count')).toHaveText('8');
+  const summary = page.locator('.ai-gallery-summary');
+  await expect(summary).toContainText('更广范围的结果');
+  await summary.getByRole('button', { name: '显示剩余候选' }).click();
+  await expect(page.locator('.gallery-count')).toHaveText('60');
+  await expect(summary).toContainText('全部候选结果');
+  await expect(summary.getByRole('button', { name: /显示更多|显示剩余候选/ })).toHaveCount(0);
+  assert.equal(await page.evaluate(() => (window as any).semanticFake.counts.queries), 1, 'expanding results reuses the original candidates');
+
+  await page.keyboard.press('Meta+K');
+  await expect(dialog.locator('.ai-result-item')).toHaveCount(5);
+  await expect(dialog.getByRole('button', { name: '查看这 60 张照片' })).toBeVisible();
+  await dialog.locator('.ai-result-item').first().click();
+  await expect(page.locator('.viewer-counter')).toHaveText('1 / 60');
+  await page.keyboard.press('End');
+  await expect(page.locator('.viewer-counter')).toHaveText('60 / 60');
+  await page.getByRole('button', { name: '关闭照片', exact: true }).click();
+  await summary.getByRole('button', { name: '只看较相关的结果' }).click();
+  await expect(page.locator('.gallery-count')).toHaveText('2');
+  await cards(page).first().click();
+  await expect(page.locator('.viewer-counter')).toHaveText('1 / 2');
+  await page.getByRole('button', { name: '关闭照片', exact: true }).click();
+
+  await summary.getByRole('button', { name: '显示更多', exact: true }).click();
+  await expect(page.locator('.gallery-count')).toHaveText('5');
+  await page.keyboard.press('Meta+K');
+  await input.fill('新查询');
+  await expect(dialog.locator('.ai-result-item')).toHaveCount(2);
+  await expect(dialog.locator('.ai-result-heading')).toContainText('较相关的结果');
+  await expect.poll(() => page.evaluate(() => (window as any).semanticFake.queries.at(-1))).toBe('新查询');
+  await expect(page.locator('.gallery-count')).toHaveText('2');
+  await input.fill('');
+  await expect(page.locator('.gallery-count')).toHaveText('480');
+  await expect(summary).toHaveCount(0);
+});
+
+test('Project Cmd+K AI Search ranks only project members and preserves levels, Viewer and metadata filters', async t => {
+  const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  const projectPhotos = photos.slice(-3);
+  await page.route('**/photos.json', route => route.fulfill({ json: projectPhotos }));
+  await ready(page, '?tag=偶数');
+  await expect(page.locator('.gallery-count')).toHaveText('1');
+  await installSemanticFake(page, 'cache');
+  await page.evaluate(ids => {
+    (window as any).semanticFake.resultSets['项目内的画面'] = ids.map((publicId, index) => ({
+      publicId, rank: index + 1, score: index < ids.length - 3 ? .9 : [.11, .05, .03][index - ids.length + 3],
+    }));
+  }, photos.map(photo => photo.publicId!));
+  await page.keyboard.press('Meta+K');
+  const dialog = page.getByRole('dialog', { name: '搜索和筛选' });
+  await dialog.getByRole('button', { name: '开启 AI Search' }).click();
+  await expect(dialog.getByText(/用自然语言描述当前项目中想找的画面/)).toBeVisible();
+  await dialog.getByRole('button', { name: 'Download & Enable' }).click();
+  const input = dialog.getByRole('searchbox', { name: 'AI Search 自然语言搜索' });
+  await expect(input).toBeEnabled();
+  await expect(input).toHaveAttribute('placeholder', '描述当前项目中想找的画面…');
+  await input.fill('项目内的画面');
+  await expect(dialog.locator('.ai-result-item')).toHaveCount(1);
+  await expect(dialog.locator('.ai-result-item').first()).toHaveAccessibleName('打开照片：照片 477 — 完整标题');
+  assert.deepEqual(await page.evaluate(() => (window as any).semanticFake.enabledPhotoIds), [], 'project membership is not passed as an exact global-index catalog');
+  assert.deepEqual(await page.evaluate(() => (window as any).semanticFake.queryOptions.at(-1)), { topK: 3, scopePhotoIds: projectPhotos.map(photo => photo.publicId) });
+  await dialog.getByRole('button', { name: '显示更多', exact: true }).click();
+  await expect(page.locator('.gallery-count')).toHaveText('2');
+  await page.locator('.ai-gallery-summary').getByRole('button', { name: '显示更多', exact: true }).click();
+  await expect(page.locator('.gallery-count')).toHaveText('3');
+  await expect.poll(() => cards(page).evaluateAll(nodes => nodes.map(node => node.getAttribute('data-photo-id')))).toEqual(projectPhotos.map(photo => photo.id));
+  await expect(page.locator('.ai-gallery-summary').getByRole('button', { name: /显示更多|显示剩余候选/ })).toHaveCount(0);
+  await cards(page).first().click();
+  await expect(page.locator('.viewer-counter')).toHaveText('1 / 3');
+  await page.keyboard.press('End');
+  await expect(page.locator('.viewer-counter')).toHaveText('3 / 3');
+  assert.equal(new URL(page.url()).searchParams.get('photo'), 'photo-479');
+  await page.getByRole('button', { name: '关闭照片', exact: true }).click();
+  await page.keyboard.press('Meta+K');
+  await dialog.getByRole('button', { name: '退出 AI Search，恢复普通搜索' }).click();
+  await expect(page.locator('.gallery-count')).toHaveText('1');
+  assert.equal(new URL(page.url()).searchParams.get('tag'), '偶数');
+  assert.equal(await page.evaluate(() => (window as any).semanticFake.counts.queries), 1);
+  await page.screenshot({ path: path.join(screenshots, 'project-ai-search.png') });
+});
+
+test('AI Search can widen empty results on mobile without skipping levels or inventing 60 candidates', async t => {
+  const { ctx, page } = await pageFor({ viewport: { width: 320, height: 700 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }); t.after(() => ctx.close());
+  await ready(page, '?global');
+  await installSemanticFake(page, 'cache');
+  await page.evaluate(ids => {
+    (window as any).semanticFake.resultSets['低分结果'] = ids.slice(0, 3).map((publicId, index) => ({ publicId, rank: index + 1, score: [.035, .03, -.01][index] }));
+  }, photos.map(photo => photo.publicId!));
+  await page.keyboard.press('Meta+K');
+  const dialog = page.getByRole('dialog', { name: '搜索和筛选' });
+  await dialog.getByRole('button', { name: '开启 AI Search' }).click();
+  await dialog.getByRole('button', { name: 'Download & Enable' }).click();
+  const input = dialog.getByRole('searchbox', { name: 'AI Search 自然语言搜索' });
+  await expect(input).toBeEnabled();
+  await input.fill('低分结果');
+  await expect(dialog.getByText('当前范围没有匹配的结果')).toBeVisible();
+  await expect(dialog.locator('.ai-result-item')).toHaveCount(0);
+  await expect(page.locator('.gallery-count')).toHaveText('0');
+  const more = dialog.getByRole('button', { name: '显示更多', exact: true });
+  await more.focus(); await page.keyboard.press('Enter');
+  await expect(dialog).toHaveCount(0);
+  const summary = page.locator('.ai-gallery-summary');
+  await expect(summary).toContainText('更多结果 · 0 张');
+  await expect(page.locator('.gallery-count')).toHaveText('0');
+  await summary.getByRole('button', { name: '显示更多', exact: true }).tap();
+  await expect(page.locator('.gallery-count')).toHaveText('2');
+  await page.screenshot({ path: path.join(screenshots, 'ai-level-expanded-mobile.png') });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await summary.getByRole('button', { name: '显示剩余候选' }).tap();
+  await expect(page.locator('.gallery-count')).toHaveText('3');
+  await expect(summary.getByRole('button', { name: /显示更多|显示剩余候选/ })).toHaveCount(0);
+  await page.keyboard.press('Meta+K');
+  await expect(dialog.locator('.ai-result-item')).toHaveCount(3);
+  await expect(dialog.getByRole('button', { name: '查看这 3 张照片' })).toBeVisible();
+  await dialog.getByRole('button', { name: '只看较相关的结果' }).tap();
+  await expect(page.locator('.gallery-count')).toHaveText('0');
+  await page.keyboard.press('Meta+K');
+  await input.fill('none');
+  await expect(dialog.getByText('没有可显示的结果')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: /显示更多|显示剩余候选/ })).toHaveCount(0);
 });
 
 test('cache-hit AI Search debounces, cancels stale queries, handles no results and recovers from query errors', async t => {

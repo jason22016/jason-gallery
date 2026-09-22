@@ -124,7 +124,7 @@ async function query(request: SemanticWorkerQueryRequest): Promise<void> {
       respond(request.id, {
         kind: 'query',
         queryId: request.queryId,
-        results: rankSemanticVectors(embedding, photoIds, vectors, request.topK),
+        results: rankSemanticVectors(embedding, photoIds, vectors, request.topK, request.scopePhotoIds),
         elapsedMs: performance.now() - started,
       });
     } finally { tensor.dispose(); }

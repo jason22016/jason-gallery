@@ -30,15 +30,15 @@ export interface SemanticSearchClient {
   readonly state: Readonly<SemanticRuntimeState> | null;
   readonly moduleLoading: boolean;
   readonly moduleError: string;
-  enable(publicPhotoIds: readonly string[]): Promise<void>;
-  retry(publicPhotoIds: readonly string[]): Promise<void>;
+  enable(publicPhotoIds?: readonly string[]): Promise<void>;
+  retry(publicPhotoIds?: readonly string[]): Promise<void>;
   cancelSetup(): void;
   search(query: string, options?: SemanticSearchOptions): Promise<SemanticSearchResponse>;
   diagnostics(): Readonly<SemanticRuntimeDiagnostics> | null;
 }
 
 /**
- * The import is intentionally inside the explicit enable action. Merely rendering Explore or
+ * The import is intentionally inside the explicit enable action. Merely rendering a gallery or
  * opening Cmd+K cannot fetch the semantic module, Worker, index, model, tokenizer, or ORT runtime.
  */
 export function useSemanticSearch(): SemanticSearchClient {
@@ -75,14 +75,14 @@ export function useSemanticSearch(): SemanticSearchClient {
 
   useEffect(() => () => { unsubscribe.current?.(); }, []);
 
-  const enable = useCallback(async (publicPhotoIds: readonly string[]) => {
+  const enable = useCallback(async (publicPhotoIds?: readonly string[]) => {
     const operation = ++setupOperation.current;
     const shared = await attach();
     if (operation !== setupOperation.current) return;
     await shared.enable({ publicPhotoIds });
   }, [attach]);
 
-  const retry = useCallback(async (publicPhotoIds: readonly string[]) => {
+  const retry = useCallback(async (publicPhotoIds?: readonly string[]) => {
     const operation = ++setupOperation.current;
     const shared = await attach();
     if (operation !== setupOperation.current) return;

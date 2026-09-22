@@ -9,6 +9,7 @@ import { buildFixture, repo } from './fixture';
 import { serve } from './server';
 import { installMapFixture } from './map-fixture';
 import { browserReadyTimeout, softwareGPUOptions } from '../browser';
+import { shortPublicPhotoId } from '../../src/website/public-photo-id';
 
 const expect = baseExpect.configure({ timeout: browserReadyTimeout(5_000) });
 const root = path.join(repo, '.cache/global-release-fixture');
@@ -111,6 +112,30 @@ test('ordinary Home, Project, Explore, Map, Stats, Cmd+K and Viewer paths never 
   for (const file of (await fs.readdir(path.join(root, 'dist'), { recursive: true })).filter(file => file.endsWith('.html'))) {
     const html = await fs.readFile(path.join(root, 'dist', file), 'utf8');
     assert.equal(/semantic-search(?:\.worker)?[-.].+\.js/.test(html), false, `${file}: semantic chunks must not be preloaded by ordinary HTML`);
+  }
+});
+
+test('production Project pages expose AI Search with canonical project scope after Astro hydration', async t => {
+  const { ctx, page } = await pageFor(); t.after(() => ctx.close());
+  const fake = await fs.readFile(path.join(repo, 'tests/gallery/semantic-fake.js'), 'utf8');
+  const { photoIds } = JSON.parse(await fs.readFile(path.join(root, 'dist/semantic/index.json'), 'utf8')) as { photoIds: string[] };
+  for (const project of fixture.projects.filter(project => project.status === 'published')) {
+    await page.goto(`${server.url}/projects/${project.slug}/`); await ready(page);
+    await page.keyboard.press('Meta+K');
+    const dialog = page.getByRole('dialog', { name: '搜索和筛选' });
+    await dialog.getByRole('button', { name: '开启 AI Search' }).click();
+    await expect(dialog.getByRole('heading', { name: 'Enable AI Search' })).toBeVisible();
+    await page.evaluate(`${fake}\n;globalThis.installSemanticFake(${JSON.stringify(photoIds)}, 'cache');`);
+    await page.evaluate(ids => {
+      (window as any).semanticFake.resultSets['项目检索'] = ids.map((publicId, index) => ({ publicId, rank: index + 1, score: .1 }));
+    }, photoIds);
+    await dialog.getByRole('button', { name: 'Download & Enable' }).click();
+    const input = dialog.getByRole('searchbox', { name: 'AI Search 自然语言搜索' });
+    await expect(input).toBeEnabled();
+    await input.fill('项目检索');
+    await expect(dialog.getByRole('button', { name: '查看这 60 张照片' })).toBeVisible();
+    assert.deepEqual(await page.evaluate(() => (window as any).semanticFake.queryOptions.at(-1)?.scopePhotoIds), project.photos.map(photo => shortPublicPhotoId(photo.photoId)));
+    await expect(page.locator('.gallery-live .gallery-count')).toHaveText('60');
   }
 });
 

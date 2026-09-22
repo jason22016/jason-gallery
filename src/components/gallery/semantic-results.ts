@@ -8,6 +8,19 @@ export interface MappedSemanticResult {
   readonly rank: number;
 }
 
+// Every query uses the same progressive cutoffs for the current SigLIP2 release.
+// The last level restores the original candidates without another inference.
+export const SEMANTIC_RESULT_LEVELS = [0.07, 0.05, 0.03, -Infinity] as const;
+export const semanticResultLabels = ['较相关的结果', '更多结果', '更广范围的结果', '全部候选结果'] as const;
+
+export function selectSemanticResults(
+  results: readonly MappedSemanticResult[],
+  level = 0,
+): readonly MappedSemanticResult[] {
+  const minimumScore = SEMANTIC_RESULT_LEVELS[level] ?? SEMANTIC_RESULT_LEVELS[0];
+  return minimumScore === -Infinity ? results : results.filter(result => result.score >= minimumScore);
+}
+
 /** Preserve model rank exactly while dropping stale, unknown, or duplicate public IDs. */
 export function mapSemanticResults(
   photos: readonly GalleryPhoto[],

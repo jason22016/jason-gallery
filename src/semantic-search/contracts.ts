@@ -316,16 +316,19 @@ export function normalizeEmbedding(values: ArrayLike<number>, dimension = 768): 
   return normalized;
 }
 
-export function rankSemanticVectors(query: Float32Array, photoIds: readonly string[], vectors: Float32Array, topK: number): SemanticSearchResult[] {
+export function rankSemanticVectors(query: Float32Array, photoIds: readonly string[], vectors: Float32Array, topK: number, scopePhotoIds?: readonly string[]): SemanticSearchResult[] {
   if (query.length !== 768 || vectors.length !== photoIds.length * query.length) throw new Error('Semantic rank input dimension mismatch');
   if (!Number.isSafeInteger(topK) || topK < 1 || topK > photoIds.length) throw new Error('Semantic Top-K is out of range');
-  const scores = photoIds.map((publicId, row) => {
+  const scope = scopePhotoIds === undefined ? undefined : new Set(scopePhotoIds);
+  const scores: Array<{ publicId: string; score: number; row: number }> = [];
+  for (const [row, publicId] of photoIds.entries()) {
+    if (scope && !scope.has(publicId)) continue;
     let score = 0;
     const offset = row * query.length;
     for (let column = 0; column < query.length; column++) score += vectors[offset + column]! * query[column]!;
     if (!Number.isFinite(score)) throw new Error('Semantic cosine score is non-finite');
-    return { publicId, score, row };
-  });
+    scores.push({ publicId, score, row });
+  }
   scores.sort((left, right) => right.score - left.score || left.row - right.row);
   return scores.slice(0, topK).map(({ publicId, score }, index) => ({ publicId, score, rank: index + 1 }));
 }

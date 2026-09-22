@@ -61,7 +61,7 @@ const api = {
   states,
   enable: () => engine.enable({ backend }),
   retry: () => engine.retry({ backend }),
-  search: (text: string, topK = 5) => engine.search(text, { topK }),
+  search: (text: string, topK = 5, scopePhotoIds?: readonly string[]) => engine.search(text, { topK, scopePhotoIds }),
   state: () => engine.getState(),
   diagnostics: () => engine.getDiagnostics(),
   cycleSubscriptions(count = 100) {

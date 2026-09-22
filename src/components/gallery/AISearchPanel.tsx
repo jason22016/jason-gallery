@@ -1,6 +1,6 @@
 import type { SemanticRuntimeState } from '../../semantic-search/types';
 import PhotoThumbnail from './PhotoThumbnail';
-import type { MappedSemanticResult } from './semantic-results';
+import { SEMANTIC_RESULT_LEVELS, semanticResultLabels, type MappedSemanticResult } from './semantic-results';
 import type { SemanticQuerySuggestion } from './semantic-suggestions';
 import { Icon } from './ui/Icon';
 
@@ -46,12 +46,12 @@ function SetupProgress({ state, moduleLoading, onCancel }: {
   </section>;
 }
 
-function EnablePanel({ onEnable }: { onEnable: () => void }) {
+function EnablePanel({ onEnable, project }: { onEnable: () => void; project: boolean }) {
   return <section className="ai-enable-panel" aria-labelledby="ai-enable-title">
     <span className="ai-panel-icon"><Icon name="sparkles-2" /></span>
     <div className="ai-panel-copy">
       <h3 id="ai-enable-title">Enable AI Search</h3>
-      <p>用自然语言描述想找的画面。查询文本、向量和排名计算均留在此设备上；启用时只下载模型与公开图库索引。</p>
+      <p>用自然语言描述{project ? '当前项目中' : ''}想找的画面。查询文本、向量和排名计算均留在此设备上；启用时只下载模型与公开图库索引。</p>
       <ul className="ai-privacy-points" aria-label="AI Search 隐私与下载说明">
         <li><Icon name="check" />On-device visual search</li>
         <li><Icon name="check" />Queries stay private</li>
@@ -82,13 +82,16 @@ function FailurePanel({ state, moduleError, onRetry }: {
   </section>;
 }
 
-export function AISearchPanel({ state, moduleLoading, moduleError, query, suggestions, outcome, searchError, onEnable, onCancel, onRetry, onSuggestion, onOpen, onViewAll, onRetryQuery }: {
+export function AISearchPanel({ project, state, moduleLoading, moduleError, query, suggestions, outcome, totalResults, resultLevel, searchError, onEnable, onCancel, onRetry, onSuggestion, onOpen, onViewAll, onExpandResults, onResetResults, onRetryQuery }: {
+  project: boolean;
   state: Readonly<SemanticRuntimeState> | null;
   moduleLoading: boolean;
   moduleError: string;
   query: string;
   suggestions: readonly SemanticQuerySuggestion[];
   outcome: { readonly query: string; readonly results: readonly MappedSemanticResult[] } | null;
+  totalResults: number;
+  resultLevel: number;
   searchError: string;
   onEnable: () => void;
   onCancel: () => void;
@@ -96,12 +99,14 @@ export function AISearchPanel({ state, moduleLoading, moduleError, query, sugges
   onSuggestion: (query: string) => void;
   onOpen: (result: MappedSemanticResult) => void;
   onViewAll: () => void;
+  onExpandResults: () => void;
+  onResetResults: () => void;
   onRetryQuery: () => void;
 }) {
   if (moduleLoading || (state && setupStatuses.has(state.status))) return <SetupProgress state={state} moduleLoading={moduleLoading} onCancel={onCancel} />;
   if (moduleError || state?.status === 'error' || state?.status === 'update-required') return <FailurePanel state={state} moduleError={moduleError} onRetry={onRetry} />;
-  if (!state || state.status === 'disabled') return <EnablePanel onEnable={onEnable} />;
-  if (state.status !== 'ready' && state.status !== 'searching') return <EnablePanel onEnable={onEnable} />;
+  if (!state || state.status === 'disabled') return <EnablePanel onEnable={onEnable} project={project} />;
+  if (state.status !== 'ready' && state.status !== 'searching') return <EnablePanel onEnable={onEnable} project={project} />;
 
   const searching = state.status === 'searching';
   return <div className="ai-ready" data-semantic-status={state.status}>
@@ -114,9 +119,9 @@ export function AISearchPanel({ state, moduleLoading, moduleError, query, sugges
     <section className="ai-results" aria-label="AI Search 结果" aria-busy={searching || undefined}>
       {searching && <p className="ai-searching" role="status" aria-live="polite"><Icon name="loading" />正在此设备上搜索“{query.trim()}”…</p>}
       {searchError && <div className="ai-query-error" role="alert"><span>{searchError}</span><button type="button" onClick={onRetryQuery}>重试</button></div>}
-      {!searching && !searchError && outcome && outcome.results.length === 0 && <div className="ai-no-results" role="status"><Icon name="search" /><strong>没有可显示的结果</strong><span>图库映射可能已更新，请重试或稍后再试。</span></div>}
-      {!!outcome?.results.length && <>
-        <div className="ai-result-heading"><span><strong>图库中的相近结果</strong><small>相似度只用于排序，不代表匹配概率</small></span><span>{outcome.results.length} 张</span></div>
+      {!searching && !searchError && outcome && outcome.results.length === 0 && <div className="ai-no-results" role="status"><Icon name="search" /><strong>{totalResults ? '当前范围没有匹配的结果' : '没有可显示的结果'}</strong><span>{totalResults ? '试试其他描述，或逐步扩大搜索范围。' : '试试其他描述。'}</span></div>}
+      {!searching && !searchError && !!outcome?.results.length && <>
+        <div className="ai-result-heading"><span><strong>{semanticResultLabels[resultLevel]}</strong><small>按相关程度排序</small></span><span>{outcome.results.length} 张</span></div>
         <div className="ai-result-list">
           {outcome.results.slice(0, 5).map(result => <button type="button" className="ai-result-item" key={result.publicId} onClick={() => onOpen(result)} aria-label={`打开照片：${result.photo.title}`}>
             <span className="ai-result-thumbnail"><PhotoThumbnail photo={result.photo} /></span>
@@ -124,7 +129,11 @@ export function AISearchPanel({ state, moduleLoading, moduleError, query, sugges
             <span className="ai-result-rank">#{result.rank}</span><Icon name="arrow-right" />
           </button>)}
         </div>
-        <button type="button" className="ai-view-all primary-button" onClick={onViewAll}>View all in Explore <Icon name="arrow-right" /></button>
+        <button type="button" className="ai-view-all primary-button" onClick={onViewAll}>查看这 {outcome.results.length} 张照片 <Icon name="arrow-right" /></button>
+      </>}
+      {!searching && !searchError && outcome && <>
+        {resultLevel < SEMANTIC_RESULT_LEVELS.length - 1 && totalResults > outcome.results.length && <button type="button" className="ai-view-all" onClick={onExpandResults}>{resultLevel === SEMANTIC_RESULT_LEVELS.length - 2 ? '显示剩余候选' : '显示更多'} <Icon name="arrow-right" /></button>}
+        {resultLevel > 0 && <button type="button" className="ai-view-all" onClick={onResetResults}>只看较相关的结果</button>}
       </>}
       {!query.trim() && !outcome && <p className="ai-ready-hint">输入自然语言，或选择一个推荐场景。</p>}
     </section>

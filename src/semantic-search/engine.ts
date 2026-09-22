@@ -254,7 +254,14 @@ export class SemanticSearchEngine {
     if (!this.worker || !this.index || !this.state.backend || (this.state.status !== 'ready' && this.state.status !== 'searching')) {
       return Promise.reject(new SemanticSearchError('NOT_READY', 'Semantic search is not ready'));
     }
-    const topK = options.topK ?? 20;
+    const scopePhotoIds = options.scopePhotoIds === undefined ? undefined : [...new Set(options.scopePhotoIds)];
+    if (scopePhotoIds) {
+      const indexedIds = new Set(this.index.photoIds);
+      if (!scopePhotoIds.length || scopePhotoIds.some(id => !indexedIds.has(id))) {
+        return Promise.reject(new SemanticSearchError('INVALID_SCOPE', 'Semantic search scope must contain public photos from the current index'));
+      }
+    }
+    const topK = options.topK ?? Math.min(20, scopePhotoIds?.length ?? this.index.photoIds.length);
     if (!Number.isSafeInteger(topK) || topK < 1 || topK > Math.min(100, this.index.photoIds.length)) return Promise.reject(new SemanticSearchError('INVALID_TOP_K', 'Semantic Top-K must be between 1 and 100 and no larger than the index'));
     if (options.signal?.aborted) return Promise.reject(abortError());
     this.cancelActive(abortError('A newer semantic query superseded this result'));
@@ -273,7 +280,7 @@ export class SemanticSearchEngine {
       };
       if (options.signal) options.signal.addEventListener('abort', onAbort, { once: true });
       this.activeQuery = { id, reject, ...(options.signal ? { detachSignal: () => options.signal!.removeEventListener('abort', onAbort) } : {}) };
-      this.worker!.query(id, text, topK).then(result => {
+      this.worker!.query(id, text, topK, scopePhotoIds).then(result => {
         if (this.activeQuery?.id !== id) throw abortError('Stale semantic query result was discarded');
         this.activeQuery.detachSignal?.(); this.activeQuery = undefined;
         this.publish({ status: 'ready' });

@@ -13,7 +13,10 @@ import '../styles/gallery.css';
 type Props = { project: ResolvedProject; title?: never; photos?: never; mapPage?: never } | { project?: never; title: string; photos: readonly GalleryPhoto[]; mapPage?: boolean };
 const { project, mapPage = false } = Astro.props;
 const publicPhotos = project ? loadPublicPhotoCollection() : undefined;
-const photos = project ? galleryPhotos(project).map(photo => ({ ...photo, sharePath: publicPhotos!.getPhoto(photo.id)?.sharePath })) : Astro.props.photos;
+const photos = project ? galleryPhotos(project).map(photo => {
+  const publicPhoto = publicPhotos!.getPhoto(photo.id);
+  return { ...photo, publicId: publicPhoto?.publicId, sharePath: publicPhoto?.sharePath };
+}) : Astro.props.photos;
 const title = project ? project.title : Astro.props.title;
 const { slug, summary, description, location, period, tags } = project ?? {};
 const preview = project ? photos : photos.slice(0, 24);

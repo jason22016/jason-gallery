@@ -58,6 +58,8 @@ export interface SemanticSearchResponse {
 export interface SemanticSearchOptions {
   topK?: number;
   signal?: AbortSignal;
+  /** Restrict eligible public photos before ranking and taking Top-K. Omit for the full index. */
+  scopePhotoIds?: readonly string[];
 }
 
 export interface SemanticEnableOptions {

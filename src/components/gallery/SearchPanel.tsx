@@ -20,6 +20,8 @@ export interface SearchPanelSemantic {
   readonly query: string;
   readonly suggestions: readonly SemanticQuerySuggestion[];
   readonly outcome: { readonly query: string; readonly results: readonly MappedSemanticResult[] } | null;
+  readonly totalResults: number;
+  readonly resultLevel: number;
   readonly searchError: string;
   activate(seed?: string): void;
   deactivate(): void;
@@ -31,6 +33,8 @@ export interface SearchPanelSemantic {
   chooseSuggestion(query: string): void;
   openResult(result: MappedSemanticResult): void;
   viewAll(): void;
+  expandResults(): void;
+  resetResults(): void;
   retryQuery(): void;
 }
 
@@ -76,7 +80,7 @@ export function SearchPanel({ options, fields, project, mapPage = false, filters
     <div className="search-input-row" data-ai-active={aiActive || undefined}>
       <Icon name={aiActive ? 'sparkles-2' : 'search'} />
       <input type="search" aria-label={aiActive ? 'AI Search 自然语言搜索' : '搜索'}
-        placeholder={aiActive ? (aiReady ? '描述想找的画面…' : '启用后可用自然语言搜索') : '标题、文件名、说明、标签…'}
+        placeholder={aiActive ? (aiReady ? (project ? '描述当前项目中想找的画面…' : '描述想找的画面…') : '启用后可用自然语言搜索') : '标题、文件名、说明、标签…'}
         autoComplete="off" value={aiActive ? semantic.query : filters.query} disabled={aiActive && !aiReady}
         aria-controls={aiActive ? `${id}-ai-results` : `${id}-commands`}
         aria-activedescendant={!aiActive && selectedIndex >= 0 ? `${id}-${selectedIndex}` : undefined}
@@ -95,8 +99,9 @@ export function SearchPanel({ options, fields, project, mapPage = false, filters
     </div>
     <div className="search-mode-stack">
       {semantic && <div className="search-mode-ai" id={`${id}-ai-results`} aria-hidden={!aiActive || undefined} inert={!aiActive || undefined}>
-        <AISearchPanel state={semantic.state} moduleLoading={semantic.moduleLoading} moduleError={semantic.moduleError} query={semantic.query}
+        <AISearchPanel project={project} state={semantic.state} moduleLoading={semantic.moduleLoading} moduleError={semantic.moduleError} query={semantic.query}
           suggestions={semantic.suggestions} outcome={semantic.outcome} searchError={semantic.searchError}
+          totalResults={semantic.totalResults} resultLevel={semantic.resultLevel} onExpandResults={semantic.expandResults} onResetResults={semantic.resetResults}
           onEnable={semantic.enable} onCancel={semantic.cancel} onRetry={semantic.retry} onSuggestion={semantic.chooseSuggestion}
           onOpen={semantic.openResult} onViewAll={semantic.viewAll} onRetryQuery={semantic.retryQuery} />
       </div>}

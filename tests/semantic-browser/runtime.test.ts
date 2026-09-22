@@ -25,6 +25,36 @@ async function harness(query = '', browserInstance = browser): Promise<{ context
   return { context, page };
 }
 
+for (const backend of ['auto', 'wasm']) test(`Project scoped ranking uses the real ${backend} Worker without losing low global ranks or changing other queries`, { timeout: 300_000 }, async t => {
+  server.setFault('none');
+  const { context, page } = await harness(`?backend=${backend}&storage=off`);
+  t.after(() => context.close());
+  await page.evaluate(() => window.semanticTest.enable());
+  const all = await page.evaluate(() => window.semanticTest.search('Trees reflected in a blue lake', 6));
+  const expected = all.results.slice(-2);
+  const scoped = await page.evaluate(async ids => {
+    const pending = window.semanticTest.search('Trees reflected in a blue lake', 2, ids);
+    ids.splice(0, ids.length, 'unknown');
+    return pending;
+  }, expected.map(result => result.publicId).reverse());
+  assert.deepEqual(scoped.results.map(result => result.publicId), expected.map(result => result.publicId));
+  assert.deepEqual(scoped.results.map(result => result.rank), [1, 2]);
+  scoped.results.forEach((result, index) => assert(Math.abs(result.score - expected[index]!.score) < 1e-6));
+  const singleton = await page.evaluate(id => window.semanticTest.search('Trees reflected in a blue lake', 6, [id, id]), expected[0]!.publicId);
+  assert.equal(singleton.results.length, 1);
+  for (const scope of [[], ['unknown']]) {
+    const invalid = await page.evaluate(ids => window.semanticTest.search('Trees reflected in a blue lake', 1, ids).then(() => null, error => error.code), scope);
+    assert.equal(invalid, 'INVALID_SCOPE');
+  }
+  assert.equal((await page.evaluate(() => window.semanticTest.state())).status, 'ready');
+  const globalAgain = await page.evaluate(() => window.semanticTest.search('Trees reflected in a blue lake', 2));
+  assert.deepEqual(globalAgain.results.map(result => result.publicId), all.results.slice(0, 2).map(result => result.publicId));
+  const diagnostics = await page.evaluate(() => window.semanticTest.diagnostics());
+  assert.equal(diagnostics.workerStarts, 1);
+  assert.equal(diagnostics.sessionInitializations, 1);
+  assert.equal(diagnostics.modelDownloads, 1);
+});
+
 test('cold WebGPU download, progress, Top-K, cancellation, worker reuse and persistent refresh', { timeout: 300_000 }, async t => {
   server.setFault('none');
   const { context, page } = await harness('?backend=auto');

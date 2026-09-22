@@ -81,8 +81,8 @@ export class SemanticWorkerClient {
     return result;
   }
 
-  query(queryId: number, text: string, topK: number): Promise<SemanticWorkerQueryResult> {
-    const message: Omit<SemanticWorkerQueryRequest, 'id'> = { type: 'query', queryId, text, topK };
+  query(queryId: number, text: string, topK: number, scopePhotoIds?: readonly string[]): Promise<SemanticWorkerQueryResult> {
+    const message: Omit<SemanticWorkerQueryRequest, 'id'> = { type: 'query', queryId, text, topK, ...(scopePhotoIds ? { scopePhotoIds } : {}) };
     const { promise } = this.request(message as Omit<SemanticWorkerRequest, 'id'> & { id?: never }, [], queryId);
     return promise.then(result => {
       if (result.kind !== 'query' || result.queryId !== queryId) throw new SemanticSearchError('WORKER_PROTOCOL', 'Semantic worker returned a mismatched query result');

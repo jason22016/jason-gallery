@@ -9,7 +9,7 @@ type GalleryVideo = Pick<Extract<Video, { type: 'live-photo' }>, 'type' | 'video
   | Pick<Extract<Video, { type: 'motion-photo' }>, 'type' | 'offset' | 'size' | 'presentationTimestamp'>;
 
 export interface GalleryPhoto extends ViewerPhoto {
-  /** Stable public semantic-index identity; present on the Public Global Photo Collection. */
+  /** Stable semantic-index identity supplied by the public collection, including published Project pages. */
   readonly publicId?: string;
   readonly projects?: readonly GalleryProjectMembership[];
   readonly aspectRatio: number;
