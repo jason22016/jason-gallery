@@ -126,6 +126,62 @@ test('production routes, published order, cover, project fields and Gallery orde
   await expect(page).toHaveURL(/\/originals\/portrait.jpg$/);
 });
 
+test('gallery toolbar keeps the same controls and positions while its JavaScript loads', async t => {
+  for (const route of ['/projects/fixture-beta/', '/explore/', '/map/']) {
+    for (const width of [1076, 390, 320]) {
+      const ctx = await context({ viewport: { width, height: 780 }, reducedMotion: 'reduce' });
+      t.after(() => ctx.close());
+      const page = await ctx.newPage();
+      const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+      let release!: () => void;
+      const pending = new Promise<void>(resolve => { release = resolve; });
+      t.after(() => release());
+      await page.route('**/PhotoGallery.*.js', async request => { await pending; await request.continue(); });
+      await page.goto(server.url + route, { waitUntil: 'commit' });
+      const fallback = page.locator('[data-static-gallery] .gallery-header');
+      await expect(fallback).toBeVisible();
+      await expect(page.locator('[data-photo-gallery]')).not.toHaveAttribute('data-enhanced', 'true');
+      await expect(fallback.getByRole('button', { name: '搜索和筛选', exact: true })).toBeDisabled();
+      await expect(fallback.getByRole('button', { name: '显示设置', exact: true })).toBeDisabled();
+      const hasView = width >= 1024 && route !== '/map/';
+      assert.equal(await fallback.getByRole('button', { name: '列表视图', exact: true }).isVisible(), hasView);
+      if (route.startsWith('/projects/')) {
+        const info = fallback.locator('.static-info summary');
+        await expect(info).toHaveAttribute('aria-label', '项目信息');
+        await expect(info).toHaveText('');
+        await info.click();
+        await expect(fallback.locator('.project-details')).toContainText('Fixture location');
+        await info.click();
+      }
+      const before = await fallback.locator('.header-actions button, .header-actions a.gallery-action, .header-actions summary.gallery-action').evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().width > 0).map(node => {
+        const { x, y, width, height } = node.getBoundingClientRect();
+        return { label: node.getAttribute('aria-label'), x, y, width, height };
+      }));
+      assert(before.length >= 3);
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+      await page.screenshot({ path: path.join(root, `toolbar-loading-${route.split('/')[1]}-${width}.png`) });
+      release();
+      await expect(page.locator('[data-photo-gallery]')).toHaveAttribute('data-enhanced', 'true');
+      await expect(fallback).toBeHidden();
+      const live = page.locator('.gallery-live .gallery-header');
+      const after = await live.locator('.header-actions button, .header-actions a').evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().width > 0).map(node => {
+        const { x, y, width, height } = node.getBoundingClientRect();
+        return { label: node.getAttribute('aria-label'), x, y, width, height };
+      }));
+      assert.deepEqual(after.map(control => control.label), before.map(control => control.label));
+      for (let i = 0; i < before.length; i++) {
+        for (const dimension of ['x', 'y', 'width', 'height'] as const) {
+          assert(Math.abs(before[i]![dimension] - after[i]![dimension]) < 1, `${route} at ${width}px: ${after[i]!.label} ${dimension} moved`);
+        }
+      }
+      await live.getByRole('button', { name: '显示设置', exact: true }).click();
+      await expect(page.getByRole('dialog', { name: '显示设置', exact: true })).toBeVisible();
+      assert.deepEqual(errors, []);
+      await ctx.close();
+    }
+  }
+});
+
 test('saved cover crops render at the same position and zoom without JavaScript on desktop and mobile', async t => {
   const project = fixture.projects.find(p => p.slug === 'fixture-zeta')!;
   const photo = fixture.manifest.data.find(p => p.id === project.coverPhotoId)!;

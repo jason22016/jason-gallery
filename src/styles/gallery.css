@@ -16,6 +16,7 @@
 .gallery-header h1 { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; line-height: 20px; }
 .gallery-count { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--color-text-secondary); flex-shrink: 0; }
 .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+[data-static-gallery] .header-actions button:disabled { opacity: 1; }
 .gallery-action-cluster, .view-segment { display: flex; align-items: center; border-radius: 8px; background: var(--color-material-thin); backdrop-filter: blur(var(--gallery-blur-panel)); -webkit-backdrop-filter: blur(var(--gallery-blur-panel)); border: .5px solid var(--gallery-border); box-shadow: var(--gallery-shadow); }
 .gallery-action-cluster { gap: 4px; padding: 0 2px; }
 .gallery-page .gallery-action { position: relative; width: 32px; height: 32px; flex: 0 0 32px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 50%; color: var(--color-text-secondary); background: transparent; transition: color 200ms, background-color 200ms; }
@@ -40,7 +41,8 @@
 [data-enhanced] > [data-static-gallery] { display: none; }
 .static-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); align-items: start; gap: 4px; padding-inline: 16px; }
 .static-info { margin-left: auto; position: relative; }
-.static-info summary { cursor: pointer; font-size: 12px; }
+.static-info summary { cursor: pointer; list-style: none; }
+.static-info summary::-webkit-details-marker { display: none; }
 .static-info .panel-body { position: absolute; right: 0; width: min(380px, 90vw); background: var(--color-material-thick); backdrop-filter: blur(var(--gallery-blur-panel)); border: .5px solid var(--gallery-border); border-radius: 16px; padding: 24px; max-height: 80dvh; overflow: auto; }
 .static-info p { margin-bottom: 16px; }
 .masonry-grid { padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); }
@@ -83,6 +85,7 @@
 @container (width < 180px) { .photo-hover { padding-inline: 8px; } .photo-file-info { gap: 2px 4px; } .photo-exif { gap: 4px; } .photo-exif > span { padding-inline: 4px; gap: 4px; } }
 @media (prefers-reduced-motion: reduce) { .masonry-photo .gallery-thumbnail img, .masonry-photo .live-photo-video { transform: none !important; } }
 @media (max-width: 1023px) {
+  .gallery-header .view-segment { display: none; }
   .gallery-header-content { padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right)); gap: 8px; }
   .gallery-heading { flex: 1; }
   .gallery-action-cluster { padding: 0 4px; gap: 12px; }

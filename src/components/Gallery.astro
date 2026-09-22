@@ -6,6 +6,8 @@ import { galleryPhotos, type GalleryPhoto } from './gallery/photos';
 import { loadPublicPhotoCollection } from '../website/public-photos';
 import { SiteNavigation } from './SiteNavigation';
 import { LinearBlur } from './gallery/ui/LinearBlur';
+import { PageHeaderActions } from './gallery/PageHeader';
+import { Icon } from './gallery/ui/Icon';
 import { ViewerAttribution } from './viewer/ViewerAttribution';
 import './gallery/GalleryTokens.css';
 import './gallery/GalleryIcons.css';
@@ -24,13 +26,15 @@ const preview = project ? photos : photos.slice(0, 24);
 <section data-photo-gallery data-project-gallery={!!project || undefined} aria-label={`${title} photographs`}>
   <div data-static-gallery>
     <header class="gallery-header"><LinearBlur className="gallery-header-blur" tint="var(--color-background)" strength={128} side="top" aria-hidden="true" /><div class="gallery-header-content"><div class="gallery-heading"><SiteNavigation current={project ? 'projects' : mapPage ? 'map' : 'explore'} compact /><h1 title={title}>{title}</h1><span class="gallery-count">{photos.length}</span></div>
-      {project && <details class="static-info"><summary>项目信息</summary><div class="panel-body">
-        {summary && <p>{summary}</p>}
-        <dl class="project-details"><dt>地点</dt><dd>{location}</dd><dt>日期</dt><dd>{period?.start}{period?.end && period.end !== period.start && ` — ${period.end}`}</dd></dl>
-        {description && <p class="project-description">{description}</p>}
-        <ul class="tags">{tags?.map(tag => <li>{tag}</li>)}</ul>
-        <ViewerAttribution />
-      </div></details>}
+      <PageHeaderActions project={!!project} mapPage={mapPage}>
+        {project && <details class="static-info"><summary class="gallery-action" aria-label="项目信息" title="项目信息"><Icon name="information" /></summary><div class="panel-body">
+          {summary && <p>{summary}</p>}
+          <dl class="project-details"><dt>地点</dt><dd>{location}</dd><dt>日期</dt><dd>{period?.start}{period?.end && period.end !== period.start && ` — ${period.end}`}</dd></dl>
+          {description && <p class="project-description">{description}</p>}
+          <ul class="tags">{tags?.map(tag => <li>{tag}</li>)}</ul>
+          <ViewerAttribution />
+        </div></details>}
+      </PageHeaderActions>
     </div></header>
     <ol class="photo-grid static-grid">{preview.map((photo, index) => <li data-photo-id={photo.id}>
       <a class="photo-link" href={photo.src} data-gallery-index={index} aria-label={`查看照片：${photo.alt}`}>
