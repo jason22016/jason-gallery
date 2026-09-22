@@ -48,6 +48,8 @@ interface ActiveQuery {
   detachSignal?: () => void;
 }
 
+type SemanticStatePatch = Partial<SemanticRuntimeState> & Pick<SemanticRuntimeState, 'status'>;
+
 function initialState(): SemanticRuntimeState {
   return {
     status: 'disabled',
@@ -106,7 +108,7 @@ export class SemanticSearchEngine {
     return Object.freeze({ ...this.diagnostics, stateListeners: this.listeners.size });
   }
 
-  private publish(patch: Partial<SemanticRuntimeState> & Pick<SemanticRuntimeState, 'status'>): void {
+  private publish(patch: SemanticStatePatch): void {
     this.state = frozenState({ ...this.state, ...patch, progress: patch.progress ?? this.state.progress });
     for (const listener of this.listeners) {
       try { listener(this.state); } catch { /* A UI subscriber cannot break the shared runtime. */ }
@@ -147,8 +149,13 @@ export class SemanticSearchEngine {
   private async initialize(operation: number, signal: AbortSignal, options: SemanticEnableOptions): Promise<Readonly<SemanticRuntimeState>> {
     let manifest: ClientSemanticReleaseManifest | undefined;
     const cache = this.cache();
+    // Cache reads and buffered downloads can outlive abort. Keep every progress
+    // and completion update bound to this initialization, including error cleanup.
+    const publish = (patch: SemanticStatePatch) => {
+      if (operation === this.operation && !signal.aborted) this.publish(patch);
+    };
     try {
-      this.publish({ status: 'not-downloaded', cache: cache.storage ? 'unknown' : 'memory', error: undefined, backend: undefined, fallbackReason: undefined, indexVersion: undefined, progress: { downloadedBytes: 0, totalBytes: 0, transportBytes: 0 } });
+      publish({ status: 'not-downloaded', cache: cache.storage ? 'unknown' : 'memory', error: undefined, backend: undefined, fallbackReason: undefined, indexVersion: undefined, progress: { downloadedBytes: 0, totalBytes: 0, transportBytes: 0 } });
       const base = this.baseURL();
       const manifestURL = new URL(this.options.manifestURL ?? CLIENT_SEMANTIC_RELEASE_MANIFEST_URL, base);
       const releaseURL = new URL(`${CLIENT_SEMANTIC_RELEASE_ROOT}/`, base);
@@ -156,16 +163,16 @@ export class SemanticSearchEngine {
       manifest = await loadClientReleaseManifest(this.fetcher, manifestURL, signal);
       this.assertCurrent(operation);
       this.manifest = manifest;
-      this.publish({ status: 'verifying', progress: { downloadedBytes: 0, totalBytes: manifest.payloadBytes, transportBytes: manifest.transportBytes } });
+      publish({ status: 'verifying', progress: { downloadedBytes: 0, totalBytes: manifest.payloadBytes, transportBytes: manifest.transportBytes } });
       const loadedIndex = await loadSemanticIndex(this.fetcher, indexURL, manifest, signal, options.publicPhotoIds);
       this.assertCurrent(operation);
       this.index = loadedIndex.index;
-      this.publish({ status: 'verifying', indexVersion: loadedIndex.index.indexVersion });
+      publish({ status: 'verifying', indexVersion: loadedIndex.index.indexVersion });
 
       let verifiedBytes = 0;
       let cached = await cache.read(manifest, releaseURL, (file, bytes) => {
         verifiedBytes += bytes;
-        this.publish({ status: 'verifying', progress: { downloadedBytes: verifiedBytes, totalBytes: manifest!.payloadBytes, transportBytes: manifest!.transportBytes, file } });
+        publish({ status: 'verifying', progress: { downloadedBytes: verifiedBytes, totalBytes: manifest!.payloadBytes, transportBytes: manifest!.transportBytes, file } });
       });
       this.assertCurrent(operation);
       let assets: Map<string, ArrayBuffer>;
@@ -176,18 +183,18 @@ export class SemanticSearchEngine {
         cacheMode = 'persistent';
       } else {
         this.diagnostics.modelDownloads++;
-        this.publish({ status: 'downloading', cache: cache.storage ? 'unknown' : 'memory', progress: { downloadedBytes: 0, totalBytes: manifest.payloadBytes, transportBytes: manifest.transportBytes } });
+        publish({ status: 'downloading', cache: cache.storage ? 'unknown' : 'memory', progress: { downloadedBytes: 0, totalBytes: manifest.payloadBytes, transportBytes: manifest.transportBytes } });
         assets = await downloadReleaseAssets(this.fetcher, releaseURL, manifest, signal, progress => {
-          this.publish({ status: 'downloading', progress });
+          publish({ status: 'downloading', progress });
         });
         this.assertCurrent(operation);
-        this.publish({ status: 'verifying', progress: { downloadedBytes: manifest.payloadBytes, totalBytes: manifest.payloadBytes, transportBytes: manifest.transportBytes } });
+        publish({ status: 'verifying', progress: { downloadedBytes: manifest.payloadBytes, totalBytes: manifest.payloadBytes, transportBytes: manifest.transportBytes } });
         const committed = await cache.write(manifest, releaseURL, assets);
         cacheMode = committed && await cache.verify(manifest, releaseURL) ? 'persistent' : 'memory';
       }
       await cache.clearObsolete(manifest);
       this.assertCurrent(operation);
-      this.publish({ status: 'initializing', cache: cacheMode, progress: { downloadedBytes: manifest.payloadBytes, totalBytes: manifest.payloadBytes, transportBytes: manifest.transportBytes } });
+      publish({ status: 'initializing', cache: cacheMode, progress: { downloadedBytes: manifest.payloadBytes, totalBytes: manifest.payloadBytes, transportBytes: manifest.transportBytes } });
 
       this.worker?.dispose();
       this.worker = new SemanticWorkerClient((this.options.workerFactory ?? defaultWorker)());
@@ -215,7 +222,7 @@ export class SemanticSearchEngine {
       ]).finally(() => { if (timeout) clearTimeout(timeout); });
       this.diagnostics.sessionInitializations++;
       this.assertCurrent(operation);
-      this.publish({
+      publish({
         status: 'ready',
         backend: ready.backend,
         cache: cacheMode,
@@ -229,10 +236,10 @@ export class SemanticSearchEngine {
       if (operation !== this.operation || signal.aborted) throw failure;
       this.worker?.dispose(); this.worker = undefined;
       if (failure.code === 'UPDATE_REQUIRED') {
-        this.publish({ status: 'update-required', error: { code: failure.code, message: failure.message, recoverable: failure.recoverable } });
+        publish({ status: 'update-required', error: { code: failure.code, message: failure.message, recoverable: failure.recoverable } });
       } else {
         if (manifest && failure.code === 'MODEL_INTEGRITY') await cache.clearCurrent(manifest);
-        this.publish({ status: 'error', error: { code: failure.code, message: failure.message, recoverable: failure.recoverable } });
+        publish({ status: 'error', error: { code: failure.code, message: failure.message, recoverable: failure.recoverable } });
       }
       throw failure;
     }

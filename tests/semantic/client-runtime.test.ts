@@ -17,6 +17,9 @@ import { sha256 as browserSha256 } from '../../src/semantic-search/hash';
 import { loadSemanticIndex } from '../../src/semantic-search/index-loader';
 import { SemanticSearchError } from '../../src/semantic-search/errors';
 import { SemanticSearchEngine } from '../../src/semantic-search/engine';
+import type { SemanticRuntimeState } from '../../src/semantic-search/types';
+import type { WorkerLike } from '../../src/semantic-search/worker-client';
+import { CLIENT_SEMANTIC_RELEASE_ID, CLIENT_SEMANTIC_RELEASE_MANIFEST_URL, SEMANTIC_INDEX_URL, SEMANTIC_VECTOR_URL } from '../../src/semantic-search/release-contract';
 import { downloadReleaseAssets } from '../../src/semantic-search/release-loader';
 import { verifyClientSemanticRelease, verifyClientSemanticRuntime } from '../../scripts/semantic/client-release';
 import { semanticModelConfig, semanticModelContractSha256 } from '../../scripts/semantic/model-config';
@@ -234,6 +237,127 @@ test('interrupted initialization returns to disabled without leaking subscriptio
   assert.equal(engine.getState().status, 'disabled');
   assert.equal(engine.getDiagnostics().workerStarts, 0);
 });
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(done => { resolve = done; });
+  return { promise, resolve };
+}
+
+async function initializationFixture(download?: typeof fetch) {
+  const manifest = await fs.readFile(`semantic-releases/${CLIENT_SEMANTIC_RELEASE_ID}/manifest.json`);
+  const { indexBytes, vectorBytes } = await loadSemanticIndexFixture();
+  const responses = new Map<string, Uint8Array>([
+    [CLIENT_SEMANTIC_RELEASE_MANIFEST_URL, manifest],
+    [SEMANTIC_INDEX_URL, indexBytes],
+    [SEMANTIC_VECTOR_URL, vectorBytes],
+  ]);
+  const engine = new SemanticSearchEngine({
+    baseURL: 'https://gallery.test/', cacheStorage: new MemoryCacheStorage(),
+    fetch: async (input, init) => {
+      const bytes = responses.get(new URL(String(input)).pathname);
+      if (bytes) return new Response(Uint8Array.from(bytes));
+      assert(download, `Unexpected model download: ${String(input)}`);
+      return download(input, init);
+    },
+    workerFactory: () => {
+      const worker: WorkerLike = {
+        onmessage: null, onerror: null, onmessageerror: null,
+        postMessage(message) {
+          assert.equal(message.type, 'initialize');
+          if (message.type !== 'initialize') return;
+          queueMicrotask(() => worker.onmessage?.({ data: { id: message.id, result: { kind: 'ready', backend: 'wasm' } } } as MessageEvent));
+        },
+        terminate() {},
+      };
+      return worker;
+    },
+  });
+  // The cache boundary supplies already-verified assets; this test exercises
+  // initialization ownership without loading an inference model into a Worker.
+  const { assets } = await fakeRelease();
+  const states: Readonly<SemanticRuntimeState>[] = [];
+  const unsubscribe = engine.subscribe(state => states.push(state));
+  return { engine, assets, states, manifest: parseClientReleaseManifest(JSON.parse(manifest.toString())), cleanup: () => { unsubscribe(); engine.dispose(); } };
+}
+
+for (const progress of ['cache', 'download'] as const) for (const next of ['cancel', 'retry', 'enable again'] as const) {
+  test(`late ${progress} progress cannot change state after ${next}`, { timeout: 10000 }, async t => {
+    const cacheStarted = deferred<void>(), releaseCache = deferred<void>();
+    const downloadStarted = deferred<ReadableStreamDefaultController<Uint8Array>>();
+    let downloadSignal: AbortSignal | undefined;
+    const { engine, assets, states, cleanup } = await initializationFixture(async (_input, init) => {
+      downloadSignal = init?.signal ?? undefined;
+      // A buffered/in-flight response can still deliver a chunk after abort.
+      return new Response(new ReadableStream<Uint8Array>({ start: controller => downloadStarted.resolve(controller) }));
+    });
+    t.after(cleanup);
+    let reads = 0;
+    const read: SemanticAssetCache['read'] = async (manifest, _url, onVerified) => {
+      if (++reads === 1) {
+        if (progress === 'download') return undefined;
+        cacheStarted.resolve();
+        await releaseCache.promise;
+      }
+      for (const file of manifest.files) onVerified?.(file.path, file.bytes);
+      return { assets, cacheMode: 'persistent' };
+    };
+    t.mock.method(SemanticAssetCache.prototype, 'read', read);
+    const pending = engine.enable().then(() => null, error => error as unknown);
+    const stream = progress === 'download' ? await downloadStarted.promise : undefined;
+    if (progress === 'cache') await cacheStarted.promise;
+
+    if (next === 'retry') await engine.retry();
+    else {
+      engine.dispose();
+      if (next === 'enable again') await engine.enable();
+    }
+    const current = engine.getState(), publications = states.length;
+    assert.equal(current.status, next === 'cancel' ? 'disabled' : 'ready');
+    if (stream) {
+      assert.equal(downloadSignal?.aborted, true);
+      stream.enqueue(new Uint8Array([1, 2, 3]));
+      stream.close();
+    } else releaseCache.resolve();
+    const failure = await pending;
+    assert(failure instanceof SemanticSearchError);
+    assert.equal(failure.code, progress === 'cache' ? 'ABORTED' : 'MODEL_DOWNLOAD');
+    assert.equal(states.length, publications, 'No stale progress or error may reach subscribers');
+    assert.equal(engine.getState(), current, 'The current state and progress remain intact');
+    assert.equal(engine.getDiagnostics().workerStarts, next === 'cancel' ? 0 : 1);
+    assert.equal(engine.getDiagnostics().sessionInitializations, next === 'cancel' ? 0 : 1);
+  });
+}
+
+for (const next of ['cancel', 'retry'] as const) {
+  test(`late integrity cleanup cannot publish an error after ${next}`, { timeout: 10000 }, async t => {
+    const cleanupStarted = deferred<void>(), releaseCleanup = deferred<void>();
+    let partBytes = 0;
+    const { engine, assets, states, manifest, cleanup } = await initializationFixture(async () => new Response(new Uint8Array(partBytes)));
+    partBytes = manifest.files[0]!.parts[0]!.bytes;
+    t.after(cleanup);
+    let reads = 0;
+    const read: SemanticAssetCache['read'] = async () => ++reads === 1 ? undefined : { assets, cacheMode: 'persistent' };
+    t.mock.method(SemanticAssetCache.prototype, 'read', read);
+    t.mock.method(SemanticAssetCache.prototype, 'clearCurrent', async () => {
+      cleanupStarted.resolve();
+      await releaseCleanup.promise;
+    });
+    const pending = engine.enable().then(() => null, error => error as unknown);
+    await cleanupStarted.promise;
+    if (next === 'retry') await engine.retry();
+    else engine.dispose();
+    const current = engine.getState(), publications = states.length;
+    assert.equal(current.status, next === 'cancel' ? 'disabled' : 'ready');
+    releaseCleanup.resolve();
+    const failure = await pending;
+    assert(failure instanceof SemanticSearchError);
+    assert.equal(failure.code, 'MODEL_INTEGRITY');
+    assert.equal(states.length, publications);
+    assert.equal(engine.getState(), current);
+    assert.equal(engine.getDiagnostics().workerStarts, next === 'cancel' ? 0 : 1);
+  });
+}
 
 test('query normalization and cosine Top-K are deterministic and reject malformed embeddings', () => {
   const query = new Float32Array(768); query[0] = 3; query[1] = 4;
