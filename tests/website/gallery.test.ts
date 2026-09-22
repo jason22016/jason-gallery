@@ -1258,7 +1258,6 @@ test('settings opens as a search-style modal on desktop and mobile with focus an
   await expect(page.getByRole('radio', { name: '拍摄时间：从新到旧' })).toBeChecked();
   await chooseColumns(page, 8);
   assert.equal(new URL(page.url()).searchParams.get('columns'), '8');
-  await page.screenshot({ path: path.join(screenshots, 'settings-desktop.png') });
   await page.getByRole('button', { name: '关闭面板', exact: true }).click();
   await expect(page.locator('.gallery-panel')).toHaveCount(0); await expect(trigger).toBeFocused();
   await page.setViewportSize({ width: 390, height: 844 });
@@ -1272,7 +1271,6 @@ test('settings opens as a search-style modal on desktop and mobile with focus an
   const close = panel.getByRole('button', { name: '关闭面板', exact: true });
   await close.focus(); await page.keyboard.press('Shift+Tab');
   assert(await panel.evaluate(element => element.contains(document.activeElement)), 'settings traps keyboard focus like search');
-  await page.screenshot({ path: path.join(screenshots, 'settings-mobile.png') });
   await close.click();
   await expect(page.locator('.gallery-panel')).toHaveCount(0); await expect(trigger).toBeFocused();
 });

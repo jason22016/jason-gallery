@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import type { PhotographyStats, PhotographyStatsScope } from '../../statistics';
 import type { PhotographyStatsPageData } from '../../website/photography-stats';
 import { SiteNavigation } from '../SiteNavigation';
-import Panel, { usePanelDismiss } from '../gallery/Panel';
+import Panel from '../gallery/Panel';
 import { PageHeaderFrame } from '../gallery/PageHeader';
 import { globalGalleryHref } from '../gallery/url-state';
 import { Icon } from '../gallery/ui/Icon';
@@ -68,15 +68,14 @@ function Overview({ stats, mapHref }: { stats: PhotographyStats; mapHref: string
   </section>;
 }
 
-function ScopeOptions({ data, selected, onChange }: { data: PhotographyStatsPageData; selected: PhotographyStatsScope | undefined; onChange: (scope: PhotographyStatsScope) => void }) {
-  const dismiss = usePanelDismiss();
+function ScopeOptions({ data, selected, onChange, onSelect }: { data: PhotographyStatsPageData; selected: PhotographyStatsScope | undefined; onChange: (scope: PhotographyStatsScope) => void; onSelect: (scope: PhotographyStatsScope) => void }) {
   const options = [data.all, ...data.projects];
   return <div className="stats-scope-options sort-options" role="radiogroup" aria-label="Statistics scope">
     {options.map((result, index) => {
       const key = result.scope.type === 'project' ? `project:${result.scope.slug}` : 'all';
       const active = selected?.type === result.scope.type && (selected?.type === 'all' || (result.scope.type === 'project' && selected?.slug === result.scope.slug));
       return <button type="button" role="radio" aria-checked={active} tabIndex={active || (!selected && index === 0) ? 0 : -1} key={key}
-        onClick={() => { onChange(result.scope); dismiss(); }} onKeyDown={event => {
+        onClick={() => onSelect(result.scope)} onKeyDown={event => {
           const delta = ['ArrowDown', 'ArrowRight'].includes(event.key) ? 1 : ['ArrowUp', 'ArrowLeft'].includes(event.key) ? -1 : 0;
           if (!delta && !['Home', 'End'].includes(event.key)) return;
           event.preventDefault();
@@ -149,6 +148,6 @@ export default function StatsPage({ data }: { data: PhotographyStatsPageData }) 
         <LinearDivider /><footer className="stats-footer"><p>Each photograph counts once within its scope. Distributions use photographs with recorded metadata; missing values are shown separately.</p><span>Jason Gallery</span></footer>
       </>}
     </div>
-    {panel && <Panel key={panelRequest} title="Statistics scope" kind="settings" anchor={anchor.current} onClose={() => setPanel(false)}><ScopeOptions data={data} selected={result?.scope} onChange={next => writeURL(statsScopeURL(new URL(location.href), next))} /></Panel>}
+    {panel && <Panel key={panelRequest} title="Statistics scope" kind="settings" anchor={anchor.current} onClose={() => setPanel(false)}><ScopeOptions data={data} selected={result?.scope} onChange={next => writeURL(statsScopeURL(new URL(location.href), next))} onSelect={next => { writeURL(statsScopeURL(new URL(location.href), next)); setPanel(false); }} /></Panel>}
   </div></MotionConfig></LazyMotion>;
 }
