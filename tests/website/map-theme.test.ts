@@ -46,7 +46,10 @@ test('map paints both themes smoothly without losing the canvas, camera or selec
   await expect(page.locator('[data-card-kind="selected"]')).toBeVisible();
   // A real pan makes an accidental map recreation/recenter observable.
   await page.mouse.move(210, 300); await page.mouse.down();
-  await page.mouse.move(265, 330, { steps: 10 }); await page.mouse.up();
+  await page.mouse.move(265, 330, { steps: 10 });
+  // Hold past MapLibre's 160ms velocity buffer so the baseline is captured
+  // after this deliberate pan, not during environment-dependent inertia.
+  await page.waitForTimeout(200); await page.mouse.up();
   const markerPosition = () => page.locator('.photo-marker-host').evaluate(el => {
     const { x, y } = el.getBoundingClientRect(); return { x, y };
   });

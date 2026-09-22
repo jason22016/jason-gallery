@@ -1435,6 +1435,11 @@ test('photo marker spring hover, focus and press scales use upstream gestures an
   await expect(selected.locator('.photo-marker-selection')).toHaveCSS('animation-name', 'none');
   await expect.poll(selectedScale).toBe(1);
   await page.mouse.up();
+  // Pointer activation can leave this button focused, and headless Chromium
+  // varies on whether that focus remains :focus-visible after media changes.
+  // Clear focus so the final assertion isolates hover/tap gesture cleanup.
+  await selected.evaluate(element => (element as HTMLButtonElement).blur());
+  await expect(selected).not.toBeFocused();
   await page.mouse.move(0, 0);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await expect.poll(selectedScale).toBe(1);
