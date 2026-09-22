@@ -130,7 +130,7 @@
       "local": "src/components/viewer/GalleryThumbnail.tsx",
       "upstream": "apps/web/src/modules/viewer/GalleryThumbnail.tsx",
       "upstreamSha256": "be10c4732dfdf5172b4ea88799bae8ad9ef1e4019fd461a52611c22aef55a5c4",
-      "sha256": "0ff5ed20507fcc077c64994fa0e401108f95651f3a61cd8b1106d9ec3a1c6b3e",
+      "sha256": "67a1971b66ca6c940ea7b18c48442d841b4dc96e3543845d928bc32359d61383",
       "license": "AGPL-3.0-or-later + ANL §4",
       "adapted": true
     },

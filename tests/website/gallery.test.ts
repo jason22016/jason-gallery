@@ -114,6 +114,32 @@ async function clusterFixture(page: Page) {
   return located;
 }
 
+for (const timezoneId of ['Asia/Hong_Kong', 'America/Los_Angeles', 'Pacific/Kiritimati']) {
+  test(`thumbnail hover preserves recorded capture days in ${timezoneId}`, async t => {
+    const { ctx, page } = await pageFor({ timezoneId, locale: 'zh-CN', reducedMotion: 'reduce' }); t.after(() => ctx.close());
+    const dates = ['2026-08-13T00:15:00+08:00', '2026-08-13T23:45:00-07:00', '2026-08-13T00:15:00Z', '2026-08-13T12:00:00', '2024-02-29T00:15:00+08:00', ''];
+    const dated = dates.map((date, index) => ({ ...photos[index]!, date, video: undefined, isHDR: false }));
+    await page.route('**/photos.json', route => route.fulfill({ json: dated }));
+    await page.route('**/details.json', route => route.fulfill({ json: { exif: { DateTimeOriginal: dates[0] }, toneAnalysis: null } }));
+    await ready(page);
+    await page.locator('[data-photo-id="photo-0"]').click();
+    await expect(page.locator('.viewer-media')).toHaveAttribute('data-media-state', 'loaded', { timeout: browserReadyTimeout(15_000) });
+    await page.getByRole('button', { name: '照片信息', exact: true }).click();
+    await expect(page.locator('.metadata-rows > div').filter({ has: page.getByText('拍摄时间', { exact: true }) }).locator('dd')).toHaveText('2026-08-13 00:15:00');
+    await page.getByRole('button', { name: '收起照片信息' }).click();
+    for (const [index, photo] of dated.entries()) {
+      await page.locator(`[data-filmstrip-id="${photo.id}"]`).hover();
+      const hover = page.locator('.viewer-thumbnail-hover');
+      await expect(hover).toBeVisible();
+      await expect(hover.locator('.viewer-thumbnail-hover-title')).toHaveText(photo.title);
+      if (photo.date) await expect(hover.locator('.viewer-thumbnail-hover-date')).toHaveText(index === 4 ? '2024-02-29' : '2026-08-13');
+      else await expect(hover.locator('.viewer-thumbnail-hover-date')).toHaveCount(0);
+      await page.mouse.move(0, 0);
+      await expect(hover).toHaveCount(0);
+    }
+  });
+}
+
 test('native cluster mosaic and focus preview use actual leaves, bounded thumbnails, total count and whole-cluster dates', async t => {
   const { ctx, page } = await pageFor({ reducedMotion: 'reduce' }); t.after(() => ctx.close());
   const located = await clusterFixture(page);

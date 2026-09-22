@@ -237,7 +237,7 @@ export const GalleryThumbnail: FC<{
                             )}
                             {photo.date && (
                               <div className="viewer-thumbnail-hover-date">
-                                {new Date(photo.date).toLocaleDateString()}
+                                {photo.date.slice(0, 10)}
                               </div>
                             )}
                           </div>

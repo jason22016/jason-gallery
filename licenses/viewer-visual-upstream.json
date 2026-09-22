@@ -156,7 +156,7 @@
     },
     {
       "local": "src/components/viewer/GalleryThumbnail.tsx",
-      "sha256": "0ff5ed20507fcc077c64994fa0e401108f95651f3a61cd8b1106d9ec3a1c6b3e",
+      "sha256": "67a1971b66ca6c940ea7b18c48442d841b4dc96e3543845d928bc32359d61383",
       "adapted": true,
       "upstream": [
         {
