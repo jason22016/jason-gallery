@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import * as Popover from '@radix-ui/react-popover';
 import { Spring } from '@afilmory/utils';
 import { m, useDragControls } from 'motion/react';
-import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Drawer } from 'vaul';
 import { useMobile } from '../../hooks/useMobile';
 import { lockPageScroll } from './modal';
@@ -39,10 +39,17 @@ export default function Panel({ title, onClose, children, wide = false, kind = '
     const unlock = dropdown ? () => {} : lockPageScroll();
     return unlock;
   }, [dropdown, anchor]);
+  useEffect(() => {
+    if (!closing || reduced) return;
+    // A dropped animation-complete callback must not leave a controlled
+    // Radix modal mounted, inert, and hiding the page from the accessibility tree.
+    const fallback = window.setTimeout(onClose, 1_000);
+    return () => window.clearTimeout(fallback);
+  }, [closing, onClose, reduced]);
   const restoreFocus = (event: Event) => {
     event.preventDefault();
     const active = document.activeElement;
-    if (active && active !== document.body && active.isConnected) return;
+    if (active && active !== document.body && active.isConnected && !surface.current?.contains(active)) return;
     previous.current?.isConnected && previous.current.focus({ preventScroll: true });
   };
   const dismiss = () => reduced ? onClose() : setClosing(true);

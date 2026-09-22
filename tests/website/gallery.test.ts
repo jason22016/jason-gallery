@@ -751,7 +751,7 @@ test('search keyboard, chips, dates and URL state keep the original filter seman
   await expect(page.locator('.gallery-count')).toHaveText('53');
   assert.equal(new URL(page.url()).searchParams.get('tag'), null);
   await trigger.click(); await expect(page.getByRole('searchbox')).toBeFocused();
-  await page.keyboard.press('Escape'); await expect(dialog).toHaveCount(0);
+  await page.keyboard.press('Escape'); await expect(page.locator('.gallery-panel')).toHaveCount(0);
   await expect(trigger).toBeFocused();
 });
 
@@ -803,7 +803,7 @@ test('mobile search remains inside a short viewport, traps focus, and restores i
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   const box = await panel.boundingBox();
   assert(box && box.x >= 0 && box.y >= 0 && box.y + box.height <= 569);
-  await page.keyboard.press('Escape'); await expect(panel).toHaveCount(0);
+  await page.keyboard.press('Escape'); await expect(page.locator('.gallery-panel')).toHaveCount(0);
   await expect(trigger).toBeFocused();
 });
 
