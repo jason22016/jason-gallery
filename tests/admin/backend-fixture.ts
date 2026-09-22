@@ -52,7 +52,8 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
   let summaryBytes: Promise<Uint8Array> | undefined;
   const summaryZip = () => summaryBytes ??= zip(new Map([['summary.json', new TextEncoder().encode(JSON.stringify(summary))]]), summaryLevel);
   await summaryZip();
-  const blob = (value: unknown) => { const text = JSON.stringify(value); const byteSize = Buffer.byteLength(text); return { text, byteSize, oid: createHash('sha1').update(`blob ${byteSize}\0`).update(text).digest('hex'), isBinary: false, isTruncated: false }; };
+  const storedText = new WeakMap<object, string>();
+  const blob = (value: object) => { const text = storedText.get(value) ?? JSON.stringify(value); const byteSize = Buffer.byteLength(text); return { text, byteSize, oid: createHash('sha1').update(`blob ${byteSize}\0`).update(text).digest('hex'), isBinary: false, isTruncated: false }; };
   const run = {id:runId,run_attempt:1,head_branch:'main',path:'.github/workflows/automation.yml',repository:{full_name:env.GITHUB_REPOSITORY},head_repository:{full_name:env.GITHUB_REPOSITORY},head_sha:head,status:'completed',event:'workflow_dispatch',conclusion:'success',display_title:'Gallery sync · fixture'};
   const fetcher: typeof fetch = async (input, init) => {
     const url = new URL(String(input)); const headers = new Headers(init?.headers); const method=init?.method||'GET'; network.push({url: url.origin+url.pathname,method,auth:headers.get('authorization')});
@@ -70,7 +71,7 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
     const p=url.pathname.replace('/repos/fixture/website','');
     const body=init?.body ? JSON.parse(String(init.body)) : null;
     if(p==='/graphql' && body.query.startsWith('query AdminContent')) {
-      const entry = (name:string,value:unknown) => ({name,oid:blob(value).oid,type:'blob',mode:0o100644,object:{__typename:'Blob',...blob(value)}});
+      const entry = (name:string,value:object) => ({name,oid:blob(value).oid,type:'blob',mode:0o100644,object:{__typename:'Blob',...blob(value)}});
       const source=entry('photo-sources.json',activeConfig);
       const repository:any={configDirectory:{__typename:'Tree',entries:[source]},sourceFile:source.object,projectsDirectory:{__typename:'Tree',entries:projects.map(p=>entry(p.slug+'.json',p))}};
       for(const [i,path] of processingInputs.entries()) repository[`processor${i}`]=path==='pnpm-lock.yaml'?{__typename:'Blob',oid:codeStale?'e'.repeat(40):'d'.repeat(40)}:null;
@@ -81,7 +82,9 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
       const input=body.variables.input; assert.equal(input.branch.repositoryNameWithOwner,env.GITHUB_REPOSITORY);assert.equal(input.branch.branchName,'main');
       if(race || input.expectedHeadOid!==currentHead) return Response.json({data:{createCommitOnBranch:null},errors:[{type:'STALE_DATA'}]});
       for (const change of input.fileChanges.additions) {
-        const value = JSON.parse(Buffer.from(change.contents, 'base64').toString('utf8'));
+        const text = Buffer.from(change.contents, 'base64').toString('utf8');
+        const value = JSON.parse(text);
+        storedText.set(value, text);
         if (change.path === 'config/photo-sources.json') activeConfig = value;
         else projects = [...projects.filter(p => `src/content/projects/${p.slug}.json` !== change.path), value];
       }
@@ -93,7 +96,7 @@ async function fixture(replay?: { files: Map<string, Uint8Array>; artifact: any;
     if(method!=='GET') mutations.push({p,method,body});
     if(p==='/git/ref/heads/main') return Response.json({object:{sha:currentHead}});
     if(p.startsWith('/git/trees/') && method==='GET') return Response.json({truncated:false,tree:[{path:'config/photo-sources.json',type:'blob',mode:'100644',sha:blob(activeConfig).oid},...projects.map((p,i)=>({path:`src/content/projects/${p.slug}.json`,sha:blob(p).oid,type:'blob',mode:'100644'})),{path:'pnpm-lock.yaml',type:'blob',sha:codeStale?'e'.repeat(40):'d'.repeat(40)}]});
-    if(p.startsWith('/git/blobs/')) { const value=[activeConfig, ...projects].find(v => p.endsWith(blob(v).oid)); return Response.json({encoding:'base64',content:Buffer.from(JSON.stringify(value)).toString('base64')}); }
+    if(p.startsWith('/git/blobs/')) { const value=[activeConfig, ...projects].find(v => p.endsWith(blob(v).oid)); return Response.json({encoding:'base64',content:Buffer.from(blob(value).text).toString('base64')}); }
     if(p===`/git/commits/${head}`) return Response.json({tree:{sha:'tree'}});
     if(p==='/git/trees' || p==='/git/commits') return Response.json({sha:next});
     if(p==='/git/refs/heads/main') { if(race) return Response.json({}, {status:422}); currentHead=next; return Response.json({object:{sha:next}}); }

@@ -1,7 +1,7 @@
 import { previewSync, SourceIdsSchema } from './sync-preview';
 import { z } from 'zod';
 import { proofSigner, verifyProof, type PreviewProof } from './preview-proof';
-import { signSaveProof, verifySaveProof, projectReferences, type SaveProof } from './save-proof';
+import { signSaveProof, verifySaveProof, projectReferences, type ProjectReferences, type SaveProof } from './save-proof';
 import { parseSources, sourceIdentity, LEGACY_SOURCE, type SourcesConfig } from '../../src/photo-engine/source-contract';
 import { parseCatalog, processingDigest, sha256, type ReadCatalog } from './read-contract';
 import { ProjectSchema, type Project } from '../../src/projects/schema';
@@ -30,6 +30,21 @@ export function sourceImpacts(before: SourcesConfig, after: SourcesConfig, proje
 function validateReferences(projects: Project[], catalog: ReadCatalog) {
   const ids = new Set(catalog.photos.map(p => p.id)); const aliases = new Map(catalog.aliases);
   validateProjectReferences(projects, id => { const ref = aliases.get(id) ?? id; return ids.has(ref) ? ref : undefined; });
+}
+function validateProjectSave(project: Project, projects: Pick<ProjectReferences, 'id' | 'slug' | 'bytes'>[]) {
+  const existing = projects.find(p => p.id === project.id);
+  assert(project.slug.length <= 120, 'Project slug 超过后台 120 字符上限');
+  assert(existing || projects.length < 500, 'Project 超过后台 500 个上限');
+  assert(!existing || existing.slug === project.slug, '已保存 Project 的 slug 不可更改');
+  assert(!projects.some(p => p.slug === project.slug && p.id !== project.id), 'Project slug 已存在');
+  // Match GitHub.commit's formatted UTF-8 blob, including its trailing newline.
+  const size = Buffer.byteLength(JSON.stringify(project, null, 2) + '\n');
+  assert(size <= 512000, 'Project 内容超过后台 512 KB 上限');
+  // Unchanged files retain their verified stored sizes; a replacement releases
+  // the old blob's bytes before the new blob is added.
+  const total = projects.reduce((sum, p) => sum + (p.id === project.id ? 0 : p.bytes), size);
+  assert(total <= 4 * 1024 ** 2, 'Project 总内容超过后台 4 MB 上限');
+  return size;
 }
 export class AdminService {
   constructor(readonly github: GitHub) {}
@@ -172,14 +187,8 @@ export class AdminService {
   }
   private async saveWithProof(project: Project, expectedHead: string, token: string) {
     const proof = verifySaveProof(this.github.env, token, expectedHead);
-    const existing = proof.projects.find(p => p.id === project.id);
-    assert(project.slug.length <= 120, 'Project slug 超过后台 120 字符上限');
-    assert(existing || proof.projects.length < 500, 'Project 超过后台 500 个上限');
-    assert(!existing || existing.slug === project.slug, '已保存 Project 的 slug 不可更改');
-    const size = Buffer.byteLength(JSON.stringify(project, null, 2) + '\n');
-    assert(size <= 512000, 'Project 内容超过后台 512 KB 上限');
+    const size = validateProjectSave(project, proof.projects);
     const projects = [...proof.projects.filter(p => p.id !== project.id), projectReferences(project, size)];
-    assert(projects.reduce((sum, p) => sum + p.bytes, 0) <= 4 * 1024 ** 2, 'Project 总内容超过后台 4 MB 上限');
     const ids = new Set(proof.ids), aliases = new Map(proof.aliases);
     try { validateProjectReferences(projects, id => { const canonical = aliases.get(id) ?? id; return ids.has(canonical) ? canonical : undefined; }); }
     catch { throw new ApiError(422, 'project_reference', 'Project 引用校验失败；照片缺失、重复或来源已变化'); }
@@ -208,11 +217,11 @@ export class AdminService {
       changes = [{ path: 'config/photo-sources.json', data: config }];
     } else {
       const p = body.project;
-      const existing = content.projects.find(v => v.id === p.id);
-      assert(p.slug.length <= 120, 'Project slug 超过后台 120 字符上限');
-      assert(existing || content.projects.length < 500, 'Project 超过后台 500 个上限');
-      assert(!existing || existing.slug === p.slug, '已保存 Project 的 slug 不可更改');
-      assert(!content.projects.some(v => v.slug === p.slug && v.id !== p.id), 'Project slug 已存在');
+      const entries = new Map(content.tree.map(entry => [entry.path, entry]));
+      validateProjectSave(p, content.projects.map(project => ({
+        id: project.id, slug: project.slug,
+        bytes: this.github.fileSizes.get(entries.get(`src/content/projects/${project.slug}.json`)!.sha)!,
+      })));
       const photos = await this.photos(content, undefined, false);
       try {
         validateReferences([...content.projects.filter(v => v.id !== p.id), p], photos);
