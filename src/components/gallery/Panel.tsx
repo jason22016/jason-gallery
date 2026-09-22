@@ -1,7 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { Spring } from '@afilmory/utils';
 import { m } from 'motion/react';
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useMobile } from '../../hooks/useMobile';
 import { lockPageScroll } from './modal';
 import { Icon } from './ui/Icon';
@@ -21,6 +21,17 @@ export default function Panel({ title, onClose, children, wide = false, kind = '
   const search = kind === 'search';
   const map = kind === 'map';
   const [closing, setClosing] = useState(false);
+  const closeCallback = useRef(onClose);
+  const closeTimer = useRef<number | undefined>(undefined);
+  const closed = useRef(false);
+  useLayoutEffect(() => { closeCallback.current = onClose; }, [onClose]);
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+  const finishClose = useCallback(() => {
+    if (closed.current) return;
+    closed.current = true;
+    window.clearTimeout(closeTimer.current);
+    closeCallback.current();
+  }, []);
   const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
   useLayoutEffect(() => {
     if (!window.visualViewport) return;
@@ -36,20 +47,19 @@ export default function Panel({ title, onClose, children, wide = false, kind = '
     previous.current = anchor ?? document.activeElement as HTMLElement | null;
     return lockPageScroll();
   }, [anchor]);
-  useEffect(() => {
-    if (!closing || reduced) return;
-    // A dropped animation-complete callback must not leave a controlled
-    // Radix modal mounted, inert, and hiding the page from the accessibility tree.
-    const fallback = window.setTimeout(onClose, 1_000);
-    return () => window.clearTimeout(fallback);
-  }, [closing, onClose, reduced]);
   const restoreFocus = (event: Event) => {
     event.preventDefault();
     const active = document.activeElement;
     if (active && active !== document.body && active.isConnected && !surface.current?.contains(active)) return;
     previous.current?.isConnected && previous.current.focus({ preventScroll: true });
   };
-  const dismiss = () => reduced ? onClose() : setClosing(true);
+  const dismiss = () => {
+    if (reduced) { finishClose(); return; }
+    // Start one deadline at dismissal. Parent renders must not postpone cleanup
+    // when the compositor drops an animation-complete callback.
+    closeTimer.current ??= window.setTimeout(finishClose, 1_000);
+    setClosing(true);
+  };
   const autoFocus = (event: Event) => {
     event.preventDefault();
     // Enter the focus trap without opening a touch keyboard. The input remains
@@ -66,12 +76,14 @@ export default function Panel({ title, onClose, children, wide = false, kind = '
     initial: reduced ? false as const : { opacity: 0, scale: mobile ? 1.02 : 1.04, filter: `blur(${mobile ? 4 : 8}px)` },
     animate: closing ? { opacity: 0, scale: .98, filter: `blur(${mobile ? 3 : 6}px)` } : { opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' } },
     transition: reduced ? { duration: 0 } : Spring.smooth(closing ? .22 : .32),
-    onAnimationComplete: () => { if (closing) onClose(); },
+    onAnimationComplete: () => { if (closing) finishClose(); },
   };
   const content = <PanelDismissContext.Provider value={dismiss}>{map ? <><Dialog.Title className="map-panel-title">{title}</Dialog.Title><MapBackButton onBack={dismiss} /></> : <header className="panel-heading"><Dialog.Title>{title}</Dialog.Title><button type="button" className="icon-button" onClick={dismiss} aria-label="关闭面板"><Icon name="close" /></button></header>}<div className="panel-body">{children}</div></PanelDismissContext.Provider>;
   const className = `gallery-panel gallery-dialog ${wide ? 'wide-panel' : ''} ${search ? 'search-panel' : ''} ${map ? 'map-panel' : ''}`;
-  return <Dialog.Root open onOpenChange={open => { if (!open) dismiss(); }}>
-    <Dialog.Portal><Dialog.Overlay asChild><m.div className="gallery-scrim" initial={reduced ? false : { opacity: 0 }} animate={{ opacity: closing ? 0 : 1 }} transition={{ duration: reduced ? 0 : .18, ease: 'easeOut' }} /></Dialog.Overlay>
+  // Release Radix's focus trap when closing starts, retaining the surface only
+  // for the exit animation. An inert panel cannot remain an open focus scope.
+  return <Dialog.Root open={!closing} onOpenChange={open => { if (!open) dismiss(); }}>
+    <Dialog.Portal forceMount><Dialog.Overlay asChild><m.div className="gallery-scrim" initial={reduced ? false : { opacity: 0 }} animate={{ opacity: closing ? 0 : 1 }} transition={{ duration: reduced ? 0 : .18, ease: 'easeOut' }} /></Dialog.Overlay>
     <div className={`gallery-dialog-position ${map ? 'map-position' : 'popup-position'}`} style={{ '--panel-viewport-height': `${viewportHeight}px` } as CSSProperties}>
       <Dialog.Content asChild aria-describedby={undefined} aria-label={title} onOpenAutoFocus={autoFocus} onCloseAutoFocus={restoreFocus}>
         <m.div {...motion} ref={surface} tabIndex={-1} className={className} aria-hidden={closing || undefined} inert={closing}>{content}</m.div>

@@ -1210,8 +1210,12 @@ test('Phase 5 map loading timeout, retry and context loss preserve the photo fal
   const held = new Promise<void>(resolve => { release = resolve; }); t.after(() => release());
   await page.route('**/tiles.json', async route => { await held; await route.fallback().catch(() => {}); });
   await page.goto(`${server.url}/projects/fixture-alpha/`);
+  const trigger = page.locator('.gallery-live').getByRole('button', { name: '地图探索', exact: true });
+  // Hydration replaces the disabled static toolbar. Install the clock only
+  // after the live trigger exists so the click cannot latch onto that old node.
+  await expect(trigger).toBeEnabled();
   await page.clock.install();
-  await page.getByRole('button', { name: '地图探索' }).click();
+  await trigger.click();
   await expect(page.locator('.map-loading')).toBeVisible();
   await expect(page.getByRole('button', { name: '放大地图' })).toBeDisabled();
   await page.clock.fastForward(16000);

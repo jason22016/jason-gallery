@@ -1058,6 +1058,40 @@ test('search keyboard, chips, dates and URL state keep the original filter seman
   await expect(trigger).toBeFocused();
 });
 
+test('panel dismissal finishes when animation frames stop and its parent keeps updating', async t => {
+  const { ctx, page } = await pageFor(); t.after(() => ctx.close());
+  await page.addInitScript(() => {
+    const requestFrame = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = callback => requestFrame(time => {
+      if (!document.documentElement.hasAttribute('data-suspend-animations')) callback(time);
+    });
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function (keyframes, options) {
+      const animation = animate.call(this, keyframes, options);
+      if (document.documentElement.hasAttribute('data-suspend-animations')) animation.pause();
+      return animation;
+    };
+  });
+  await page.goto(server.url + '?panel-lifecycle');
+  const trigger = page.getByRole('button', { name: 'Open test panel', exact: true });
+  await trigger.click();
+  const panel = page.getByRole('dialog', { name: 'Panel lifecycle', exact: true });
+  await expect(panel).toHaveCSS('filter', 'none');
+  await page.evaluate(() => {
+    // A suspended compositor may never deliver Motion's completion callback.
+    document.documentElement.setAttribute('data-suspend-animations', '');
+    for (const animation of document.getAnimations()) animation.pause();
+  });
+  const updates = Number(await page.locator('[data-panel-updates]').getAttribute('data-panel-updates'));
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.gallery-panel')).toHaveCount(0);
+  await expect(page.getByRole('status')).toHaveText('Closed 1 times');
+  assert(Number(await page.locator('[data-panel-updates]').getAttribute('data-panel-updates')) > updates, 'parent continued updating during dismissal');
+  await expect(trigger).toBeFocused();
+  await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden');
+  await expect(page.locator('body')).not.toHaveCSS('pointer-events', 'none');
+});
+
 test('settings opens as a search-style modal on desktop and mobile with focus and safe bounds', async t => {
   const { ctx, page } = await pageFor(); t.after(() => ctx.close()); await ready(page);
   const trigger = page.getByRole('button', { name: '显示设置', exact: true });
