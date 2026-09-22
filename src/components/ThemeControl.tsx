@@ -13,11 +13,13 @@ export function ThemeControl() {
   const theme = useTheme();
   const menu = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
+    // WebKit can blur the summary before a touch selection dispatches its click.
+    // Close by pointer location so an internal tap can finish selecting a theme.
     const closeOutside = (event: PointerEvent) => {
-      if (menu.current && !menu.current.contains(event.target as Node)) menu.current.open = false;
+      if (menu.current?.open && event.target instanceof Node && !menu.current.contains(event.target)) menu.current.open = false;
     };
-    document.addEventListener('pointerdown', closeOutside);
-    return () => document.removeEventListener('pointerdown', closeOutside);
+    document.addEventListener('pointerdown', closeOutside, true);
+    return () => document.removeEventListener('pointerdown', closeOutside, true);
   }, []);
   const preference = theme?.preference ?? 'system';
   const label = theme?.resolved === 'dark' ? '切换至浅色' : '切换至深色';
@@ -36,8 +38,13 @@ export function ThemeControl() {
       if (event.key === 'Escape' && event.currentTarget.open) {
         event.preventDefault(); event.stopPropagation(); event.currentTarget.open = false;
         event.currentTarget.querySelector('summary')?.focus();
+      } else if (event.key === 'Tab') {
+        const details = event.currentTarget;
+        requestAnimationFrame(() => {
+          if (!details.contains(document.activeElement)) details.open = false;
+        });
       }
-    }} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false; }}>
+    }}>
       <summary aria-label="主题设置" title="主题设置"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
       <div className="theme-options" role="group" aria-label="外观模式">
         {options.map(option => <button type="button" key={option.value} aria-pressed={preference === option.value} onClick={() => {

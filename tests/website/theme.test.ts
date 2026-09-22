@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
-import { chromium, type Browser, type BrowserContextOptions, type Page } from 'playwright';
+import { chromium, webkit, type Browser, type BrowserContextOptions, type Page } from 'playwright';
 import { expect } from 'playwright/test';
 import { buildFixture, repo } from './fixture';
 import { serve } from './server';
@@ -17,8 +17,8 @@ before(async () => {
 }, { timeout: 120_000 });
 after(async () => { await browser?.close(); await server?.close(); });
 
-async function pageFor(options: BrowserContextOptions = {}) {
-  const context = await browser.newContext({ colorScheme: 'light', ...options });
+async function pageFor(options: BrowserContextOptions = {}, engineBrowser = browser) {
+  const context = await engineBrowser.newContext({ colorScheme: 'light', ...options });
   const page = await context.newPage();
   page.on('pageerror', error => errors.push(error.message));
   await page.route('https://**', route => route.abort());
@@ -38,6 +38,85 @@ async function systemMode(page: Page) {
   await page.locator('.site-theme-control').getByRole('button', { name: '跟随系统', exact: true }).click();
 }
 const toggle = (page: Page) => page.locator('.site-theme-control').getByRole('button', { name: '切换明暗主题', exact: true });
+
+for (const engine of [chromium, webkit]) {
+  test(`${engine.name()}: mobile theme menu applies every appearance mode with one tap`, async t => {
+    const engineBrowser = await engine.launch(); t.after(() => engineBrowser.close());
+    const { page, context } = await pageFor({
+      viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce',
+    }, engineBrowser); t.after(() => context.close());
+    for (const route of ['/', '/projects/fixture-beta/']) {
+      await ready(page, route);
+      if (route !== '/') await expect(page.locator('[data-photo-gallery]')).toHaveAttribute('data-enhanced', 'true');
+      const menu = page.locator('.site-theme-control .theme-menu');
+      const summary = menu.locator('summary');
+      for (const [name, preference] of [['深色', 'dark'], ['浅色', 'light'], ['跟随系统', 'system']] as const) {
+        await summary.tap();
+        await expect(menu).toHaveAttribute('open', '');
+        const option = menu.getByRole('button', { name, exact: true });
+        await option.tap();
+        await expect(page.locator('html')).toHaveAttribute('data-theme-preference', preference);
+        await settled(page, preference === 'dark' ? 'dark' : 'light');
+        await expect(menu).not.toHaveAttribute('open');
+        assert.equal(await page.evaluate(() => localStorage.getItem('jason-gallery:theme')), preference === 'system' ? null : preference);
+        await summary.tap();
+        await expect(option).toHaveAttribute('aria-pressed', 'true');
+        await summary.tap();
+        await expect(menu).not.toHaveAttribute('open');
+      }
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await settled(page, 'dark');
+      await page.emulateMedia({ colorScheme: 'light' });
+      await settled(page, 'light');
+      await summary.tap();
+      if (route === '/') await page.locator('.site-header').tap({ position: { x: 1, y: 1 } });
+      else await page.locator('.gallery-live .gallery-count').tap();
+      await expect(menu).not.toHaveAttribute('open');
+    }
+  });
+
+  test(`${engine.name()}: desktop theme menu supports mouse selection and keyboard dismissal`, async t => {
+    const engineBrowser = await engine.launch(); t.after(() => engineBrowser.close());
+    const { page, context } = await pageFor({ reducedMotion: 'reduce' }, engineBrowser); t.after(() => context.close());
+    await ready(page);
+    const menu = page.locator('.site-theme-control .theme-menu');
+    const summary = menu.locator('summary');
+    const dark = menu.getByRole('button', { name: '深色', exact: true });
+    const light = menu.getByRole('button', { name: '浅色', exact: true });
+    await summary.focus();
+    await page.keyboard.press('Enter');
+    await expect(menu).toHaveAttribute('open', '');
+    await dark.focus();
+    await page.keyboard.press('Enter');
+    await settled(page, 'dark');
+    await expect(menu).not.toHaveAttribute('open');
+    await expect(summary).toBeFocused();
+    await page.keyboard.press('Enter');
+    await light.focus();
+    // Safari's native Tab order depends on the user's keyboard preferences.
+    await dark.focus();
+    await expect(menu).toHaveAttribute('open', '');
+    await page.keyboard.press('Escape');
+    await expect(menu).not.toHaveAttribute('open');
+    await expect(summary).toBeFocused();
+    await page.keyboard.press('Enter');
+    await dark.focus();
+    await page.keyboard.press('Tab');
+    await expect(menu).not.toHaveAttribute('open');
+    await summary.focus();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Shift+Tab');
+    await expect(menu).not.toHaveAttribute('open');
+    assert.equal(await menu.evaluate(element => element.contains(document.activeElement)), false);
+    await summary.click();
+    await light.click();
+    await settled(page, 'light');
+    await expect(menu).not.toHaveAttribute('open');
+    await summary.click();
+    await page.locator('.site-header').click({ position: { x: 1, y: 1 } });
+    await expect(menu).not.toHaveAttribute('open');
+  });
+}
 
 test('manual moon cycles and page materials interpolate in both directions', async t => {
   const { page, context } = await pageFor(); t.after(() => context.close());
