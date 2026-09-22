@@ -10,7 +10,7 @@ import { sealCollection } from '../../scripts/photos/collection.js';
 import { parseSources, makeSnapshot, photoReference, LEGACY_SOURCE } from '../../src/photo-engine/sources.js';
 import { processingFingerprint } from '../../scripts/photos/fingerprint.js';
 import { buildRelease, verifyRelease, type Release } from '../../scripts/ci/release.js';
-import { deployRelease, rollbackDeployment, type DeployIO } from '../../scripts/ci/deploy.js';
+import { deployRelease, rollbackDeployment, type DeployIO, type Deployment } from '../../scripts/ci/deploy.js';
 import { shortPublicPhotoId } from '../../src/website/public-photo-id';
 import { fakeEmbeddingBackend, type FakeEmbeddingCalls } from '../semantic/fake';
 
@@ -24,7 +24,7 @@ const codeCommit = 'a'.repeat(40);
 const fixtureConfig = parseSources({ schemaVersion: 1, sources: [LEGACY_SOURCE] });
 const read = async (file: string) => JSON.parse(await fs.readFile(file, 'utf8'));
 
-test('Phase 6 immutable snapshots, incremental processing, release gates and deployment transaction', { timeout: 240_000 }, async () => {
+test('Phase 6 immutable snapshots, incremental processing, release gates and deployment transaction', { timeout: 240_000 }, async t => {
   await fs.rm(root, { recursive: true, force: true }); await fs.mkdir(root, { recursive: true });
   const fixture = { ref: '1'.repeat(40), files: {} as Record<string, {file: string; commit: string}> };
   async function add(name: string, color: string, width = 96) {
@@ -182,6 +182,63 @@ test('Phase 6 immutable snapshots, incremental processing, release gates and dep
   await assert.rejects(deployRelease(destination,io),/restored preceding/); assert(rollback); assert.equal(latest.id,old.id);
   wrongVersion=false;latest=next;
   const rolled = await rollbackDeployment(old.id,io); assert.equal(rolled.deploymentId,old.id); assert.equal(latest.id,old.id);
+
+  const external = { ...next, id: '00000000-0000-0000-0000-000000000003', url: 'https://external.example' };
+  const conflict = /Deployment conflict:.*automatic rollback skipped/;
+  const scenarios: {
+    name: string;
+    version: 'valid' | 'wrong-version' | 'wrong-site' | 'unavailable';
+    productionReads: (Deployment | undefined | Error)[];
+    error: RegExp;
+    restoresPrevious?: boolean;
+  }[] = [
+    { name: 'external publication during verification is preserved', version: 'valid', productionReads: [external], error: conflict },
+    { name: 'version mismatch does not roll back an external publication', version: 'wrong-version', productionReads: [external], error: conflict },
+    { name: 'rollback rechecks ownership after the initial production read', version: 'wrong-version', productionReads: [next, external], error: conflict },
+    { name: 'version fetch failure does not roll back an external publication', version: 'unavailable', productionReads: [external], error: conflict },
+    { name: 'production read failure does not roll back an external publication', version: 'valid', productionReads: [new Error('verification read failed'), external], error: conflict },
+    { name: 'external rollback to the previous deployment is preserved', version: 'valid', productionReads: [old], error: conflict },
+    { name: 'missing production deployment blocks automatic rollback', version: 'valid', productionReads: [undefined], error: conflict },
+    { name: 'unavailable production state blocks automatic rollback', version: 'wrong-version', productionReads: [next, new Error('rollback ownership read failed')], error: /automatic rollback skipped.*could not be confirmed/ },
+    { name: 'version fetch failure still restores the previous deployment when owned', version: 'unavailable', productionReads: [next], error: /restored preceding/, restoresPrevious: true },
+    { name: 'site URL mismatch still restores the previous deployment when owned', version: 'wrong-site', productionReads: [next], error: /restored preceding/, restoresPrevious: true },
+  ];
+  for (const scenario of scenarios) await t.test(scenario.name, async () => {
+    let uploaded = false, productionReads = 0;
+    let current: Deployment | undefined = old;
+    const mutations: { route: string; method: string }[] = [];
+    const deploymentIO: DeployIO = {
+      ...io,
+      upload: async () => { uploaded = true; current = next; },
+      version: async url => {
+        const version = await io.version(url);
+        if (url === old.url) return version;
+        if (scenario.version === 'unavailable') throw new Error('version fetch failed');
+        if (scenario.version === 'wrong-version') return { ...version, version: 'wrong' };
+        if (scenario.version === 'wrong-site') return { ...version, siteURL: 'https://wrong.example' };
+        return version;
+      },
+      api: async (route, method = 'GET') => {
+        if (method !== 'GET') {
+          mutations.push({ route, method });
+          current = old;
+          return old;
+        }
+        if (route === '/deployments?env=production&per_page=25') return [next, old];
+        assert.equal(route, '');
+        if (uploaded) {
+          const observed = scenario.productionReads[Math.min(productionReads++, scenario.productionReads.length - 1)];
+          if (observed instanceof Error) throw observed;
+          current = observed;
+        }
+        return { subdomain: 'fixture.example', production_branch: 'main', canonical_deployment: current };
+      },
+    };
+    await assert.rejects(deployRelease(destination, deploymentIO), scenario.error);
+    assert(uploaded);
+    assert.deepEqual(mutations, scenario.restoresPrevious ? [{ route: `/deployments/${old.id}/rollback`, method: 'POST' }] : []);
+    assert.equal(current, scenario.restoresPrevious ? old : scenario.productionReads.filter(value => !(value instanceof Error)).at(-1));
+  });
   await fs.writeFile(path.join(destination,'dist/index.html'),'tampered');
   const count=uploads;await assert.rejects(deployRelease(destination,io),/digest mismatch/);assert.equal(uploads,count);
   const summaryRoot = path.join(root, 'summary-job'); await fs.mkdir(summaryRoot);

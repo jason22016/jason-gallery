@@ -59,9 +59,21 @@ export async function deployRelease(directory: string, io: DeployIO = deployment
     const current = await io.version(deployment.url);
     const latest: PagesProject = await io.api('');
     if (current.version !== release.version || current.siteURL !== release.siteURL || latest.canonical_deployment?.id !== deployment.id) throw new Error('Deployed version/canonical deployment mismatch');
-  } catch {
-    if (previous) { await io.api(`/deployments/${previous.id}/rollback`, 'POST'); throw new Error('Deployed verification failed; restored preceding production deployment'); }
-    throw new Error('First deployment verification failed; no previous deployment exists to restore');
+  } catch (error) {
+    if (!previous) throw new Error('First deployment verification failed; no previous deployment exists to restore', { cause: error });
+    // Console/CLI publishes bypass workflow concurrency. Recheck immediately before the rollback write.
+    let currentId: string | undefined;
+    try {
+      const latest: PagesProject = await io.api('');
+      currentId = latest.canonical_deployment?.id;
+    } catch (cause) {
+      throw new Error('Deployed verification failed; automatic rollback skipped because current production deployment could not be confirmed', { cause });
+    }
+    if (currentId !== deployment.id) {
+      throw new Error(`Deployment conflict: current production deployment is ${currentId ?? 'unknown'}, expected ${deployment.id}; automatic rollback skipped`, { cause: error });
+    }
+    await io.api(`/deployments/${previous.id}/rollback`, 'POST');
+    throw new Error('Deployed verification failed; restored preceding production deployment', { cause: error });
   }
   return { status: 'success', url: release.siteURL ?? `https://${project.subdomain}`, deploymentUrl: deployment.url, deploymentId: deployment.id, version: release.version };
 }
