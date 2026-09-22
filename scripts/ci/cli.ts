@@ -9,7 +9,7 @@ import { resolveSnapshot, parseCommits, sourceStatuses, safeReason } from '../ph
 import { processingFingerprint } from '../photos/fingerprint.js';
 import { buildRelease, verifyRelease } from './release.js';
 import { deployRelease, rollbackDeployment } from './deploy.js';
-import { buildSemanticIndex } from '../semantic/build.js';
+import { buildSemanticIndex, inspectSemanticCache } from '../semantic/build.js';
 
 const command = process.argv[2];
 const root = path.resolve('.cache/automation');
@@ -89,9 +89,16 @@ try {
     const artifact = await verifyCollection(path.join(root, 'photos'), { config: loadSources(), snapshot: state.photoSnapshot, fingerprint: state.fingerprint, production: true });
     state.sources = artifact.sources.map(s => process.env.PHOTO_RUN_ID && s.status === 'success' ? { ...s, processed: 0, reused: s.total } : s);
     state.photos = { status: 'success', total: artifact.photos, processed: process.env.PHOTO_RUN_ID ? 0 : artifact.processed, reused: process.env.PHOTO_RUN_ID ? artifact.photos : artifact.reused, artifactVersion: artifact.version, producerWebsiteCommit: artifact.websiteCommit, artifactRunId: process.env.PHOTO_RUN_ID || process.env.GITHUB_RUN_ID };
-  } else if (command === 'semantic') {
+  } else if (command === 'semantic-plan') {
     if (state.photos.status !== 'success') throw new Error('Current run has no verified photo artifact');
     await exportCollection(path.join(root, 'photos'), process.cwd());
+    const semantic = await inspectSemanticCache({ root: process.cwd() });
+    state.semantic = { status: 'planned', ...semantic };
+    await output('needs_encoder', String(semantic.needsEncoder));
+    await output('miss_count', String(semantic.misses));
+  } else if (command === 'semantic') {
+    if (state.photos.status !== 'success') throw new Error('Current run has no verified photo artifact');
+    if (state.semantic.status !== 'planned') await exportCollection(path.join(root, 'photos'), process.cwd());
     const semantic = await buildSemanticIndex({ root: process.cwd() });
     state.semantic = { status: 'success', ...semantic };
   } else if (command === 'build') {
@@ -114,13 +121,13 @@ try {
     state.result = jobStatus === 'success' ? 'success' : jobStatus ?? 'failure';
     if (state.result !== 'success' && !state.failureReason) state.failureReason = `Workflow ${state.result}; inspect failed/cancelled step in Actions (checkout, dependencies, checks or artifact transfer)`;
     if (process.env.GITHUB_STEP_SUMMARY) await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, `\n\`\`\`json\n${JSON.stringify(state, null, 2)}\n\`\`\`\n`);
-  } else throw new Error('Expected resolve, photos, semantic, build, deploy, rollback or summary');
+  } else throw new Error('Expected resolve, photos, semantic-plan, semantic, build, deploy, rollback or summary');
 } catch (error) {
   state.result = 'failure';
   const reason = safeReason(error);
   state.failureReason = `${command}: ${reason}`;
   if (command === 'photos') state.photos.status = 'failure';
-  if (command === 'semantic') state.semantic.status = 'failure';
+  if (command === 'semantic-plan' || command === 'semantic') state.semantic.status = 'failure';
   if (command === 'build') state.website.status = 'failure';
   if (command === 'deploy' || command === 'rollback') state.deployment = { status: 'failure_or_unconfirmed', url: null, version: null };
   console.error(state.failureReason); process.exitCode = 1;

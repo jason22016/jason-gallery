@@ -18,7 +18,7 @@ Jason Gallery is a static photography portfolio built with Astro, featuring cura
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm exec playwright install --with-deps chromium
+pnpm exec playwright install --with-deps chromium firefox webkit chrome
 pnpm photos --export
 pnpm test
 ```
@@ -27,7 +27,7 @@ pnpm test
 
 `pnpm test` 依次运行 `pnpm test:checks`、真实导出数据检查 `pnpm test:metadata-real` 和生产构建 `pnpm build`，成功后网站位于 `dist/`。`test:checks` 包含上游校验、TypeScript、Projects、Statistics、照片 smoke、Viewer、Website、SEO、automation/release 和 Admin 测试；测试使用隔离 fixture 与本地运行时，不执行线上发布。GitHub Actions 在相互隔离的 runner 上并行执行这些同一组检查，任一分组失败都会阻止后续构建或发布。
 
-开发预览运行 `pnpm dev`；仅重新构建运行 `pnpm build`。浏览器测试需要前述 Chromium 安装；只运行隔离回归可用 `pnpm test:checks`，但这不能替代真实数据检查和生产构建。
+开发预览运行 `pnpm dev`；仅重新构建运行 `pnpm build`。浏览器测试需要前述 Chrome、Chromium、Firefox 和 WebKit 安装；只运行隔离回归可用 `pnpm test:checks`，但这不能替代真实数据检查和生产构建。
 
 公开导航为 Projects / Explore / Map / Stats：`/` 继续展示项目，`/explore/` 汇集所有 published Projects 引用的公开照片，按照片 ID 去重；`/map/` 使用其中有有效 GPS 的照片。Explore、Map 与 Project 共用 Gallery、filters 和 Viewer；Explore ↔ Map 保留搜索、日期、相机、镜头、标签、项目筛选及排序。地图复用 PhotoMap，首次适配结果，筛选后保留视角，可用 Fit Results 重新定位。实现与验证见 [Global Gallery Phase 2](docs/gallery/GLOBAL_PHASE2.md)、[Phase 3](docs/gallery/GLOBAL_PHASE3.md) 和 [最终整合 / Release Gate](docs/gallery/GLOBAL_PHASE4.md)。
 

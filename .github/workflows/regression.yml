@@ -54,8 +54,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Install Chromium
-        if: matrix.browser
+        if: matrix.browser && matrix.script != 'test:semantic-browser'
         run: pnpm exec playwright install --with-deps chromium
+      - name: Install semantic compatibility browsers
+        if: matrix.script == 'test:semantic-browser'
+        run: pnpm exec playwright install --with-deps chromium firefox webkit chrome
       - name: Run ${{ matrix.name }} checks
         run: pnpm ${{ matrix.script }}
       - name: Retain Viewer diagnostics

@@ -12,6 +12,7 @@
     "build": "pnpm semantic:build && astro build",
     "check": "tsc --noEmit",
     "semantic:build": "node --import tsx scripts/semantic/cli.ts build",
+    "semantic:plan": "node --import tsx scripts/semantic/cli.ts plan",
     "semantic:verify": "node --import tsx scripts/semantic/cli.ts verify",
     "semantic:phase3c": "vite build --config tests/semantic-browser/vite.config.ts && node --import tsx scripts/semantic/phase3c.ts",
     "semantic:phase3c:score": "node --import tsx scripts/semantic/phase3c-score.ts",

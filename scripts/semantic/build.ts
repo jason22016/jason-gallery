@@ -37,9 +37,30 @@ export interface SemanticBuildResult {
   backendTiming?: Readonly<Record<string, number>>;
 }
 
+export interface SemanticCacheInspection {
+  modelContractSha256: string;
+  photos: number;
+  uniqueContents: number;
+  cacheHits: number;
+  misses: number;
+  duplicateMemberships: number;
+  needsEncoder: boolean;
+}
+
 interface PreparedPhoto extends PublicSemanticPhotoInput {
   thumbnailSha256: string;
   cacheKey: string;
+}
+
+interface PreparedSemanticInputs {
+  photos: PreparedPhoto[];
+  representatives: Map<string, PreparedPhoto>;
+  duplicateMemberships: number;
+}
+
+interface CachedSemanticVectors {
+  vectors: Map<string, Float32Array>;
+  misses: PreparedPhoto[];
 }
 
 interface CacheEntry {
@@ -132,6 +153,49 @@ async function writeCachedVector(cacheDirectory: string, photo: PreparedPhoto, v
   await fs.rename(metadataTemporary, files.metadata);
 }
 
+async function prepareSemanticInputs(options: SemanticBuildOptions, root: string): Promise<PreparedSemanticInputs> {
+  const source = options.photos ?? collectPublicSemanticPhotos(root, options.projectDirectory, options.manifestFile);
+  const normalized = normalizeMembership(source, root);
+  const photos: PreparedPhoto[] = [];
+  for (const photo of normalized.photos) {
+    const thumbnail = await fs.lstat(photo.thumbnailPath);
+    if (!thumbnail.isFile()) throw new Error(`Semantic image input must be a regular thumbnail file: ${photo.publicId}`);
+    const thumbnailSha256 = await sha256File(photo.thumbnailPath);
+    const identity = embeddingCacheIdentity(thumbnailSha256);
+    photos.push({ ...photo, thumbnailSha256, cacheKey: canonicalHash(identity) });
+  }
+  const representatives = new Map<string, PreparedPhoto>();
+  for (const photo of photos) if (!representatives.has(photo.cacheKey)) representatives.set(photo.cacheKey, photo);
+  return { photos, representatives, duplicateMemberships: normalized.duplicates };
+}
+
+async function loadCachedSemanticVectors(cacheDirectory: string, representatives: ReadonlyMap<string, PreparedPhoto>): Promise<CachedSemanticVectors> {
+  const vectors = new Map<string, Float32Array>();
+  const misses: PreparedPhoto[] = [];
+  for (const photo of representatives.values()) {
+    const cached = await readCachedVector(cacheDirectory, photo);
+    if (cached) vectors.set(photo.cacheKey, cached);
+    else misses.push(photo);
+  }
+  return { vectors, misses };
+}
+
+export async function inspectSemanticCache(options: SemanticBuildOptions = {}): Promise<SemanticCacheInspection> {
+  const root = path.resolve(options.root ?? '.');
+  const cacheDirectory = path.resolve(options.cacheDirectory ?? path.join(root, '.cache/semantic'));
+  const prepared = await prepareSemanticInputs(options, root);
+  const cached = await loadCachedSemanticVectors(cacheDirectory, prepared.representatives);
+  return {
+    modelContractSha256: semanticModelContractSha256,
+    photos: prepared.photos.length,
+    uniqueContents: prepared.representatives.size,
+    cacheHits: prepared.representatives.size - cached.misses.length,
+    misses: cached.misses.length,
+    duplicateMemberships: prepared.duplicateMemberships,
+    needsEncoder: cached.misses.length > 0,
+  };
+}
+
 async function installOutput(staging: string, destination: string): Promise<void> {
   await fs.mkdir(path.dirname(destination), { recursive: true });
   const backup = `${destination}.previous-${randomUUID()}`;
@@ -157,25 +221,8 @@ export async function buildSemanticIndex(options: SemanticBuildOptions = {}): Pr
   await fs.mkdir(lock).catch(() => { throw new Error('Semantic build already running; verify the writer before clearing build.lock'); });
   let staging: string | undefined;
   try {
-    const source = options.photos ?? collectPublicSemanticPhotos(root, options.projectDirectory, options.manifestFile);
-    const normalized = normalizeMembership(source, root);
-    const prepared: PreparedPhoto[] = [];
-    for (const photo of normalized.photos) {
-      const thumbnail = await fs.lstat(photo.thumbnailPath);
-      if (!thumbnail.isFile()) throw new Error(`Semantic image input must be a regular thumbnail file: ${photo.publicId}`);
-      const thumbnailSha256 = await sha256File(photo.thumbnailPath);
-      const identity = embeddingCacheIdentity(thumbnailSha256);
-      prepared.push({ ...photo, thumbnailSha256, cacheKey: canonicalHash(identity) });
-    }
-    const representatives = new Map<string, PreparedPhoto>();
-    for (const photo of prepared) if (!representatives.has(photo.cacheKey)) representatives.set(photo.cacheKey, photo);
-    const vectors = new Map<string, Float32Array>();
-    const misses = [] as PreparedPhoto[];
-    for (const photo of representatives.values()) {
-      const cached = await readCachedVector(cacheDirectory, photo);
-      if (cached) vectors.set(photo.cacheKey, cached);
-      else misses.push(photo);
-    }
+    const prepared = await prepareSemanticInputs(options, root);
+    const { vectors, misses } = await loadCachedSemanticVectors(cacheDirectory, prepared.representatives);
     let backendTiming: Readonly<Record<string, number>> | undefined;
     if (misses.length) {
       const result = await (options.embedder ?? pythonEmbeddingBackend)({
@@ -193,26 +240,26 @@ export async function buildSemanticIndex(options: SemanticBuildOptions = {}): Pr
       }
       backendTiming = result.timing;
     }
-    const orderedVectors = prepared.map(photo => {
+    const orderedVectors = prepared.photos.map(photo => {
       const vector = vectors.get(photo.cacheKey);
       if (!vector) throw new Error(`Missing semantic vector for ${photo.publicId}`);
       return vector;
     });
     const vectorData = encodeFloat32LE(orderedVectors);
-    const index = createPublicSemanticIndex(prepared.map(photo => photo.publicId), vectorData.byteLength, sha256(vectorData));
+    const index = createPublicSemanticIndex(prepared.photos.map(photo => photo.publicId), vectorData.byteLength, sha256(vectorData));
     staging = await fs.mkdtemp(path.join(cacheDirectory, 'public-output-'));
     await fs.writeFile(path.join(staging, semanticModelConfig.index.vectorFile), vectorData);
     await fs.writeFile(path.join(staging, 'index.json'), `${JSON.stringify(index, null, 2)}\n`);
-    await verifyPublicSemanticIndex(staging, prepared.map(photo => photo.publicId));
+    await verifyPublicSemanticIndex(staging, prepared.photos.map(photo => photo.publicId));
     await installOutput(staging, outputDirectory); staging = undefined;
     const result: SemanticBuildResult = {
       indexVersion: index.indexVersion,
       modelContractSha256: semanticModelContractSha256,
-      photos: prepared.length,
-      uniqueContents: representatives.size,
-      cacheHits: representatives.size - misses.length,
+      photos: prepared.photos.length,
+      uniqueContents: prepared.representatives.size,
+      cacheHits: prepared.representatives.size - misses.length,
       computed: misses.length,
-      duplicateMemberships: normalized.duplicates,
+      duplicateMemberships: prepared.duplicateMemberships,
       indexBytes: Buffer.byteLength(JSON.stringify(index, null, 2) + '\n'),
       vectorBytes: vectorData.byteLength,
       durationSeconds: (performance.now() - started) / 1000,
