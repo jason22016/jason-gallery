@@ -65,6 +65,9 @@ jobs:
       - name: Install Chromium
         if: matrix.browser && matrix.script != 'test:semantic-browser'
         run: pnpm exec playwright install --with-deps chromium
+      - name: Install WebKit for touch navigation
+        if: matrix.website_group == 'pages'
+        run: pnpm exec playwright install --with-deps webkit
       - name: Install semantic compatibility browsers
         if: matrix.script == 'test:semantic-browser'
         run: pnpm exec playwright install --with-deps chromium firefox webkit chrome
