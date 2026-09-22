@@ -12,6 +12,7 @@ export function useLivePhoto(photo: GalleryPhoto, imageLoaded: boolean) {
   const [playing, setPlaying] = useState(false);
   const isMobile = useMobile();
   const reducedMotion = useReducedMotion();
+  const playbackAllowed = !isMobile && !reducedMotion;
   const stop = useCallback(() => {
     hovered.current = false;
     generation.current++;
@@ -22,7 +23,7 @@ export function useLivePhoto(photo: GalleryPhoto, imageLoaded: boolean) {
     if (video) { video.pause(); if (video.readyState) video.currentTime = 0; }
   }, []);
   const enter = useCallback(() => {
-    if (isMobile || reducedMotion || !photo.video) return;
+    if (!playbackAllowed || !photo.video) return;
     hovered.current = true;
     if (state !== 'ready' || playing || hoverTimerRef.current) return;
     const current = ++generation.current;
@@ -39,15 +40,18 @@ export function useLivePhoto(photo: GalleryPhoto, imageLoaded: boolean) {
         if (current === generation.current) { setState('error'); setPlaying(false); }
       }
     }, 200);
-  }, [isMobile, reducedMotion, photo.video, state, playing]);
+  }, [playbackAllowed, photo.video, state, playing]);
   useEffect(() => {
-    if (isMobile || reducedMotion) stop();
+    if (!playbackAllowed) stop();
     else if (state === 'ready' && hovered.current) enter();
-  }, [isMobile, reducedMotion, state, enter, stop]);
+  }, [playbackAllowed, state, enter, stop]);
   useEffect(() => {
     const video = videoRef.current;
     const source = photo.video;
-    if (!source || !imageLoaded || !video) return;
+    if (!playbackAllowed || !source || !imageLoaded || !video) {
+      setState('idle');
+      return;
+    }
     const controller = new AbortController();
     let objectURL: string | undefined;
     setState('loading');
@@ -60,12 +64,14 @@ export function useLivePhoto(photo: GalleryPhoto, imageLoaded: boolean) {
       let url: string | null = source.type === 'live-photo' ? source.videoUrl : null;
       if (source.type === 'motion-photo') {
         const { extractMotionPhotoVideo } = await import('./motion-photo-extractor');
+        if (controller.signal.aborted) return;
         url = await extractMotionPhotoVideo(photo.src, {
           motionPhotoOffset: source.offset, motionPhotoVideoSize: source.size, presentationTimestampUs: source.presentationTimestamp,
         }, controller.signal);
         objectURL = url ?? undefined;
       } else if (/\.mov(?:[?#]|$)/i.test(source.videoUrl) && !video.canPlayType('video/quicktime')) {
         const { transmuxMovToMp4 } = await import('./mp4-utils');
+        if (controller.signal.aborted) return;
         const result = await transmuxMovToMp4(source.videoUrl, { signal: controller.signal });
         url = result.videoUrl ?? null;
         objectURL = url ?? undefined;
@@ -82,7 +88,7 @@ export function useLivePhoto(photo: GalleryPhoto, imageLoaded: boolean) {
       video.removeAttribute('src'); video.load();
       if (objectURL) URL.revokeObjectURL(objectURL);
     };
-  }, [photo.video, photo.src, imageLoaded, stop]);
+  }, [playbackAllowed, photo.video, photo.src, imageLoaded, stop]);
   useEffect(() => {
     const hide = () => { if (document.hidden) stop(); };
     document.addEventListener('visibilitychange', hide);

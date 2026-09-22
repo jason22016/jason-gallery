@@ -63,6 +63,32 @@ async function pageFor(options: Parameters<Browser['newContext']>[0] = {}) {
   const page = await ctx.newPage();
   return { ctx, page };
 }
+async function trackLivePhotoResources(page: Page) {
+  await page.addInitScript({ content: `
+    const resources = window.galleryVideoResources = { created: [], revoked: [], fetches: [], aborted: [], loads: [], plays: 0 };
+    const create = URL.createObjectURL.bind(URL), revoke = URL.revokeObjectURL.bind(URL);
+    URL.createObjectURL = blob => {
+      const url = create(blob);
+      if (blob.type === 'video/mp4') resources.created.push(url);
+      return url;
+    };
+    URL.revokeObjectURL = url => { resources.revoked.push(url); revoke(url); };
+    const fetch = window.fetch.bind(window);
+    window.fetch = (input, options) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (/\\/(live\\.(mp4|mov)|motion\\.jpg)$/.test(url)) {
+        resources.fetches.push(url);
+        const signal = options?.signal ?? (input instanceof Request ? input.signal : undefined);
+        signal?.addEventListener('abort', () => resources.aborted.push(url), { once: true });
+      }
+      return fetch(input, options);
+    };
+    const load = HTMLMediaElement.prototype.load, play = HTMLMediaElement.prototype.play, canPlay = HTMLMediaElement.prototype.canPlayType;
+    HTMLMediaElement.prototype.load = function() { if (this.getAttribute('src')) resources.loads.push(this.src); return load.call(this); };
+    HTMLMediaElement.prototype.play = function() { resources.plays++; return play.call(this); };
+    HTMLMediaElement.prototype.canPlayType = function(type) { return type === 'video/quicktime' ? '' : canPlay.call(this, type); };
+  ` });
+}
 async function installSemanticFake(page: Page, enableMode: 'download' | 'cache' | 'update' = 'download', persistAcrossNavigations = false) {
   const source = await fs.readFile(path.join(repo, 'tests/gallery/semantic-fake.js'), 'utf8');
   const script = `${source}\n;globalThis.installSemanticFake(${JSON.stringify(photos.map(photo => photo.publicId!))}, ${JSON.stringify(enableMode)});`;
@@ -924,6 +950,104 @@ test('video failure settles, while mobile/reduced motion never autoplay', async 
   await page.locator('[data-photo-id="photo-2"]').hover(); await page.waitForTimeout(500);
   assert.equal(await page.evaluate('window.galleryPlayCalls'), 0);
   await expect(page.locator('[data-photo-id="photo-2"] video')).toHaveAttribute('data-playing', 'false');
+});
+
+for (const restriction of ['mobile', 'reduced motion'] as const) {
+  test(`Live/Motion/MOV defer downloads and processing while ${restriction} forbids playback`, async t => {
+    const { ctx, page } = await pageFor(restriction === 'mobile'
+      ? { viewport: { width: 390, height: 900 }, isMobile: true, hasTouch: true, reducedMotion: 'no-preference' }
+      : { reducedMotion: 'reduce' });
+    t.after(() => ctx.close());
+    await trackLivePhotoResources(page);
+    await page.route('**/photos.json', route => route.fulfill({ json: photos.slice(1, 4) }));
+    const requests: string[] = [];
+    page.on('request', request => { if (/\/(live\.(mp4|mov)|motion\.jpg)$/.test(request.url())) requests.push(request.url()); });
+    await ready(page);
+    const cards = page.locator('.masonry-photo');
+    const assertState = async (state: string) => {
+      for (let i = 0; i < 3; i++) await expect(cards.nth(i).locator('.live-photo-badge')).toHaveAttribute('data-state', state);
+    };
+    for (let i = 0; i < 3; i++) {
+      await expect(cards.nth(i).locator('img')).toHaveCSS('opacity', '1');
+      await cards.nth(i).hover();
+    }
+    await page.waitForTimeout(300);
+    assert.deepEqual(requests, [], 'Disabled previews must not request MP4, MOV or the Motion Photo original');
+    assert.deepEqual(await page.evaluate('window.galleryVideoResources'), { created: [], revoked: [], fetches: [], aborted: [], loads: [], plays: 0 });
+    await assertState('idle');
+
+    const restrict = async (disabled: boolean) => {
+      await page.mouse.move(0, 0);
+      if (restriction === 'mobile') await page.setViewportSize({ width: disabled ? 390 : 1440, height: 900 });
+      else await page.emulateMedia({ reducedMotion: disabled ? 'reduce' : 'no-preference' });
+    };
+    await restrict(false);
+    await assertState('ready');
+    assert.equal(await page.evaluate('window.galleryVideoResources.created.length'), 2, 'MOV conversion and Motion Photo extraction resume when allowed');
+    await cards.nth(1).hover();
+    await expect(cards.nth(1).locator('video')).toHaveAttribute('data-playing', 'true');
+    await restrict(true);
+    await assertState('idle');
+    for (let i = 0; i < 3; i++) {
+      await expect(cards.nth(i).locator('video')).not.toHaveAttribute('src');
+      await expect(cards.nth(i).locator('video')).toHaveAttribute('data-playing', 'false');
+    }
+    assert(await page.evaluate('window.galleryVideoResources.created.every(url => window.galleryVideoResources.revoked.includes(url))'));
+    const requestCount = requests.length;
+    await page.waitForTimeout(300);
+    assert.equal(requests.length, requestCount);
+    await restrict(false);
+    await assertState('ready');
+    assert.equal(await page.evaluate('window.galleryVideoResources.created.length'), 4, 'Released previews can be prepared again');
+  });
+
+  test(`Live Photo cancels pending media when ${restriction} disables playback`, async t => {
+    const { ctx, page } = await pageFor({ reducedMotion: 'no-preference' }); t.after(() => ctx.close());
+    await trackLivePhotoResources(page);
+    await page.route('**/photos.json', route => route.fulfill({ json: photos.slice(1, 4) }));
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; }); t.after(() => release());
+    await page.route(/\/(live\.(mp4|mov)|motion\.jpg)$/, async route => {
+      await held;
+      await route.fulfill({ status: route.request().headers().range ? 206 : 200, contentType: 'video/mp4', body: video }).catch(() => {});
+    });
+    await page.goto(server.url, { waitUntil: 'domcontentloaded' });
+    await expect.poll(() => page.evaluate('window.galleryVideoResources.fetches.length')).toBe(2);
+    for (let i = 0; i < 3; i++) await expect(page.locator('.live-photo-badge').nth(i)).toHaveAttribute('data-state', 'loading');
+    if (restriction === 'mobile') await page.setViewportSize({ width: 900, height: 900 });
+    else await page.emulateMedia({ reducedMotion: 'reduce' });
+    for (let i = 0; i < 3; i++) {
+      await expect(page.locator('.live-photo-badge').nth(i)).toHaveAttribute('data-state', 'idle');
+      await expect(page.locator('video').nth(i)).not.toHaveAttribute('src');
+    }
+    assert.equal(await page.evaluate('window.galleryVideoResources.aborted.length'), 2);
+    release();
+    await page.waitForTimeout(300);
+    assert.deepEqual(await page.evaluate('window.galleryVideoResources.created'), []);
+    for (let i = 0; i < 3; i++) await expect(page.locator('.live-photo-badge').nth(i)).toHaveAttribute('data-state', 'idle');
+  });
+}
+
+test('Live Photo skips late MOV and Motion Photo module work after playback is disabled', async t => {
+  const { ctx, page } = await pageFor({ reducedMotion: 'no-preference' }); t.after(() => ctx.close());
+  await trackLivePhotoResources(page);
+  await page.route('**/photos.json', route => route.fulfill({ json: photos.slice(2, 4) }));
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; }); t.after(() => release());
+  const modules: string[] = [];
+  await page.route(/\/(motion-photo-extractor|mp4-utils)-[^/]+\.js$/, async route => {
+    modules.push(route.request().url());
+    await held;
+    await route.continue().catch(() => {});
+  });
+  await page.goto(server.url, { waitUntil: 'domcontentloaded' });
+  await expect.poll(() => modules.length).toBe(2);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  for (let i = 0; i < 2; i++) await expect(page.locator('.live-photo-badge').nth(i)).toHaveAttribute('data-state', 'idle');
+  release();
+  await page.waitForLoadState('networkidle');
+  assert.deepEqual(await page.evaluate('window.galleryVideoResources.fetches'), [], 'Cancelled dynamic imports must not start conversion or extraction');
+  assert.deepEqual(await page.evaluate('window.galleryVideoResources.created'), []);
 });
 
 test('leaving masonry during video loading cancels requests and releases video/Blob resources', async t => {

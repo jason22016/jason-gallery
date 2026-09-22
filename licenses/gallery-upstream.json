@@ -49,7 +49,7 @@
     },
     {
       "local": "src/components/gallery/media/useLivePhoto.ts",
-      "localSha256": "4b3b2fbdf4b67daa1ac1d5b7de78f94e2e2585fafe39fe8696865d200499d8d9",
+      "localSha256": "529a1e99457d5853207a856d6c235aab200a762fb90f5fcf7ef345eff9a87e81",
       "license": "AGPL-3.0-or-later + ANL §4",
       "upstream": [
         {
