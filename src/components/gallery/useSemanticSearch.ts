@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { rememberSemanticEnabled, shouldRestoreSemanticSearch } from './semantic-preferences';
 import type {
   SemanticEnableOptions,
   SemanticRuntimeState,
@@ -38,14 +39,15 @@ export interface SemanticSearchClient {
 }
 
 /**
- * The import is intentionally inside the explicit enable action. Merely rendering a gallery or
- * opening Cmd+K cannot fetch the semantic module, Worker, index, model, tokenizer, or ORT runtime.
+ * First use requires explicit enable. Once setup succeeds, entering AI mode in a later
+ * page restores the runtime automatically; ordinary galleries and Cmd+K stay lightweight.
  */
-export function useSemanticSearch(): SemanticSearchClient {
+export function useSemanticSearch(active = false, publicPhotoIds?: readonly string[]): SemanticSearchClient {
   const engine = useRef<SharedSemanticEngine | null>(null);
   const unsubscribe = useRef<(() => void) | null>(null);
   const loading = useRef<Promise<SharedSemanticEngine> | null>(null);
   const setupOperation = useRef(0);
+  const restoreAttempted = useRef(false);
   const [state, setState] = useState<Readonly<SemanticRuntimeState> | null>(null);
   const [moduleLoading, setModuleLoading] = useState(false);
   const [moduleError, setModuleError] = useState('');
@@ -80,6 +82,7 @@ export function useSemanticSearch(): SemanticSearchClient {
     const shared = await attach();
     if (operation !== setupOperation.current) return;
     await shared.enable({ publicPhotoIds });
+    if (operation === setupOperation.current) rememberSemanticEnabled(true);
   }, [attach]);
 
   const retry = useCallback(async (publicPhotoIds?: readonly string[]) => {
@@ -87,10 +90,21 @@ export function useSemanticSearch(): SemanticSearchClient {
     const shared = await attach();
     if (operation !== setupOperation.current) return;
     await shared.retry({ publicPhotoIds });
+    if (operation === setupOperation.current) rememberSemanticEnabled(true);
   }, [attach]);
+
+  useEffect(() => {
+    if (!active || restoreAttempted.current) return;
+    restoreAttempted.current = true;
+    const operation = setupOperation.current;
+    void shouldRestoreSemanticSearch().then(restore => {
+      if (restore && operation === setupOperation.current) return enable(publicPhotoIds);
+    }).catch(() => { /* Show the normal retry UI; never retry in a loop. */ });
+  }, [active, publicPhotoIds, enable]);
 
   const cancelSetup = useCallback(() => {
     setupOperation.current++;
+    rememberSemanticEnabled(false);
     engine.current?.dispose();
   }, []);
   const search = useCallback(async (query: string, options?: SemanticSearchOptions) => {

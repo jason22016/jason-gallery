@@ -57,7 +57,7 @@ function EnablePanel({ onEnable, project }: { onEnable: () => void; project: boo
         <li><Icon name="check" />Queries stay private</li>
         <li><Icon name="download-2" />首次约 101 MB 下载 · 解压后约 111 MB</li>
       </ul>
-      <small>浏览器缓存可用时后续复用；缓存被清理后需要重新下载。</small>
+      <small>启用成功后会记住此设备，下次进入 AI Search 自动准备；浏览器缓存可用时后续复用，缓存被清理后需要重新下载。</small>
     </div>
     <button type="button" className="primary-button ai-enable-action" onClick={onEnable}>Download &amp; Enable</button>
   </section>;
@@ -82,7 +82,7 @@ function FailurePanel({ state, moduleError, onRetry }: {
   </section>;
 }
 
-export function AISearchPanel({ project, state, moduleLoading, moduleError, query, suggestions, outcome, totalResults, resultLevel, searchError, onEnable, onCancel, onRetry, onSuggestion, onOpen, onViewAll, onExpandResults, onResetResults, onRetryQuery }: {
+export function AISearchPanel({ project, state, moduleLoading, moduleError, query, suggestions, outcome, totalResults, resultLevel, nextResultLevel, searchError, onEnable, onCancel, onRetry, onSuggestion, onOpen, onViewAll, onExpandResults, onResetResults, onRetryQuery }: {
   project: boolean;
   state: Readonly<SemanticRuntimeState> | null;
   moduleLoading: boolean;
@@ -92,6 +92,7 @@ export function AISearchPanel({ project, state, moduleLoading, moduleError, quer
   outcome: { readonly query: string; readonly results: readonly MappedSemanticResult[] } | null;
   totalResults: number;
   resultLevel: number;
+  nextResultLevel: number | null;
   searchError: string;
   onEnable: () => void;
   onCancel: () => void;
@@ -132,7 +133,7 @@ export function AISearchPanel({ project, state, moduleLoading, moduleError, quer
         <button type="button" className="ai-view-all primary-button" onClick={onViewAll}>查看这 {outcome.results.length} 张照片 <Icon name="arrow-right" /></button>
       </>}
       {!searching && !searchError && outcome && <>
-        {resultLevel < SEMANTIC_RESULT_LEVELS.length - 1 && totalResults > outcome.results.length && <button type="button" className="ai-view-all" onClick={onExpandResults}>{resultLevel === SEMANTIC_RESULT_LEVELS.length - 2 ? '显示剩余候选' : '显示更多'} <Icon name="arrow-right" /></button>}
+        {nextResultLevel !== null && <button type="button" className="ai-view-all" onClick={onExpandResults}>{nextResultLevel === SEMANTIC_RESULT_LEVELS.length - 1 ? '显示剩余候选' : '显示更多'} <Icon name="arrow-right" /></button>}
         {resultLevel > 0 && <button type="button" className="ai-view-all" onClick={onResetResults}>只看较相关的结果</button>}
       </>}
       {!query.trim() && !outcome && <p className="ai-ready-hint">输入自然语言，或选择一个推荐场景。</p>}

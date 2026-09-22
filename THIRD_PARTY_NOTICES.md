@@ -199,6 +199,14 @@ spatial CSS tweens were not carried into the new components. The Vaul drawer she
 Motion springs in place of Vaul's default CSS easing. Source provenance records for the
 existing Viewer CSS were updated only for the reviewed token and minimap status changes.
 
+The search surface's focus-in scale/blur spring and separate overlay fade were
+updated on 2026-09-22 with reference to
+[`apps/web/src/modules/cmdk/CommandPalette.tsx`](https://github.com/Afilmory/afilmory/blob/979386fea8c640fb10f870439d65ecbc29824d27/apps/web/src/modules/cmdk/CommandPalette.tsx)
+(AGPL-3.0-or-later + ANL §4, Copyright (c) 2025 Afilmory Team).
+`src/components/gallery/Panel.tsx` retains the local Radix focus boundary and
+reduced-motion handling, uses a smaller mobile blur, and anchors mobile search
+above a scrollable content region without automatically focusing the input.
+
 Final parity audit (2026-09-13) verified the same upstream HEAD and DESIGN.md. The mobile
 header now follows upstream's top action group and desktop-only view segment/map shortcut;
 mobile view and map actions remain in Settings/Search. The desktop Inspector starts collapsed

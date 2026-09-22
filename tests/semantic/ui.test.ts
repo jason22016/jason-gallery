@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { GalleryPhoto } from '../../src/components/gallery/photos';
-import { mapSemanticResults, selectSemanticResults } from '../../src/components/gallery/semantic-results';
+import { mapSemanticResults, nextSemanticResultLevel, selectSemanticResults } from '../../src/components/gallery/semantic-results';
 import { semanticQuerySuggestions } from '../../src/components/gallery/semantic-suggestions';
 
 const photo = (id: string, publicId?: string) => ({ id, publicId, title: id } as GalleryPhoto);
@@ -39,4 +39,15 @@ test('semantic suggestions are curated, deterministic, locale-ready, and contain
   assert.equal(semanticQuerySuggestions('en-US')[0]!.query, 'Misty snow mountains');
   assert.equal(semanticQuerySuggestions('unsupported'), chinese);
   assert.equal(new Set(chinese.map(item => item.id)).size, chinese.length);
+});
+
+test('semantic expansion skips score bands that add no photos and stops when all candidates are visible', () => {
+  const results = [.12, .08, .04, .03, -.01].map((score, index) => ({ photo: photo(String(index)), publicId: String(index), score, rank: index + 1 }));
+  assert.equal(nextSemanticResultLevel(results, 0), 2);
+  assert.equal(nextSemanticResultLevel(results, 2), 3);
+  assert.equal(nextSemanticResultLevel(results, 3), null);
+  assert.equal(nextSemanticResultLevel(results.slice(0, 2), 0), null);
+  assert.equal(nextSemanticResultLevel([], 0), null);
+  assert.equal(nextSemanticResultLevel(results.slice(-1), 0), 3);
+  assert.equal(nextSemanticResultLevel(results.slice(2), 0), 2);
 });

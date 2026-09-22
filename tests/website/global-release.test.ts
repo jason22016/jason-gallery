@@ -119,19 +119,24 @@ test('production Project pages expose AI Search with canonical project scope aft
   const { ctx, page } = await pageFor(); t.after(() => ctx.close());
   const fake = await fs.readFile(path.join(repo, 'tests/gallery/semantic-fake.js'), 'utf8');
   const { photoIds } = JSON.parse(await fs.readFile(path.join(root, 'dist/semantic/index.json'), 'utf8')) as { photoIds: string[] };
+  let firstEnable = true;
   for (const project of fixture.projects.filter(project => project.status === 'published')) {
     await page.goto(`${server.url}/projects/${project.slug}/`); await ready(page);
-    await page.keyboard.press('Meta+K');
-    const dialog = page.getByRole('dialog', { name: '搜索和筛选' });
-    await dialog.getByRole('button', { name: '开启 AI Search' }).click();
-    await expect(dialog.getByRole('heading', { name: 'Enable AI Search' })).toBeVisible();
     await page.evaluate(`${fake}\n;globalThis.installSemanticFake(${JSON.stringify(photoIds)}, 'cache');`);
     await page.evaluate(ids => {
       (window as any).semanticFake.resultSets['项目检索'] = ids.map((publicId, index) => ({ publicId, rank: index + 1, score: .1 }));
     }, photoIds);
-    await dialog.getByRole('button', { name: 'Download & Enable' }).click();
+    await page.keyboard.press('Meta+K');
+    const dialog = page.getByRole('dialog', { name: '搜索和筛选' });
+    await dialog.getByRole('button', { name: '开启 AI Search' }).click();
+    if (firstEnable) {
+      await expect(dialog.getByRole('heading', { name: 'Enable AI Search' })).toBeVisible();
+      await dialog.getByRole('button', { name: 'Download & Enable' }).click();
+      firstEnable = false;
+    }
     const input = dialog.getByRole('searchbox', { name: 'AI Search 自然语言搜索' });
     await expect(input).toBeEnabled();
+    await expect(dialog.getByRole('button', { name: 'Download & Enable' })).toHaveCount(0);
     await input.fill('项目检索');
     await expect(dialog.getByRole('button', { name: '查看这 60 张照片' })).toBeVisible();
     assert.deepEqual(await page.evaluate(() => (window as any).semanticFake.queryOptions.at(-1)?.scopePhotoIds), project.photos.map(photo => shortPublicPhotoId(photo.photoId)));

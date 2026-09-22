@@ -22,6 +22,7 @@ export interface SearchPanelSemantic {
   readonly outcome: { readonly query: string; readonly results: readonly MappedSemanticResult[] } | null;
   readonly totalResults: number;
   readonly resultLevel: number;
+  readonly nextResultLevel: number | null;
   readonly searchError: string;
   activate(seed?: string): void;
   deactivate(): void;
@@ -101,7 +102,7 @@ export function SearchPanel({ options, fields, project, mapPage = false, filters
       {semantic && <div className="search-mode-ai" id={`${id}-ai-results`} aria-hidden={!aiActive || undefined} inert={!aiActive || undefined}>
         <AISearchPanel project={project} state={semantic.state} moduleLoading={semantic.moduleLoading} moduleError={semantic.moduleError} query={semantic.query}
           suggestions={semantic.suggestions} outcome={semantic.outcome} searchError={semantic.searchError}
-          totalResults={semantic.totalResults} resultLevel={semantic.resultLevel} onExpandResults={semantic.expandResults} onResetResults={semantic.resetResults}
+          totalResults={semantic.totalResults} resultLevel={semantic.resultLevel} nextResultLevel={semantic.nextResultLevel} onExpandResults={semantic.expandResults} onResetResults={semantic.resetResults}
           onEnable={semantic.enable} onCancel={semantic.cancel} onRetry={semantic.retry} onSuggestion={semantic.chooseSuggestion}
           onOpen={semantic.openResult} onViewAll={semantic.viewAll} onRetryQuery={semantic.retryQuery} />
       </div>}

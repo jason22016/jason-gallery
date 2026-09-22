@@ -155,10 +155,11 @@
 .gallery-empty h2 { font-size: 20px; font-weight: 500; color: var(--color-text); }
 .gallery-scrim { position: fixed; inset: 0; z-index: 40; background: var(--color-material-ultra-thin); backdrop-filter: blur(var(--gallery-blur-scrim)); }
 .gallery-dialog-position { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; pointer-events: none; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
-.gallery-dialog-position.search-position { align-items: flex-start; padding-top: max(15dvh, env(safe-area-inset-top)); }
+.gallery-dialog-position.search-position { --search-top: max(15svh, env(safe-area-inset-top)); --search-bottom-gap: max(16px, env(safe-area-inset-bottom)); align-items: flex-start; padding-top: var(--search-top); }
 .gallery-panel { pointer-events: auto; display: flex; flex-direction: column; position: relative; padding: 0; width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); border: 1px solid var(--gallery-border); border-radius: 16px; background: var(--color-material-thick); color: var(--color-text); backdrop-filter: blur(var(--gallery-blur-panel)); -webkit-backdrop-filter: blur(var(--gallery-blur-panel)); box-shadow: var(--gallery-shadow); overflow: hidden; font: 14px/1.5 var(--gallery-font-sans); }
 .gallery-panel.wide-panel { width: min(980px, calc(100vw - 32px)); }
-.gallery-panel.search-panel { width: min(672px, calc(100vw - 32px)); max-height: 75dvh; }
+.gallery-panel.search-panel { width: min(672px, calc(100vw - 32px)); max-height: min(680px, calc(var(--search-viewport-height, 100svh) - var(--search-top) - var(--search-bottom-gap))); transform-origin: top center; }
+.gallery-panel.search-panel:focus { outline: none; }
 .gallery-panel.gallery-dropdown { width: 352px; max-height: min(700px, var(--radix-popover-content-available-height)); z-index: 60; border-radius: 12px; transform-origin: var(--radix-popover-content-transform-origin); }
 .panel-heading { position: relative; padding: 12px 16px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
 .panel-heading::after { content: ''; position: absolute; inset: auto 0 0; height: .5px; background: linear-gradient(to right, transparent, var(--gallery-border), transparent); }
@@ -199,14 +200,16 @@
 .column-labels { display: flex; justify-content: space-between; color: var(--color-text-secondary); font-size: 12px; margin-bottom: 16px; }
 .column-labels [data-active] { color: var(--color-accent); }
 .gallery-drawer .sort-options button { padding-block: 8px; min-height: 40px; }
-.search-panel .panel-body { display: flex; padding: 0; }
+.search-panel .panel-body { display: flex; padding: 0; overflow: hidden; }
 .search-form { display: flex; flex-direction: column; width: 100%; min-height: 0; }
-.search-mode-stack { position: relative; min-height: 0; }
-.search-mode-metadata { display: flex; min-height: 0; flex-direction: column; }
+.search-mode-stack { position: relative; display: grid; min-height: 0; overflow: hidden; }
+.search-mode-metadata { display: flex; min-height: 0; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--color-fill) transparent; }
 .search-mode-ai { position: absolute; inset: 0; display: flex; min-height: 0; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; }
 .search-mode-metadata[aria-hidden='true'], .search-mode-ai[aria-hidden='true'] { visibility: hidden; pointer-events: none; }
 .search-mode-ai > .ai-ready { flex: 1; min-height: 0; }
-.search-input-row { display: flex; gap: 10px; align-items: center; padding: 12px 16px; }
+.search-input-row { display: flex; flex-shrink: 0; gap: 10px; align-items: center; min-height: 64px; padding: 12px 16px; border-bottom: 1px solid var(--gallery-border); transition: background-color 160ms, box-shadow 160ms; }
+.search-input-row:focus-within { background: var(--gallery-wash); box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--color-accent) 45%, transparent); }
+.search-input-row input:focus-visible { outline: none; }
 .search-input-row > .gallery-icon { color: var(--color-text-secondary); font-size: 18px; }
 .search-input-row input { flex: 1; width: 100%; min-width: 0; color: var(--color-text); background: transparent; border: 0; padding: 4px; font-size: 14px; }
 .search-input-row input::placeholder { color: var(--color-text-secondary); }
@@ -217,7 +220,7 @@
 .filter-categories { display: flex; gap: 4px; }
 .gallery-page .filter-categories button { padding: 4px 8px; border-radius: 999px; font-size: 12px; border: 0; background: transparent; }
 .gallery-page .filter-categories button[aria-pressed='true'] { color: var(--color-on-accent); background: var(--color-accent); }
-.command-list { overflow-y: auto; overscroll-behavior: contain; min-height: 64px; max-height: 36dvh; padding: 4px 8px; scrollbar-width: thin; scrollbar-color: var(--color-fill) transparent; }
+.command-list { overflow-y: auto; overscroll-behavior: contain; min-height: 64px; max-height: 36svh; padding: 4px 8px; scrollbar-width: thin; scrollbar-color: var(--color-fill) transparent; }
 .gallery-page .command-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; text-align: left; background: transparent; border: 0; border-radius: 6px; }
 .gallery-page .command-item:hover, .gallery-page .command-item[data-highlighted] { background: var(--color-fill); }
 .command-icon { display: flex; width: 28px; height: 28px; align-items: center; justify-content: center; background: var(--color-fill-tertiary); border-radius: 6px; color: var(--color-text-secondary); }
@@ -238,9 +241,20 @@
 .keyboard-hint { font-size: 11px; color: var(--color-text-secondary); }
 .form-actions { display: flex; gap: 8px; }
 .form-actions button { font-size: 12px; }
-.gallery-drawer .keyboard-hint, .gallery-drawer .search-input-row > kbd { display: none; }
-.gallery-drawer .search-footer { justify-content: flex-end; }
-.gallery-drawer .search-input-row input { font-size: 16px; }
+@media (max-width: 1023px) {
+  /* Keyboard and browser chrome resize the content, never the search anchor. */
+  .gallery-dialog-position.search-position { --search-top: max(24px, env(safe-area-inset-top)); padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right)); }
+  .gallery-panel.search-panel { width: min(672px, 100%); border-radius: 20px; }
+  .search-panel .panel-heading { padding: 6px 12px 6px 16px; }
+  .search-panel .panel-heading .icon-button { width: 44px; height: 44px; }
+  .search-panel .keyboard-hint, .search-panel .search-input-row > kbd { display: none; }
+  .search-panel .search-input-row input, .search-panel .date-fields input { font-size: 16px; }
+  .search-panel .search-footer { justify-content: flex-end; }
+  .search-panel .form-actions button { min-height: 40px; }
+}
+@media (pointer: coarse) {
+  .search-panel .search-input-row input, .search-panel .date-fields input { font-size: 16px; }
+}
 
 /* AI Search is a mode inside the existing command/search surface, not a second gallery. */
 .gallery-page .ai-search-button { position: relative; isolation: isolate; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 6px 10px; border: .5px solid var(--gallery-border); border-radius: 999px; background: var(--color-material-thin); color: var(--color-text-secondary); backdrop-filter: blur(var(--gallery-blur-control)); -webkit-backdrop-filter: blur(var(--gallery-blur-control)); font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; }

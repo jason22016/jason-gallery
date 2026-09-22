@@ -1,7 +1,7 @@
 # AI Search progressive result levels
 
 The current UI defaults to a shared cosine cutoff of **0.07** for every query.
-Users can expand the results one level per click:
+Users can expand to the next level that adds photos with each click:
 
 | Level | Minimum score (inclusive) | UI label |
 |---|---:|---|
@@ -19,14 +19,15 @@ thresholds or relevance probabilities. They apply to the current
 - Search previews, the Explore/Project count/grid/list, and the Viewer sequence use the
   same selected results in their original rank order. Previews show at most five;
   neither previews nor the gallery fill empty slots with lower-scoring images.
-- “显示更多” advances one level. Before the last level it becomes “显示剩余候选”.
+- “显示更多” advances to the next populated level. When that next level is the
+  unfiltered candidate set, the button reads “显示剩余候选”.
   The action in the search panel also opens the selected results in the current gallery.
 - “只看较相关的结果” restores level 1. Editing, submitting, or retrying a query
   resets to level 1; expansion does not trigger inference or download assets.
 - If every candidate is already visible, the expand button disappears, even if
   this happens before level 4. Actual candidate counts are used, including when
   there are fewer than 60 public photos/results.
-- If a level adds no photos, the next click still advances only one level. An
+- Levels that add no photos are skipped in the same click. An
   empty filtered result offers expansion when original candidates exist; a truly
   empty candidate list does not offer expansion.
 - The original candidates remain in memory. Expanding only changes display state;
@@ -53,8 +54,18 @@ sorting and taking Top-K, so a Project photo below the global Top-60/100 is stil
 discoverable. Ranks are local to the selected scope. Unknown or empty scopes fail
 without silently widening the search or invalidating the shared model session.
 
-Entering AI mode alone does not load the semantic module or model. Users still
-explicitly enable it; browser Cache Storage can reuse the model across pages.
+First use still requires explicit enable. Successful setup saves a device preference;
+entering AI mode after refresh or navigation automatically restores the runtime using
+the existing model cache. A complete cache from the previous UI also permits automatic
+restoration without another opt-in. Cancelling setup disables automatic restoration,
+and setup failures wait for a manual retry instead of retrying in a loop. Ordinary
+gallery browsing and metadata search do not initialize the runtime. Only the enable
+preference is saved, never query text or results.
+
+Masonry treats column bottoms within one CSS pixel as tied and chooses the leftmost
+column, retaining the exact photo dimensions. This keeps nearly identical landscape
+ratios (such as the 云南 / 鸟 results) from leaving an interior hole in the last row.
+Photos with genuinely different heights continue to fill the shortest column.
 
 ## Threshold rationale
 
@@ -77,10 +88,12 @@ recorded evaluation outcomes or fulfilling their independent-human release gate.
 `tests/semantic/ui.test.ts` covers inclusive boundaries, rank preservation, empty
 filtered results, and recovering original candidates. The AI Search cases in
 `tests/website/gallery.test.ts` exercise the production UI with deterministic
-scores: 2 → 5 → 8 → 60 results, one step per click, no extra inference, Viewer
-sequence consistency, reset on a new query, 320px mobile layout, and empty/fewer
+scores: 2 → 5 → 8 → 60 results, empty-band skipping (8 → 14), no extra inference, Viewer
+sequence consistency, reset on a new query, 320px mobile layout, reload/navigation
+restoration, cancellation, storage failures, and empty/fewer
 candidate sets. Project tests also cover membership exclusion before Top-K,
-Project-only Viewer navigation, and returning to saved metadata filters.
+Project-only Viewer navigation, and returning to saved metadata filters. Layout tests
+use the actual 云南 bird-photo dimensions across 2–8 columns and widths of 120–500 px.
 `tests/website/global-release.test.ts` checks canonical IDs on actual Astro-built
 Project pages; `tests/semantic-browser/runtime.test.ts` runs scope isolation through
 the real WebGPU and WASM Workers and verifies that subsequent global queries keep

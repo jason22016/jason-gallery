@@ -2,7 +2,7 @@ import type { ClientSemanticReleaseManifest } from './contracts';
 import { sha256 } from './hash';
 
 const CACHE_PREFIX = 'jason-gallery-semantic-model-v1:';
-const MARKER_PATH = '/.semantic-cache/complete/';
+export const semanticCacheMarkerPath = '/.semantic-cache/complete/';
 
 export interface CacheStorageLike {
   open(cacheName: string): Promise<Cache>;
@@ -31,7 +31,7 @@ function assetURL(releaseURL: URL, path: string): string {
 }
 
 function markerURL(releaseURL: URL, manifest: ClientSemanticReleaseManifest): string {
-  return new URL(`${MARKER_PATH}${manifest.bundleSha256}`, releaseURL.origin).href;
+  return new URL(`${semanticCacheMarkerPath}${manifest.bundleSha256}`, releaseURL.origin).href;
 }
 
 function expectedMarker(manifest: ClientSemanticReleaseManifest): CompleteMarker {

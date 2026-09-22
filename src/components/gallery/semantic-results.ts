@@ -21,6 +21,15 @@ export function selectSemanticResults(
   return minimumScore === -Infinity ? results : results.filter(result => result.score >= minimumScore);
 }
 
+/** Skip empty score bands so every available expansion reveals more photos. */
+export function nextSemanticResultLevel(results: readonly MappedSemanticResult[], level: number): number | null {
+  const count = selectSemanticResults(results, level).length;
+  for (let next = level + 1; next < SEMANTIC_RESULT_LEVELS.length; next++) {
+    if (selectSemanticResults(results, next).length > count) return next;
+  }
+  return null;
+}
+
 /** Preserve model rank exactly while dropping stale, unknown, or duplicate public IDs. */
 export function mapSemanticResults(
   photos: readonly GalleryPhoto[],

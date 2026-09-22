@@ -1,6 +1,7 @@
-import { createPositioner, useMasonry, usePositioner, useScroller, type RenderComponentProps } from 'masonic';
+import { useMasonry, usePositioner, useScroller, type RenderComponentProps } from 'masonic';
 import { Children, cloneElement, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type ReactElement } from 'react';
 import type { GalleryItem } from './photos';
+import { createGalleryPositioner } from './masonry-positioner';
 
 export function Masonry({ items, render, columnWidth, columnGutter, rowGutter, maxColumnCount, itemHeightEstimate, overscanBy }: {
   items: GalleryItem[];
@@ -32,7 +33,7 @@ export function Masonry({ items, render, columnWidth, columnGutter, rowGutter, m
   const { width, offset, height } = containerPosition;
   const layout = usePositioner({ width, columnWidth: columnWidth(width), columnGutter, rowGutter, maxColumnCount });
   const positioner = useMemo(() => {
-    const next = createPositioner(layout.columnCount, layout.columnWidth, columnGutter, rowGutter);
+    const next = createGalleryPositioner(layout.columnCount, layout.columnWidth, columnGutter, rowGutter);
     items.forEach(({ photo }, index) => {
       next.set(index, next.columnWidth / photo.aspectRatio);
     });
