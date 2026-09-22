@@ -102,7 +102,7 @@ async function chooseScope(page: Page, title: string) {
   const panel = page.getByRole('dialog', { name: 'Statistics scope', exact: true });
   await expect(panel).toBeVisible();
   await panel.getByRole('radio', { name: title, exact: true }).click();
-  await expect(panel).toHaveCount(0);
+  await expect(page.locator('.gallery-panel')).toHaveCount(0);
 }
 async function screenshot(page: Page, filename: string) {
   await page.evaluate(() => {
@@ -134,12 +134,12 @@ test('one material Project selector contains only published scopes and updates t
   await ready(page);
   await page.getByRole('button', { name: 'Statistics scope', exact: true }).click();
   const panel = page.getByRole('dialog', { name: 'Statistics scope', exact: true });
-  await expect(panel).toHaveClass(/gallery-dropdown/);
+  await expect(panel).toHaveClass(/gallery-dialog/);
   await expect(panel.getByRole('radio', { name: 'All Photos', exact: true })).toHaveAttribute('aria-checked', 'true');
   await expect(panel.getByRole('radio')).toHaveCount(fixture.projects.filter(project => project.status === 'published').length + 1);
   await expect(panel).not.toContainText('DRAFT WEBSITE SECRET');
   await panel.getByRole('radio', { name: 'Fixture — ordered gallery', exact: true }).click();
-  await expect(panel).toHaveCount(0);
+  await expect(page.locator('.gallery-panel')).toHaveCount(0);
   await expect(page).toHaveURL(/\/stats\/\?project=fixture-beta$/);
   await expect(page.locator('[data-stats-scope]')).toHaveAttribute('data-stats-scope', 'fixture-beta');
   await overview(page, engineStats('fixture-beta'));
@@ -156,7 +156,7 @@ test('one material Project selector contains only published scopes and updates t
   await expect(panel.getByRole('radio', { name: 'Fixture — ordered gallery', exact: true })).toBeFocused();
   await expect(panel.getByRole('radio', { name: 'Fixture — ordered gallery', exact: true })).toHaveAttribute('aria-checked', 'true');
   await page.keyboard.press('Enter');
-  await expect(panel).toHaveCount(0);
+  await expect(page.locator('.gallery-panel')).toHaveCount(0);
   await expect(trigger).toBeFocused();
   await overview(page, engineStats('fixture-beta'));
 });
@@ -304,7 +304,7 @@ test('desktop hover and keyboard reveal details; click selection persists until 
   await expect(page.locator('[data-stats-chart] button[aria-pressed="true"]')).toHaveCount(0);
 });
 
-test('mobile tap retains selection, selector uses the existing drawer, and the page fits the viewport', async t => {
+test('mobile tap retains selection, selector uses the shared modal, and the page fits the viewport', async t => {
   const { ctx, page } = await pageFor({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); t.after(() => ctx.close());
   await ready(page);
   const focal = buckets(page, 'focal-length').first();
@@ -322,9 +322,9 @@ test('mobile tap retains selection, selector uses the existing drawer, and the p
   await expect(chart(page, 'media').getByRole('tooltip')).toBeVisible();
   await page.getByRole('button', { name: 'Statistics scope', exact: true }).tap();
   const panel = page.getByRole('dialog', { name: 'Statistics scope', exact: true });
-  await expect(panel).toHaveClass(/gallery-drawer/);
+  await expect(panel).toHaveClass(/gallery-dialog/);
   await panel.getByRole('radio', { name: 'Fixture — ordered gallery', exact: true }).tap();
-  await expect(panel).toHaveCount(0);
+  await expect(page.locator('.gallery-panel')).toHaveCount(0);
   await overview(page, engineStats('fixture-beta'));
   await assertCharts(page, engineStats('fixture-beta'));
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'Stats must not overflow horizontally on mobile');

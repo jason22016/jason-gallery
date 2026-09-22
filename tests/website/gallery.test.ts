@@ -1058,14 +1058,18 @@ test('search keyboard, chips, dates and URL state keep the original filter seman
   await expect(trigger).toBeFocused();
 });
 
-test('settings branches to an anchored desktop dropdown and mobile spring drawer with focus and safe bounds', async t => {
+test('settings opens as a search-style modal on desktop and mobile with focus and safe bounds', async t => {
   const { ctx, page } = await pageFor(); t.after(() => ctx.close()); await ready(page);
   const trigger = page.getByRole('button', { name: '显示设置', exact: true });
   await trigger.click();
-  await expect(page.locator('.gallery-dropdown')).toBeVisible();
-  await expect(page.locator('.gallery-dropdown')).toHaveCSS('z-index', '60');
-  const dropdown = await page.locator('.gallery-dropdown').boundingBox(), button = await trigger.boundingBox();
-  assert(dropdown && button && dropdown.y >= button.y + button.height && dropdown.x + dropdown.width <= 1440);
+  const panel = page.getByRole('dialog', { name: '显示设置', exact: true });
+  await expect(panel).toHaveClass(/gallery-dialog/);
+  await expect(panel).toHaveCSS('transform', 'none');
+  await expect(panel).toHaveCSS('filter', 'none');
+  const desktop = (await panel.boundingBox())!;
+  assert(Math.abs(desktop.x + desktop.width / 2 - 720) < 1 && Math.abs(desktop.y - 135) < 1);
+  await expect(page.locator('body')).toHaveCSS('overflow', 'hidden');
+  await expect(page.locator('.gallery-dropdown, .gallery-drawer, .drawer-handle')).toHaveCount(0);
   await page.getByRole('radio', { name: '项目编排顺序' }).press('ArrowDown');
   await expect(page.getByRole('radio', { name: '拍摄时间：从新到旧' })).toBeChecked();
   await chooseColumns(page, 8);
@@ -1075,14 +1079,17 @@ test('settings branches to an anchored desktop dropdown and mobile spring drawer
   await expect(page.locator('.gallery-panel')).toHaveCount(0); await expect(trigger).toBeFocused();
   await page.setViewportSize({ width: 390, height: 844 });
   await trigger.click();
-  await expect(page.locator('.gallery-drawer')).toBeVisible();
-  await expect(page.locator('.gallery-drawer')).toHaveCSS('transition-duration', '0s');
+  await expect(panel).toHaveClass(/gallery-dialog/);
   await expect(page.locator('.gallery-scrim')).toHaveCSS('backdrop-filter', 'blur(4px)');
-  await expect(page.locator('.gallery-drawer')).toHaveCSS('transform', 'none');
-  const drawer = await page.locator('.gallery-drawer').boundingBox();
-  assert(drawer && drawer.x === 0 && drawer.width === 390 && Math.abs(drawer.y + drawer.height - 844) < 1);
+  await expect(panel).toHaveCSS('transform', 'none');
+  await expect(panel).toHaveCSS('filter', 'none');
+  const mobile = (await panel.boundingBox())!;
+  assert(mobile.x >= 12 && mobile.x + mobile.width <= 378 && mobile.y === 24 && mobile.y + mobile.height <= 828);
+  const close = panel.getByRole('button', { name: '关闭面板', exact: true });
+  await close.focus(); await page.keyboard.press('Shift+Tab');
+  assert(await panel.evaluate(element => element.contains(document.activeElement)), 'settings traps keyboard focus like search');
   await page.screenshot({ path: path.join(screenshots, 'settings-mobile.png') });
-  await page.getByRole('button', { name: '关闭面板手柄' }).click();
+  await close.click();
   await expect(page.locator('.gallery-panel')).toHaveCount(0); await expect(trigger).toBeFocused();
 });
 
@@ -1165,18 +1172,25 @@ test('mobile search keeps its input anchored through keyboard viewport changes a
   await page.keyboard.press('Escape'); await expect(panel).toHaveCount(0);
 });
 
-test('mobile drawer follows the handle and dismisses after a downward drag', async t => {
+test('mobile information popup remains fixed during a downward swipe and closes from its header', async t => {
   const { ctx, page } = await pageFor({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); t.after(() => ctx.close()); await ready(page);
   await page.getByRole('button', { name: '项目信息', exact: true }).tap();
   const panel = page.getByRole('dialog', { name: '项目信息' });
   await expect(panel).toHaveCSS('transform', 'none');
+  await expect(panel).toHaveCSS('filter', 'none');
+  await expect(page.locator('.drawer-handle, [data-vaul-drawer]')).toHaveCount(0);
   await page.screenshot({ path: path.join(screenshots, 'info-mobile.png') });
-  const handle = (await page.getByRole('button', { name: '关闭面板手柄' }).boundingBox())!;
-  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2 + 120, { steps: 8 });
-  assert(await panel.evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).m42) > 0);
-  await page.mouse.up(); await expect(panel).toHaveCount(0);
+  const before = (await panel.boundingBox())!;
+  assert(before.x >= 12 && before.y === 24);
+  const touch = await ctx.newCDPSession(page);
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 120, y: 42 }] });
+  for (const y of [65, 90, 120, 160, 210]) await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 120, y }] });
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(panel).toBeVisible();
+  assert.deepEqual(await panel.boundingBox(), before);
+  await panel.getByRole('button', { name: '关闭面板', exact: true }).tap();
+  await expect(panel).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '项目信息', exact: true })).toBeFocused();
 });
 
 test('coincident photos expand to keyboard markers and rapid map close/reopen removes stale portals and canvases', async t => {

@@ -1162,7 +1162,7 @@ test('Phase 5 Project information follows filtered GPS bounds and returns to the
   await page.goForward(); await expect(page.locator('.map-panel')).toHaveCount(0);
 });
 
-test('Phase 5 mobile map safely rejects geolocation and remains usable in a short drawer', async t => {
+test('mobile map fills the viewport, stays open during a downward swipe and returns from the top right', async t => {
   const ctx = await context({ viewport: { width: 320, height: 568 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' }, 'native'); t.after(() => ctx.close());
   await ctx.addInitScript({ content: `Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition(success, fail) { fail({ code: 1, message: 'denied' }); } } });` });
   const page = await ctx.newPage(); await mapFixture(page);
@@ -1176,15 +1176,30 @@ test('Phase 5 mobile map safely rejects geolocation and remains usable in a shor
   await page.getByRole('button', { name: '重置地图方向和倾斜' }).tap();
   await page.getByRole('button', { name: '展开拍摄范围' }).tap();
   const map = (await page.locator('.photo-map').boundingBox())!;
-  assert(map.height > 480 && map.width === 320);
+  assert.deepEqual(map, { x: 0, y: 0, width: 320, height: 568 });
+  const panel = page.getByRole('dialog', { name: '地图探索', exact: true });
+  await expect(panel).toHaveCSS('border-radius', '0px');
+  await expect(page.locator('.drawer-handle, [data-vaul-drawer]')).toHaveCount(0);
+  const back = page.getByRole('button', { name: '返回项目相册', exact: true });
+  const backBox = (await back.boundingBox())!;
+  assert(backBox.x >= 260 && backBox.y === 16 && backBox.width >= 44 && backBox.height >= 44);
+  const infoBox = (await page.locator('.map-info-panel').boundingBox())!;
+  assert(infoBox.y >= backBox.y + backBox.height + 12, 'map information leaves the return button unobstructed');
+  const touch = await ctx.newCDPSession(page);
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 100, y: 30 }] });
+  for (const y of [55, 90, 125, 170, 220]) await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 100, y }] });
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(panel).toBeVisible();
+  assert.deepEqual(await page.locator('.photo-map').boundingBox(), map);
   for (const element of await page.locator('.map-back button, .map-control-glass button, .map-info-panel').all()) {
     const box = (await element.boundingBox())!;
     assert(box.x >= 0 && box.y >= 0 && box.x + box.width <= 320 && box.y + box.height <= 568);
   }
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.screenshot({ path: path.join(repo, '.cache/map-phase5-mobile.png') });
-  await page.getByRole('button', { name: '返回项目相册' }).tap();
+  await back.tap();
   await expect(page.locator('.map-panel')).toHaveCount(0);
+  assert.equal(new URL(page.url()).searchParams.has('panel'), false);
   assert.deepEqual(errors, []);
 });
 
