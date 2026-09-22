@@ -20,6 +20,7 @@ import { SemanticSearchEngine } from '../../src/semantic-search/engine';
 import { downloadReleaseAssets } from '../../src/semantic-search/release-loader';
 import { verifyClientSemanticRelease, verifyClientSemanticRuntime } from '../../scripts/semantic/client-release';
 import { semanticModelConfig, semanticModelContractSha256 } from '../../scripts/semantic/model-config';
+import { loadSemanticIndexFixture, semanticIndexFixturePhotoIds } from './index-fixture';
 
 class MemoryCache {
   entries = new Map<string, Response>();
@@ -262,8 +263,7 @@ test('model config exposes only the frozen text inference contract', async () =>
 
 test('browser index gate accepts the Phase 2B artifact and fails closed on model, SHA and public-ID mismatches', async () => {
   const release = parseClientReleaseManifest(JSON.parse(await fs.readFile('semantic-releases/siglip2-base-v64k-uint4-b32-r1/manifest.json', 'utf8')));
-  const indexBytes = await fs.readFile('public/semantic/index.json');
-  const vectorBytes = await fs.readFile('public/semantic/vectors.f32');
+  const { indexBytes, vectorBytes } = await loadSemanticIndexFixture();
   const indexURL = new URL('https://gallery.test/semantic/index.json');
   const body = (value: Uint8Array) => Uint8Array.from(value).buffer;
   const fetcher = (indexBody: Uint8Array, vectorBody: Uint8Array = vectorBytes) => (async (input: RequestInfo | URL) => {
@@ -274,8 +274,8 @@ test('browser index gate accepts the Phase 2B artifact and fails closed on model
   }) as typeof fetch;
   const expected = parseSemanticIndex(JSON.parse(indexBytes.toString('utf8'))).photoIds;
   const valid = await loadSemanticIndex(fetcher(indexBytes), indexURL, release, new AbortController().signal, expected);
-  assert.equal(valid.index.photoIds.length, 154);
-  assert.equal(valid.vectors.length, 154 * 768);
+  assert.equal(valid.index.photoIds.length, semanticIndexFixturePhotoIds.length);
+  assert.equal(valid.vectors.length, semanticIndexFixturePhotoIds.length * 768);
 
   const oldModel = JSON.parse(indexBytes.toString('utf8'));
   oldModel.model.imageModel.revision = '0'.repeat(40);

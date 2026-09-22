@@ -91,14 +91,14 @@ async function priorQueryTexts(): Promise<Set<string>> {
   return new Set([...original.flatMap(query => [query.zh, query.en]), ...extra.map(query => query.text), ...hard.map(query => query.text)].map(text => text.normalize('NFKC').trim()));
 }
 
-export async function loadAndValidatePhase3CInputs(): Promise<{
+export async function loadAndValidatePhase3CInputs(options: { corpusFile?: string } = {}): Promise<{
   holdout: HoldoutFile;
   labels: LabelsFile;
   corpus: CorpusPhoto[];
 }> {
   const holdout = await readJSON<HoldoutFile>(path.join(evaluationDirectory, 'holdout-queries.json'));
   const labels = await readJSON<LabelsFile>(path.join(evaluationDirectory, 'ai-assisted-labels.json'));
-  const corpusFile = await readJSON<{ fingerprint: string; photos: CorpusPhoto[] }>(path.join(root, '.cache/semantic-spike/corpus.json'));
+  const corpusFile = await readJSON<{ fingerprint: string; photos: CorpusPhoto[] }>(options.corpusFile ?? path.join(root, '.cache/semantic-spike/corpus.json'));
   exactKeys(holdout, ['schemaVersion', 'name', 'createdAfterModelSelection', 'modelSelectionUse', 'corpusFingerprint', 'instructions', 'queries'], 'Holdout query set');
   if (holdout.schemaVersion !== 1 || !holdout.createdAfterModelSelection || holdout.modelSelectionUse !== 'none') throw new Error('Holdout provenance is invalid');
   if (holdout.corpusFingerprint !== corpusFile.fingerprint) throw new Error('Holdout corpus fingerprint does not match the current evaluation corpus');
@@ -255,7 +255,7 @@ export function renderPhase3CCorpus(corpus: CorpusPhoto[]): string {
 
 async function generate(): Promise<void> {
   const { holdout, labels, corpus } = await loadAndValidatePhase3CInputs();
-  const server = await serveSemanticBrowserFixture();
+  const server = await serveSemanticBrowserFixture(0, path.join(root, 'public/semantic'));
   const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--enable-precise-memory-info'] });
   try {
     const context = await browser.newContext();

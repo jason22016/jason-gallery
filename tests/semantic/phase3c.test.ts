@@ -5,7 +5,9 @@ import { computePhase3CMetrics, loadAndValidatePhase3CInputs, renderPhase3CCorpu
 import { scoreHumanReview } from '../../scripts/semantic/phase3c-score';
 
 test('Phase 3C holdout is post-selection, multilingual, category-complete, and fully AI-labelled without claiming human review', async () => {
-  const { holdout, labels } = await loadAndValidatePhase3CInputs();
+  const { holdout, labels, corpus } = await loadAndValidatePhase3CInputs({ corpusFile: 'tests/semantic/phase3c-corpus.fixture.json' });
+  assert.equal(corpus.length, 154);
+  assert.equal(new Set(corpus.map(photo => photo.publicId)).size, corpus.length);
   assert.equal(holdout.createdAfterModelSelection, true);
   assert.equal(holdout.modelSelectionUse, 'none');
   assert(holdout.queries.length >= 30);

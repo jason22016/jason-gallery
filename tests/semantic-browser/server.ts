@@ -5,6 +5,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { brotliCompressSync, brotliDecompressSync, constants } from 'node:zlib';
 import { canonicalJSON, indexVersionRecord, parseSemanticIndex } from '../../src/semantic-search/contracts';
+import { loadSemanticIndexFixture } from '../semantic/index-fixture';
 
 export type SemanticServerFault =
   | 'none'
@@ -18,13 +19,15 @@ export type SemanticServerFault =
 
 function digest(value: string | Uint8Array) { return createHash('sha256').update(value).digest('hex'); }
 
-export async function serveSemanticBrowserFixture(port = 0) {
+export async function serveSemanticBrowserFixture(port = 0, semanticDirectory?: string) {
   const root = path.resolve('.');
   const dist = path.join(root, '.cache/semantic-browser-dist');
   const release = path.join(root, 'semantic-releases/siglip2-base-v64k-uint4-b32-r1');
   const runtime = path.join(root, 'semantic-runtimes/onnxruntime-web-1.30.0-asyncify-r1');
-  const semantic = path.join(root, 'public/semantic');
-  const baseIndex = JSON.parse(await fsp.readFile(path.join(semantic, 'index.json'), 'utf8'));
+  const semantic = semanticDirectory ? path.resolve(semanticDirectory) : undefined;
+  const fixture = semantic ? undefined : await loadSemanticIndexFixture();
+  const indexBytes = fixture?.indexBytes ?? await fsp.readFile(path.join(semantic!, 'index.json'));
+  const baseIndex = JSON.parse(indexBytes.toString('utf8'));
   const incompatible = structuredClone(baseIndex);
   incompatible.model.imageModel.revision = '0'.repeat(40);
   incompatible.indexVersion = digest(canonicalJSON(indexVersionRecord(parseSemanticIndex({ ...incompatible, indexVersion: '0'.repeat(64) }))));
@@ -36,7 +39,7 @@ export async function serveSemanticBrowserFixture(port = 0) {
   corruptTokenizer[marker + 4] = corruptTokenizer[marker + 4] === 0x35 ? 0x34 : 0x35;
   const corruptTokenizerBrotli = brotliCompressSync(corruptTokenizer, { params: { [constants.BROTLI_PARAM_QUALITY]: 6 } });
   const tokenizerBrotli = await fsp.readFile(path.join(release, 'tokenizer.json.br'));
-  const vectors = await fsp.readFile(path.join(semantic, 'vectors.f32'));
+  const vectors = fixture?.vectorBytes ?? await fsp.readFile(path.join(semantic!, 'vectors.f32'));
   const corruptVectors = Buffer.from(vectors); corruptVectors[0] ^= 0xff;
   let fault: SemanticServerFault = 'none';
   const requests: string[] = [];
@@ -82,7 +85,16 @@ export async function serveSemanticBrowserFixture(port = 0) {
       } else if (pathname.startsWith('/semantic-runtimes/onnxruntime-web-1.30.0-asyncify-r1/')) {
         filename = path.join(runtime, path.basename(pathname));
         encoded = filename.endsWith('.br');
-      } else if (pathname.startsWith('/semantic/')) filename = path.join(semantic, path.basename(pathname));
+      } else if (pathname.startsWith('/semantic/') && fixture) {
+        const body = pathname === '/semantic/index.json' ? indexBytes : pathname === '/semantic/vectors.f32' ? vectors : undefined;
+        if (!body) throw new Error('Not a file');
+        response.writeHead(200, {
+          'Content-Type': pathname.endsWith('.json') ? contentTypes['.json'] : contentTypes['.f32'],
+          'Content-Length': body.byteLength,
+          'Cache-Control': 'no-store',
+        });
+        response.end(body); return;
+      } else if (pathname.startsWith('/semantic/')) filename = path.join(semantic!, path.basename(pathname));
       else {
         const relative = pathname === '/' ? 'index.html' : pathname.slice(1);
         filename = path.resolve(dist, relative);
