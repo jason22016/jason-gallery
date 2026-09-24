@@ -1204,7 +1204,9 @@ test('search keyboard, chips, dates and URL state keep the original filter seman
   await expect(page.locator('.gallery-count')).toHaveText('53');
   assert.equal(new URL(page.url()).searchParams.get('tag'), null);
   await trigger.click(); await expect(page.getByRole('searchbox')).toBeFocused();
-  await page.keyboard.press('Escape'); await expect(page.locator('.gallery-panel')).toHaveCount(0);
+  // Focus can move between the assertion and a page-level key press on a busy CI renderer.
+  // Send Escape to the input whose key handler this test is checking.
+  await page.getByRole('searchbox').press('Escape'); await expect(page.locator('.gallery-panel')).toHaveCount(0);
   await expect(trigger).toBeFocused();
 });
 
